@@ -215,7 +215,6 @@ namespace Corrosive {
 					}
 					
 					sd->PreCompile(nctx);
-					
 
 					self->llvm_type = sd->LLVMType();
 					for (unsigned int i = 0; i < Ref(); i++)

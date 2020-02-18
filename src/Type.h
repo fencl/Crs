@@ -34,6 +34,7 @@ namespace Corrosive {
 		void Ref(unsigned int r);
 
 		static const Type* Parse(Cursor& c, std::vector<Cursor>* argnames = nullptr);
+		static const Type* ParseDirect(CompileContext& ctx, Cursor& c, std::vector<Cursor>* argnames = nullptr);
 
 		virtual const Type* CloneRef(unsigned int r) const;
 
@@ -153,6 +154,8 @@ namespace Corrosive {
 
 		Cursor Size() const;
 		void Size(Cursor);
+
+		void ActualSize(unsigned int) const;
 	protected:
 		Cursor size;
 		unsigned int actual_size = 0;

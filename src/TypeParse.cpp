@@ -5,9 +5,17 @@
 #include "Contents.h"
 #include "PredefinedTypes.h"
 #include "svtoi.h"
+#include "Expression.h"
 
 namespace Corrosive {
 	const Type* Type::Parse(Cursor& c, std::vector<Cursor>* argnames) {
+		CompileContext cctx;
+		cctx.parent_namespace = nullptr;
+		cctx.parent_struct = nullptr;
+		return ParseDirect(cctx, c, argnames);
+	}
+
+	const Type* Type::ParseDirect(CompileContext& ctx,Cursor& c, std::vector<Cursor>* argnames) {
 		const Type* rType = nullptr;
 
 
@@ -192,9 +200,41 @@ namespace Corrosive {
 				c.Move();
 
 				aType.Size(c);
+
+				if (ctx.parent_namespace == nullptr && ctx.parent_struct == nullptr) {
+					CompileContextExt ccext;
+					Expression::Parse(c, ccext, CompileType::ShortCircuit);
+				}
+				else {
+					CompileContextExt ccext;
+					ccext.basic = ctx;
+					Cursor ce = c;
+					CompileValue v = Expression::Parse(c, ccext, CompileType::Eval);
+					if (v.t == t_i8 || v.t == t_i16 || v.t == t_i32 || v.t == t_i64) {
+						long long cv = LLVMConstIntGetSExtValue(v.v);
+						if (cv <= 0) {
+							ThrowSpecificError(ce, "Array cannot be created with negative or zero size");
+						}
+						aType.ActualSize(cv);
+					}
+					else if (v.t == t_u8 || v.t == t_u16 || v.t == t_u32 || v.t == t_u64) {
+						unsigned long long cv = LLVMConstIntGetZExtValue(v.v);
+						if (cv == 0) {
+							ThrowSpecificError(ce, "Array cannot be created with zero size");
+						}
+						aType.ActualSize(cv);
+					}
+					else {
+						ThrowSpecificError(ce, "Array type must have constant integer size");
+					}
+				}
+
+				if (c.Tok() != RecognizedToken::CloseBracket) {
+					ThrowWrongTokenError(c, "']'");
+				}
 				c.Move();
 
-				int lvl = 1;
+				/*int lvl = 1;
 				while (c.Tok() != RecognizedToken::Eof && lvl > 0) {
 					if (c.Tok() == RecognizedToken::CloseBracket) {
 						lvl -= 1;
@@ -203,7 +243,7 @@ namespace Corrosive {
 						lvl += 1;
 					}
 					c.Move();
-				}
+				}*/
 
 				if ((c.Tok() == RecognizedToken::Symbol && c.Data() == "ref") || c.Tok() == RecognizedToken::Star) {
 					while (true) {

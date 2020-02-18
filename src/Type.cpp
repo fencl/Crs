@@ -23,6 +23,7 @@ namespace Corrosive {
 		return heavy_type;
 	}
 
+	void ArrayType::ActualSize(unsigned int asz) const { ArrayType* at = (ArrayType*)this;  at->actual_size = asz; }
 
 	LLVMTypeRef Type::LLVMType() const { return llvm_type; }
 	LLVMTypeRef Type::LLVMTypeLValue() const { return llvm_lvalue; }
