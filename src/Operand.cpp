@@ -17,7 +17,52 @@ namespace Corrosive {
 			}
 			c.Move();
 			return ret;
-		}else if (c.Tok() == RecognizedToken::Symbol) {
+		}
+		else if (c.Tok() == RecognizedToken::Symbol && c.Data() == "const") {
+			c.Move();
+			if (c.Tok() != RecognizedToken::OpenParenthesis) {
+				ThrowWrongTokenError(c, "'('");
+			}
+			c.Move();
+
+			if (c.Tok() != RecognizedToken::Symbol) {
+				ThrowNotANameError(c);
+			}
+			
+			auto gs = dynamic_cast<GenericStructDeclaration*>(ctx.basic.parent_struct);
+			
+			auto ind = gs->Generics().find(c.Data());
+			if (ind != gs->Generics().end()) {
+				auto& val = (*ctx.basic.template_ctx)[ind->second];
+				if (val.index() == 0) {
+					unsigned int v = std::get<0>(val);
+
+					LLVMValueRef cst = nullptr;
+					if (cpt != CompileType::ShortCircuit)
+						cst = LLVMConstInt(LLVMInt32Type(), v, true);
+					CompileValue cv;
+					cv.v = cst;
+					cv.t = Corrosive::t_i32;
+					cv.lvalue = false;
+					return cv;
+				}
+				else {
+					ThrowSpecificError(c, "Generic identifier points to a type, const requires it to be integer");
+				}
+			}
+			else {
+				ThrowSpecificError(c, "Identifier not found in the generic declaration");
+			}
+
+			c.Move();
+
+			if (c.Tok() != RecognizedToken::OpenParenthesis) {
+				ThrowWrongTokenError(c, "'('");
+			}
+			c.Move();
+
+		}
+		else if (c.Tok() == RecognizedToken::Symbol) {
 			Cursor pack;
 			Cursor name = c;
 			c.Move();

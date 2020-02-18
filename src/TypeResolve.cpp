@@ -51,36 +51,6 @@ namespace Corrosive {
 
 		mod |= ResolvePackageInPlace(rt.base, ctx);
 
-		if (Size().Tok() != RecognizedToken::Number) {
-			if (ctx.template_ctx != nullptr && ctx.parent_struct != nullptr && ctx.parent_struct->Generic()) {
-				GenericStructDeclaration* gs = (GenericStructDeclaration*)ctx.parent_struct;
-
-				auto it = gs->Generics().find(Size().Data());
-				if (it != gs->Generics().end()) {
-					auto& tctx = (*ctx.template_ctx)[it->second];
-					if (tctx.index() == 0) {
-						
-						rt.actual_size = std::get<0>(tctx);
-						if (actual_size != actual_size) mod = true;
-					}
-					else {
-						ThrowSpecificError(Size(), "The template value with this name is type, array requires integer template");
-					}
-				}
-				else {
-					ThrowSpecificError(Size(), "Array size is declared as templated but the struct/class has no identifier with that name");
-				}
-
-			}
-			else {
-				ThrowSpecificError(Size(), "Array size is declared as templated but the variable is not a member of templated struct/class");
-			}
-		}
-		else {
-			rt.actual_size = (unsigned int)svtoi(Size().Data());
-			if (actual_size != actual_size) mod = true;
-		}
-
 		if (mod)
 			return Contents::EmplaceType(rt);
 		else 

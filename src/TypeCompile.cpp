@@ -5,6 +5,7 @@
 #include "PredefinedTypes.h"
 #include "svtoi.h"
 #include <iostream>
+#include "Expression.h"
 
 namespace Corrosive {
 	
@@ -21,14 +22,36 @@ namespace Corrosive {
 
 		ArrayType* self = (ArrayType*)this;
 
-		if (size.Data() != "") {
-			base->PreCompile(ctx);
-			if (actual_size == 0) {
-				ThrowSpecificError(Size(), "This size was not evaluated (compiler error)");
-			}
+		base->PreCompile(ctx);
 
-			self->heavy_type = true;
+		CompileContextExt cctxext;
+		cctxext.basic = ctx;
+
+		Cursor cex = size;
+		CompileValue v = Expression::Parse(cex, cctxext, CompileType::Eval);
+
+		if (v.t == t_i8 || v.t == t_i16 || v.t == t_i32 || v.t == t_i64) {
+			long long cv = LLVMConstIntGetSExtValue(v.v);
+			if (cv <= 0) {
+				ThrowSpecificError(size, "Array cannot be created with negative or zero size");
+			}
+			self->actual_size = cv;
 		}
+		else if (v.t == t_u8 || v.t == t_u16 || v.t == t_u32 || v.t == t_u64) {
+			unsigned long long cv = LLVMConstIntGetZExtValue(v.v);
+			if (cv == 0) {
+				ThrowSpecificError(size, "Array cannot be created with zero size");
+			}
+			self->actual_size = cv;
+		}
+		else {
+			ThrowSpecificError(size, "Array type must have constant integer size");
+		}
+
+		self->heavy_type = true;
+
+		self->llvm_type = LLVMArrayType(base->LLVMType(), self->actual_size);
+		self->llvm_lvalue = self->llvm_rvalue = LLVMPointerType(self->llvm_type, 0);
 	}
 
 	void ArrayType::Compile(CompileContext& ctx) const {
@@ -171,13 +194,14 @@ namespace Corrosive {
 				}
 				else {
 
+					CompileContext nctx = ctx;
+					nctx.template_ctx = Templates();
+
 					if (sd->Generic()) {
 						if (Templates() == nullptr) {
 							ThrowSpecificError(name, "Primitive type points to generic structure and was not given generic arguments");
 						}
 						else {
-							CompileContext nctx = ctx;
-							nctx.template_ctx = Templates();
 							StructDeclaration* gsd = ((GenericStructDeclaration*)sd)->CreateTemplate(nctx);
 							sd = gsd;
 						}
@@ -190,7 +214,7 @@ namespace Corrosive {
 						self->heavy_type = true;
 					}
 					
-					sd->PreCompile(ctx);
+					sd->PreCompile(nctx);
 					
 
 					self->llvm_type = sd->LLVMType();

@@ -191,15 +191,19 @@ namespace Corrosive {
 
 				c.Move();
 
-				if (c.Tok() == RecognizedToken::Number || c.Tok() == RecognizedToken::Symbol) {
-					aType.Size(c);
+				aType.Size(c);
+				c.Move();
+
+				int lvl = 1;
+				while (c.Tok() != RecognizedToken::Eof && lvl > 0) {
+					if (c.Tok() == RecognizedToken::CloseBracket) {
+						lvl -= 1;
+					}
+					else if (c.Tok() == RecognizedToken::OpenBracket) {
+						lvl += 1;
+					}
 					c.Move();
 				}
-
-				if (c.Tok() != RecognizedToken::CloseBracket) {
-					ThrowWrongTokenError(c, "']'");
-				}
-				c.Move();
 
 				if ((c.Tok() == RecognizedToken::Symbol && c.Data() == "ref") || c.Tok() == RecognizedToken::Star) {
 					while (true) {

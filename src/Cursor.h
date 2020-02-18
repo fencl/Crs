@@ -26,6 +26,8 @@ namespace Corrosive {
 
 		Cursor Next() const;
 		void Move();
+
+		const void* Source() const;
 	private:
 		const void* src;
 		RecognizedToken token;

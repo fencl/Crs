@@ -17,6 +17,9 @@ namespace Corrosive {
 		data = d;
 	}
 
+
+	const void* Cursor::Source() const { return src; }
+
 	RecognizedToken const Cursor::Tok() const {
 		return token;
 	}
@@ -68,12 +71,12 @@ namespace Corrosive {
 
 	Cursor Cursor::Next() const {
 		Cursor c;
-		((Source*)src)->ReadAfter(c, *this);
+		((Corrosive::Source*)src)->ReadAfter(c, *this);
 		return c;
 	}
 
 	void Cursor::Move() {
-		((Source*)src)->ReadAfter(*this, *this);
+		((Corrosive::Source*)src)->ReadAfter(*this, *this);
 	}
 
 	void Source::Read(Cursor& out, size_t offset, unsigned int left, unsigned int top) const {

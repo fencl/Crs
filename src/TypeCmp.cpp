@@ -110,8 +110,13 @@ namespace Corrosive {
 		if (base < ft.base) return -1;
 		if (base > ft.base) return 1;
 
-		if (size.Data() < ft.size.Data()) return -1;
-		if (size.Data() > ft.size.Data()) return 1;
+		if (actual_size < ft.actual_size) return -1;
+		if (actual_size > ft.actual_size) return 1;
+
+		if (actual_size == 0) {
+			if (size.Data() < ft.size.Data()) return -1;
+			if (size.Data() > ft.size.Data()) return 1;
+		}
 
 		return 0;
 	}
@@ -120,7 +125,11 @@ namespace Corrosive {
 	size_t ArrayType::Hash() const {
 		size_t h = Type::Hash();
 		h ^= rot(std::hash<size_t>()((size_t)Base()), 9);
-		h ^= rot(std::hash<std::string_view>()(Size().Data()), 10);
+		if (actual_size == 0)
+			h ^= rot(std::hash<std::string_view>()(Size().Data()), 10) ^ rot(std::hash<size_t>()(Size().Offset()), 11) ^ rot(std::hash<const void*>()(Size().Source()), 12);
+		else
+			h ^= rot(std::hash<unsigned int>()(actual_size), 13);
+
 		return h;
 	}
 
