@@ -205,12 +205,12 @@ namespace Corrosive {
 
 
 	void StructDeclaration::TestInterfaceComplete() {
-		std::map<std::tuple<size_t, bool, std::string_view>, FunctionDeclaration*> iface_list;
+		std::map<std::tuple<bool, std::string_view>, FunctionDeclaration*> iface_list;
 
 		for (auto it = extends_structures.begin(); it != extends_structures.end(); it++) {
 			for (auto mit = (*it)->Members.begin(); mit != (*it)->Members.end(); mit++) {
 				if (auto f = dynamic_cast<FunctionDeclaration*>(mit->get())) {
-					std::tuple<size_t, bool, std::string_view>  key = std::make_tuple(((const FunctionType*)f->Type())->Args()->size(),f->Static(),f->Name().Data());
+					std::tuple<bool, std::string_view>  key = std::make_tuple(f->Static(),f->Name().Data());
 
 					auto nifc = iface_list.find(key);
 					if (nifc == iface_list.end()) {
@@ -227,7 +227,7 @@ namespace Corrosive {
 
 		for (auto it = Members.begin(); it != Members.end(); it++) {
 			if (auto f = dynamic_cast<FunctionDeclaration*>(it->get())) {
-				std::tuple<size_t,bool, std::string_view> key = std::make_tuple(((const FunctionType*)f->Type())->Args()->size(),f->Static(), f->Name().Data());
+				std::tuple<bool, std::string_view> key = std::make_tuple(f->Static(), f->Name().Data());
 				auto nifc = iface_list.find(key);
 				if (nifc != iface_list.end()) {
 					if (!((const FunctionType*)f->Type())->CanPrimCastIntoIgnoreThis(nifc->second->Type())) {
