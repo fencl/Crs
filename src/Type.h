@@ -156,10 +156,14 @@ namespace Corrosive {
 		void Size(Cursor);
 
 		void ActualSize(unsigned int) const;
+
+		bool HasSimpleSize() const;
+		void HasSimpleSize(bool b);
+
 	protected:
 		Cursor size;
 		unsigned int actual_size = 0;
-
+		bool simple_size = true;
 		const Type* base = nullptr;
 	};
 

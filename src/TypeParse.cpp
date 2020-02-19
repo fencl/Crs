@@ -200,37 +200,55 @@ namespace Corrosive {
 				c.Move();
 
 				aType.Size(c);
+				Cursor c1 = c;
+				c1.Move();
+				if (c1.Tok() == RecognizedToken::CloseBracket) {
+					aType.HasSimpleSize(true);
+					if (c.Tok() == RecognizedToken::Number)
+						aType.ActualSize(svtoi(c.Data()));
+					else if (c.Tok() == RecognizedToken::UnsignedNumber)
+						aType.ActualSize(svtoi(c.Data().substr(0,c.Data().size()-1)));
+					else if (c.Tok() == RecognizedToken::LongNumber)
+						aType.ActualSize(svtoi(c.Data().substr(0, c.Data().size() - 1)));
+					else if (c.Tok() == RecognizedToken::UnsignedLongNumber)
+						aType.ActualSize(svtoi(c.Data().substr(0, c.Data().size() - 2)));
 
-				if (ctx.parent_namespace == nullptr && ctx.parent_struct == nullptr) {
-					CompileContextExt ccext;
-					Expression::Parse(c, ccext, CompileType::ShortCircuit);
+					c = c1;
 				}
 				else {
-					CompileContextExt ccext;
-					ccext.basic = ctx;
-					Cursor ce = c;
-					CompileValue v = Expression::Parse(c, ccext, CompileType::Eval);
-					if (v.t == t_i8 || v.t == t_i16 || v.t == t_i32 || v.t == t_i64) {
-						long long cv = LLVMConstIntGetSExtValue(v.v);
-						if (cv <= 0) {
-							ThrowSpecificError(ce, "Array cannot be created with negative or zero size");
-						}
-						aType.ActualSize(cv);
-					}
-					else if (v.t == t_u8 || v.t == t_u16 || v.t == t_u32 || v.t == t_u64) {
-						unsigned long long cv = LLVMConstIntGetZExtValue(v.v);
-						if (cv == 0) {
-							ThrowSpecificError(ce, "Array cannot be created with zero size");
-						}
-						aType.ActualSize(cv);
+					aType.HasSimpleSize(false);
+
+					if (ctx.parent_namespace == nullptr && ctx.parent_struct == nullptr) {
+						CompileContextExt ccext;
+						Expression::Parse(c, ccext, CompileType::ShortCircuit);
 					}
 					else {
-						ThrowSpecificError(ce, "Array type must have constant integer size");
+						CompileContextExt ccext;
+						ccext.basic = ctx;
+						Cursor ce = c;
+						CompileValue v = Expression::Parse(c, ccext, CompileType::Eval);
+						if (v.t == t_i8 || v.t == t_i16 || v.t == t_i32 || v.t == t_i64) {
+							long long cv = LLVMConstIntGetSExtValue(v.v);
+							if (cv <= 0) {
+								ThrowSpecificError(ce, "Array cannot be created with negative or zero size");
+							}
+							aType.ActualSize(cv);
+						}
+						else if (v.t == t_u8 || v.t == t_u16 || v.t == t_u32 || v.t == t_u64) {
+							unsigned long long cv = LLVMConstIntGetZExtValue(v.v);
+							if (cv == 0) {
+								ThrowSpecificError(ce, "Array cannot be created with zero size");
+							}
+							aType.ActualSize(cv);
+						}
+						else {
+							ThrowSpecificError(ce, "Array type must have constant integer size");
+						}
 					}
-				}
 
-				if (c.Tok() != RecognizedToken::CloseBracket) {
-					ThrowWrongTokenError(c, "']'");
+					if (c.Tok() != RecognizedToken::CloseBracket) {
+						ThrowWrongTokenError(c, "']'");
+					}
 				}
 				c.Move();
 
