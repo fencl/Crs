@@ -22,31 +22,11 @@ namespace Corrosive {
 
 		ArrayType* self = (ArrayType*)this;
 
+		if (actual_size == 0) {
+			ThrowSpecificError(size, "Size of array type has not been evaluated (compiler error)");
+		}
+
 		base->PreCompile(ctx);
-
-		CompileContextExt cctxext;
-		cctxext.basic = ctx;
-
-		Cursor cex = size;
-		CompileValue v = Expression::Parse(cex, cctxext, CompileType::Eval);
-
-		if (v.t == t_i8 || v.t == t_i16 || v.t == t_i32 || v.t == t_i64) {
-			long long cv = LLVMConstIntGetSExtValue(v.v);
-			if (cv <= 0) {
-				ThrowSpecificError(size, "Array cannot be created with negative or zero size");
-			}
-			self->actual_size = (unsigned int)cv;
-		}
-		else if (v.t == t_u8 || v.t == t_u16 || v.t == t_u32 || v.t == t_u64) {
-			unsigned long long cv = LLVMConstIntGetZExtValue(v.v);
-			if (cv == 0) {
-				ThrowSpecificError(size, "Array cannot be created with zero size");
-			}
-			self->actual_size = (unsigned int)cv;
-		}
-		else {
-			ThrowSpecificError(size, "Array type must have constant integer size");
-		}
 
 		self->heavy_type = true;
 

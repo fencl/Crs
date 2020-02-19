@@ -66,9 +66,16 @@ namespace Corrosive {
 		base->Print();
 
 		std::cout << " [";
-		if (size.Data() != "") {
+		if (actual_size!=0) {
 			std::cout << actual_size;
 		}
+		else {
+			std::cout << size.Data();
+			if (!HasSimpleSize()) {
+				std::cout << "... ("<<size.Offset()<<")";
+			}
+		}
+
 		std::cout << "]";
 		Type::Print();
 	}

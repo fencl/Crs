@@ -1,4 +1,5 @@
 #include "Type.h"
+#include <iostream>
 
 namespace Corrosive {
 
@@ -113,12 +114,13 @@ namespace Corrosive {
 		if (actual_size < ft.actual_size) return -1;
 		if (actual_size > ft.actual_size) return 1;
 
-		if (simple_size < ft.simple_size) return -1;
-		if (simple_size > ft.simple_size) return 1;
-
 		if (actual_size == 0) {
 			if (size.Data() < ft.size.Data()) return -1;
 			if (size.Data() > ft.size.Data()) return 1;
+
+			if (simple_size < ft.simple_size) return -1;
+			if (simple_size > ft.simple_size) return 1;
+
 			if (!HasSimpleSize()) {
 				if (size.Offset() < ft.size.Offset()) return -1;
 				if (size.Offset() > ft.size.Offset()) return 1;

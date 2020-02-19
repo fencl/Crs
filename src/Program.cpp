@@ -106,7 +106,10 @@ int main() {
 		<< "\n\tgeneric arrays: " << Corrosive::Contents::GenericArrays.size()
 		<< std::endl;
 
-
-
+	if (false) {
+		for (auto&& t : Corrosive::Contents::AllTypes) {
+			t->PrintLn();
+		}
+	}
 	return 0;
 }
