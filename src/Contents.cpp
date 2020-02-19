@@ -15,7 +15,7 @@ namespace Corrosive {
 	std::unordered_set<const std::vector<const Type*>*, Contents::TypeArrayHash, Contents::TypeArrayCompare> Contents::TypeArrays(1000);
 
 
-	std::unordered_set<const std::vector<std::variant<unsigned int, const Type*>>*, Contents::GenericArrayHash, Contents::GenericArrayCompare> Contents::GenericArrays(1000);
+	std::unordered_set<const TemplateContext*, Contents::GenericArrayHash, Contents::GenericArrayCompare> Contents::GenericArrays(1000);
 
 
 	FunctionDeclaration* Contents::entry_point = nullptr;
@@ -33,13 +33,13 @@ namespace Corrosive {
 	}
 
 
-	const std::vector<std::variant<unsigned int, const Type*>>* Contents::RegisterGenericArray(std::vector<std::variant<unsigned int, const Type*>>&& arr) {
+	const TemplateContext* Contents::RegisterGenericArray(TemplateContext&& arr) {
 		auto f = GenericArrays.find(&arr);
 		if (f != GenericArrays.end()) {
 			return (*f);
 		}
 		else {
-			const std::vector<std::variant<unsigned int, const Type*>>* nt = new std::vector<std::variant<unsigned int, const Type*>>(std::move(arr));
+			const TemplateContext* nt = new TemplateContext(std::move(arr));
 			auto r = GenericArrays.insert(nt);
 			return nt;
 		}

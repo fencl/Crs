@@ -21,7 +21,7 @@ namespace Corrosive {
 			}
 			c.Move();
 		}
-		else if (c.Tok() == RecognizedToken::Symbol && c.Data() == "const") {
+		/*else if (c.Tok() == RecognizedToken::Symbol && c.Data() == "const") {
 			c.Move();
 			if (c.Tok() != RecognizedToken::OpenParenthesis) {
 				ThrowWrongTokenError(c, "'('");
@@ -65,7 +65,7 @@ namespace Corrosive {
 				ThrowWrongTokenError(c, "')'");
 			}
 			c.Move();
-		}
+		}*/
 		else if (c.Tok() == RecognizedToken::Symbol) {
 			Cursor pack;
 			Cursor name = c;

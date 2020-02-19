@@ -135,11 +135,10 @@ namespace Corrosive {
 		bool mod2 = false;
 
 		if (rt.Templates() != nullptr) {
-			std::vector<std::variant<unsigned int, const Type*>> tps = *rt.Templates();
+			std::vector<const Type*> tps = *rt.Templates();
 
 			for (auto it = tps.begin(); it != tps.end(); it++) {
-				if (it->index() == 1)
-					mod2 |= ResolvePackageInPlace(std::get<1>(*it), ctx);
+				mod2 |= ResolvePackageInPlace(*it, ctx);
 			}
 
 			if (mod2) {

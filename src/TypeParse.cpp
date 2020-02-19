@@ -114,7 +114,7 @@ namespace Corrosive {
 				}
 
 				if (c.Tok() == RecognizedToken::LessThan) {
-					std::vector<std::variant<unsigned int, const Type*>> tps;
+					TemplateContext tps;
 
 					c.Move();
 					while (true) {
@@ -122,12 +122,7 @@ namespace Corrosive {
 							c.Move(); break;
 						}
 
-						if (c.Tok() == RecognizedToken::Number) {
-							tps.push_back((unsigned int)svtoi(c.Data()));
-							c.Move();
-						}
-						else
-							tps.push_back(Type::Parse(c));
+						tps.push_back(Type::Parse(c));
 
 						if (c.Tok() == RecognizedToken::Comma) c.Move(); else if (c.Tok() != RecognizedToken::GreaterThan) {
 							ThrowWrongTokenError(c, "',' or '>'");

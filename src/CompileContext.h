@@ -15,7 +15,7 @@ namespace Corrosive {
 		Compile, Eval, ShortCircuit
 	};
 
-	using TemplateContext = std::vector<std::variant<unsigned int, const Type*>>;
+	using TemplateContext = std::vector<const Type*>;
 
 	struct CompileContext {
 		StructDeclaration* parent_struct;

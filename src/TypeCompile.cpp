@@ -151,7 +151,7 @@ namespace Corrosive {
 
 				if (sd->DeclType() == StructDeclarationType::t_array || sd->DeclType() == StructDeclarationType::t_tuple) {
 
-					if (Templates() == nullptr || (Templates()->size() != 1 && (*Templates())[0].index() != 1))
+					if (Templates() == nullptr || Templates()->size() != 1)
 						ThrowSpecificError(name, "Wrong parameters given to predefined type");
 
 
@@ -162,15 +162,15 @@ namespace Corrosive {
 					self->structure_cache = gsd;
 
 					if (Ref() == 0) {
-						std::get<1>((*Templates())[0])->Compile(nctx);
+						(*Templates())[0]->Compile(nctx);
 					}
 					else {
-						std::get<1>((*Templates())[0])->PreCompile(nctx);
+						(*Templates())[0]->PreCompile(nctx);
 					}
 
-					self->llvm_type = std::get<1>((*Templates())[0])->LLVMType();
-					self->llvm_lvalue = std::get<1>((*Templates())[0])->LLVMTypeLValue();
-					self->llvm_rvalue = std::get<1>((*Templates())[0])->LLVMTypeRValue();
+					self->llvm_type = (*Templates())[0]->LLVMType();
+					self->llvm_lvalue = (*Templates())[0]->LLVMTypeLValue();
+					self->llvm_rvalue = (*Templates())[0]->LLVMTypeRValue();
 				}
 				else {
 

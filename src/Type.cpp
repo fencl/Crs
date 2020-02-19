@@ -168,10 +168,7 @@ namespace Corrosive {
 					std::cout << ", ";
 				}
 
-				if (it->index() == 0)
-					std::cout << std::get<0>(*it);
-				else
-					std::get<1>(*it)->Print();
+				(*it)->Print();
 
 			}
 			std::cout << ">";
