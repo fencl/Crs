@@ -150,8 +150,8 @@ namespace Corrosive {
 				LLVMStructSetBody(llvm_type, mem_types.data(), (unsigned int)mem_types.size(), false);
 
 
-			TestInterfaceComplete();
 			BuildLookupTable();
+			TestInterfaceComplete();
 		}
 	}
 
@@ -187,12 +187,12 @@ namespace Corrosive {
 
 
 	void StructDeclaration::TestInterfaceComplete() {
-		std::map<std::tuple<bool, std::string_view>, FunctionDeclaration*> iface_list;
+		std::map<std::string_view, FunctionDeclaration*> iface_list;
 
 		for (auto it = extends_structures.begin(); it != extends_structures.end(); it++) {
 			for (auto mit = (*it)->Members.begin(); mit != (*it)->Members.end(); mit++) {
 				if (auto f = dynamic_cast<FunctionDeclaration*>(mit->get())) {
-					std::tuple<bool, std::string_view>  key = std::make_tuple(f->Static(),f->Name().Data());
+					std::string_view  key = f->Name().Data();
 
 					auto nifc = iface_list.find(key);
 					if (nifc == iface_list.end()) {
@@ -200,22 +200,26 @@ namespace Corrosive {
 					}
 					else {
 						if (!((const FunctionType*)nifc->second->Type())->CanPrimCastIntoIgnoreThis(f->Type())) {
-							ThrowSpecificError(Name(), "Structure has two interfaces with incompatible function");
+							ThrowSpecificError(Name(), "Structure has two interfaces with trait function");
+						}
+						if (nifc->second->Static() != f->Static()) {
+							ThrowSpecificError(Name(), "Structure has two interfaces with trait function");
 						}
 					}
 				}
 			}
 		}
 
-		for (auto it = Members.begin(); it != Members.end(); it++) {
-			if (auto f = dynamic_cast<FunctionDeclaration*>(it->get())) {
-				std::tuple<bool, std::string_view> key = std::make_tuple(f->Static(), f->Name().Data());
+		for (auto it = LookupTable.begin(); it != LookupTable.end(); it++) {
+			Declaration* actual_decl = FindDeclarationOfMember(it->first);
+
+			if (auto f = dynamic_cast<FunctionDeclaration*>(actual_decl)) {
+				std::string_view key = f->Name().Data();
 				auto nifc = iface_list.find(key);
 				if (nifc != iface_list.end()) {
 					if (!((const FunctionType*)f->Type())->CanPrimCastIntoIgnoreThis(nifc->second->Type())) {
-						ThrowSpecificError(f->Name(), "Function is not compatible with interface declaration");
+						ThrowSpecificError(f->Name(), "Declaration is not compatible with trait declaration");
 					}
-
 					iface_list.erase(nifc);
 				}
 			}

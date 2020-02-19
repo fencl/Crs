@@ -167,6 +167,8 @@ namespace Corrosive {
 		std::vector<std::pair<Cursor, Cursor>> Aliases;
 		std::map<std::string_view, std::tuple<Declaration*, unsigned int, std::string_view>> LookupTable;
 
+		Declaration* FindDeclarationOfMember(std::string_view name);
+
 	protected:
 		std::vector<StructDeclaration*> extends_structures;
 		std::vector<std::pair<StructDeclaration*, const Corrosive::Type*>> extends;

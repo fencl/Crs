@@ -192,6 +192,23 @@ namespace Corrosive {
 
 	}
 
+
+	Declaration* StructDeclaration::FindDeclarationOfMember(std::string_view name) {
+		auto d = LookupTable.find(name);
+		if (d == LookupTable.end()) {
+			return nullptr;
+		}
+		else {
+			Declaration* decl = std::get<0>(d->second);
+			if (auto sdecl = dynamic_cast<StructDeclaration*>(decl)) {
+				return sdecl->FindDeclarationOfMember(name);
+			}
+			else {
+				return decl;
+			}
+		}
+	}
+
 	std::map<std::string_view, int>& GenericFunctionDeclaration::Generics() { return generic_typenames; }
 	const std::map<std::string_view, int>& GenericFunctionDeclaration::Generics() const { return generic_typenames; }
 
