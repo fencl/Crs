@@ -205,13 +205,13 @@ namespace Corrosive {
 				if (c1.Tok() == RecognizedToken::CloseBracket) {
 					aType.HasSimpleSize(true);
 					if (c.Tok() == RecognizedToken::Number)
-						aType.ActualSize(svtoi(c.Data()));
+						aType.ActualSize((unsigned int)svtoi(c.Data()));
 					else if (c.Tok() == RecognizedToken::UnsignedNumber)
-						aType.ActualSize(svtoi(c.Data().substr(0,c.Data().size()-1)));
+						aType.ActualSize((unsigned int)svtoi(c.Data().substr(0,c.Data().size()-1)));
 					else if (c.Tok() == RecognizedToken::LongNumber)
-						aType.ActualSize(svtoi(c.Data().substr(0, c.Data().size() - 1)));
+						aType.ActualSize((unsigned int)svtoi(c.Data().substr(0, c.Data().size() - 1)));
 					else if (c.Tok() == RecognizedToken::UnsignedLongNumber)
-						aType.ActualSize(svtoi(c.Data().substr(0, c.Data().size() - 2)));
+						aType.ActualSize((unsigned int)svtoi(c.Data().substr(0, c.Data().size() - 2)));
 
 					c = c1;
 				}
@@ -232,14 +232,14 @@ namespace Corrosive {
 							if (cv <= 0) {
 								ThrowSpecificError(ce, "Array cannot be created with negative or zero size");
 							}
-							aType.ActualSize(cv);
+							aType.ActualSize((unsigned int)cv);
 						}
 						else if (v.t == t_u8 || v.t == t_u16 || v.t == t_u32 || v.t == t_u64) {
 							unsigned long long cv = LLVMConstIntGetZExtValue(v.v);
 							if (cv == 0) {
 								ThrowSpecificError(ce, "Array cannot be created with zero size");
 							}
-							aType.ActualSize(cv);
+							aType.ActualSize((unsigned int)cv);
 						}
 						else {
 							ThrowSpecificError(ce, "Array type must have constant integer size");
