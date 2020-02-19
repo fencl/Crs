@@ -163,6 +163,8 @@ namespace Corrosive {
 
 		LLVMTypeRef LLVMType();
 
+		std::vector<std::pair<Cursor, Cursor>> Aliases;
+
 	protected:
 		std::vector<StructDeclaration*> extends_structures;
 		std::vector<std::pair<StructDeclaration*, const Corrosive::Type*>> extends;
