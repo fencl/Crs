@@ -374,42 +374,41 @@ namespace Corrosive {
 					}
 					else if (c.Tok() == RecognizedToken::Symbol && c.Data() == "alias") {
 						c.Move();
-						std::vector<Cursor> alias_names;
+						bool specific = false;
+						Cursor alias_from = c;
+						c.Move();
 
-						if (c.Tok() != RecognizedToken::Colon) {
+						if (c.Tok() == RecognizedToken::DoubleColon) {
+							c.Move();
+
 							while (true) {
 								if (c.Tok() != RecognizedToken::Symbol) {
 									ThrowNotANameError(c);
 								}
-								alias_names.push_back(c);
+								specific = true;
+								sd->Aliases.push_back(std::make_pair(c, alias_from));
 								c.Move();
 
-								if (c.Tok() == RecognizedToken::Colon) {
+								if (c.Tok() == RecognizedToken::Semicolon) {
 									break;
 								}
 								else if (c.Tok() != RecognizedToken::Comma) {
-									ThrowWrongTokenError(c, "':' or ','");
+									ThrowWrongTokenError(c, "',' or ';'");
 								}
-								else { c.Move(); }
+								else {
+									c.Move();
+								}
 							}
 						}
-						c.Move();
 
-						Cursor alias_from = c;
-						c.Move();
 						if (c.Tok() != RecognizedToken::Semicolon) {
 							ThrowWrongTokenError(c, "';'");
 						}
 						c.Move();
 
-						if (alias_names.size() == 0) {
+						if (!specific) {
 							Cursor empty;
-							empty.Data("");
-							alias_names.push_back(empty);
-						}
-
-						for (int i = 0; i < alias_names.size(); i++) {
-							sd->Aliases.push_back(std::make_pair(alias_names[i], alias_from));
+							sd->Aliases.push_back(std::make_pair(empty, alias_from));
 						}
 					}
 					else {
@@ -458,45 +457,43 @@ namespace Corrosive {
 					}
 					else if (c.Tok() == RecognizedToken::Symbol && c.Data() == "alias") {
 						c.Move();
-						std::vector<Cursor> alias_names;
+						bool specific = false;
+						Cursor alias_from = c;
+						c.Move();
 
-						if (c.Tok() != RecognizedToken::Colon) {
+						if (c.Tok() == RecognizedToken::DoubleColon) {
+							c.Move();
+
 							while (true) {
 								if (c.Tok() != RecognizedToken::Symbol) {
 									ThrowNotANameError(c);
 								}
-								alias_names.push_back(c);
+								specific = true;
+								sd->Aliases.push_back(std::make_pair(c, alias_from));
 								c.Move();
 
-								if (c.Tok() == RecognizedToken::Colon) {
+								if (c.Tok() == RecognizedToken::Semicolon) {
 									break;
 								}
 								else if (c.Tok() != RecognizedToken::Comma) {
-									ThrowWrongTokenError(c, "':' or ','");
+									ThrowWrongTokenError(c, "',' or ';'");
 								}
 								else {
 									c.Move();
 								}
 							}
 						}
-						c.Move();
 
-						Cursor alias_from = c;
-						c.Move();
 						if (c.Tok() != RecognizedToken::Semicolon) {
 							ThrowWrongTokenError(c, "';'");
 						}
 						c.Move();
 
-						if (alias_names.size() == 0) {
+						if (!specific) {
 							Cursor empty;
-							empty.Data("");
-							alias_names.push_back(empty);
+							sd->Aliases.push_back(std::make_pair(empty,alias_from));
 						}
 
-						for (int i = 0; i < alias_names.size(); i++) {
-							sd->Aliases.push_back(std::make_pair(alias_names[i], alias_from));
-						}
 					} else {
 						Declaration::Parse(c, sd->Members, sd.get(), pack);
 					}
