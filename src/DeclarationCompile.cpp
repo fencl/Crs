@@ -96,10 +96,14 @@ namespace Corrosive {
 				(*it)->PreCompile(ctx);
 			}
 
+			std::vector<LLVMTypeRef> mem_types;
 
 			for (int i = 0; i < Members.size(); i++) {
 				std::unique_ptr<Declaration>& decl = Members[i];
-				if (auto fdecl = dynamic_cast<FunctionDeclaration*>(decl.get())) {
+				VariableDeclaration* vdecl;
+				FunctionDeclaration* fdecl;
+
+				if (fdecl = dynamic_cast<FunctionDeclaration*>(decl.get())) {
 
 					const FunctionType*& fdt = (const FunctionType*&)fdecl->Type();
 
@@ -129,7 +133,21 @@ namespace Corrosive {
 				}
 
 				decl->PreCompile(ctx);
+
+				if (vdecl = dynamic_cast<VariableDeclaration*>(decl.get())) {
+					if (!Class())
+						mem_types.push_back(vdecl->Type()->LLVMType());
+					else
+						ThrowSpecificError(vdecl->Name(), "variable found in trait type");
+				}
+				else if (fdecl != nullptr) {
+					if (Class())
+						mem_types.push_back(LLVMPointerType(fdecl->Type()->LLVMType(), 0));
+				}
 			}
+
+			if (DeclType() == StructDeclarationType::Declared)
+				LLVMStructSetBody(llvm_type, mem_types.data(), (unsigned int)mem_types.size(), false);
 
 
 			TestInterfaceComplete();
@@ -142,54 +160,17 @@ namespace Corrosive {
 
 			llvm_compile_progress = 1;
 
-
 			for (auto it = extends_structures.begin(); it != extends_structures.end(); it++) {
 				(*it)->Compile(ctx);
 			}
 
-			// move into precompile so the type size can be evalueted faster
+			for (int i = 0; i < Members.size(); i++) {
+				std::unique_ptr<Declaration>& decl = Members[i];
 
-			if (!Class()) {
-				if (DeclType() == StructDeclarationType::Declared) {
-					std::vector<LLVMTypeRef> mem_types;
-
-					for (int i = 0; i < Members.size(); i++) {
-						std::unique_ptr<Declaration>& decl = Members[i];
-
-						if (auto vdecl = dynamic_cast<VariableDeclaration*>(decl.get())) {
-							if (vdecl->Type()->Ref() == 0)
-								vdecl->Compile(ctx);
-
-							mem_types.push_back(vdecl->Type()->LLVMType());
-						}
-					}
-
-					LLVMStructSetBody(llvm_type, mem_types.data(), (unsigned int)mem_types.size(), false);
+				if (auto vdecl = dynamic_cast<VariableDeclaration*>(decl.get())) {
+					if (vdecl->Type()->Ref() == 0)
+						vdecl->Compile(ctx);
 				}
-				else {
-					for (int i = 0; i < Members.size(); i++) {
-						std::unique_ptr<Declaration>& decl = Members[i];
-
-						if (auto vdecl = dynamic_cast<VariableDeclaration*>(decl.get())) {
-							if (vdecl->Type()->Ref() == 0)
-								vdecl->Compile(ctx);
-
-						}
-					}
-				}
-			}
-			else {
-				std::vector<LLVMTypeRef> mem_types;
-				for (int i = 0; i < Members.size(); i++) {
-					std::unique_ptr<Declaration>& decl = Members[i];
-
-					if (auto fdecl = dynamic_cast<FunctionDeclaration*>(decl.get())) {
-						fdecl->PreCompile(ctx);
-						mem_types.push_back(LLVMPointerType(fdecl->Type()->LLVMType(),0));
-					}
-				}
-
-				LLVMStructSetBody(llvm_type, mem_types.data(), (unsigned int)mem_types.size(), false);
 			}
 
 			llvm_compile_progress = 2;

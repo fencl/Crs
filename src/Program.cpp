@@ -101,7 +101,7 @@ int main() {
 		std::cout << std::endl << std::endl;
 	}
 
-	std::cout << "memory usage: \n\ttypes: " << Corrosive::Contents::AllTypes.size()
+	std::cout << "allocated: \n\ttypes: " << Corrosive::Contents::AllTypes.size()
 		<< "\n\ttype arrays: " << Corrosive::Contents::TypeArrays.size() 
 		<< "\n\tgeneric arrays: " << Corrosive::Contents::GenericArrays.size()
 		<< std::endl;
