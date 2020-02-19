@@ -152,6 +152,8 @@ namespace Corrosive {
 			sd->DeclType(DeclType());
 			sd->Template(ctx.template_ctx);
 
+			sd->Aliases = Aliases;
+
 			for (int i = 0; i < Extends().size(); i++) {
 				const Corrosive::Type* nex = Extends()[i].second;
 				CompileContext nctx = ctx;

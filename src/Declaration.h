@@ -145,6 +145,7 @@ namespace Corrosive {
 		virtual void PreCompile(CompileContext& ctx);
 
 		void TestInterfaceComplete();
+		void BuildLookupTable();
 
 		int GenID() const;
 		void GenID(int id);
@@ -164,6 +165,7 @@ namespace Corrosive {
 		LLVMTypeRef LLVMType();
 
 		std::vector<std::pair<Cursor, Cursor>> Aliases;
+		std::map<std::string_view, std::tuple<Declaration*, unsigned int, std::string_view>> LookupTable;
 
 	protected:
 		std::vector<StructDeclaration*> extends_structures;

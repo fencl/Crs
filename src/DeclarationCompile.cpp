@@ -151,6 +151,7 @@ namespace Corrosive {
 
 
 			TestInterfaceComplete();
+			BuildLookupTable();
 		}
 	}
 
@@ -227,6 +228,75 @@ namespace Corrosive {
 	}
 
 
+	void StructDeclaration::BuildLookupTable() {
+		unsigned int lookup_id = 0;
+
+		for (auto it = Members.begin(); it != Members.end(); it++) {
+			if (auto f = dynamic_cast<FunctionDeclaration*>(it->get())) {
+				std::tuple<Declaration*, unsigned int, std::string_view> val = std::make_tuple(it->get(), 0,"");
+				
+				auto i = LookupTable.emplace(f->Name().Data(), val);
+				if (!i.second) {
+					ThrowSpecificError(f->Name(), "Member with the same name already existed in the structure");
+				}
+			}
+			else if (auto v = dynamic_cast<VariableDeclaration*>(it->get())) {
+				std::tuple<Declaration*, unsigned int, std::string_view> val = std::make_tuple(it->get(), lookup_id++, "");
+				
+				auto i = LookupTable.emplace(v->Name().Data(), val);
+				if (!i.second) {
+					ThrowSpecificError(v->Name(), "Member with the same name already existed in the structure");
+				}
+			}
+		}
+
+		for (auto it = Aliases.begin(); it != Aliases.end(); it++) {
+			Cursor a_nm = it->first;
+			Cursor a_fm = it->second;
+			auto look = LookupTable.find(a_fm.Data());
+			if (look == LookupTable.end()) {
+				ThrowSpecificError(a_fm, "Member with this name was not declared in this structure");
+			}
+			else {
+				Declaration* alias_var = std::get<0>(look->second);
+				if (auto v = dynamic_cast<VariableDeclaration*>(alias_var)) {
+					const Type* alias_var_type = v->Type();
+					StructDeclaration* alias_struct = nullptr;
+					
+					if (auto pt = dynamic_cast<const PrimitiveType*>(alias_var_type)) {
+						alias_struct = pt->Structure();
+					}
+					else {
+						ThrowSpecificError(a_fm, "Alias points to variable with type that cannot be aliased");
+					}
+
+					if (a_nm.Data().empty()) {
+						for (auto m_it = alias_struct->LookupTable.begin(); m_it != alias_struct->LookupTable.end(); m_it++) {
+							std::tuple<Declaration*, unsigned int, std::string_view> val = std::make_tuple(alias_struct, std::get<1>(look->second), m_it->first);
+							LookupTable.emplace((std::string_view)m_it->first,val);
+						}
+					}
+					else {
+						auto m_it = alias_struct->LookupTable.find(a_nm.Data());
+						if (m_it == alias_struct->LookupTable.end()) {
+							ThrowSpecificError(a_nm, "Member with this name does not exist in the aliased structure");
+						}
+						else {
+							std::tuple<Declaration*, unsigned int, std::string_view> val = std::make_tuple(alias_struct, std::get<1>(look->second), m_it->first);
+							auto emp = LookupTable.emplace((std::string_view)m_it->first, val);
+							if (!emp.second) {
+								ThrowSpecificError(a_nm, "Member with the same name already exists in the structure");
+							}
+						}
+					}
+				}
+				else {
+					ThrowSpecificError(a_fm, "Alias points to function");
+				}
+			}
+
+		}
+	}
 
 	void FunctionDeclaration::PreCompile(CompileContext& ctx) {
 		if (Type()->LLVMType() != nullptr) return;
