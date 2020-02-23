@@ -15,11 +15,13 @@ namespace Corrosive {
 		if (ID() > t2.ID()) return 1;
 		if (ref < t2.ref) return -1;
 		if (ref > t2.ref) return 1;
+		if (unsafe < t2.unsafe) return -1;
+		if (unsafe > t2.unsafe) return 1;
 		return 0;
 	}
 
 	size_t Type::Hash() const {
-		return std::hash<int>()(ID()) ^ rot(std::hash<int>()(ref), 1);
+		return std::hash<int>()(ID()) ^ rot(std::hash<int>()(ref), 1) ^ rot(std::hash<int>()(unsafe), 2);
 	}
 
 	int PrimitiveType::Cmp(const Type& t2) const {

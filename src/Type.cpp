@@ -43,8 +43,12 @@ namespace Corrosive {
 	}
 
 	void Type::Print() const {
-		for (unsigned int i = 0; i < ref;i++) {
-			std::cout << "*";
+		if (unsafe) {
+			std::cout << "?";
+		}
+
+		if (ref) {
+			std::cout << "&";
 		}
 	}
 

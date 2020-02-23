@@ -44,6 +44,8 @@ namespace Corrosive {
 
 
 		bool ref = false;
+		bool unsafe = false;
+
 	protected:
 		LLVMTypeRef llvm_type = nullptr;
 		LLVMTypeRef llvm_lvalue = nullptr;
