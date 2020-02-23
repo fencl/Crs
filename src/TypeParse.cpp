@@ -53,14 +53,9 @@ namespace Corrosive {
 					}
 				}
 
-				if ((c.Tok() == RecognizedToken::Symbol && c.Data() == "ref") || c.Tok() == RecognizedToken::Star) {
-					while (true) {
-						if (c.Tok() == RecognizedToken::Star || c.Data() == "ref") {
-							fType.Ref(fType.Ref() + 1);
-							c.Move();
-						}
-						else break;
-					}
+				if ((c.Tok() == RecognizedToken::Symbol && c.Data() == "ref") || c.Tok() == RecognizedToken::And) {
+					fType.ref = true;
+					c.Move();
 				}
 
 				fType.Types() = Contents::RegisterTypeArray(std::move(tps));
@@ -84,14 +79,9 @@ namespace Corrosive {
 					}
 				}
 
-				if ((c.Tok() == RecognizedToken::Symbol && c.Data() == "ref") || c.Tok() == RecognizedToken::Star) {
-					while (true) {
-						if (c.Tok() == RecognizedToken::Star || c.Data() == "ref") {
-							fType.Ref(fType.Ref() + 1);
-							c.Move();
-						}
-						else break;
-					}
+				if ((c.Tok() == RecognizedToken::Symbol && c.Data() == "ref") || c.Tok() == RecognizedToken::And) {
+					fType.ref = true;
+					c.Move();
 				}
 
 				fType.Types() = Contents::RegisterTypeArray(std::move(tps));
@@ -131,14 +121,9 @@ namespace Corrosive {
 					pType.Templates() = Contents::RegisterGenericArray(std::move(tps));
 				}
 
-				if ((c.Tok() == RecognizedToken::Symbol && c.Data() == "ref") || c.Tok() == RecognizedToken::Star) {
-					while (true) {
-						if (c.Tok() == RecognizedToken::Star || c.Data() == "ref") {
-							pType.Ref(pType.Ref() + 1);
-							c.Move();
-						}
-						else break;
-					}
+				if ((c.Tok() == RecognizedToken::Symbol && c.Data() == "ref") || c.Tok() == RecognizedToken::And) {
+					pType.ref = true;
+					c.Move();
 				}
 
 				rType = Contents::EmplaceType(pType);
@@ -175,14 +160,9 @@ namespace Corrosive {
 					}
 				}
 
-				if ((c.Tok() == RecognizedToken::Symbol && c.Data() == "ref") || c.Tok() == RecognizedToken::Star) {
-					while (true) {
-						if (c.Tok() == RecognizedToken::Star || c.Data() == "ref") {
-							fType.Ref(fType.Ref() + 1);
-							c.Move();
-						}
-						else break;
-					}
+				if ((c.Tok() == RecognizedToken::Symbol && c.Data() == "ref") || c.Tok() == RecognizedToken::And) {
+					fType.ref = true;
+					c.Move();
 				}
 
 				fType.Args() = Contents::RegisterTypeArray(std::move(tps));
@@ -258,14 +238,9 @@ namespace Corrosive {
 					c.Move();
 				}*/
 
-				if ((c.Tok() == RecognizedToken::Symbol && c.Data() == "ref") || c.Tok() == RecognizedToken::Star) {
-					while (true) {
-						if (c.Tok() == RecognizedToken::Star || c.Data() == "ref") {
-							aType.Ref(aType.Ref() + 1);
-							c.Move();
-						}
-						else break;
-					}
+				if ((c.Tok() == RecognizedToken::Symbol && c.Data() == "ref") || c.Tok() == RecognizedToken::And) {
+					aType.ref = true;
+					c.Move();
 				}
 
 				rType = Contents::EmplaceType(aType);

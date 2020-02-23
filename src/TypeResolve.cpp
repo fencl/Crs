@@ -166,7 +166,7 @@ namespace Corrosive {
 					}
 
 					const Type* nptr = std::get<1>(tci);
-					return nptr->CloneRef(nptr->Ref() + Ref());
+					return nptr->CloneRef(ref);
 				}
 			}
 
@@ -198,7 +198,7 @@ namespace Corrosive {
 
 					const Type* nt = td->ResolveType();
 
-					return nt->CloneRef(nt->Ref() + Ref());
+					return nt->CloneRef(ref);
 				}
 				else if (auto sd = Contents::FindStruct(*look, name.Data())) {
 					rt.structure_cache = sd;

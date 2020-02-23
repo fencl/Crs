@@ -82,13 +82,6 @@ namespace Corrosive {
 
 	Type::~Type() {}
 
-	unsigned int Type::Ref() const {
-		return ref;
-	}
-	void Type::Ref(unsigned int r) {
-		ref = r;
-	}
-
 
 	const Type* FunctionType::Returns() const {
 		return returns;
@@ -208,35 +201,89 @@ namespace Corrosive {
 		return t1.Cmp(t2) < 0;
 	}
 
-	const Type* Type::CloneRef(unsigned int r) const { return nullptr; }
-
-	const Type* PrimitiveType::CloneRef(unsigned int r) const {
-		PrimitiveType rt = *this;
-		rt.Ref(r);
-		return Contents::EmplaceType(rt);
+	const Type* Type::CloneRef(bool r) const { 
+		if (ref && r) {
+			return t_ptr_ref;
+		}
+		else if (!ref && r) {
+			return nullptr;
+		}
+		else if (ref == r) {
+			return this;
+		}
 	}
 
-	const Type* ArrayType::CloneRef(unsigned int r) const {
-		ArrayType rt = *this;
-		rt.Ref(r);
-		return Contents::EmplaceType(rt);
+	const Type* PrimitiveType::CloneRef(bool r) const {
+		if (ref && r) {
+			return t_ptr_ref;
+		}
+		else if (!ref && r) {
+
+			PrimitiveType rt = *this;
+			rt.ref = true;
+			return Contents::EmplaceType(rt);
+		}
+		else if (ref == r) {
+			return this;
+		}
 	}
 
-	const Type* TupleType::CloneRef(unsigned int r) const {
-		TupleType rt = *this;
-		rt.Ref(r);
-		return Contents::EmplaceType(rt);
+	const Type* ArrayType::CloneRef(bool r) const {
+		if (ref && r) {
+			return t_ptr_ref;
+		}
+		else if (!ref && r) {
+
+			ArrayType rt = *this;
+			rt.ref = true;
+			return Contents::EmplaceType(rt);
+		}
+		else if (ref == r) {
+			return this;
+		}
 	}
 
-	const Type* InterfaceType::CloneRef(unsigned int r) const {
-		InterfaceType rt = *this;
-		rt.Ref(r);
-		return Contents::EmplaceType(rt);
+	const Type* TupleType::CloneRef(bool r) const {
+		if (ref && r) {
+			return t_ptr_ref;
+		}
+		else if (!ref && r) {
+
+			TupleType rt = *this;
+			rt.ref = true;
+			return Contents::EmplaceType(rt);
+		}
+		else if (ref == r) {
+			return this;
+		}
 	}
 
-	const Type* FunctionType::CloneRef(unsigned int r) const {
-		FunctionType rt = *this;
-		rt.Ref(r);
-		return Contents::EmplaceType(rt);
+	const Type* InterfaceType::CloneRef(bool r) const {
+		if (ref && r) {
+			return t_ptr_ref;
+		}
+		else if (!ref && r) {
+
+			InterfaceType rt = *this;
+			rt.ref = true;
+			return Contents::EmplaceType(rt);
+		}
+		else if (ref == r) {
+			return this;
+		}
+	}
+
+	const Type* FunctionType::CloneRef(bool r) const {
+		if (ref && r) {
+			return t_ptr_ref;
+		}
+		else if (!ref && r) {
+			FunctionType rt = *this;
+			rt.ref = true;
+			return Contents::EmplaceType(rt);
+		}
+		else if (ref == r) {
+			return this;
+		}
 	}
 }

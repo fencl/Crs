@@ -6,7 +6,7 @@ namespace Corrosive {
 	bool Type::CanPrimCastInto(const Type* t) const {
 		//ptr case
 		const PrimitiveType* pt = dynamic_cast<const PrimitiveType*>(t);
-		if (pt != nullptr && Ref()>0 && pt->Name().Data() == "ptr" && pt->Pack() == PredefinedNamespace) return true;
+		if (pt != nullptr && ref && pt->Name().Data() == "ptr" && pt->Pack() == PredefinedNamespace) return true;
 
 		return false;
 	}
@@ -16,12 +16,12 @@ namespace Corrosive {
 		if (Type::CanPrimCastInto(t)) return true;
 
 		// ptr case
-		if (package == PredefinedNamespace && name.Data() == "ptr" && t->Ref()>0) return true;
+		if (package == PredefinedNamespace && name.Data() == "ptr" && ref) return true;
 
 		const PrimitiveType* pt = dynamic_cast<const PrimitiveType*>(t);
 		if (pt == nullptr) return false;
 		else {
-			if (pt->Ref() != Ref()) return false;
+			if (pt->ref != ref) return false;
 
 			if (pt->package != package) return false;
 			if (pt->name.Data() != name.Data()) return false;
@@ -38,7 +38,7 @@ namespace Corrosive {
 		const FunctionType* ft = dynamic_cast<const FunctionType*>(t);
 		if (ft == nullptr) return false;
 		else {
-			if (ft->Ref() != Ref()) return false;
+			if (ft->ref != ref) return false;
 
 			if (ft->Args()->size() != Args()->size()) return false;
 			if (!Returns()->CanPrimCastInto(ft->Returns())) return false;
@@ -57,7 +57,7 @@ namespace Corrosive {
 		const FunctionType* ft = dynamic_cast<const FunctionType*>(t);
 		if (ft == nullptr) return false;
 		else {
-			if (ft->Ref() != Ref()) return false;
+			if (ft->ref != ref) return false;
 
 			if (ft->Args()->size() != Args()->size()) return false;
 			if (!Returns()->CanPrimCastInto(ft->Returns())) return false;
@@ -75,7 +75,7 @@ namespace Corrosive {
 		const ArrayType* at = dynamic_cast<const ArrayType*>(t);
 		if (at == nullptr) return false;
 		else {
-			if (at->Ref() != Ref()) return false;
+			if (at->ref != ref) return false;
 			if (at->Size().Data() != Size().Data()) return false;
 			if (!Base()->CanPrimCastInto(at->Base())) return false;
 
@@ -89,7 +89,7 @@ namespace Corrosive {
 		const TupleType* tt = dynamic_cast<const TupleType*>(t);
 		if (tt == nullptr) return false;
 		else {
-			if (tt->Ref() != Ref()) return false;
+			if (tt->ref != ref) return false;
 			if (tt->Types()->size() != Types()->size()) return false;
 
 			for (int i = 1; i < Types()->size(); i++) {
@@ -106,7 +106,7 @@ namespace Corrosive {
 		const InterfaceType* it = dynamic_cast<const InterfaceType*>(t);
 		if (it == nullptr) return false;
 		else {
-			if (it->Ref() != Ref()) return false;
+			if (it->ref != ref) return false;
 
 			if (it->Types()->size() != Types()->size()) return false;
 

@@ -20,6 +20,8 @@ namespace Corrosive {
 	extern const Type* t_f32;
 	extern const Type* t_f64;
 	extern const Type* t_bool;
+	extern const Type* t_ptr;
+	extern const Type* t_ptr_ref;
 }
 
 #endif

@@ -50,7 +50,7 @@ namespace Corrosive {
 
 				if (auto exttype = dynamic_cast<const PrimitiveType*>(ext)) {
 					if (exttype->Templates() == nullptr) {
-						if (exttype->Ref())
+						if (exttype->ref)
 							ThrowSpecificError(Name(), "Structure cannot extend references");
 
 						std::pair<std::string_view, std::string_view> key = std::make_pair(exttype->Pack(), exttype->Name().Data());
@@ -114,7 +114,7 @@ namespace Corrosive {
 						ptrc.Data("ptr");
 						thistype.Name(isClass ? ptrc : name);
 						thistype.Pack(isClass ? "corrosive" : package);
-						thistype.Ref(isClass?false:true);
+						thistype.ref = isClass?false:true;
 						thistype.Templates() = ctx.template_ctx;
 						FunctionType nfd = *fdt;
 						std::vector<const Type*> nargs = *nfd.Args();
@@ -169,7 +169,7 @@ namespace Corrosive {
 				std::unique_ptr<Declaration>& decl = Members[i];
 
 				if (auto vdecl = dynamic_cast<VariableDeclaration*>(decl.get())) {
-					if (vdecl->Type()->Ref() == 0)
+					if (!vdecl->Type()->ref)
 						vdecl->Compile(ctx);
 				}
 			}

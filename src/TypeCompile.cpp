@@ -161,7 +161,7 @@ namespace Corrosive {
 					StructDeclaration* gsd = ((GenericStructDeclaration*)sd)->CreateTemplate(nctx);
 					self->structure_cache = gsd;
 
-					if (Ref() == 0) {
+					if (ref) {
 						(*Templates())[0]->Compile(nctx);
 					}
 					else {
@@ -190,14 +190,14 @@ namespace Corrosive {
 
 					self->structure_cache = sd;
 
-					if (Ref() == 0 && sd->DeclType() == StructDeclarationType::Declared) {
+					if (ref && sd->DeclType() == StructDeclarationType::Declared) {
 						self->heavy_type = true;
 					}
 					
 					sd->PreCompile(nctx);
 
 					self->llvm_type = sd->LLVMType();
-					for (unsigned int i = 0; i < Ref(); i++)
+					if (ref)
 						self->llvm_type = LLVMPointerType(self->llvm_type, 0);
 
 

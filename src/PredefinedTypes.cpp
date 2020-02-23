@@ -15,6 +15,8 @@ namespace Corrosive {
 	const Type* t_f32 = nullptr;
 	const Type* t_f64 = nullptr;
 	const Type* t_bool = nullptr;
+	const Type* t_ptr = nullptr;
+	const Type* t_ptr_ref = nullptr;
 
 
 	void InitPredefinedTypes(std::vector<std::unique_ptr<Declaration>>& into) {
@@ -266,5 +268,17 @@ namespace Corrosive {
 		p_nspc->Members.push_back(std::move(t_tuple));
 
 		into.push_back(std::move(p_nspc));
+
+
+
+		n_c.Data("ptr");
+		PrimitiveType pt_ptr;
+		pt_ptr.Name(n_c);
+		pt_ptr.Pack(PredefinedNamespace);
+		Corrosive::t_ptr = Contents::EmplaceType(pt_ptr);
+		pt_ptr.ref = true;
+		Corrosive::t_ptr_ref = Contents::EmplaceType(pt_ptr);
+
+
 	}
 }

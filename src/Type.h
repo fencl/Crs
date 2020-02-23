@@ -30,13 +30,10 @@ namespace Corrosive {
 
 		virtual bool CanPrimCastInto(const Type* into) const;
 
-		unsigned int Ref() const;
-		void Ref(unsigned int r);
-
 		static const Type* Parse(Cursor& c, std::vector<Cursor>* argnames = nullptr);
 		static const Type* ParseDirect(CompileContext& ctx, Cursor& c, std::vector<Cursor>* argnames = nullptr);
 
-		virtual const Type* CloneRef(unsigned int r) const;
+		virtual const Type* CloneRef(bool r) const;
 
 		static bool ResolvePackageInPlace(const Type*& t, CompileContext& ctx);
 		bool HeavyType() const;
@@ -45,8 +42,9 @@ namespace Corrosive {
 		LLVMTypeRef LLVMTypeLValue() const;
 		LLVMTypeRef LLVMTypeRValue() const;
 
+
+		bool ref = false;
 	protected:
-		unsigned int ref = 0;
 		LLVMTypeRef llvm_type = nullptr;
 		LLVMTypeRef llvm_lvalue = nullptr;
 		LLVMTypeRef llvm_rvalue = nullptr;
@@ -79,7 +77,7 @@ namespace Corrosive {
 		void Pack(std::string_view);
 
 
-		virtual const Type* CloneRef(unsigned int r) const;
+		virtual const Type* CloneRef(bool r) const;
 
 		Cursor const Name() const;
 		void Name(Cursor);
@@ -117,7 +115,7 @@ namespace Corrosive {
 		bool CanPrimCastIntoIgnoreThis(const Type* into) const;
 
 
-		virtual const Type* CloneRef(unsigned int r) const;
+		virtual const Type* CloneRef(bool r) const;
 
 		const Type* Returns() const;
 		void Returns(const Type*);
@@ -147,7 +145,7 @@ namespace Corrosive {
 		virtual bool CanPrimCastInto(const Type* into) const;
 
 
-		virtual const Type* CloneRef(unsigned int r) const;
+		virtual const Type* CloneRef(bool r) const;
 
 		const Type* Base() const;
 		void Base(const Type*);
@@ -183,7 +181,7 @@ namespace Corrosive {
 		virtual void Compile(CompileContext& ctx) const;
 		virtual void PreCompile(CompileContext& ctx) const;
 
-		virtual const Type* CloneRef(unsigned int r) const;
+		virtual const Type* CloneRef(bool r) const;
 
 		virtual bool CanPrimCastInto(const Type* into) const;
 
@@ -209,7 +207,7 @@ namespace Corrosive {
 		virtual void Compile(CompileContext& ctx) const;
 		virtual void PreCompile(CompileContext& ctx) const;
 
-		virtual const Type* CloneRef(unsigned int r) const;
+		virtual const Type* CloneRef(bool r) const;
 
 		virtual bool CanPrimCastInto(const Type* into) const;
 
