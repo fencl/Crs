@@ -43,9 +43,6 @@ namespace Corrosive {
 	}
 
 	void Type::Print() const {
-		if (unsafe) {
-			std::cout << "?";
-		}
 
 		if (ref) {
 			std::cout << "&";

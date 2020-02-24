@@ -6,7 +6,7 @@ namespace Corrosive {
 	bool Type::CanPrimCastInto(const Type* t) const {
 		//ptr case
 		const PrimitiveType* pt = dynamic_cast<const PrimitiveType*>(t);
-		if (pt != nullptr && ref && pt->Name().Data() == "ptr" && pt->Pack() == PredefinedNamespace && unsafe == t->unsafe) return true;
+		if (pt != nullptr && ref && pt->Name().Data() == "ptr" && pt->Pack() == PredefinedNamespace) return true;
 
 		return false;
 	}
@@ -16,7 +16,7 @@ namespace Corrosive {
 		if (Type::CanPrimCastInto(t)) return true;
 
 		// ptr case
-		if (package == PredefinedNamespace && name.Data() == "ptr" && ref && unsafe == t->unsafe) return true;
+		if (package == PredefinedNamespace && name.Data() == "ptr" && ref) return true;
 
 		const PrimitiveType* pt = dynamic_cast<const PrimitiveType*>(t);
 		if (pt == nullptr) return false;
@@ -39,7 +39,6 @@ namespace Corrosive {
 		if (ft == nullptr) return false;
 		else {
 			if (ft->ref != ref) return false;
-			if (ft->unsafe != unsafe) return false;
 
 			if (ft->Args()->size() != Args()->size()) return false;
 			if (!Returns()->CanPrimCastInto(ft->Returns())) return false;
@@ -59,7 +58,6 @@ namespace Corrosive {
 		if (ft == nullptr) return false;
 		else {
 			if (ft->ref != ref) return false;
-			if (ft->unsafe != unsafe) return false;
 
 			if (ft->Args()->size() != Args()->size()) return false;
 			if (!Returns()->CanPrimCastInto(ft->Returns())) return false;
@@ -78,7 +76,6 @@ namespace Corrosive {
 		if (at == nullptr) return false;
 		else {
 			if (at->ref != ref) return false;
-			if (at->unsafe != unsafe) return false;
 			if (at->Size().Data() != Size().Data()) return false;
 			if (!Base()->CanPrimCastInto(at->Base())) return false;
 
@@ -93,7 +90,6 @@ namespace Corrosive {
 		if (tt == nullptr) return false;
 		else {
 			if (tt->ref != ref) return false;
-			if (tt->unsafe != unsafe) return false;
 			if (tt->Types()->size() != Types()->size()) return false;
 
 			for (int i = 1; i < Types()->size(); i++) {
@@ -111,7 +107,6 @@ namespace Corrosive {
 		if (it == nullptr) return false;
 		else {
 			if (it->ref != ref) return false;
-			if (it->unsafe != unsafe) return false;
 
 			if (it->Types()->size() != Types()->size()) return false;
 

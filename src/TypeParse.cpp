@@ -52,12 +52,7 @@ namespace Corrosive {
 						ThrowWrongTokenError(c, "',' or ']'");
 					}
 				}
-
-				if (c.Tok() == RecognizedToken::QestionMark) {
-					fType.unsafe = true;
-					c.Move();
-				}
-
+				
 				if ((c.Tok() == RecognizedToken::Symbol && c.Data() == "ref") || c.Tok() == RecognizedToken::And) {
 					fType.ref = true;
 					c.Move();
@@ -83,12 +78,7 @@ namespace Corrosive {
 						ThrowWrongTokenError(c, "',' or '>'");
 					}
 				}
-
-				if (c.Tok() == RecognizedToken::QestionMark) {
-					fType.unsafe = true;
-					c.Move();
-				}
-
+				
 				if ((c.Tok() == RecognizedToken::Symbol && c.Data() == "ref") || c.Tok() == RecognizedToken::And) {
 					fType.ref = true;
 					c.Move();
@@ -131,10 +121,6 @@ namespace Corrosive {
 					pType.Templates() = Contents::RegisterGenericArray(std::move(tps));
 				}
 
-				if (c.Tok() == RecognizedToken::QestionMark) {
-					pType.unsafe = true;
-					c.Move();
-				}
 
 				if ((c.Tok() == RecognizedToken::Symbol && c.Data() == "ref") || c.Tok() == RecognizedToken::And) {
 					pType.ref = true;
@@ -173,11 +159,6 @@ namespace Corrosive {
 					if (c.Tok() == RecognizedToken::Comma) c.Move(); else if (c.Tok() != RecognizedToken::CloseParenthesis) {
 						ThrowWrongTokenError(c, "',' or ')'");
 					}
-				}
-
-				if (c.Tok() == RecognizedToken::QestionMark) {
-					fType.unsafe = true;
-					c.Move();
 				}
 
 				if ((c.Tok() == RecognizedToken::Symbol && c.Data() == "ref") || c.Tok() == RecognizedToken::And) {
@@ -257,11 +238,6 @@ namespace Corrosive {
 					}
 					c.Move();
 				}*/
-
-				if (c.Tok() == RecognizedToken::QestionMark) {
-					aType.unsafe = true;
-					c.Move();
-				}
 
 				if ((c.Tok() == RecognizedToken::Symbol && c.Data() == "ref") || c.Tok() == RecognizedToken::And) {
 					aType.ref = true;
