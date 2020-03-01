@@ -229,7 +229,11 @@ namespace Corrosive {
 					case '(': out.Tok(RecognizedToken::OpenParenthesis); break;
 					case ')': out.Tok(RecognizedToken::CloseParenthesis); break;
 					case '+': out.Tok(RecognizedToken::Plus); break;
-					case '-': out.Tok(RecognizedToken::Minus); break;
+					case '-': switch (nc)
+					{
+						case '>': offset++; out.Tok(RecognizedToken::Arrow); break;
+						default: out.Tok(RecognizedToken::Minus); break;
+					}break;
 					case '*': out.Tok(RecognizedToken::Star); break;
 					case '/': out.Tok(RecognizedToken::Slash); break;
 					case ';': out.Tok(RecognizedToken::Semicolon); break;

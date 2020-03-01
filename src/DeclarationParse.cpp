@@ -386,7 +386,7 @@ namespace Corrosive {
 									ThrowNotANameError(c);
 								}
 								specific = true;
-								sd->Aliases.push_back(std::make_pair(c, alias_from));
+								existing->Aliases.push_back(std::make_pair(c, alias_from));
 								c.Move();
 
 								if (c.Tok() == RecognizedToken::Semicolon) {
@@ -408,7 +408,7 @@ namespace Corrosive {
 
 						if (!specific) {
 							Cursor empty;
-							sd->Aliases.push_back(std::make_pair(empty, alias_from));
+							existing->Aliases.push_back(std::make_pair(empty, alias_from));
 						}
 					}
 					else {
