@@ -10,7 +10,7 @@ namespace Corrosive {
 	public:
 		static CompileValue Parse(Cursor& c, CompileContextExt& ctx, CompileType comp_type);
 
-		static CompileValue EmitOperator(Cursor& c,CompileContextExt& ctx , int l, int op, CompileValue left, CompileValue right, CompileType cpt);
+		static CompileValue EmitOperator(Cursor& c,CompileContextExt& ctx , int l, int op, CompileValue left, CompileValue right, CompileType cpt, int next_l,int next_op);
 		static bool ArithCast(CompileValue& left, CompileValue& right,bool& isfloat, bool& issigned);
 		static int ArithValue(const PrimitiveType* pt);
 		static void ArithConstPromote(CompileValue& value,int from,int to);

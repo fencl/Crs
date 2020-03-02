@@ -48,22 +48,34 @@ int main() {
 
 
 	
+
 	LLVMValueRef func = LLVMAddFunction(m, "main", LLVMFunctionType(LLVMVoidType(), nullptr, 0, false));
 	LLVMBasicBlockRef block = LLVMAppendBasicBlock(func, "entry");
 	LLVMPositionBuilderAtEnd(builder, block);
 
 	c = Corrosive::Contents::entry_point->Block();
 	Corrosive::CompileContextExt cctx;
+	cctx.function = func;
 	cctx.unit = Corrosive::Contents::entry_point;
 	cctx.basic.parent_namespace = Corrosive::Contents::entry_point->ParentPack();
 	cctx.basic.parent_struct = nullptr;
 	cctx.basic.template_ctx = nullptr;
 	cctx.builder = builder;
+	cctx.fallback = nullptr;
+	cctx.block = block;
+
 
 	Corrosive::CompileValue cv = Corrosive::Expression::Parse(c, cctx, Corrosive::CompileType::Compile);
+	LLVMBuildRet(cctx.builder, cv.v);
 
 	LLVMDumpValue(func);
 	std::cout << std::endl << std::endl;
+
+
+	/*Corrosive::CompileValue cv = Corrosive::Expression::Parse(c, cctx, Corrosive::CompileType::Eval);
+
+	LLVMDumpValue(cv.v);
+	std::cout << std::endl << std::endl;*/
 	
 
 	for (auto&& it : Corrosive::Contents::StaticStructures) {

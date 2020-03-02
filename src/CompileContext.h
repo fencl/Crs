@@ -21,12 +21,18 @@ namespace Corrosive {
 		StructDeclaration* parent_struct;
 		NamespaceDeclaration* parent_namespace;
 		const TemplateContext* template_ctx;
+
 	};
 
 	struct CompileContextExt {
 		CompileContext basic;
-		Declaration* unit;
-		LLVMBuilderRef builder;
+		LLVMValueRef function = nullptr;
+		LLVMBasicBlockRef block = nullptr;
+		Declaration* unit = nullptr;
+		LLVMBuilderRef builder = nullptr;
+		LLVMBasicBlockRef fallback = nullptr;
+		std::vector<LLVMBasicBlockRef> incoming_blocks;
+		std::vector<LLVMValueRef> incoming_values;
 	};
 
 	struct CompileValue {
