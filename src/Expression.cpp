@@ -131,8 +131,8 @@ namespace Corrosive {
 				ArithConstPromote(left, arith_value_left, arith_value_right);
 			}
 
-			issigned = (arith_value_res % 2 != 0);
-			isfloat = (arith_value_res >= 8);
+			issigned = (arith_value_res % 2 == 0);
+			isfloat = (arith_value_res >= 9);
 
 			return true;
 		}
@@ -351,9 +351,9 @@ namespace Corrosive {
 		return Parse1(c, ctx, cpt);
 	}
 
-	CompileValue Expression::Parse1(Cursor& c, CompileContextExt& ctx, CompileType cpt) {
+	CompileValue Expression::Parse2(Cursor& c, CompileContextExt& ctx, CompileType cpt) {
 
-		CompileValue value = Expression::Parse2(c, ctx, cpt);
+		CompileValue value = Expression::Parse3(c, ctx, cpt);
 		
 
 		while (c.Tok() == RecognizedToken::DoubleAnd) {
@@ -364,12 +364,12 @@ namespace Corrosive {
 			c.Move();
 
 			if (cpt == CompileType::ShortCircuit || (value.v != nullptr && LLVMIsAConstantInt(value.v) && !LLVMConstIntGetZExtValue(value.v))) {
-				Parse2(c, ctx, CompileType::ShortCircuit);
+				Parse3(c, ctx, CompileType::ShortCircuit);
 			}
 			else {
 
 				if (cpt == CompileType::Eval) {
-					CompileValue right = Expression::Parse2(c, ctx, cpt);
+					CompileValue right = Expression::Parse3(c, ctx, cpt);
 					value.v = LLVMConstAnd(value.v, right.v);
 				}
 				else {
@@ -384,7 +384,7 @@ namespace Corrosive {
 					ctx.block = positive_block;
 					LLVMPositionBuilderAtEnd(ctx.builder, positive_block);
 
-					value = Expression::Parse2(c, ctx, cpt);
+					value = Expression::Parse3(c, ctx, cpt);
 				}
 			}
 		}
@@ -420,8 +420,8 @@ namespace Corrosive {
 
 
 
-	CompileValue Expression::Parse2(Cursor& c, CompileContextExt& ctx, CompileType cpt) {
-		CompileValue value = Expression::Parse3(c, ctx, cpt);
+	CompileValue Expression::Parse1(Cursor& c, CompileContextExt& ctx, CompileType cpt) {
+		CompileValue value = Expression::Parse2(c, ctx, cpt);
 		while (c.Tok() == RecognizedToken::DoubleOr) {
 			if (value.t != t_bool) {
 				ThrowSpecificError(c, "Operation requires left operand to be boolean");
@@ -430,12 +430,12 @@ namespace Corrosive {
 			c.Move();
 
 			if (cpt == CompileType::ShortCircuit || (value.v != nullptr && LLVMIsAConstantInt(value.v) && LLVMConstIntGetZExtValue(value.v))) {
-				Parse3(c, ctx, CompileType::ShortCircuit);
+				Parse2(c, ctx, CompileType::ShortCircuit);
 			}
 			else {
 				
 				if (cpt == CompileType::Eval) {
-					CompileValue right = Expression::Parse3(c, ctx, cpt);
+					CompileValue right = Expression::Parse2(c, ctx, cpt);
 					value.v = LLVMConstAnd(value.v, right.v);
 				}
 				else {
@@ -450,7 +450,7 @@ namespace Corrosive {
 					ctx.block = positive_block;
 					LLVMPositionBuilderAtEnd(ctx.builder, positive_block);
 
-					value = Expression::Parse3(c, ctx, cpt);
+					value = Expression::Parse2(c, ctx, cpt);
 				}
 			}
 		}
