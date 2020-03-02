@@ -147,7 +147,7 @@ namespace Corrosive {
 		virtual void PreCompile(CompileContext& ctx);
 
 		void TestInterfaceComplete();
-		void BuildLookupTable(CompileContext& ctx);
+		void BuildLookupTable();
 
 		int GenID() const;
 		void GenID(int id);

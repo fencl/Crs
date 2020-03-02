@@ -170,7 +170,12 @@ namespace Corrosive {
 						ret.v = LLVMConstOr(left.v, right.v);
 				}
 				else if (cpt == CompileType::Compile) {
-					ret.v = LLVMConstInt(LLVMInt1Type(),false,false);
+
+
+					ret.v = left.v;
+					if (!LLVMIsConstant(right.v)) {
+						ret.v = right.v;
+					}
 
 					if (!ctx.fallback) {
 						ctx.fallback = LLVMCreateBasicBlockInContext(LLVMGetGlobalContext(), "fallback");
@@ -426,16 +431,16 @@ namespace Corrosive {
 			if (c.Tok() == RecognizedToken::DoubleAnd) {
 				op_v = 0;
 				op_t = 0;
-				if (!short_circuit && (cpt == CompileType::Eval || (cpt == CompileType::Compile && LLVMIsConstant(value.v))) && !LLVMConstIntGetZExtValue(value.v)) {
-					short_circuit = false;
+				if (!short_circuit && (cpt == CompileType::Eval) && !LLVMConstIntGetZExtValue(value.v)) {
+					short_circuit = true;
 				}
 			}
 			else if (c.Tok() == RecognizedToken::DoubleOr) {
 				op_v = 0;
 				op_t = 1;
 
-				if (!short_circuit && (cpt == CompileType::Eval || (cpt == CompileType::Compile && LLVMIsConstant(value.v))) && LLVMConstIntGetZExtValue(value.v)) {
-					short_circuit = false;
+				if (!short_circuit && (cpt == CompileType::Eval) && LLVMConstIntGetZExtValue(value.v)) {
+					short_circuit = true;
 				}
 			}
 			else if (c.Tok() == RecognizedToken::And) {

@@ -168,7 +168,7 @@ namespace Corrosive {
 				LLVMStructSetBody(llvm_type, mem_types.data(), (unsigned int)mem_types.size(), false);
 
 
-			BuildLookupTable(ctx);
+			BuildLookupTable();
 			TestInterfaceComplete();
 		}
 	}
@@ -250,7 +250,7 @@ namespace Corrosive {
 	}
 
 
-	void StructDeclaration::BuildLookupTable(CompileContext& ctx) {
+	void StructDeclaration::BuildLookupTable() {
 		if (has_lookup_table) return;
 		has_lookup_table = true;
 
@@ -295,7 +295,7 @@ namespace Corrosive {
 						ThrowSpecificError(a_fm, "Alias points to variable with type that cannot be aliased");
 					}
 
-					alias_struct->BuildLookupTable(ctx);
+					alias_struct->BuildLookupTable();
 
 					if (a_nm.Data().empty()) {
 						for (auto m_it = alias_struct->LookupTable.begin(); m_it != alias_struct->LookupTable.end(); m_it++) {
