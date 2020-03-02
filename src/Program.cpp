@@ -18,7 +18,6 @@ int main() {
 	
 	LLVMModuleRef m = LLVMModuleCreateWithName("module");
 	LLVMSetTarget(m, "x86_64-pc-win32");
-	LLVMBuilderRef builder = LLVMCreateBuilder();
 
 	auto end = std::chrono::system_clock::now();
 	auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
@@ -40,43 +39,13 @@ int main() {
 	Corrosive::CompileContext ctx;
 
 	
-
+	ctx.module = m;
 	ctx.parent_namespace = Corrosive::Contents::entry_point->ParentPack();
 	ctx.parent_struct = Corrosive::Contents::entry_point->ParentStruct();
 	ctx.template_ctx = nullptr;
+
 	Corrosive::Contents::entry_point->Compile(ctx);
-
-
-	
-
-	LLVMValueRef func = LLVMAddFunction(m, "main", LLVMFunctionType(LLVMVoidType(), nullptr, 0, false));
-	LLVMBasicBlockRef block = LLVMAppendBasicBlock(func, "entry");
-	LLVMPositionBuilderAtEnd(builder, block);
-
-	c = Corrosive::Contents::entry_point->Block();
-	Corrosive::CompileContextExt cctx;
-	cctx.function = func;
-	cctx.unit = Corrosive::Contents::entry_point;
-	cctx.basic.parent_namespace = Corrosive::Contents::entry_point->ParentPack();
-	cctx.basic.parent_struct = nullptr;
-	cctx.basic.template_ctx = nullptr;
-	cctx.builder = builder;
-	cctx.fallback = nullptr;
-	cctx.block = block;
-
-
-	Corrosive::CompileValue cv = Corrosive::Expression::Parse(c, cctx, Corrosive::CompileType::Compile);
-	LLVMBuildRet(cctx.builder, cv.v);
-
-	LLVMDumpValue(func);
-	std::cout << std::endl << std::endl;
-
-
-	/*Corrosive::CompileValue cv = Corrosive::Expression::Parse(c, cctx, Corrosive::CompileType::Eval);
-
-	LLVMDumpValue(cv.v);
-	std::cout << std::endl << std::endl;*/
-	
+		
 
 	for (auto&& it : Corrosive::Contents::StaticStructures) {
 		ctx.parent_namespace = it->ParentPack();
@@ -90,6 +59,9 @@ int main() {
 	std::cout << "compile: " << elapsed.count() << "ms" << std::endl;
 	start = end;
 
+	/*LLVMDumpValue(Corrosive::Contents::entry_point->function);
+	std::cout << std::endl << std::endl;
+
 
 	for (auto&& it : Corrosive::Contents::StaticStructures) {
 		LLVMTypeRef t = it->LLVMType();
@@ -97,7 +69,10 @@ int main() {
 			LLVMDumpType(t);
 			std::cout << "\n";
 		}
-	}
+	}*/
+
+	LLVMDumpModule(m);
+	std::cout << "\n";
 
 
 

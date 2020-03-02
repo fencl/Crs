@@ -7,6 +7,7 @@ namespace Corrosive {
 	void ThrowEofError(const Cursor& c, std::string_view during);
 	void ThrowSpecificError(const Cursor& c, std::string_view text);
 	void ThrowNotANameError(const Cursor& c);
+	void ThrowVariableNotFound(const Cursor& c);
 	void ThrowWrongTokenError(const Cursor& c, std::string_view expected);
 	void ThrowErrorExit();
 }

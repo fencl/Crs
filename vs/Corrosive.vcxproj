@@ -28,6 +28,7 @@
     <ClInclude Include="..\src\Operand.h" />
     <ClInclude Include="..\src\PredefinedTypes.h" />
     <ClInclude Include="..\src\Source.h" />
+    <ClInclude Include="..\src\StackManager.h" />
     <ClInclude Include="..\src\svtoi.h" />
     <ClInclude Include="..\src\Type.h" />
   </ItemGroup>
@@ -42,6 +43,7 @@
     <ClCompile Include="..\src\PredefinedTypes.cpp" />
     <ClCompile Include="..\src\Program.cpp" />
     <ClCompile Include="..\src\Source.cpp" />
+    <ClCompile Include="..\src\StackManager.cpp" />
     <ClCompile Include="..\src\Type.cpp" />
     <ClCompile Include="..\src\TypeCast.cpp" />
     <ClCompile Include="..\src\TypeCmp.cpp" />

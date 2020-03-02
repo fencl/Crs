@@ -212,6 +212,8 @@ namespace Corrosive {
 		else if (ref == r) {
 			return this;
 		}
+
+		return nullptr;
 	}
 
 	const Type* PrimitiveType::CloneRef(bool r) const {
@@ -227,6 +229,8 @@ namespace Corrosive {
 		else if (ref == r) {
 			return this;
 		}
+
+		return nullptr;
 	}
 
 	const Type* ArrayType::CloneRef(bool r) const {
@@ -242,6 +246,8 @@ namespace Corrosive {
 		else if (ref == r) {
 			return this;
 		}
+
+		return nullptr;
 	}
 
 	const Type* TupleType::CloneRef(bool r) const {
@@ -257,6 +263,8 @@ namespace Corrosive {
 		else if (ref == r) {
 			return this;
 		}
+
+		return nullptr;
 	}
 
 	const Type* InterfaceType::CloneRef(bool r) const {
@@ -272,6 +280,8 @@ namespace Corrosive {
 		else if (ref == r) {
 			return this;
 		}
+
+		return nullptr;
 	}
 
 	const Type* FunctionType::CloneRef(bool r) const {
@@ -286,5 +296,7 @@ namespace Corrosive {
 		else if (ref == r) {
 			return this;
 		}
+
+		return nullptr;
 	}
 }

@@ -4,7 +4,8 @@
 #include "Contents.h"
 #include <string>
 #include "PredefinedTypes.h"
-
+#include "Expression.h"
+#include "StackManager.h"
 
 namespace Corrosive {
 
@@ -150,7 +151,7 @@ namespace Corrosive {
 				LLVMStructSetBody(llvm_type, mem_types.data(), (unsigned int)mem_types.size(), false);
 
 
-			BuildLookupTable();
+			BuildLookupTable(ctx);
 			TestInterfaceComplete();
 		}
 	}
@@ -232,7 +233,10 @@ namespace Corrosive {
 	}
 
 
-	void StructDeclaration::BuildLookupTable() {
+	void StructDeclaration::BuildLookupTable(CompileContext& ctx) {
+		if (has_lookup_table) return;
+		has_lookup_table = true;
+
 		unsigned int lookup_id = 0;
 
 		for (auto it = Members.begin(); it != Members.end(); it++) {
@@ -274,6 +278,8 @@ namespace Corrosive {
 						ThrowSpecificError(a_fm, "Alias points to variable with type that cannot be aliased");
 					}
 
+					alias_struct->BuildLookupTable(ctx);
+
 					if (a_nm.Data().empty()) {
 						for (auto m_it = alias_struct->LookupTable.begin(); m_it != alias_struct->LookupTable.end(); m_it++) {
 							std::tuple<Declaration*, unsigned int, std::string_view> val = std::make_tuple(alias_struct, std::get<1>(look->second), m_it->first);
@@ -298,7 +304,6 @@ namespace Corrosive {
 					ThrowSpecificError(a_fm, "Alias points to function");
 				}
 			}
-
 		}
 	}
 
@@ -333,9 +338,50 @@ namespace Corrosive {
 			}
 			name.append(Name().Data());
 
+			unsigned long stack = StackManager::StackState();
+
+			function = LLVMAddFunction(ctx.module, name.c_str(), type->LLVMType());
+			LLVMBasicBlockRef block = LLVMAppendBasicBlock(function, "entry");
+			LLVMBuilderRef builder = LLVMCreateBuilder();
+
+			LLVMPositionBuilderAtEnd(builder, block);
+
+			const FunctionType* ft = (const FunctionType*)type;
+			bool heavy_return = ft->Returns()->HeavyType();
+
+			for (int i = 0; i < ft->Args()->size(); i++) {
+				CompileValue cv;
+				cv.lvalue = true;
+				cv.t = (*ft->Args())[i];
+				cv.v = LLVMGetParam(function, i+heavy_return?1:0);
+
+				if (!cv.t->HeavyType()) {
+					LLVMValueRef vr = cv.v;
+					cv.v = LLVMBuildAlloca(builder, cv.t->LLVMType(), "");
+					LLVMBuildStore(builder, vr,cv.v);
+				}
+				StackManager::StackPush(argnames[i].Data(),cv);
+			}
 
 
+			Cursor c = Block();
+			Corrosive::CompileContextExt cctx;
+			cctx.function = function;
+			cctx.unit = this;
+			cctx.basic.parent_namespace = ParentPack();
+			cctx.basic.parent_struct = nullptr;
+			cctx.basic.template_ctx = nullptr;
+			cctx.builder = builder;
+			cctx.fallback = nullptr;
+			cctx.block = block;
 
+			Corrosive::CompileValue cv = Expression::Parse(c, cctx, Corrosive::CompileType::Compile);
+			LLVMBuildRet(cctx.builder, cv.v);
+
+			LLVMDisposeBuilder(builder);
+
+
+			StackManager::StackStateRestore(stack);
 			llvm_compile_progress = 2;
 			return;
 		}

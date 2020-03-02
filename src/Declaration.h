@@ -106,6 +106,8 @@ namespace Corrosive {
 		bool Static() const;
 		void Static(bool b);
 
+		LLVMValueRef function = nullptr;
+
 	protected:
 		bool isstatic = false;
 		const Corrosive::Type* type;
@@ -145,7 +147,7 @@ namespace Corrosive {
 		virtual void PreCompile(CompileContext& ctx);
 
 		void TestInterfaceComplete();
-		void BuildLookupTable();
+		void BuildLookupTable(CompileContext& ctx);
 
 		int GenID() const;
 		void GenID(int id);
@@ -168,6 +170,8 @@ namespace Corrosive {
 		std::map<std::string_view, std::tuple<Declaration*, unsigned int, std::string_view>> LookupTable;
 
 		Declaration* FindDeclarationOfMember(std::string_view name);
+
+		bool has_lookup_table = false;
 
 	protected:
 		std::vector<StructDeclaration*> extends_structures;

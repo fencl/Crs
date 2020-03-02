@@ -65,7 +65,7 @@ namespace Corrosive {
 			(*it)->PreCompile(ctx);
 			argtps.push_back((*it)->LLVMTypeRValue());
 		}
-
+		self->heavy_type = true;
 		self->llvm_type = LLVMFunctionType(ret, argtps.data(), (unsigned int)argtps.size(), false);
 	}
 
@@ -113,6 +113,7 @@ namespace Corrosive {
 		for (auto it = Types()->begin(); it != Types()->end(); it++) {
 			(*it)->PreCompile(ctx);
 		}
+		self->heavy_type = true;
 	}
 
 
@@ -140,6 +141,7 @@ namespace Corrosive {
 
 		if (package == PredefinedNamespace && name.Data() == "void") {
 			self->llvm_type = self->llvm_lvalue = self->llvm_rvalue = LLVMVoidType();
+			self->heavy_type = false;
 			return;
 		}
 		else {
@@ -172,6 +174,54 @@ namespace Corrosive {
 					self->llvm_lvalue = (*Templates())[0]->LLVMTypeLValue();
 					self->llvm_rvalue = (*Templates())[0]->LLVMTypeRValue();
 				}
+				else if (sd->DeclType() == StructDeclarationType::t_i8 || sd->DeclType() == StructDeclarationType::t_u8) {
+					self->llvm_type = LLVMInt8Type();
+					self->llvm_lvalue = LLVMPointerType(llvm_type,0);
+					self->llvm_rvalue = llvm_type;
+					self->structure_cache = sd;
+				}
+				else if (sd->DeclType() == StructDeclarationType::t_i16 || sd->DeclType() == StructDeclarationType::t_u16) {
+					self->llvm_type = LLVMInt16Type();
+					self->llvm_lvalue = LLVMPointerType(llvm_type, 0);
+					self->llvm_rvalue = llvm_type;
+					self->structure_cache = sd;
+				}
+				else if (sd->DeclType() == StructDeclarationType::t_i32 || sd->DeclType() == StructDeclarationType::t_u32) {
+					self->llvm_type = LLVMInt32Type();
+					self->llvm_lvalue = LLVMPointerType(llvm_type, 0);
+					self->llvm_rvalue = llvm_type;
+					self->structure_cache = sd;
+				}
+				else if (sd->DeclType() == StructDeclarationType::t_i64 || sd->DeclType() == StructDeclarationType::t_u64) {
+					self->llvm_type = LLVMInt64Type();
+					self->llvm_lvalue = LLVMPointerType(llvm_type, 0);
+					self->llvm_rvalue = llvm_type;
+					self->structure_cache = sd;
+				}
+				else if (sd->DeclType() == StructDeclarationType::t_f32) {
+					self->llvm_type = LLVMFloatType();
+					self->llvm_lvalue = LLVMPointerType(llvm_type, 0);
+					self->llvm_rvalue = llvm_type;
+					self->structure_cache = sd;
+				}
+				else if (sd->DeclType() == StructDeclarationType::t_f64) {
+					self->llvm_type = LLVMDoubleType();
+					self->llvm_lvalue = LLVMPointerType(llvm_type, 0);
+					self->llvm_rvalue = llvm_type;
+					self->structure_cache = sd;
+				}
+				else if (sd->DeclType() == StructDeclarationType::t_bool) {
+					self->llvm_type = LLVMInt1Type();
+					self->llvm_lvalue = LLVMPointerType(llvm_type, 0);
+					self->llvm_rvalue = llvm_type;
+					self->structure_cache = sd;
+				}
+				else if (sd->DeclType() == StructDeclarationType::t_ptr) {
+					self->llvm_type = LLVMPointerType(LLVMVoidType(),0);
+					self->llvm_lvalue = LLVMPointerType(llvm_type, 0);
+					self->llvm_rvalue = llvm_type;
+					self->structure_cache = sd;
+				}
 				else {
 
 					CompileContext nctx = ctx;
@@ -190,7 +240,7 @@ namespace Corrosive {
 
 					self->structure_cache = sd;
 
-					if (ref && sd->DeclType() == StructDeclarationType::Declared) {
+					if (!ref && sd->DeclType() == StructDeclarationType::Declared) {
 						self->heavy_type = true;
 					}
 					

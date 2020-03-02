@@ -3,6 +3,7 @@
 #include "svtoi.h"
 #include "PredefinedTypes.h"
 #include "Expression.h"
+#include "StackManager.h"
 
 #include <iostream>
 
@@ -48,6 +49,15 @@ namespace Corrosive {
 					pack = name;
 					name = c;
 					c.Move();
+				}
+
+				if (pack.Data().empty()) {
+					if (auto sitm = StackManager::StackFind(name.Data())) {
+						ret = sitm->value;
+					}
+					else {
+						ThrowVariableNotFound(name);
+					}
 				}
 			}
 		}

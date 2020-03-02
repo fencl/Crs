@@ -21,7 +21,7 @@ namespace Corrosive {
 		StructDeclaration* parent_struct;
 		NamespaceDeclaration* parent_namespace;
 		const TemplateContext* template_ctx;
-
+		LLVMModuleRef module;
 	};
 
 	struct CompileContextExt {
