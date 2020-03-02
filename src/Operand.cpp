@@ -21,63 +21,34 @@ namespace Corrosive {
 			}
 			c.Move();
 		}
-		/*else if (c.Tok() == RecognizedToken::Symbol && c.Data() == "const") {
-			c.Move();
-			if (c.Tok() != RecognizedToken::OpenParenthesis) {
-				ThrowWrongTokenError(c, "'('");
-			}
-			c.Move();
-
-			if (c.Tok() != RecognizedToken::Symbol) {
-				ThrowNotANameError(c);
-			}
-
-			LLVMValueRef cst = nullptr;
-			
-			if (cpt != CompileType::ShortCircuit) {
-				auto gs = dynamic_cast<GenericStructDeclaration*>(ctx.basic.parent_struct);
-
-				auto ind = gs->Generics().find(c.Data());
-				if (ind != gs->Generics().end()) {
-					auto& val = (*ctx.basic.template_ctx)[ind->second];
-					if (val.index() == 0) {
-						unsigned int v = std::get<0>(val);
-
-						if (cpt != CompileType::ShortCircuit) {
-							ret.v = LLVMConstInt(LLVMInt32Type(), v, true);
-						}
-
-						ret.t = Corrosive::t_i32;
-						ret.lvalue = false;
-					}
-					else {
-						ThrowSpecificError(c, "Generic identifier points to a type, const requires it to be integer");
-					}
-				}
-				else {
-					ThrowSpecificError(c, "Identifier not found in the generic declaration");
-				}
-			}
-
-			c.Move();
-
-			if (c.Tok() != RecognizedToken::CloseParenthesis) {
-				ThrowWrongTokenError(c, "')'");
-			}
-			c.Move();
-		}*/
 		else if (c.Tok() == RecognizedToken::Symbol) {
-			Cursor pack;
-			Cursor name = c;
-			c.Move();
-			if (c.Tok() == RecognizedToken::DoubleColon) {
+			if (c.Data() == "true") {
 				c.Move();
-				if (c.Tok() != RecognizedToken::Symbol) {
-					ThrowNotANameError(c);
+
+				ret.lvalue = false;
+				ret.t = t_bool;
+				ret.v = LLVMConstInt(LLVMInt1Type(), true, false);
+			}
+			else if (c.Data() == "false") {
+				c.Move();
+
+				ret.lvalue = false;
+				ret.t = t_bool;
+				ret.v = LLVMConstInt(LLVMInt1Type(), false, false);
+			}
+			else {
+				Cursor pack;
+				Cursor name = c;
+				c.Move();
+				if (c.Tok() == RecognizedToken::DoubleColon) {
+					c.Move();
+					if (c.Tok() != RecognizedToken::Symbol) {
+						ThrowNotANameError(c);
+					}
+					pack = name;
+					name = c;
+					c.Move();
 				}
-				pack = name;
-				name = c;
-				c.Move();
 			}
 		}
 		else if (c.Tok() == RecognizedToken::Number || c.Tok() == RecognizedToken::UnsignedNumber) {
