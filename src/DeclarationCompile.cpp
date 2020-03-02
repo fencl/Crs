@@ -15,6 +15,23 @@ namespace Corrosive {
 
 		if (DeclType() == StructDeclarationType::t_i64 || DeclType() == StructDeclarationType::t_u64) {
 			llvm_type = LLVMInt64Type();
+		}else if (DeclType() == StructDeclarationType::t_i32 || DeclType() == StructDeclarationType::t_u32) {
+			llvm_type = LLVMInt32Type();
+		}
+		else if (DeclType() == StructDeclarationType::t_i16 || DeclType() == StructDeclarationType::t_u16) {
+			llvm_type = LLVMInt16Type();
+		}
+		else if (DeclType() == StructDeclarationType::t_i8 || DeclType() == StructDeclarationType::t_u8) {
+			llvm_type = LLVMInt8Type();
+		}
+		else if (DeclType() == StructDeclarationType::t_f32) {
+			llvm_type = LLVMFloatType();
+		}
+		else if (DeclType() == StructDeclarationType::t_f64) {
+			llvm_type = LLVMDoubleType();
+		}
+		else if (DeclType() == StructDeclarationType::t_bool) {
+			llvm_type = LLVMInt1Type();
 		}
 		else if(DeclType() == StructDeclarationType::t_ptr) {
 			llvm_type = LLVMPointerType(LLVMVoidType(),0);
