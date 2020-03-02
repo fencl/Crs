@@ -30,9 +30,13 @@ namespace Corrosive {
 		LLVMBasicBlockRef block = nullptr;
 		Declaration* unit = nullptr;
 		LLVMBuilderRef builder = nullptr;
-		LLVMBasicBlockRef fallback = nullptr;
-		std::vector<LLVMBasicBlockRef> incoming_blocks;
-		std::vector<LLVMValueRef> incoming_values;
+		LLVMBasicBlockRef fallback_and = nullptr;
+		std::vector<LLVMBasicBlockRef> incoming_blocks_and;
+		std::vector<LLVMValueRef> incoming_values_and;
+
+		LLVMBasicBlockRef fallback_or = nullptr;
+		std::vector<LLVMBasicBlockRef> incoming_blocks_or;
+		std::vector<LLVMValueRef> incoming_values_or;
 	};
 
 	struct CompileValue {

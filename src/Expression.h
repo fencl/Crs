@@ -8,6 +8,9 @@
 namespace Corrosive {
 	class Expression {
 	public:
+		static CompileValue Parse1(Cursor& c, CompileContextExt& ctx, CompileType comp_type);
+		static CompileValue Parse2(Cursor& c, CompileContextExt& ctx, CompileType comp_type);
+		static CompileValue Parse3(Cursor& c, CompileContextExt& ctx, CompileType comp_type);
 		static CompileValue Parse(Cursor& c, CompileContextExt& ctx, CompileType comp_type);
 
 		static CompileValue EmitOperator(Cursor& c,CompileContextExt& ctx , int l, int op, CompileValue left, CompileValue right, CompileType cpt, int next_l,int next_op);

@@ -389,7 +389,8 @@ namespace Corrosive {
 			cctx.basic.parent_struct = nullptr;
 			cctx.basic.template_ctx = nullptr;
 			cctx.builder = builder;
-			cctx.fallback = nullptr;
+			cctx.fallback_and = nullptr;
+			cctx.fallback_or = nullptr;
 			cctx.block = block;
 
 			Corrosive::CompileValue cv = Expression::Parse(c, cctx, Corrosive::CompileType::Compile);

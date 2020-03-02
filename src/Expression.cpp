@@ -142,84 +142,17 @@ namespace Corrosive {
 		bool isf = false;
 		bool sig = false;
 
-		if (l == 0) {
-			if (left.t != t_bool) {
-				ThrowSpecificError(c, "Left operand must be boolean");
-			}
-
-			if (right.t != t_bool) {
-				ThrowSpecificError(c, "Right operand must be boolean");
-			}
-		}
-
 		if (!ArithCast(left, right, isf,sig)) {
 			ThrowSpecificError(c, "Types of operands cannot be used in this operation");
 		}
 
 		CompileValue ret = left;
 		ret.lvalue = false;
-		if (l==0 || l == 2 || l == 3)
+		if (l == 1 || l == 2)
 			ret.t = t_bool;
 
 		if(cpt != CompileType::ShortCircuit) {
 			if (l == 0) {
-				if (cpt == CompileType::Eval) {
-					if (op == 0)
-						ret.v = LLVMConstAnd(left.v, right.v);
-					else if (op == 1)
-						ret.v = LLVMConstOr(left.v, right.v);
-				}
-				else if (cpt == CompileType::Compile) {
-
-
-					ret.v = left.v;
-					if (!LLVMIsConstant(right.v)) {
-						ret.v = right.v;
-					}
-
-					if (!ctx.fallback) {
-						ctx.fallback = LLVMCreateBasicBlockInContext(LLVMGetGlobalContext(), "fallback");
-
-						ctx.incoming_blocks.push_back(ctx.block);
-						ctx.incoming_values.push_back(LLVMConstInt(LLVMInt1Type(), op == 1, false));
-						LLVMBasicBlockRef positive_block = LLVMAppendBasicBlock(ctx.function, "");
-
-						if (op == 0) {
-							LLVMBuildCondBr(ctx.builder, left.v, positive_block, ctx.fallback);
-						}
-						else if (op == 1) {
-							LLVMBuildCondBr(ctx.builder, left.v, ctx.fallback, positive_block);
-						}
-
-						ctx.block = positive_block;
-						LLVMPositionBuilderAtEnd(ctx.builder, positive_block);
-					}
-
-					if (next_l == 0) {
-						ctx.incoming_blocks.push_back(ctx.block);
-						ctx.incoming_values.push_back(LLVMConstInt(LLVMInt1Type(), next_op == 1, false));
-
-						LLVMBasicBlockRef positive_block = LLVMAppendBasicBlock(ctx.function, "");
-						if (next_op == 0) {
-							LLVMBuildCondBr(ctx.builder, right.v, positive_block, ctx.fallback);
-						}
-						else if(next_op == 1){
-							LLVMBuildCondBr(ctx.builder, right.v, ctx.fallback, positive_block);
-						}
-
-						ctx.block = positive_block;
-						LLVMPositionBuilderAtEnd(ctx.builder, positive_block);
-					}
-					else {
-						std::reverse(ctx.incoming_blocks.begin(), ctx.incoming_blocks.end());
-						std::reverse(ctx.incoming_values.begin(), ctx.incoming_values.end());
-						ctx.incoming_blocks.push_back(ctx.block);
-						ctx.incoming_values.push_back(right.v);
-						LLVMBuildBr(ctx.builder, ctx.fallback);
-					}
-				}
-			}
-			else if (l == 1) {
 				if (op == 0) {
 					if (cpt == CompileType::Eval)
 						ret.v = LLVMConstAnd(left.v, right.v);
@@ -239,7 +172,7 @@ namespace Corrosive {
 						ret.v = LLVMBuildXor(ctx.builder,left.v, right.v,"");
 				}
 			}
-			else if (l == 2) {
+			else if (l == 1) {
 				if (isf) {
 					LLVMRealPredicate pred;
 
@@ -267,7 +200,7 @@ namespace Corrosive {
 						ret.v = LLVMBuildICmp(ctx.builder, pred, left.v, right.v, "");
 				}
 			}
-			else if (l == 3) {
+			else if (l == 2) {
 				if (isf) {
 					LLVMRealPredicate pred;
 
@@ -315,7 +248,7 @@ namespace Corrosive {
 						ret.v = LLVMBuildICmp(ctx.builder, pred, left.v, right.v, "");
 				}
 			}
-			else if (l == 4) {
+			else if (l == 3) {
 				if (op == 0) {
 					if (cpt == CompileType::Eval) {
 						if (isf)
@@ -346,7 +279,7 @@ namespace Corrosive {
 					}
 				}
 			}
-			else if (l == 5) {
+			else if (l == 4) {
 				if (op == 0) {
 
 					if (cpt == CompileType::Eval) {
@@ -415,135 +348,237 @@ namespace Corrosive {
 	}
 
 	CompileValue Expression::Parse(Cursor& c, CompileContextExt& ctx, CompileType cpt) {
+		return Parse1(c, ctx, cpt);
+	}
 
-		int op_type[6];
-		CompileValue layer[6];
+	CompileValue Expression::Parse1(Cursor& c, CompileContextExt& ctx, CompileType cpt) {
+
+		CompileValue value = Expression::Parse2(c, ctx, cpt);
+		
+
+		while (c.Tok() == RecognizedToken::DoubleAnd) {
+			if (value.t != t_bool) {
+				ThrowSpecificError(c, "Operation requires left operand to be boolean");
+			}
+
+			c.Move();
+
+			if (cpt == CompileType::ShortCircuit || (value.v != nullptr && LLVMIsAConstantInt(value.v) && !LLVMConstIntGetZExtValue(value.v))) {
+				Parse2(c, ctx, CompileType::ShortCircuit);
+			}
+			else {
+
+				if (cpt == CompileType::Eval) {
+					CompileValue right = Expression::Parse2(c, ctx, cpt);
+					value.v = LLVMConstAnd(value.v, right.v);
+				}
+				else {
+					if (!ctx.fallback_and) {
+						ctx.fallback_and = LLVMCreateBasicBlockInContext(LLVMGetGlobalContext(), "");
+					}
+
+					ctx.incoming_blocks_and.push_back(ctx.block);
+					ctx.incoming_values_and.push_back(LLVMConstInt(LLVMInt1Type(), false, false));
+					LLVMBasicBlockRef positive_block = LLVMAppendBasicBlock(ctx.function, "");
+					LLVMBuildCondBr(ctx.builder, value.v, positive_block, ctx.fallback_and);
+					ctx.block = positive_block;
+					LLVMPositionBuilderAtEnd(ctx.builder, positive_block);
+
+					value = Expression::Parse2(c, ctx, cpt);
+				}
+			}
+		}
+
+		if (ctx.fallback_and != nullptr && cpt == CompileType::Compile) {
+			if (value.t != t_bool) {
+				ThrowSpecificError(c, "Operation requires right operand to be boolean");
+			}
+
+			std::reverse(ctx.incoming_blocks_and.begin(), ctx.incoming_blocks_and.end());
+			std::reverse(ctx.incoming_values_and.begin(), ctx.incoming_values_and.end());
+			ctx.incoming_blocks_and.push_back(ctx.block);
+			ctx.incoming_values_and.push_back(value.v);
+			LLVMBuildBr(ctx.builder, ctx.fallback_and);
+			
+
+
+			LLVMAppendExistingBasicBlock(ctx.function, ctx.fallback_and);
+			ctx.block = ctx.fallback_and;
+			ctx.fallback_and = nullptr;
+			LLVMPositionBuilderAtEnd(ctx.builder, ctx.block);
+			value.v = LLVMBuildPhi(ctx.builder, LLVMInt1Type(), "");
+			value.t = t_bool;
+			value.lvalue = false;
+			LLVMAddIncoming(value.v, ctx.incoming_values_and.data(), ctx.incoming_blocks_and.data(), (unsigned int)ctx.incoming_blocks_and.size());
+
+			ctx.incoming_values_and.clear();
+			ctx.incoming_blocks_and.clear();
+		}
+
+		return value;
+	}
+
+
+
+	CompileValue Expression::Parse2(Cursor& c, CompileContextExt& ctx, CompileType cpt) {
+		CompileValue value = Expression::Parse3(c, ctx, cpt);
+		while (c.Tok() == RecognizedToken::DoubleOr) {
+			if (value.t != t_bool) {
+				ThrowSpecificError(c, "Operation requires left operand to be boolean");
+			}
+
+			c.Move();
+
+			if (cpt == CompileType::ShortCircuit || (value.v != nullptr && LLVMIsAConstantInt(value.v) && LLVMConstIntGetZExtValue(value.v))) {
+				Parse3(c, ctx, CompileType::ShortCircuit);
+			}
+			else {
+				
+				if (cpt == CompileType::Eval) {
+					CompileValue right = Expression::Parse3(c, ctx, cpt);
+					value.v = LLVMConstAnd(value.v, right.v);
+				}
+				else {
+					if (!ctx.fallback_or) {
+						ctx.fallback_or = LLVMCreateBasicBlockInContext(LLVMGetGlobalContext(), "");
+					}
+
+					ctx.incoming_blocks_or.push_back(ctx.block);
+					ctx.incoming_values_or.push_back(LLVMConstInt(LLVMInt1Type(), true, false));
+					LLVMBasicBlockRef positive_block = LLVMAppendBasicBlock(ctx.function, "");
+					LLVMBuildCondBr(ctx.builder, value.v, ctx.fallback_or, positive_block);
+					ctx.block = positive_block;
+					LLVMPositionBuilderAtEnd(ctx.builder, positive_block);
+
+					value = Expression::Parse3(c, ctx, cpt);
+				}
+			}
+		}
+
+		if (ctx.fallback_or != nullptr && cpt == CompileType::Compile) {
+			if (value.t != t_bool) {
+				ThrowSpecificError(c, "Operation requires right operand to be boolean");
+			}
+
+			std::reverse(ctx.incoming_blocks_or.begin(), ctx.incoming_blocks_or.end());
+			std::reverse(ctx.incoming_values_or.begin(), ctx.incoming_values_or.end());
+			ctx.incoming_blocks_or.push_back(ctx.block);
+			ctx.incoming_values_or.push_back(value.v);
+			LLVMBuildBr(ctx.builder, ctx.fallback_or);
+
+			LLVMAppendExistingBasicBlock(ctx.function, ctx.fallback_or);
+			ctx.block = ctx.fallback_or;
+			ctx.fallback_or = nullptr;
+			LLVMPositionBuilderAtEnd(ctx.builder, ctx.block);
+			value.v = LLVMBuildPhi(ctx.builder, LLVMInt1Type(), "");
+			value.t = t_bool;
+			value.lvalue = false;
+			LLVMAddIncoming(value.v, ctx.incoming_values_or.data(), ctx.incoming_blocks_or.data(), (unsigned int)ctx.incoming_blocks_or.size());
+
+			ctx.incoming_values_or.clear();
+			ctx.incoming_blocks_or.clear();
+		}
+
+		return value;
+	}
+
+	CompileValue Expression::Parse3(Cursor& c, CompileContextExt& ctx, CompileType cpt) {
+
+		int op_type[5];
+		CompileValue layer[5];
 		memset(layer, 0, sizeof(layer));
 
 		int current_layer = -1;
-		bool short_circuit = false;
 
 		while (true) {
-			CompileValue value = Operand::Parse(c, ctx, short_circuit?CompileType::ShortCircuit:cpt);
+			CompileValue value = Operand::Parse(c, ctx, cpt);
 			int op_v = -1;
 			int op_t = -1;
 
-			if (c.Tok() == RecognizedToken::DoubleAnd) {
+			if (c.Tok() == RecognizedToken::And) {
 				op_v = 0;
-				op_t = 0;
-				if (!short_circuit && (cpt == CompileType::Eval) && !LLVMConstIntGetZExtValue(value.v)) {
-					short_circuit = true;
-				}
-			}
-			else if (c.Tok() == RecognizedToken::DoubleOr) {
-				op_v = 0;
-				op_t = 1;
-
-				if (!short_circuit && (cpt == CompileType::Eval) && LLVMConstIntGetZExtValue(value.v)) {
-					short_circuit = true;
-				}
-			}
-			else if (c.Tok() == RecognizedToken::And) {
-				op_v = 1;
 				op_t = 0;
 			}
 			else if (c.Tok() == RecognizedToken::Or) {
-				op_v = 1;
+				op_v = 0;
 				op_t = 1;
 			}
 			else if(c.Tok() == RecognizedToken::Xor) {
-				op_v = 1;
+				op_v = 0;
 				op_t = 2;
 			}
 			else if (c.Tok() == RecognizedToken::DoubleEquals) {
-				op_v = 2;
+				op_v = 1;
 				op_t = 0;
 			}
 			else if (c.Tok() == RecognizedToken::NotEquals) {
-				op_v = 2;
+				op_v = 1;
 				op_t = 1;
 			}
 			else  if (c.Tok() == RecognizedToken::GreaterThan) {
-				op_v = 3;
+				op_v = 2;
 				op_t = 0;
 			}
 			else if (c.Tok() == RecognizedToken::LessThan) {
-				op_v = 3;
+				op_v = 2;
 				op_t = 1;
 			}
 			else if(c.Tok() == RecognizedToken::GreaterOrEqual) {
-				op_v = 3;
+				op_v = 2;
 				op_t = 2;
 			}
 			else if (c.Tok() == RecognizedToken::LessOrEqual) {
-				op_v = 3;
+				op_v = 2;
 				op_t = 3;
 			}
 			else if (c.Tok() == RecognizedToken::Plus) {
-				op_v = 4;
+				op_v = 3;
 				op_t = 0;
 			}
 			else if (c.Tok() == RecognizedToken::Minus) {
-				op_v = 4;
+				op_v = 3;
 				op_t = 1;
 			}
 			else if (c.Tok() == RecognizedToken::Star) {
-				op_v = 5;
+				op_v = 4;
 				op_t = 0;
 			}
 			else if (c.Tok() == RecognizedToken::Slash) {
-				op_v = 5;
+				op_v = 4;
 				op_t = 1;
 			}
 			else if (c.Tok() == RecognizedToken::Percent) {
-				op_v = 5;
+				op_v = 4;
 				op_t = 2;
 			}
 			
 			
-			if (!short_circuit) {
-				for (int i = current_layer; i >= std::max(op_v, 0); i--) {
+			for (int i = current_layer; i >= std::max(op_v, 0); i--) {
 
-					if (layer[i].v != nullptr) {
-						CompileValue& left = layer[i];
-						CompileValue& right = value;
-						CompileType cpt2 = cpt;
+				if (layer[i].v != nullptr) {
+					CompileValue& left = layer[i];
+					CompileValue& right = value;
+					CompileType cpt2 = cpt;
 
-						if (cpt == CompileType::Compile && LLVMIsConstant(left.v) && LLVMIsConstant(right.v))
-							cpt2 = CompileType::Eval;
+					if (cpt == CompileType::Compile && LLVMIsConstant(left.v) && LLVMIsConstant(right.v))
+						cpt2 = CompileType::Eval;
 
-						value = EmitOperator(c, ctx, i, op_type[i], left, right, cpt2, op_v,op_t);
-						layer[i].v = nullptr;
-					}
+					value = EmitOperator(c, ctx, i, op_type[i], left, right, cpt2, op_v,op_t);
+					layer[i].v = nullptr;
 				}
 			}
+			
 
 			if (op_v >= 0) {
-				if (!short_circuit) {
-					layer[op_v] = value;
-					op_type[op_v] = op_t;
-					current_layer = op_v;
-				}
+
+				layer[op_v] = value;
+				op_type[op_v] = op_t;
+				current_layer = op_v;
+				
 
 				c.Move();
 			}
 			else {
-				if (ctx.fallback != nullptr && cpt == CompileType::Compile) {
-
-					LLVMAppendExistingBasicBlock(ctx.function, ctx.fallback);
-					ctx.block = ctx.fallback;
-					ctx.fallback = nullptr;
-					LLVMPositionBuilderAtEnd(ctx.builder, ctx.block);
-					value.v = LLVMBuildPhi(ctx.builder, LLVMInt1Type(), "");
-					value.t = t_bool;
-					value.lvalue = false;
-					LLVMAddIncoming(value.v, ctx.incoming_values.data(), ctx.incoming_blocks.data(), (unsigned int)ctx.incoming_blocks.size());
-
-					ctx.incoming_values.clear();
-					ctx.incoming_blocks.clear();
-				}
-				
-
 				return value;
 			}
 		}
