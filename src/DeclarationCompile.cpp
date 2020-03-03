@@ -123,10 +123,10 @@ namespace Corrosive {
 
 				if (fdecl = dynamic_cast<FunctionDeclaration*>(decl.get())) {
 
-					const FunctionType*& fdt = (const FunctionType*&)fdecl->Type();
+					const FunctionType*& fdt = (const FunctionType*&)fdecl->type;
 
 
-					if (!fdecl->Static()) {
+					if (!fdecl->is_static) {
 						PrimitiveType thistype;
 						Cursor ptrc;
 						ptrc.Data("ptr");
@@ -144,10 +144,10 @@ namespace Corrosive {
 					CompileContext nctx = ctx;
 					nctx.parent_struct = fdecl->parent_struct();
 					nctx.parent_namespace = fdecl->parent_pack;
-					Type::ResolvePackageInPlace(fdecl->Type(), nctx);
+					Type::ResolvePackageInPlace(fdecl->type, nctx);
 
 					Cursor thisc; thisc.Data("this");
-					fdecl->Argnames()->insert(fdecl->Argnames()->begin(), thisc);
+					fdecl->argnames.insert(fdecl->argnames.begin(), thisc);
 				}
 
 				decl->pre_compile(ctx);
@@ -160,7 +160,7 @@ namespace Corrosive {
 				}
 				else if (fdecl != nullptr) {
 					if (is_trait)
-						mem_types.push_back(LLVMPointerType(fdecl->Type()->LLVMType(), 0));
+						mem_types.push_back(LLVMPointerType(fdecl->type->LLVMType(), 0));
 				}
 			}
 
@@ -217,10 +217,10 @@ namespace Corrosive {
 						iface_list[key] = f;
 					}
 					else {
-						if (!((const FunctionType*)nifc->second->Type())->CanPrimCastIntoIgnoreThis(f->Type())) {
+						if (!((const FunctionType*)nifc->second->type)->CanPrimCastIntoIgnoreThis(f->type)) {
 							ThrowSpecificError(name, "Structure has two interfaces with trait function");
 						}
-						if (nifc->second->Static() != f->Static()) {
+						if (nifc->second->is_static != f->is_static) {
 							ThrowSpecificError(name, "Structure has two interfaces with trait function");
 						}
 					}
@@ -235,7 +235,7 @@ namespace Corrosive {
 				std::string_view key = f->name.Data();
 				auto nifc = iface_list.find(key);
 				if (nifc != iface_list.end()) {
-					if (!((const FunctionType*)f->Type())->CanPrimCastIntoIgnoreThis(nifc->second->Type())) {
+					if (!((const FunctionType*)f->type)->CanPrimCastIntoIgnoreThis(nifc->second->type)) {
 						ThrowSpecificError(f->name, "Declaration is not compatible with trait declaration");
 					}
 					iface_list.erase(nifc);
@@ -244,7 +244,7 @@ namespace Corrosive {
 		}
 
 		for (auto it = iface_list.begin(); it != iface_list.end(); it++) {
-			if (!it->second->HasBlock())
+			if (!it->second->has_block)
 				ThrowSpecificError(name, "Structure lacks some functions from its interfaces");
 		}
 	}
@@ -325,14 +325,14 @@ namespace Corrosive {
 	}
 
 	void FunctionDeclaration::pre_compile(CompileContext& ctx) {
-		if (Type()->LLVMType() != nullptr) return;
+		if (type->LLVMType() != nullptr) return;
 
 		CompileContext nctx = ctx;
 		nctx.parent_struct = parent_struct();
 		nctx.parent_namespace = parent_pack;
 
-		Type::ResolvePackageInPlace(Type(), nctx);
-		Type()->PreCompile(nctx);
+		Type::ResolvePackageInPlace(type, nctx);
+		type->PreCompile(nctx);
 	}
 
 	void FunctionDeclaration::compile(CompileContext& ctx) {
@@ -345,7 +345,7 @@ namespace Corrosive {
 			nctx.parent_struct = parent_struct();
 			nctx.parent_namespace = parent_pack;
 
-			Type()->Compile(nctx);
+			type->Compile(nctx);
 
 
 			std::string f_name = "f.";
@@ -358,10 +358,10 @@ namespace Corrosive {
 			unsigned long stack = StackManager::StackState();
 
 			function = LLVMAddFunction(ctx.module, f_name.c_str(), type->LLVMType());
-			LLVMBasicBlockRef block = LLVMAppendBasicBlock(function, "entry");
+			LLVMBasicBlockRef llvm_block = LLVMAppendBasicBlock(function, "entry");
 			LLVMBuilderRef builder = LLVMCreateBuilder();
 
-			LLVMPositionBuilderAtEnd(builder, block);
+			LLVMPositionBuilderAtEnd(builder, llvm_block);
 
 			const FunctionType* ft = (const FunctionType*)type;
 			bool heavy_return = ft->Returns()->HeavyType();
@@ -381,7 +381,7 @@ namespace Corrosive {
 			}
 
 
-			Cursor c = Block();
+			Cursor c = block;
 			Corrosive::CompileContextExt cctx;
 			cctx.function = function;
 			cctx.unit = this;
@@ -391,7 +391,7 @@ namespace Corrosive {
 			cctx.builder = builder;
 			cctx.fallback_and = nullptr;
 			cctx.fallback_or = nullptr;
-			cctx.block = block;
+			cctx.block = llvm_block;
 
 			Corrosive::CompileValue cv = Expression::Parse(c, cctx, Corrosive::CompileType::Compile);
 			LLVMBuildRet(cctx.builder, cv.v);

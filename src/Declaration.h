@@ -28,15 +28,15 @@ namespace Corrosive {
 
 		virtual std::unique_ptr<Declaration> clone();
 
-		virtual void print(unsigned int offset) const;
-		virtual void compile(CompileContext& ctx);
-		virtual void pre_compile(CompileContext& ctx);
+		virtual void print			(unsigned int offset) const;
+		virtual void compile		(CompileContext& ctx);
+		virtual void pre_compile	(CompileContext& ctx);
 
 		Cursor					name;
-		std::string_view		package = "g";
-		int						compile_progress = 0;
-		Declaration*			parent = nullptr;
-		NamespaceDeclaration*	parent_pack = nullptr;
+		std::string_view		package				= "g";
+		int						compile_progress	= 0;
+		Declaration*			parent				= nullptr;
+		NamespaceDeclaration*	parent_pack			= nullptr;
 		StructDeclaration*		parent_struct() const;
 	};
 
@@ -48,10 +48,10 @@ namespace Corrosive {
 		const Corrosive::Type* type;
 
 		virtual std::unique_ptr<Declaration> clone();
-		virtual void print(unsigned int offset) const;
 
-		virtual void compile(CompileContext& ctx);
-		virtual void pre_compile(CompileContext& ctx);
+		virtual void print			(unsigned int offset) const;
+		virtual void compile		(CompileContext& ctx);
+		virtual void pre_compile	(CompileContext& ctx);
 	};
 
 
@@ -59,14 +59,12 @@ namespace Corrosive {
 
 	class TypedefDeclaration : public Declaration {
 	public:
-		const Corrosive::Type*& Type();
-		void Type(const Corrosive::Type*);
+		const Corrosive::Type* resolve_type();
 
 		virtual void print(unsigned int offset) const;
-		const Corrosive::Type* ResolveType();
-	protected:
-		const Corrosive::Type* type;
-		int resolve_progress = 0;
+
+		const Corrosive::Type*	type;
+		int	resolve_progress = 0;
 	};
 
 
@@ -77,34 +75,17 @@ namespace Corrosive {
 
 		virtual std::unique_ptr<Declaration> clone();
 
-		const Corrosive::Type*& Type();
-
-		void Type(const Corrosive::Type*);
-
-		Cursor Block() const;
-		void Block(Cursor c);
-
-		bool HasBlock() const;
-		void HasBlock(bool b);
-
-		std::vector<Cursor>* Argnames();
-
-		virtual void compile(CompileContext& ctx);
-		virtual void pre_compile(CompileContext& ctx);
-
-		virtual void print(unsigned int offset) const;
-
-		bool Static() const;
-		void Static(bool b);
+		virtual void compile		(CompileContext& ctx);
+		virtual void pre_compile	(CompileContext& ctx);
+		virtual void print			(unsigned int offset) const;
 
 		LLVMValueRef function = nullptr;
 
-	protected:
-		bool isstatic = false;
-		const Corrosive::Type* type;
-		std::vector<Cursor> argnames;
-		Cursor block;
-		bool hasBlock = false;
+		const Corrosive::Type*	type;
+		std::vector<Cursor>		argnames;
+		Cursor					block;
+		bool					has_block = false;
+		bool					is_static = false;
 	};
 
 	class GenericFunctionDeclaration : public FunctionDeclaration {

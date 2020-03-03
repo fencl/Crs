@@ -16,29 +16,6 @@ namespace Corrosive {
 		return dynamic_cast<StructDeclaration*>(parent);
 	}
 	
-	const Type*& TypedefDeclaration::Type() {
-		return type;
-	}
-
-	void TypedefDeclaration::Type(const Corrosive::Type* t) {
-		type = t;
-	}
-
-	bool FunctionDeclaration::Static() const { return isstatic; }
-	void FunctionDeclaration::Static(bool b) { isstatic = b; }
-	
-	const Corrosive::Type*& FunctionDeclaration::Type() { return type; }
-
-	void FunctionDeclaration::Type(const Corrosive::Type* t) {
-		type = std::move(t);
-	}
-
-	bool FunctionDeclaration::HasBlock() const { return hasBlock; }
-	void FunctionDeclaration::HasBlock(bool b) { hasBlock = b; }
-
-	Cursor FunctionDeclaration::Block() const { return block; }
-	void FunctionDeclaration::Block(Cursor c) { block = c; }
-
 
 	void Declaration::print(unsigned int offset) const {
 
@@ -80,11 +57,11 @@ namespace Corrosive {
 		d->package = package;
 		d->parent = parent;
 		d->parent_pack = parent_pack;
-		d->Type(type);
-		d->Static(isstatic);
+		d->type = type;
+		d->is_static = is_static;
 		d->argnames = argnames;
 		d->block = block;
-		d->hasBlock = hasBlock;
+		d->has_block = has_block;
 		return std::move(d);
 	}
 
@@ -139,7 +116,7 @@ namespace Corrosive {
 					nctx.parent_struct = fd->parent_struct();
 					nctx.parent_namespace = fd->parent_pack;
 
-					Type::ResolvePackageInPlace(fd->Type(), nctx);
+					Type::ResolvePackageInPlace(fd->type, nctx);
 				}
 			}
 
@@ -182,7 +159,7 @@ namespace Corrosive {
 		for (unsigned int i = 0; i < offset; i++) std::cout << "\t";
 		std::cout << "function ";
 
-		if (isstatic) {
+		if (is_static) {
 			std::cout << "static ";
 		}
 
@@ -280,14 +257,11 @@ namespace Corrosive {
 		std::cout << "}" << std::endl << std::endl;
 	}
 
-	std::vector<Cursor>* FunctionDeclaration::Argnames() {
-		return &argnames;
-	}
 
 	bool StructDeclaration::is_generic() { return false; }
 	bool GenericStructDeclaration::is_generic() { return true; }
 
-	const Type* TypedefDeclaration::ResolveType() {
+	const Type* TypedefDeclaration::resolve_type() {
 		if (resolve_progress == 0) {
 			resolve_progress = 1;
 			CompileContext nctx;

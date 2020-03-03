@@ -93,7 +93,7 @@ namespace Corrosive {
 
 				std::unique_ptr<TypedefDeclaration> vd = std::make_unique<TypedefDeclaration>();
 				vd->name = names[i];
-				vd->Type(tp);
+				vd->type = tp;
 
 
 				if (parent != nullptr) {
@@ -113,11 +113,11 @@ namespace Corrosive {
 			}
 		}
 		else if (c.Data() == "function") {
-			bool iss = false;
+			bool is_static = false;
 			c.Move();
 
 			if (c.Tok() == RecognizedToken::Symbol && c.Data() == "static") {
-				iss = true;
+				is_static = true;
 				c.Move();
 			}
 
@@ -169,11 +169,11 @@ namespace Corrosive {
 			else
 				fd = std::make_unique<FunctionDeclaration>();
 
-			const Corrosive::Type* tp = Type::Parse(c, fd->Argnames());
+			const Corrosive::Type* type = Type::Parse(c, &fd->argnames);
 
 			fd->name = name;
-			fd->Type(tp);
-			fd->Static(iss);
+			fd->type = type;
+			fd->is_static = is_static;
 			if (name.Data() == "main") {
 				Contents::entry_point = fd.get();
 			}
@@ -186,9 +186,9 @@ namespace Corrosive {
 			fd->parent_pack = pack;
 
 			if (c.Tok() == RecognizedToken::OpenBrace) {
-				fd->HasBlock(true);
+				fd->has_block = true;
 				c.Move();
-				fd->Block(c);
+				fd->block = c;
 
 				int level = 1;
 				while (true) {

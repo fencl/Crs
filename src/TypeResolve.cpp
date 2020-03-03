@@ -196,7 +196,7 @@ namespace Corrosive {
 						ThrowSpecificError(name, "Type with generic declaration points to type definition that is not generic.");
 					}
 
-					const Type* nt = td->ResolveType();
+					const Type* nt = td->resolve_type();
 
 					return nt->CloneRef(ref);
 				}
