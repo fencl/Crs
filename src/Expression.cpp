@@ -7,7 +7,14 @@
 #include <iostream>
 
 namespace Corrosive {
-
+	void Expression::ToRvalue(CompileContextExt& ctx,CompileValue& value,CompileType cpt) {
+		if (value.lvalue) {
+			if (cpt == CompileType::Compile) {
+				value.lvalue = false;
+				value.v = LLVMBuildLoad2(ctx.builder, value.t->LLVMTypeRValue(), value.v, "");
+			}
+		}
+	}
 
 	void Expression::ArithConstPromote(CompileValue& value,int from, int to) {
 		if (to == 10) {
@@ -120,6 +127,7 @@ namespace Corrosive {
 			int arith_value_right = ArithValue(rtp);
 
 			int arith_value_res = std::max(arith_value_left, arith_value_right);
+			if (arith_value_res == 11) return false;
 
 			if (arith_value_left == arith_value_right) {
 
@@ -142,9 +150,13 @@ namespace Corrosive {
 		bool isf = false;
 		bool sig = false;
 
-		if (!ArithCast(left, right, isf,sig)) {
+		ToRvalue(ctx, left, cpt);
+		ToRvalue(ctx, right, cpt);
+
+		if (!ArithCast(left, right, isf, sig)) {
 			ThrowSpecificError(c, "Types of operands cannot be used in this operation");
 		}
+
 
 		CompileValue ret = left;
 		ret.lvalue = false;
@@ -152,6 +164,7 @@ namespace Corrosive {
 			ret.t = t_bool;
 
 		if(cpt != CompileType::ShortCircuit) {
+
 			if (l == 0) {
 				if (op == 0) {
 					if (cpt == CompileType::Eval)
@@ -376,7 +389,7 @@ namespace Corrosive {
 					if (!ctx.fallback_and) {
 						ctx.fallback_and = LLVMCreateBasicBlockInContext(LLVMGetGlobalContext(), "");
 					}
-
+					ToRvalue(ctx, value, cpt);
 					ctx.incoming_blocks_and.push_back(ctx.block);
 					ctx.incoming_values_and.push_back(LLVMConstInt(LLVMInt1Type(), false, false));
 					LLVMBasicBlockRef positive_block = LLVMAppendBasicBlock(ctx.function, "");
@@ -393,6 +406,8 @@ namespace Corrosive {
 			if (value.t != t_bool) {
 				ThrowSpecificError(c, "Operation requires right operand to be boolean");
 			}
+
+			ToRvalue(ctx, value, cpt);
 
 			std::reverse(ctx.incoming_blocks_and.begin(), ctx.incoming_blocks_and.end());
 			std::reverse(ctx.incoming_values_and.begin(), ctx.incoming_values_and.end());
@@ -443,6 +458,8 @@ namespace Corrosive {
 						ctx.fallback_or = LLVMCreateBasicBlockInContext(LLVMGetGlobalContext(), "");
 					}
 
+					ToRvalue(ctx, value, cpt);
+
 					ctx.incoming_blocks_or.push_back(ctx.block);
 					ctx.incoming_values_or.push_back(LLVMConstInt(LLVMInt1Type(), true, false));
 					LLVMBasicBlockRef positive_block = LLVMAppendBasicBlock(ctx.function, "");
@@ -459,6 +476,8 @@ namespace Corrosive {
 			if (value.t != t_bool) {
 				ThrowSpecificError(c, "Operation requires right operand to be boolean");
 			}
+
+			ToRvalue(ctx, value, cpt);
 
 			std::reverse(ctx.incoming_blocks_or.begin(), ctx.incoming_blocks_or.end());
 			std::reverse(ctx.incoming_values_or.begin(), ctx.incoming_values_or.end());

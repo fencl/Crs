@@ -71,6 +71,7 @@ int main() {
 		}
 	}*/
 
+	std::cout << "\n";
 	LLVMDumpModule(m);
 	std::cout << "\n";
 

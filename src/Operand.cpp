@@ -120,6 +120,72 @@ namespace Corrosive {
 		}
 
 
+
+		while (true) {
+			if (c.Tok() == RecognizedToken::OpenBracket) {
+				auto array_type = dynamic_cast<const ArrayType*>(ret.t);
+				if (array_type == nullptr) {
+					ThrowSpecificError(c, "Operator requires array type");
+				}
+				c.Move();
+				CompileValue v = Expression::Parse(c, ctx, cpt);
+				//check for integer type
+				if (c.Tok() != RecognizedToken::CloseBracket) {
+					ThrowWrongTokenError(c, "']'");
+				}
+				c.Move();
+
+				LLVMValueRef ind[] = { v.v };
+				ret.v = LLVMBuildGEP2(ctx.builder, array_type->Base()->LLVMType(), ret.v, ind, 1, "");
+				
+				ret.t = array_type->Base();
+				ret.lvalue = true;
+			}
+			else if (c.Tok() == RecognizedToken::Dot) {
+
+				auto prim_type = dynamic_cast<const PrimitiveType*>(ret.t);
+				if (prim_type == nullptr) {
+					ThrowSpecificError(c, "Operator requires primitive type");
+				}
+				c.Move();
+
+				
+
+				StructDeclaration* sd = prim_type->Structure();
+
+				/*while (true)*/ {
+
+					auto lt = sd->LookupTable.find(c.Data());
+					if (lt == sd->LookupTable.end()) {
+						ThrowSpecificError(c, "Member was not found");
+					}
+					Declaration* decl = std::get<0>(lt->second);
+					int mid = std::get<1>(lt->second);
+
+					VariableDeclaration* vdecl = dynamic_cast<VariableDeclaration*>(decl);
+					if (vdecl != nullptr) {
+						ret.v = LLVMBuildStructGEP2(ctx.builder, sd->LLVMType(), ret.v, mid, "");
+						ret.t = vdecl->Type();
+						ret.lvalue = true;
+					}
+					else {
+						FunctionDeclaration* fdecl = dynamic_cast<FunctionDeclaration*>(decl);
+						if (fdecl != nullptr) {
+							ThrowSpecificError(c, "functions not implemented yet");
+						}
+						else {
+							ThrowSpecificError(c, "Aliases not implemented yet");
+						}
+					}
+				}
+
+				c.Move();
+
+				
+
+			}else break;
+		}
+
 		return ret;
 	}
 }
