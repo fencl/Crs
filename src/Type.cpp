@@ -57,9 +57,9 @@ namespace Corrosive {
 			std::cout << actual_size;
 		}
 		else {
-			std::cout << size.Data();
+			std::cout << size.data;
 			if (!has_simple_size) {
-				std::cout << "... ("<<size.Offset()<<")";
+				std::cout << "... ("<<size.offset<<")";
 			}
 		}
 
@@ -99,7 +99,7 @@ namespace Corrosive {
 			std::cout << package;
 			std::cout << "::";
 		}
-		std::cout << name.Data();
+		std::cout << name.data;
 
 		if (templates != nullptr && templates->size()>0) {
 			std::cout << "<";

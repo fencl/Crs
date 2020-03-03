@@ -61,19 +61,19 @@ namespace Corrosive {
 		if (v.t == t_i8 || v.t == t_i16 || v.t == t_i32 || v.t == t_i64) {
 			long long cv = LLVMConstIntGetSExtValue(v.v);
 			if (cv <= 0) {
-				ThrowSpecificError(size, "Array cannot be created with negative or zero size");
+				throw_specific_error(size, "Array cannot be created with negative or zero size");
 			}
 			rt.actual_size = (unsigned int)cv;
 		}
 		else if (v.t == t_u8 || v.t == t_u16 || v.t == t_u32 || v.t == t_u64) {
 			unsigned long long cv = LLVMConstIntGetZExtValue(v.v);
 			if (cv == 0) {
-				ThrowSpecificError(size, "Array cannot be created with zero size");
+				throw_specific_error(size, "Array cannot be created with zero size");
 			}
 			rt.actual_size = (unsigned int)cv;
 		}
 		else {
-			ThrowSpecificError(size, "Array type must have constant integer size");
+			throw_specific_error(size, "Array type must have constant integer size");
 		}
 
 		if (mod)
@@ -154,15 +154,15 @@ namespace Corrosive {
 				GenericStructDeclaration* gs = (GenericStructDeclaration*)ctx.parent_struct;
 
 				if (gs->generic_typenames.size() != ctx.template_ctx->size()) {
-					ThrowSpecificError(name, "Target structure has different number of generic typenames");
+					throw_specific_error(name, "Target structure has different number of generic typenames");
 				}
 
-				auto tcf = gs->generic_typenames.find(name.Data());
+				auto tcf = gs->generic_typenames.find(name.data);
 				if (tcf != gs->generic_typenames.end()) {
 					const std::variant<unsigned int, const Type*>& tci = (*ctx.template_ctx)[tcf->second];
 
 					if (tci.index() == 0) {
-						ThrowSpecificError(name, "Generic argument referenced is integer, not type");
+						throw_specific_error(name, "Generic argument referenced is integer, not type");
 					}
 
 					const Type* nptr = std::get<1>(tci);
@@ -190,17 +190,17 @@ namespace Corrosive {
 
 			for (auto look = lookup.begin(); look != lookup.end(); look++) {
 
-				if (auto td = Contents::find_typedef(*look, name.Data())) {
+				if (auto td = Contents::find_typedef(*look, name.data)) {
 					if (templates != nullptr) {
 						//TODO: i can implement this easily, just have to stop being lazy.
-						ThrowSpecificError(name, "Type with generic declaration points to type definition that is not generic.");
+						throw_specific_error(name, "Type with generic declaration points to type definition that is not generic.");
 					}
 
 					const Type* nt = td->resolve_type();
 
 					return nt->clone_ref(ref);
 				}
-				else if (auto sd = Contents::find_struct(*look, name.Data())) {
+				else if (auto sd = Contents::find_struct(*look, name.data)) {
 					rt.structure = sd;
 					rt.package = *look;
 
@@ -208,7 +208,7 @@ namespace Corrosive {
 				}
 			}
 
-			ThrowSpecificError(name, "This type was not found in any package from the lookup queue");
+			throw_specific_error(name, "This type was not found in any package from the lookup queue");
 
 			return nullptr;
 		}

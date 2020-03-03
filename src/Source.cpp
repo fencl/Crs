@@ -8,35 +8,8 @@
 #include "Utilities.h"
 
 namespace Corrosive {
-	std::string_view const Cursor::Data() const {
-		return data;
-	}
-
-	void Cursor::Data(std::string_view d) {
-		data = d;
-	}
 
 
-	const void* Cursor::Source() const { return src; }
-
-	RecognizedToken const Cursor::Tok() const {
-		return token;
-	}
-
-	void Cursor::Tok(RecognizedToken t) {
-		token = t;
-	}
-
-	size_t Cursor::Offset() const { return offset; }
-	unsigned int Cursor::Left() const { return left; }
-	unsigned int Cursor::Top() const { return top; }
-
-	void Cursor::Pos(const void* s, size_t o, unsigned int l, unsigned int t) {
-		src = s;
-		offset = o;
-		left = l;
-		top = t;
-	}
 
 	std::string_view const Source::Data() const {
 		return std::string_view(data);
@@ -57,7 +30,7 @@ namespace Corrosive {
 	}
 
 	void Source::ReadAfter(Cursor& out, const Cursor& c) const {
-		Read(out, c.Offset() + c.Data().length(), c.Left() + (unsigned int)c.Data().length(), c.Top());
+		Read(out, c.offset + c.data.length(), c.left + (unsigned int)c.data.length(), c.top);
 	}
 
 
@@ -68,13 +41,13 @@ namespace Corrosive {
 	}
 
 
-	Cursor Cursor::Next() const {
+	Cursor Cursor::next() const {
 		Cursor c;
 		((Corrosive::Source*)src)->ReadAfter(c, *this);
 		return c;
 	}
 
-	void Cursor::Move() {
+	void Cursor::move() {
 		((Corrosive::Source*)src)->ReadAfter(*this, *this);
 	}
 
@@ -138,10 +111,12 @@ namespace Corrosive {
 					offset++;
 					left++;
 				}
-
-				out.Pos(this, start, sleft, top);
-				out.Data(Data().substr(start, offset - start));
-				out.Tok(RecognizedToken::Symbol);
+				out.src = this;
+				out.offset = start;
+				out.left = sleft;
+				out.top = top;
+				out.data = Data().substr(start, offset - start);
+				out.tok = RecognizedToken::Symbol;
 
 				return;
 			}
@@ -182,25 +157,28 @@ namespace Corrosive {
 					left++;
 				}
 
-				out.Pos(this, start, sleft, top);
-				out.Data(Data().substr(start, offset - start));
+				out.src = this;
+				out.offset = start;
+				out.left = sleft;
+				out.top = top;
+				out.data = Data().substr(start, offset - start);
 				if (floatt) {
 					if (doublet)
-						out.Tok(RecognizedToken::DoubleNumber);
+						out.tok = (RecognizedToken::DoubleNumber);
 					else
-						out.Tok(RecognizedToken::FloatNumber);
+						out.tok = (RecognizedToken::FloatNumber);
 				}
 				else if (islong) {
 					if (isusg)
-						out.Tok(RecognizedToken::UnsignedLongNumber);
+						out.tok = (RecognizedToken::UnsignedLongNumber);
 					else
-						out.Tok(RecognizedToken::LongNumber);
+						out.tok = (RecognizedToken::LongNumber);
 				}
 				else {
 					if (isusg)
-						out.Tok(RecognizedToken::UnsignedNumber);
+						out.tok = (RecognizedToken::UnsignedNumber);
 					else
-						out.Tok(RecognizedToken::Number);
+						out.tok = (RecognizedToken::Number);
 				}
 
 
@@ -220,79 +198,85 @@ namespace Corrosive {
 
 				switch (c)
 				{
-					case '@': out.Tok(RecognizedToken::At); break;
-					case '[': out.Tok(RecognizedToken::OpenBracket); break;
-					case ']': out.Tok(RecognizedToken::CloseBracket); break;
-					case '{': out.Tok(RecognizedToken::OpenBrace); break;
-					case '}': out.Tok(RecognizedToken::CloseBrace); break;
-					case '(': out.Tok(RecognizedToken::OpenParenthesis); break;
-					case ')': out.Tok(RecognizedToken::CloseParenthesis); break;
-					case '+': out.Tok(RecognizedToken::Plus); break;
+					case '@': out.tok = (RecognizedToken::At); break;
+					case '[': out.tok = (RecognizedToken::OpenBracket); break;
+					case ']': out.tok = (RecognizedToken::CloseBracket); break;
+					case '{': out.tok = (RecognizedToken::OpenBrace); break;
+					case '}': out.tok = (RecognizedToken::CloseBrace); break;
+					case '(': out.tok = (RecognizedToken::OpenParenthesis); break;
+					case ')': out.tok = (RecognizedToken::CloseParenthesis); break;
+					case '+': out.tok = (RecognizedToken::Plus); break;
 					case '-': switch (nc)
 					{
-						case '>': offset++; out.Tok(RecognizedToken::Arrow); break;
-						default: out.Tok(RecognizedToken::Minus); break;
+						case '>': offset++; out.tok = (RecognizedToken::Arrow); break;
+						default: out.tok = (RecognizedToken::Minus); break;
 					}break;
-					case '*': out.Tok(RecognizedToken::Star); break;
-					case '/': out.Tok(RecognizedToken::Slash); break;
-					case ';': out.Tok(RecognizedToken::Semicolon); break;
-					case ',': out.Tok(RecognizedToken::Comma); break;
-					case '.': out.Tok(RecognizedToken::Dot); break;
-					case '%': out.Tok(RecognizedToken::Percent); break;
-					case '^': out.Tok(RecognizedToken::Xor); break;
-					case '\\': out.Tok(RecognizedToken::Backslash); break;
-					case '?': out.Tok(RecognizedToken::QestionMark); break;
+					case '*': out.tok = (RecognizedToken::Star); break;
+					case '/': out.tok = (RecognizedToken::Slash); break;
+					case ';': out.tok = (RecognizedToken::Semicolon); break;
+					case ',': out.tok = (RecognizedToken::Comma); break;
+					case '.': out.tok = (RecognizedToken::Dot); break;
+					case '%': out.tok = (RecognizedToken::Percent); break;
+					case '^': out.tok = (RecognizedToken::Xor); break;
+					case '\\': out.tok = (RecognizedToken::Backslash); break;
+					case '?': out.tok = (RecognizedToken::QestionMark); break;
 					case '!': switch (nc)
 						{
-						case '=': offset++; out.Tok(RecognizedToken::NotEquals); break;
-						default: out.Tok(RecognizedToken::ExclamationMark); break;
+						case '=': offset++; out.tok = (RecognizedToken::NotEquals); break;
+						default: out.tok = (RecognizedToken::ExclamationMark); break;
 						} break;
 					case '>': switch (nc)
 						{
-						case '=': offset++; out.Tok(RecognizedToken::GreaterOrEqual); break;
-						default: out.Tok(RecognizedToken::GreaterThan); break;
+						case '=': offset++; out.tok = (RecognizedToken::GreaterOrEqual); break;
+						default: out.tok = (RecognizedToken::GreaterThan); break;
 						}break;
 					case '<': switch (nc)
 						{
-						case '=': offset++; out.Tok(RecognizedToken::LessOrEqual); break;
-						case '-': offset++; out.Tok(RecognizedToken::BackArrow); break;
-						default: out.Tok(RecognizedToken::LessThan); break;
+						case '=': offset++; out.tok = (RecognizedToken::LessOrEqual); break;
+						case '-': offset++; out.tok = (RecognizedToken::BackArrow); break;
+						default: out.tok = (RecognizedToken::LessThan); break;
 						}break;
 					case ':': switch (nc)
 						{
-						case ':': offset++; out.Tok(RecognizedToken::DoubleColon); break;
-						default: out.Tok(RecognizedToken::Colon); break;
+						case ':': offset++; out.tok = (RecognizedToken::DoubleColon); break;
+						default: out.tok = (RecognizedToken::Colon); break;
 						}break;
 					case '|': switch (nc)
 						{
-						case '|': offset++; out.Tok(RecognizedToken::DoubleOr); break;
-						default: out.Tok(RecognizedToken::Or); break;
+						case '|': offset++; out.tok = (RecognizedToken::DoubleOr); break;
+						default: out.tok = (RecognizedToken::Or); break;
 						}break;
 					case '&': switch (nc)
 						{
-						case '&': offset++; out.Tok(RecognizedToken::DoubleAnd); break;
-						default: out.Tok(RecognizedToken::And); break;
+						case '&': offset++; out.tok = (RecognizedToken::DoubleAnd); break;
+						default: out.tok = (RecognizedToken::And); break;
 						}break;
 					case '=': switch (nc)
 						{
-						case '=': offset++; out.Tok(RecognizedToken::DoubleEquals); break;
-						default: out.Tok(RecognizedToken::Equals); break;
+						case '=': offset++; out.tok = (RecognizedToken::DoubleEquals); break;
+						default: out.tok = (RecognizedToken::Equals); break;
 						}break;
 
-					default: out.Tok(RecognizedToken::Unknown); break;
+					default: out.tok = (RecognizedToken::Unknown); break;
 				}
 
 
 				left += (unsigned int)(offset - start);
 
-				out.Pos(this, start, sleft, top);
-				out.Data(Data().substr(start, offset - start));
+				out.src = this;
+				out.offset = start;
+				out.left = sleft;
+				out.top = top;
+				out.data = Data().substr(start, offset - start);
 				return;
 			}
 		}
 		else {
-			out.Tok(RecognizedToken::Eof);
-			out.Pos(this, offset, left, top);
+			out.tok = (RecognizedToken::Eof);
+			out.src = this;
+			out.offset = offset;
+			out.left = left;
+			out.top = top;
 		}
 
 	}

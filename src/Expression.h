@@ -8,18 +8,17 @@
 namespace Corrosive {
 	class Expression {
 	public:
-		static CompileValue Parse1(Cursor& c, CompileContextExt& ctx, CompileType comp_type);
-		static CompileValue Parse2(Cursor& c, CompileContextExt& ctx, CompileType comp_type);
-		static CompileValue Parse3(Cursor& c, CompileContextExt& ctx, CompileType comp_type);
 		static CompileValue parse(Cursor& c, CompileContextExt& ctx, CompileType comp_type);
 
-		static void ToRvalue(CompileContextExt& ctx, CompileValue& value, CompileType cpt);
-
-		static CompileValue EmitOperator(Cursor& c,CompileContextExt& ctx , int l, int op, CompileValue left, CompileValue right, CompileType cpt, int next_l,int next_op);
-		static bool ArithCast(CompileValue& left, CompileValue& right,bool& isfloat, bool& issigned);
-		static int ArithValue(const PrimitiveType* pt);
-		static void ArithConstPromote(CompileValue& value,int from,int to);
-		
+	private:
+		static CompileValue parse_and(Cursor& c, CompileContextExt& ctx, CompileType comp_type);
+		static CompileValue parse_or(Cursor& c, CompileContextExt& ctx, CompileType comp_type);
+		static CompileValue parse_operators(Cursor& c, CompileContextExt& ctx, CompileType comp_type);
+		static void rvalue(CompileContextExt& ctx, CompileValue& value, CompileType cpt);
+		static CompileValue emit(Cursor& c,CompileContextExt& ctx , int l, int op, CompileValue left, CompileValue right, CompileType cpt, int next_l,int next_op);
+		static bool arith_cast(CompileValue& left, CompileValue& right,bool& isfloat, bool& issigned);
+		static int arith_value(const PrimitiveType* pt);
+		static void arith_promote(CompileValue& value,int from,int to);
 	};
 }
 

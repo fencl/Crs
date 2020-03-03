@@ -48,7 +48,7 @@ namespace Corrosive {
 				llvm_name.append(package);
 				llvm_name.append(".");
 			}
-			llvm_name.append(name.Data());
+			llvm_name.append(name.data);
 
 			if (gen_id != 0) {
 				llvm_name.append(".");
@@ -69,22 +69,22 @@ namespace Corrosive {
 				if (auto exttype = dynamic_cast<const PrimitiveType*>(ext)) {
 					if (exttype->templates == nullptr) {
 						if (exttype->ref)
-							ThrowSpecificError(name, "Structure cannot extend references");
+							throw_specific_error(name, "Structure cannot extend references");
 
-						std::pair<std::string_view, std::string_view> key = std::make_pair(exttype->package, exttype->name.Data());
+						std::pair<std::string_view, std::string_view> key = std::make_pair(exttype->package, exttype->name.data);
 
 						if (auto fs = exttype->structure) {
 							fs->pre_compile(ctx);
 							implements_structures.push_back(fs);
 						}
 						else {
-							ThrowSpecificError(name, "Extended structure was not found in any package from the lookup queue");
+							throw_specific_error(name, "Extended structure was not found in any package from the lookup queue");
 						}
 					}
 					else {
 						if (auto fs = exttype->structure) {
 							if (!fs->is_generic()) {
-								ThrowSpecificError(exttype->name, "Target structure is not generic");
+								throw_specific_error(exttype->name, "Target structure is not generic");
 							}
 							GenericStructDeclaration* gsd = (GenericStructDeclaration*)fs;
 							CompileContext nctx = ctx;
@@ -97,19 +97,19 @@ namespace Corrosive {
 
 						}
 						else {
-							ThrowSpecificError(name, "Extended structure was not found in any package from the lookup queue");
+							throw_specific_error(name, "Extended structure was not found in any package from the lookup queue");
 						}
 					}
 
 				}
 				else {
-					ThrowSpecificError(name, "Structure cannot extend non-structural type");
+					throw_specific_error(name, "Structure cannot extend non-structural type");
 				}
 			}
 
 			for (auto it = implements_structures.begin(); it != implements_structures.end(); it++) {
 				if (!(*it)->is_trait) {
-					ThrowSpecificError(name, "All extended types needs to be classes");
+					throw_specific_error(name, "All extended types needs to be classes");
 				}
 				(*it)->pre_compile(ctx);
 			}
@@ -129,7 +129,7 @@ namespace Corrosive {
 					if (!fdecl->is_static) {
 						PrimitiveType thistype;
 						Cursor ptrc;
-						ptrc.Data("ptr");
+						ptrc.data = "ptr";
 						thistype.name = is_trait ? ptrc : name;
 						thistype.package = is_trait ? "corrosive" : package;
 						thistype.ref = is_trait ?false:true;
@@ -146,7 +146,7 @@ namespace Corrosive {
 					nctx.parent_namespace = fdecl->parent_pack;
 					Type::resolve_package_in_place(fdecl->type, nctx);
 
-					Cursor thisc; thisc.Data("this");
+					Cursor thisc; thisc.data = "this";
 					fdecl->argnames.insert(fdecl->argnames.begin(), thisc);
 				}
 
@@ -156,7 +156,7 @@ namespace Corrosive {
 					if (!is_trait)
 						mem_types.push_back(vdecl->type->LLVMType());
 					else
-						ThrowSpecificError(vdecl->name, "variable found in trait type");
+						throw_specific_error(vdecl->name, "variable found in trait type");
 				}
 				else if (fdecl != nullptr) {
 					if (is_trait)
@@ -198,7 +198,7 @@ namespace Corrosive {
 			return;
 		}
 		else {
-			ThrowSpecificError(name, "This structure caused build cycle");
+			throw_specific_error(name, "This structure caused build cycle");
 		}
 
 	}
@@ -210,7 +210,7 @@ namespace Corrosive {
 		for (auto it = implements_structures.begin(); it != implements_structures.end(); it++) {
 			for (auto mit = (*it)->members.begin(); mit != (*it)->members.end(); mit++) {
 				if (auto f = dynamic_cast<FunctionDeclaration*>(mit->get())) {
-					std::string_view  key = f->name.Data();
+					std::string_view  key = f->name.data;
 
 					auto nifc = iface_list.find(key);
 					if (nifc == iface_list.end()) {
@@ -218,10 +218,10 @@ namespace Corrosive {
 					}
 					else {
 						if (!((const FunctionType*)nifc->second->type)->can_simple_cast_into_ignore_this(f->type)) {
-							ThrowSpecificError(name, "Structure has two interfaces with trait function");
+							throw_specific_error(name, "Structure has two interfaces with trait function");
 						}
 						if (nifc->second->is_static != f->is_static) {
-							ThrowSpecificError(name, "Structure has two interfaces with trait function");
+							throw_specific_error(name, "Structure has two interfaces with trait function");
 						}
 					}
 				}
@@ -232,11 +232,11 @@ namespace Corrosive {
 			Declaration* actual_decl = FindDeclarationOfMember(it->first);
 
 			if (auto f = dynamic_cast<FunctionDeclaration*>(actual_decl)) {
-				std::string_view key = f->name.Data();
+				std::string_view key = f->name.data;
 				auto nifc = iface_list.find(key);
 				if (nifc != iface_list.end()) {
 					if (!((const FunctionType*)f->type)->can_simple_cast_into_ignore_this(nifc->second->type)) {
-						ThrowSpecificError(f->name, "Declaration is not compatible with trait declaration");
+						throw_specific_error(f->name, "Declaration is not compatible with trait declaration");
 					}
 					iface_list.erase(nifc);
 				}
@@ -245,7 +245,7 @@ namespace Corrosive {
 
 		for (auto it = iface_list.begin(); it != iface_list.end(); it++) {
 			if (!it->second->has_block)
-				ThrowSpecificError(name, "Structure lacks some functions from its interfaces");
+				throw_specific_error(name, "Structure lacks some functions from its interfaces");
 		}
 	}
 
@@ -260,17 +260,17 @@ namespace Corrosive {
 			if (auto f = dynamic_cast<FunctionDeclaration*>(it->get())) {
 				std::tuple<Declaration*, unsigned int, std::string_view> val = std::make_tuple(it->get(), 0,"");
 				
-				auto i = lookup_table.emplace(f->name.Data(), val);
+				auto i = lookup_table.emplace(f->name.data, val);
 				if (!i.second) {
-					ThrowSpecificError(f->name, "Member with the same name already existed in the structure");
+					throw_specific_error(f->name, "Member with the same name already existed in the structure");
 				}
 			}
 			else if (auto v = dynamic_cast<VariableDeclaration*>(it->get())) {
 				std::tuple<Declaration*, unsigned int, std::string_view> val = std::make_tuple(it->get(), lookup_id++, "");
 				
-				auto i = lookup_table.emplace(v->name.Data(), val);
+				auto i = lookup_table.emplace(v->name.data, val);
 				if (!i.second) {
-					ThrowSpecificError(v->name, "Member with the same name already existed in the structure");
+					throw_specific_error(v->name, "Member with the same name already existed in the structure");
 				}
 			}
 		}
@@ -278,9 +278,9 @@ namespace Corrosive {
 		for (auto it = aliases.begin(); it != aliases.end(); it++) {
 			Cursor a_nm = it->first;
 			Cursor a_fm = it->second;
-			auto look = lookup_table.find(a_fm.Data());
+			auto look = lookup_table.find(a_fm.data);
 			if (look == lookup_table.end()) {
-				ThrowSpecificError(a_fm, "Member with this name was not declared in this structure");
+				throw_specific_error(a_fm, "Member with this name was not declared in this structure");
 			}
 			else {
 				Declaration* alias_var = std::get<0>(look->second);
@@ -292,33 +292,33 @@ namespace Corrosive {
 						alias_struct = pt->structure;
 					}
 					else {
-						ThrowSpecificError(a_fm, "Alias points to variable with type that cannot be aliased");
+						throw_specific_error(a_fm, "Alias points to variable with type that cannot be aliased");
 					}
 
 					alias_struct->build_lookup_table();
 
-					if (a_nm.Data().empty()) {
+					if (a_nm.data.empty()) {
 						for (auto m_it = alias_struct->lookup_table.begin(); m_it != alias_struct->lookup_table.end(); m_it++) {
 							std::tuple<Declaration*, unsigned int, std::string_view> val = std::make_tuple(alias_struct, std::get<1>(look->second), m_it->first);
 							lookup_table.emplace((std::string_view)m_it->first,val);
 						}
 					}
 					else {
-						auto m_it = alias_struct->lookup_table.find(a_nm.Data());
+						auto m_it = alias_struct->lookup_table.find(a_nm.data);
 						if (m_it == alias_struct->lookup_table.end()) {
-							ThrowSpecificError(a_nm, "Member with this name does not exist in the aliased structure");
+							throw_specific_error(a_nm, "Member with this name does not exist in the aliased structure");
 						}
 						else {
 							std::tuple<Declaration*, unsigned int, std::string_view> val = std::make_tuple(alias_struct, std::get<1>(look->second), m_it->first);
 							auto emp = lookup_table.emplace((std::string_view)m_it->first, val);
 							if (!emp.second) {
-								ThrowSpecificError(a_nm, "Member with the same name already exists in the structure");
+								throw_specific_error(a_nm, "Member with the same name already exists in the structure");
 							}
 						}
 					}
 				}
 				else {
-					ThrowSpecificError(a_fm, "Alias points to function");
+					throw_specific_error(a_fm, "Alias points to function");
 				}
 			}
 		}
@@ -353,9 +353,9 @@ namespace Corrosive {
 				f_name.append(package);
 				f_name.append(".");
 			}
-			f_name.append(name.Data());
+			f_name.append(name.data);
 
-			unsigned long stack = StackManager::StackState();
+			unsigned long stack = StackManager::stack_state();
 
 			function = LLVMAddFunction(ctx.module, f_name.c_str(), type->LLVMType());
 			LLVMBasicBlockRef llvm_block = LLVMAppendBasicBlock(function, "entry");
@@ -377,7 +377,7 @@ namespace Corrosive {
 					cv.v = LLVMBuildAlloca(builder, cv.t->LLVMType(), "");
 					LLVMBuildStore(builder, vr,cv.v);
 				}
-				StackManager::StackPush(argnames[i].Data(),cv);
+				StackManager::stack_push(argnames[i].data,cv);
 			}
 
 
@@ -399,7 +399,7 @@ namespace Corrosive {
 			LLVMDisposeBuilder(builder);
 
 
-			StackManager::StackStateRestore(stack);
+			StackManager::stack_restore(stack);
 			compile_progress = 2;
 			return;
 		}
@@ -407,7 +407,7 @@ namespace Corrosive {
 			return;
 		}
 		else {
-			ThrowSpecificError(name, "This function caused build cycle");
+			throw_specific_error(name, "This function caused build cycle");
 		}
 
 		return;
@@ -441,7 +441,7 @@ namespace Corrosive {
 			return;
 		}
 		else {
-			ThrowSpecificError(name, "This variable caused build cycle");
+			throw_specific_error(name, "This variable caused build cycle");
 		}
 
 		return;

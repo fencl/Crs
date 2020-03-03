@@ -4,19 +4,19 @@
 namespace Corrosive {
 
 
-	unsigned long StackManager::StackState(){
+	unsigned long StackManager::stack_state(){
 		return (unsigned long)stack.size();
 	}
 
-	void StackManager::StackStateRestore(unsigned long state)
+	void StackManager::stack_restore(unsigned long state)
 	{
 		for (unsigned long i = (unsigned long)stack.size() - 1; i > state; i--) {
-			StackPop();
+			stack_pop();
 		}
 	}
 
 
-	void StackManager::StackPop() {
+	void StackManager::stack_pop() {
 		StackItem sitm = stack.back();
 		if (sitm.previous == ULONG_MAX) {
 			stack_namespace.erase(sitm.name);
@@ -29,7 +29,7 @@ namespace Corrosive {
 	}
 
 
-	StackItem& StackManager::StackPush(std::string_view name, CompileValue value)
+	StackItem& StackManager::stack_push(std::string_view name, CompileValue value)
 	{
 		StackItem sitm;
 		sitm.name = name;
@@ -49,7 +49,7 @@ namespace Corrosive {
 
 
 
-	StackItem* StackManager::StackFind(std::string_view name) {
+	StackItem* StackManager::stack_find(std::string_view name) {
 		auto f = stack_namespace.find(name);
 		if (f != stack_namespace.end()) {
 			return &stack[f->second];

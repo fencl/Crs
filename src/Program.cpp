@@ -30,7 +30,7 @@ int main() {
 	std::vector<std::unique_ptr<Corrosive::Declaration>> decls;
 	Corrosive::InitPredefinedTypes(decls);
 
-	while (c.Tok() != Corrosive::RecognizedToken::Eof)
+	while (c.tok != Corrosive::RecognizedToken::Eof)
 		Corrosive::Declaration::parse(c, decls, nullptr,nullptr);
 
 

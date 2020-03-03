@@ -8,7 +8,7 @@
 #include <llvm/Target.h>
 
 namespace Corrosive {
-	void Expression::ToRvalue(CompileContextExt& ctx,CompileValue& value,CompileType cpt) {
+	void Expression::rvalue(CompileContextExt& ctx,CompileValue& value,CompileType cpt) {
 		if (value.lvalue) {
 			if (cpt == CompileType::compile) {
 				value.lvalue = false;
@@ -22,7 +22,7 @@ namespace Corrosive {
 		}
 	}
 
-	void Expression::ArithConstPromote(CompileValue& value,int from, int to) {
+	void Expression::arith_promote(CompileValue& value,int from, int to) {
 		if (to == 10) {
 			if (from == 9)
 				value.v = LLVMConstFPExt(value.v, LLVMDoubleType());
@@ -88,7 +88,7 @@ namespace Corrosive {
 	}
 
 
-	int Expression::ArithValue(const PrimitiveType* pt) {
+	int Expression::arith_value(const PrimitiveType* pt) {
 		StructDeclarationType sdt = pt->structure->decl_type;
 
 		switch (sdt)
@@ -121,7 +121,7 @@ namespace Corrosive {
 		}
 	}
 
-	bool Expression::ArithCast(CompileValue& left, CompileValue& right, bool& isfloat,bool& issigned) {
+	bool Expression::arith_cast(CompileValue& left, CompileValue& right, bool& isfloat,bool& issigned) {
 		auto ltp = dynamic_cast<const PrimitiveType*>(left.t);
 		auto rtp = dynamic_cast<const PrimitiveType*>(right.t);
 
@@ -129,8 +129,8 @@ namespace Corrosive {
 			return false;
 		}
 		else {
-			int arith_value_left = ArithValue(ltp);
-			int arith_value_right = ArithValue(rtp);
+			int arith_value_left = arith_value(ltp);
+			int arith_value_right = arith_value(rtp);
 
 			int arith_value_res = std::max(arith_value_left, arith_value_right);
 			if (arith_value_res == 11) return false;
@@ -139,10 +139,10 @@ namespace Corrosive {
 
 			}
 			else if (arith_value_left > arith_value_right) {
-				ArithConstPromote(right, arith_value_right, arith_value_left);
+				arith_promote(right, arith_value_right, arith_value_left);
 			}
 			else {
-				ArithConstPromote(left, arith_value_left, arith_value_right);
+				arith_promote(left, arith_value_left, arith_value_right);
 			}
 
 			issigned = (arith_value_res % 2 == 0);
@@ -152,15 +152,15 @@ namespace Corrosive {
 		}
 	}
 
-	CompileValue Expression::EmitOperator(Cursor& c, CompileContextExt& ctx, int l, int op, CompileValue left, CompileValue right,CompileType cpt,int next_l,int next_op) {
+	CompileValue Expression::emit(Cursor& c, CompileContextExt& ctx, int l, int op, CompileValue left, CompileValue right,CompileType cpt,int next_l,int next_op) {
 		bool isf = false;
 		bool sig = false;
 
-		ToRvalue(ctx, left, cpt);
-		ToRvalue(ctx, right, cpt);
+		rvalue(ctx, left, cpt);
+		rvalue(ctx, right, cpt);
 
-		if (!ArithCast(left, right, isf, sig)) {
-			ThrowSpecificError(c, "Types of operands cannot be used in this operation");
+		if (!arith_cast(left, right, isf, sig)) {
+			throw_specific_error(c, "Types of operands cannot be used in this operation");
 		}
 
 
@@ -367,35 +367,35 @@ namespace Corrosive {
 	}
 
 	CompileValue Expression::parse(Cursor& c, CompileContextExt& ctx, CompileType cpt) {
-		return Parse1(c, ctx, cpt);
+		return parse_or(c, ctx, cpt);
 	}
 
-	CompileValue Expression::Parse2(Cursor& c, CompileContextExt& ctx, CompileType cpt) {
+	CompileValue Expression::parse_and(Cursor& c, CompileContextExt& ctx, CompileType cpt) {
 
-		CompileValue value = Expression::Parse3(c, ctx, cpt);
+		CompileValue value = Expression::parse_operators(c, ctx, cpt);
 		
 
-		while (c.Tok() == RecognizedToken::DoubleAnd) {
+		while (c.tok == RecognizedToken::DoubleAnd) {
 			if (value.t != t_bool) {
-				ThrowSpecificError(c, "Operation requires left operand to be boolean");
+				throw_specific_error(c, "Operation requires left operand to be boolean");
 			}
 
-			c.Move();
+			c.move();
 
 			if (cpt == CompileType::ShortCircuit || (value.v != nullptr && LLVMIsAConstantInt(value.v) && !LLVMConstIntGetZExtValue(value.v))) {
-				Parse3(c, ctx, CompileType::ShortCircuit);
+				parse_operators(c, ctx, CompileType::ShortCircuit);
 			}
 			else {
 
 				if (cpt == CompileType::Eval) {
-					CompileValue right = Expression::Parse3(c, ctx, cpt);
+					CompileValue right = Expression::parse_operators(c, ctx, cpt);
 					value.v = LLVMConstAnd(value.v, right.v);
 				}
 				else {
 					if (!ctx.fallback_and) {
 						ctx.fallback_and = LLVMCreateBasicBlockInContext(LLVMGetGlobalContext(), "");
 					}
-					ToRvalue(ctx, value, cpt);
+					rvalue(ctx, value, cpt);
 					ctx.incoming_blocks_and.push_back(ctx.block);
 					ctx.incoming_values_and.push_back(LLVMConstInt(LLVMInt1Type(), false, false));
 					LLVMBasicBlockRef positive_block = LLVMAppendBasicBlock(ctx.function, "");
@@ -403,17 +403,17 @@ namespace Corrosive {
 					ctx.block = positive_block;
 					LLVMPositionBuilderAtEnd(ctx.builder, positive_block);
 
-					value = Expression::Parse3(c, ctx, cpt);
+					value = Expression::parse_operators(c, ctx, cpt);
 				}
 			}
 		}
 
 		if (ctx.fallback_and != nullptr && cpt == CompileType::compile) {
 			if (value.t != t_bool) {
-				ThrowSpecificError(c, "Operation requires right operand to be boolean");
+				throw_specific_error(c, "Operation requires right operand to be boolean");
 			}
 
-			ToRvalue(ctx, value, cpt);
+			rvalue(ctx, value, cpt);
 
 			std::reverse(ctx.incoming_blocks_and.begin(), ctx.incoming_blocks_and.end());
 			std::reverse(ctx.incoming_values_and.begin(), ctx.incoming_values_and.end());
@@ -441,22 +441,22 @@ namespace Corrosive {
 
 
 
-	CompileValue Expression::Parse1(Cursor& c, CompileContextExt& ctx, CompileType cpt) {
-		CompileValue value = Expression::Parse2(c, ctx, cpt);
-		while (c.Tok() == RecognizedToken::DoubleOr) {
+	CompileValue Expression::parse_or(Cursor& c, CompileContextExt& ctx, CompileType cpt) {
+		CompileValue value = Expression::parse_and(c, ctx, cpt);
+		while (c.tok == RecognizedToken::DoubleOr) {
 			if (value.t != t_bool) {
-				ThrowSpecificError(c, "Operation requires left operand to be boolean");
+				throw_specific_error(c, "Operation requires left operand to be boolean");
 			}
 
-			c.Move();
+			c.move();
 
 			if (cpt == CompileType::ShortCircuit || (value.v != nullptr && LLVMIsAConstantInt(value.v) && LLVMConstIntGetZExtValue(value.v))) {
-				Parse2(c, ctx, CompileType::ShortCircuit);
+				parse_and(c, ctx, CompileType::ShortCircuit);
 			}
 			else {
 				
 				if (cpt == CompileType::Eval) {
-					CompileValue right = Expression::Parse2(c, ctx, cpt);
+					CompileValue right = Expression::parse_and(c, ctx, cpt);
 					value.v = LLVMConstAnd(value.v, right.v);
 				}
 				else {
@@ -464,7 +464,7 @@ namespace Corrosive {
 						ctx.fallback_or = LLVMCreateBasicBlockInContext(LLVMGetGlobalContext(), "");
 					}
 
-					ToRvalue(ctx, value, cpt);
+					rvalue(ctx, value, cpt);
 
 					ctx.incoming_blocks_or.push_back(ctx.block);
 					ctx.incoming_values_or.push_back(LLVMConstInt(LLVMInt1Type(), true, false));
@@ -473,17 +473,17 @@ namespace Corrosive {
 					ctx.block = positive_block;
 					LLVMPositionBuilderAtEnd(ctx.builder, positive_block);
 
-					value = Expression::Parse2(c, ctx, cpt);
+					value = Expression::parse_and(c, ctx, cpt);
 				}
 			}
 		}
 
 		if (ctx.fallback_or != nullptr && cpt == CompileType::compile) {
 			if (value.t != t_bool) {
-				ThrowSpecificError(c, "Operation requires right operand to be boolean");
+				throw_specific_error(c, "Operation requires right operand to be boolean");
 			}
 
-			ToRvalue(ctx, value, cpt);
+			rvalue(ctx, value, cpt);
 
 			std::reverse(ctx.incoming_blocks_or.begin(), ctx.incoming_blocks_or.end());
 			std::reverse(ctx.incoming_values_or.begin(), ctx.incoming_values_or.end());
@@ -507,9 +507,9 @@ namespace Corrosive {
 		return value;
 	}
 
-	CompileValue Expression::Parse3(Cursor& c, CompileContextExt& ctx, CompileType cpt) {
+	CompileValue Expression::parse_operators(Cursor& c, CompileContextExt& ctx, CompileType cpt) {
 
-		int op_type[5];
+		int op_type[5] = { -1 };
 		CompileValue layer[5];
 		memset(layer, 0, sizeof(layer));
 
@@ -520,67 +520,66 @@ namespace Corrosive {
 			int op_v = -1;
 			int op_t = -1;
 
-			if (c.Tok() == RecognizedToken::And) {
+			if (c.tok == RecognizedToken::And) {
 				op_v = 0;
 				op_t = 0;
 			}
-			else if (c.Tok() == RecognizedToken::Or) {
+			else if (c.tok == RecognizedToken::Or) {
 				op_v = 0;
 				op_t = 1;
 			}
-			else if(c.Tok() == RecognizedToken::Xor) {
+			else if(c.tok == RecognizedToken::Xor) {
 				op_v = 0;
 				op_t = 2;
 			}
-			else if (c.Tok() == RecognizedToken::DoubleEquals) {
+			else if (c.tok == RecognizedToken::DoubleEquals) {
 				op_v = 1;
 				op_t = 0;
 			}
-			else if (c.Tok() == RecognizedToken::NotEquals) {
+			else if (c.tok == RecognizedToken::NotEquals) {
 				op_v = 1;
 				op_t = 1;
 			}
-			else  if (c.Tok() == RecognizedToken::GreaterThan) {
+			else  if (c.tok == RecognizedToken::GreaterThan) {
 				op_v = 2;
 				op_t = 0;
 			}
-			else if (c.Tok() == RecognizedToken::LessThan) {
+			else if (c.tok == RecognizedToken::LessThan) {
 				op_v = 2;
 				op_t = 1;
 			}
-			else if(c.Tok() == RecognizedToken::GreaterOrEqual) {
+			else if(c.tok == RecognizedToken::GreaterOrEqual) {
 				op_v = 2;
 				op_t = 2;
 			}
-			else if (c.Tok() == RecognizedToken::LessOrEqual) {
+			else if (c.tok == RecognizedToken::LessOrEqual) {
 				op_v = 2;
 				op_t = 3;
 			}
-			else if (c.Tok() == RecognizedToken::Plus) {
+			else if (c.tok == RecognizedToken::Plus) {
 				op_v = 3;
 				op_t = 0;
 			}
-			else if (c.Tok() == RecognizedToken::Minus) {
+			else if (c.tok == RecognizedToken::Minus) {
 				op_v = 3;
 				op_t = 1;
 			}
-			else if (c.Tok() == RecognizedToken::Star) {
+			else if (c.tok == RecognizedToken::Star) {
 				op_v = 4;
 				op_t = 0;
 			}
-			else if (c.Tok() == RecognizedToken::Slash) {
+			else if (c.tok == RecognizedToken::Slash) {
 				op_v = 4;
 				op_t = 1;
 			}
-			else if (c.Tok() == RecognizedToken::Percent) {
+			else if (c.tok == RecognizedToken::Percent) {
 				op_v = 4;
 				op_t = 2;
 			}
 			
-			
 			for (int i = current_layer; i >= std::max(op_v, 0); i--) {
 
-				if (layer[i].v != nullptr) {
+				if (i>=0 && layer[i].v != nullptr) {
 					CompileValue& left = layer[i];
 					CompileValue& right = value;
 					CompileType cpt2 = cpt;
@@ -588,10 +587,11 @@ namespace Corrosive {
 					if (cpt == CompileType::compile && LLVMIsConstant(left.v) && LLVMIsConstant(right.v))
 						cpt2 = CompileType::Eval;
 
-					value = EmitOperator(c, ctx, i, op_type[i], left, right, cpt2, op_v,op_t);
+					value = emit(c, ctx, i, op_type[i], left, right, cpt2, op_v, op_t);
 					layer[i].v = nullptr;
 				}
 			}
+			
 			
 
 			if (op_v >= 0) {
@@ -599,9 +599,8 @@ namespace Corrosive {
 				layer[op_v] = value;
 				op_type[op_v] = op_t;
 				current_layer = op_v;
-				
 
-				c.Move();
+				c.move();
 			}
 			else {
 				return value;

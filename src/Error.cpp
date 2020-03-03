@@ -2,38 +2,38 @@
 #include <iostream>
 
 namespace Corrosive {
-	void ThrowErrorHeader(const Cursor& c) {
-		std::cerr << "Error (" << (c.Left()+1) << ":" << (c.Top()+1) << ")\n\t";
+	void throw_error_header(const Cursor& c) {
+		std::cerr << "Error (" << (c.left+1) << ":" << (c.top+1) << ")\n\t";
 	}
 
-	void ThrowSpecificError(const Cursor& c, std::string_view text) {
-		ThrowErrorHeader(c);
+	void throw_specific_error(const Cursor& c, std::string_view text) {
+		throw_error_header(c);
 		std::cerr << text;
-		ThrowErrorExit();
+		throw_exit();
 	}
-	void ThrowEofError(const Cursor& c, std::string_view during) {
-		ThrowErrorHeader(c);
+	void throw_eof_error(const Cursor& c, std::string_view during) {
+		throw_error_header(c);
 		std::cerr << "End of file found during " << during;
-		ThrowErrorExit();
+		throw_exit();
 	}
-	void ThrowNotANameError(const Cursor& c) {
-		ThrowErrorHeader(c);
-		std::cerr << "Symbol '" << c.Data() << "' is not a valid name";
-		ThrowErrorExit();
-	}
-
-	void ThrowVariableNotFound(const Cursor& c) {
-		ThrowErrorHeader(c);
-		std::cerr << "Variable with the name '" << c.Data() << "' was not found";
-		ThrowErrorExit();
-	}
-	void ThrowWrongTokenError(const Cursor& c, std::string_view expected) {
-		ThrowErrorHeader(c);
-		std::cerr << "Token '" << c.Data() << "' found but parser expected " << expected;
-		ThrowErrorExit();
+	void throw_not_a_name_error(const Cursor& c) {
+		throw_error_header(c);
+		std::cerr << "Symbol '" << c.data << "' is not a valid name";
+		throw_exit();
 	}
 
-	void ThrowErrorExit() {
+	void throw_variable_not_found_error(const Cursor& c) {
+		throw_error_header(c);
+		std::cerr << "Variable with the name '" << c.data << "' was not found";
+		throw_exit();
+	}
+	void throw_wrong_token_error(const Cursor& c, std::string_view expected) {
+		throw_error_header(c);
+		std::cerr << "Token '" << c.data << "' found but parser expected " << expected;
+		throw_exit();
+	}
+
+	void throw_exit() {
 		std::cerr << std::endl;
 		exit(1);
 	}

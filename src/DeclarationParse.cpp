@@ -8,39 +8,39 @@
 
 namespace Corrosive {
 	void Declaration::parse(Cursor& c, std::vector<std::unique_ptr<Declaration>>& into, Declaration* parent, NamespaceDeclaration* pack) {
-		if (c.Data() == "var") {
+		if (c.data == "var") {
 			if (dynamic_cast<StructDeclaration*>(parent) == nullptr) {
-				ThrowSpecificError(c, "Variable has to be a member of struct or class");
+				throw_specific_error(c, "Variable has to be a member of struct or class");
 			}
 
-			c.Move();
+			c.move();
 
 			std::vector<Cursor> names;
 			while (true) {
-				if (c.Tok() != RecognizedToken::Symbol) {
-					ThrowNotANameError(c);
+				if (c.tok != RecognizedToken::Symbol) {
+					throw_not_a_name_error(c);
 				}
 				names.push_back(c);
-				c.Move();
+				c.move();
 
-				if (c.Tok() != RecognizedToken::Comma) {
+				if (c.tok != RecognizedToken::Comma) {
 					break;
 				}
-				else c.Move();
+				else c.move();
 			}
 
 
-			if (c.Tok() != RecognizedToken::Colon) {
-				ThrowWrongTokenError(c, "':'");
+			if (c.tok != RecognizedToken::Colon) {
+				throw_wrong_token_error(c, "':'");
 			}
-			c.Move();
+			c.move();
 
 			const Corrosive::Type* tp = Type::parse(c);
 
-			if (c.Tok() != RecognizedToken::Semicolon) {
-				ThrowWrongTokenError(c, "';'");
+			if (c.tok != RecognizedToken::Semicolon) {
+				throw_wrong_token_error(c, "';'");
 			}
-			c.Move();
+			c.move();
 
 			for (int i = 0; i < names.size(); i++) {
 				std::unique_ptr<VariableDeclaration> vd = std::make_unique<VariableDeclaration>();
@@ -56,38 +56,38 @@ namespace Corrosive {
 				into.push_back(std::move(vd));
 			}
 		}
-		else if (c.Data() == "type") {
+		else if (c.data == "type") {
 			if (dynamic_cast<StructDeclaration*>(parent) != nullptr) {
-				ThrowSpecificError(c, "Type cannot be a member of struct or class");
+				throw_specific_error(c, "Type cannot be a member of struct or class");
 			}
 
-			c.Move();
+			c.move();
 
 			std::vector<Cursor> names;
 			while (true) {
-				if (c.Tok() != RecognizedToken::Symbol) {
-					ThrowNotANameError(c);
+				if (c.tok != RecognizedToken::Symbol) {
+					throw_not_a_name_error(c);
 				}
 				names.push_back(c);
-				c.Move();
+				c.move();
 
-				if (c.Tok() != RecognizedToken::Comma) {
+				if (c.tok != RecognizedToken::Comma) {
 					break;
 				}
-				else c.Move();
+				else c.move();
 			}
 
-			if (c.Tok() != RecognizedToken::Colon) {
-				ThrowWrongTokenError(c, "':'");
+			if (c.tok != RecognizedToken::Colon) {
+				throw_wrong_token_error(c, "':'");
 			}
-			c.Move();
+			c.move();
 
 			const Corrosive::Type* tp = Type::parse(c);
 
-			if (c.Tok() != RecognizedToken::Semicolon) {
-				ThrowWrongTokenError(c, "';'");
+			if (c.tok != RecognizedToken::Semicolon) {
+				throw_wrong_token_error(c, "';'");
 			}
-			c.Move();
+			c.move();
 
 			for (int i = 0; i < names.size(); i++) {
 
@@ -102,58 +102,58 @@ namespace Corrosive {
 				}
 				vd->parent_pack = pack;
 
-				if (Contents::find_typedef(vd->package, vd->name.Data()) != nullptr) {
-					ThrowSpecificError(vd->name, "Typedef with the same name already exist's it this package");
+				if (Contents::find_typedef(vd->package, vd->name.data) != nullptr) {
+					throw_specific_error(vd->name, "Typedef with the same name already exist's it this package");
 				}
 				else {
-					Contents::register_typedef(vd->package, vd->name.Data(), vd.get());
+					Contents::register_typedef(vd->package, vd->name.data, vd.get());
 				}
 
 				into.push_back(std::move(vd));
 			}
 		}
-		else if (c.Data() == "function") {
+		else if (c.data == "function") {
 			bool is_static = false;
-			c.Move();
+			c.move();
 
-			if (c.Tok() == RecognizedToken::Symbol && c.Data() == "static") {
+			if (c.tok == RecognizedToken::Symbol && c.data == "static") {
 				is_static = true;
-				c.Move();
+				c.move();
 			}
 
-			if (c.Tok() != RecognizedToken::Symbol) {
-				ThrowNotANameError(c);
+			if (c.tok != RecognizedToken::Symbol) {
+				throw_not_a_name_error(c);
 			}
 
 			Cursor name = c;
 			std::vector<std::string_view> gen_names;
-			c.Move();
+			c.move();
 
-			if (c.Tok() == RecognizedToken::LessThan) {
-				c.Move();
+			if (c.tok == RecognizedToken::LessThan) {
+				c.move();
 				while (true) {
-					if (c.Tok() != RecognizedToken::Symbol) {
-						ThrowNotANameError(c);
+					if (c.tok != RecognizedToken::Symbol) {
+						throw_not_a_name_error(c);
 					}
 
-					gen_names.push_back(c.Data());
-					c.Move();
-					if (c.Tok() == RecognizedToken::Comma) {
-						c.Move();
+					gen_names.push_back(c.data);
+					c.move();
+					if (c.tok == RecognizedToken::Comma) {
+						c.move();
 					}
 					else break;
 				}
 
-				if (c.Tok() != RecognizedToken::GreaterThan) {
-					ThrowWrongTokenError(c, "',' or '>'");
+				if (c.tok != RecognizedToken::GreaterThan) {
+					throw_wrong_token_error(c, "',' or '>'");
 				}
-				c.Move();
+				c.move();
 			}
 
-			if (c.Tok() != RecognizedToken::Colon) {
-				ThrowWrongTokenError(c, "':'");
+			if (c.tok != RecognizedToken::Colon) {
+				throw_wrong_token_error(c, "':'");
 			}
-			c.Move();
+			c.move();
 
 			std::unique_ptr<FunctionDeclaration> fd;
 			if (gen_names.size() > 0) {
@@ -174,7 +174,7 @@ namespace Corrosive {
 			fd->name = name;
 			fd->type = type;
 			fd->is_static = is_static;
-			if (name.Data() == "main") {
+			if (name.data == "main") {
 				Contents::entry_point = fd.get();
 			}
 
@@ -185,93 +185,93 @@ namespace Corrosive {
 
 			fd->parent_pack = pack;
 
-			if (c.Tok() == RecognizedToken::OpenBrace) {
+			if (c.tok == RecognizedToken::OpenBrace) {
 				fd->has_block = true;
-				c.Move();
+				c.move();
 				fd->block = c;
 
 				int level = 1;
 				while (true) {
-					if (c.Tok() == RecognizedToken::CloseBrace) {
+					if (c.tok == RecognizedToken::CloseBrace) {
 						level -= 1;
-						if (level == 0) { c.Move();  break; }
+						if (level == 0) { c.move();  break; }
 					}
-					else if (c.Tok() == RecognizedToken::OpenBrace) {
+					else if (c.tok == RecognizedToken::OpenBrace) {
 						level += 1;
 					}
-					else if (c.Tok() == RecognizedToken::Eof) {
+					else if (c.tok == RecognizedToken::Eof) {
 						break;
 					}
 
-					c.Move();
+					c.move();
 				}
 			}
-			else if (c.Tok() == RecognizedToken::Semicolon) {
+			else if (c.tok == RecognizedToken::Semicolon) {
 				StructDeclaration* ps = nullptr;
 				if (parent == nullptr || ((ps = dynamic_cast<StructDeclaration*>(parent)) != nullptr && !ps->is_trait)) {
-					ThrowSpecificError(name, "Global functions and functions inside structures must have body");
+					throw_specific_error(name, "Global functions and functions inside structures must have body");
 				}
-				c.Move();
+				c.move();
 			}
 			else {
-				ThrowWrongTokenError(c, "'{' or ';'");
+				throw_wrong_token_error(c, "'{' or ';'");
 			}
 
 			into.push_back(std::move(fd));
 		}
-		else if (c.Data() == "struct" || c.Data() == "trait") {
-			bool is_trait = c.Data() == "trait";
+		else if (c.data == "struct" || c.data == "trait") {
+			bool is_trait = c.data == "trait";
 			bool isext = false;
 			std::string_view overpack = "";
 
 			if (dynamic_cast<StructDeclaration*>(parent) != nullptr) {
-				ThrowSpecificError(c, "Structures cannot be nested");
+				throw_specific_error(c, "Structures cannot be nested");
 			}
 
-			c.Move();
-			if (c.Tok() == RecognizedToken::Symbol && c.Data() == "extension") {
+			c.move();
+			if (c.tok == RecognizedToken::Symbol && c.data == "extension") {
 				isext = true;
-				c.Move();
+				c.move();
 			}
 
-			if (c.Tok() != RecognizedToken::Symbol) {
-				ThrowNotANameError(c);
+			if (c.tok != RecognizedToken::Symbol) {
+				throw_not_a_name_error(c);
 			}
 			Cursor name = c;
 			std::vector<std::string_view> gen_names;
-			c.Move();
-			if (c.Tok() == RecognizedToken::DoubleColon) {
-				overpack = name.Data();
-				c.Move();
+			c.move();
+			if (c.tok == RecognizedToken::DoubleColon) {
+				overpack = name.data;
+				c.move();
 				name = c;
-				c.Move();
+				c.move();
 
 
 				if (!isext)
-					ThrowSpecificError(name, "Only struct/class extensions can have cross-package identificator");
+					throw_specific_error(name, "Only struct/class extensions can have cross-package identificator");
 				else
 					Contents::register_namespace(overpack);
 			}
 
-			if (c.Tok() == RecognizedToken::LessThan) {
-				c.Move();
+			if (c.tok == RecognizedToken::LessThan) {
+				c.move();
 				while (true) {
-					if (c.Tok() != RecognizedToken::Symbol) {
-						ThrowNotANameError(c);
+					if (c.tok != RecognizedToken::Symbol) {
+						throw_not_a_name_error(c);
 					}
 
-					gen_names.push_back(c.Data());
-					c.Move();
-					if (c.Tok() == RecognizedToken::Comma) {
-						c.Move();
+					gen_names.push_back(c.data);
+					c.move();
+					if (c.tok == RecognizedToken::Comma) {
+						c.move();
 					}
 					else break;
 				}
 
-				if (c.Tok() != RecognizedToken::GreaterThan) {
-					ThrowWrongTokenError(c, "',' or '>'");
+				if (c.tok != RecognizedToken::GreaterThan) {
+					throw_wrong_token_error(c, "',' or '>'");
 				}
-				c.Move();
+				c.move();
 			}
 
 			std::string_view pkg = overpack;
@@ -307,28 +307,28 @@ namespace Corrosive {
 
 
 
-			if (auto existing = Contents::find_struct(pkg, name.Data())) {
+			if (auto existing = Contents::find_struct(pkg, name.data)) {
 				if (!isext && !existing->is_extending) {
-					ThrowSpecificError(name, "There already exist's class/structure with the same name");
+					throw_specific_error(name, "There already exist's class/structure with the same name");
 				}
 
 
 				if (isext) {
 					if (is_trait && !existing->is_trait)
-						ThrowSpecificError(name, "Cannot extend structure with class");
+						throw_specific_error(name, "Cannot extend structure with class");
 					if (!is_trait && existing->is_trait)
-						ThrowSpecificError(name, "Cannot extend class with structure");
+						throw_specific_error(name, "Cannot extend class with structure");
 				}
 				else {
 					if (is_trait && !existing->is_trait)
-						ThrowSpecificError(existing->name, "Cannot extend class with structure");
+						throw_specific_error(existing->name, "Cannot extend class with structure");
 					if (!is_trait && existing->is_trait)
-						ThrowSpecificError(existing->name, "Cannot extend structure with class");
+						throw_specific_error(existing->name, "Cannot extend structure with class");
 				}
 
 				if (gen_names.size() == 0) {
 					if (existing->is_generic())
-						ThrowSpecificError(isext ? name : existing->name, "Cannot extend generic struct/class with non-generic struct/class");
+						throw_specific_error(isext ? name : existing->name, "Cannot extend generic struct/class with non-generic struct/class");
 				}
 				else {
 					GenericStructDeclaration* gsd = (GenericStructDeclaration*)existing;
@@ -338,72 +338,72 @@ namespace Corrosive {
 					}
 
 					if (!gen_nm_ok)
-						ThrowSpecificError(name, "Generic typenames do not match extended structure/class");
+						throw_specific_error(name, "Generic typenames do not match extended structure/class");
 				}
 
 
 
-				if (c.Tok() == RecognizedToken::Colon) {
+				if (c.tok == RecognizedToken::Colon) {
 					if (is_trait) {
-						ThrowSpecificError(c, "Classes cannot implement other classes");
+						throw_specific_error(c, "Classes cannot implement other classes");
 					}
 
-					c.Move();
+					c.move();
 					while (true) {
 						existing->implements.push_back(std::make_pair(sd.get(), Type::parse(c)));
 
-						if (c.Tok() == RecognizedToken::Comma) {
-							c.Move();
+						if (c.tok == RecognizedToken::Comma) {
+							c.move();
 						}
 						else break;
 					}
 				}
 
-				if (c.Tok() != RecognizedToken::OpenBrace) {
-					ThrowWrongTokenError(c, "'{'");
+				if (c.tok != RecognizedToken::OpenBrace) {
+					throw_wrong_token_error(c, "'{'");
 				}
-				c.Move();
+				c.move();
 				while (true) {
-					if (c.Tok() == RecognizedToken::CloseBrace) {
-						c.Move();
+					if (c.tok == RecognizedToken::CloseBrace) {
+						c.move();
 						break;
 					}
-					else if (c.Tok() == RecognizedToken::Eof) {
+					else if (c.tok == RecognizedToken::Eof) {
 						break;
 					}
-					else if (c.Tok() == RecognizedToken::Symbol && c.Data() == "alias") {
-						c.Move();
+					else if (c.tok == RecognizedToken::Symbol && c.data == "alias") {
+						c.move();
 						bool specific = false;
 						Cursor alias_from = c;
-						c.Move();
+						c.move();
 
-						if (c.Tok() == RecognizedToken::DoubleColon) {
-							c.Move();
+						if (c.tok == RecognizedToken::DoubleColon) {
+							c.move();
 
 							while (true) {
-								if (c.Tok() != RecognizedToken::Symbol) {
-									ThrowNotANameError(c);
+								if (c.tok != RecognizedToken::Symbol) {
+									throw_not_a_name_error(c);
 								}
 								specific = true;
 								existing->aliases.push_back(std::make_pair(c, alias_from));
-								c.Move();
+								c.move();
 
-								if (c.Tok() == RecognizedToken::Semicolon) {
+								if (c.tok == RecognizedToken::Semicolon) {
 									break;
 								}
-								else if (c.Tok() != RecognizedToken::Comma) {
-									ThrowWrongTokenError(c, "',' or ';'");
+								else if (c.tok != RecognizedToken::Comma) {
+									throw_wrong_token_error(c, "',' or ';'");
 								}
 								else {
-									c.Move();
+									c.move();
 								}
 							}
 						}
 
-						if (c.Tok() != RecognizedToken::Semicolon) {
-							ThrowWrongTokenError(c, "';'");
+						if (c.tok != RecognizedToken::Semicolon) {
+							throw_wrong_token_error(c, "';'");
 						}
-						c.Move();
+						c.move();
 
 						if (!specific) {
 							Cursor empty;
@@ -414,7 +414,7 @@ namespace Corrosive {
 						Declaration::parse(c, existing->members, sd.get(), pack);
 						if (auto varmember = dynamic_cast<VariableDeclaration*>(existing->members.back().get())) {
 							if (existing->decl_type!= StructDeclarationType::Declared)
-								ThrowSpecificError(varmember->name, "Cannot add new members into this structure");
+								throw_specific_error(varmember->name, "Cannot add new members into this structure");
 						}
 					}
 				}
@@ -423,70 +423,70 @@ namespace Corrosive {
 
 				// from here is normal, non-extending declaration
 
-				if (c.Tok() == RecognizedToken::Colon) {
+				if (c.tok == RecognizedToken::Colon) {
 					if (is_trait) {
-						ThrowSpecificError(c, "Classes cannot implement other classes");
+						throw_specific_error(c, "Classes cannot implement other classes");
 					}
 
-					c.Move();
+					c.move();
 					while (true) {
 						sd->implements.push_back(std::make_pair(sd.get(), Type::parse(c)));
 
-						if (c.Tok() == RecognizedToken::Comma) {
-							c.Move();
+						if (c.tok == RecognizedToken::Comma) {
+							c.move();
 						}
 						else break;
 					}
 				}
 
-				Contents::register_struct(sd->package, sd->name.Data(), sd.get());
+				Contents::register_struct(sd->package, sd->name.data, sd.get());
 
-				if (c.Tok() != RecognizedToken::OpenBrace) {
-					ThrowWrongTokenError(c, "'{'");
+				if (c.tok != RecognizedToken::OpenBrace) {
+					throw_wrong_token_error(c, "'{'");
 				}
-				c.Move();
+				c.move();
 
 				while (true) {
-					if (c.Tok() == RecognizedToken::CloseBrace) {
-						c.Move();
+					if (c.tok == RecognizedToken::CloseBrace) {
+						c.move();
 						break;
 					}
-					else if (c.Tok() == RecognizedToken::Eof) {
+					else if (c.tok == RecognizedToken::Eof) {
 						break;
 					}
-					else if (c.Tok() == RecognizedToken::Symbol && c.Data() == "alias") {
-						c.Move();
+					else if (c.tok == RecognizedToken::Symbol && c.data == "alias") {
+						c.move();
 						bool specific = false;
 						Cursor alias_from = c;
-						c.Move();
+						c.move();
 
-						if (c.Tok() == RecognizedToken::DoubleColon) {
-							c.Move();
+						if (c.tok == RecognizedToken::DoubleColon) {
+							c.move();
 
 							while (true) {
-								if (c.Tok() != RecognizedToken::Symbol) {
-									ThrowNotANameError(c);
+								if (c.tok != RecognizedToken::Symbol) {
+									throw_not_a_name_error(c);
 								}
 								specific = true;
 								sd->aliases.push_back(std::make_pair(c, alias_from));
-								c.Move();
+								c.move();
 
-								if (c.Tok() == RecognizedToken::Semicolon) {
+								if (c.tok == RecognizedToken::Semicolon) {
 									break;
 								}
-								else if (c.Tok() != RecognizedToken::Comma) {
-									ThrowWrongTokenError(c, "',' or ';'");
+								else if (c.tok != RecognizedToken::Comma) {
+									throw_wrong_token_error(c, "',' or ';'");
 								}
 								else {
-									c.Move();
+									c.move();
 								}
 							}
 						}
 
-						if (c.Tok() != RecognizedToken::Semicolon) {
-							ThrowWrongTokenError(c, "';'");
+						if (c.tok != RecognizedToken::Semicolon) {
+							throw_wrong_token_error(c, "';'");
 						}
-						c.Move();
+						c.move();
 
 						if (!specific) {
 							Cursor empty;
@@ -502,47 +502,47 @@ namespace Corrosive {
 
 			into.push_back(std::move(sd));
 		}
-		else if (c.Data() == "package") {
+		else if (c.data == "package") {
 			if (dynamic_cast<NamespaceDeclaration*>(parent) != nullptr) {
-				ThrowSpecificError(c, "Packages cannot be nested");
+				throw_specific_error(c, "Packages cannot be nested");
 			}
-			c.Move();
-			if (c.Tok() != RecognizedToken::Symbol) {
-				ThrowNotANameError(c);
+			c.move();
+			if (c.tok != RecognizedToken::Symbol) {
+				throw_not_a_name_error(c);
 			}
 			Cursor name = c;
-			c.Move();
-			Contents::register_namespace(name.Data());
+			c.move();
+			Contents::register_namespace(name.data);
 
 
 			std::unique_ptr<NamespaceDeclaration> nd = std::make_unique<NamespaceDeclaration>();
-			if (c.Tok() == RecognizedToken::Colon) {
-				c.Move();
+			if (c.tok == RecognizedToken::Colon) {
+				c.move();
 				while (true) {
-					nd->queue.push_back(c.Data());
-					c.Move();
-					if (c.Tok() == RecognizedToken::Comma) {
-						c.Move();
+					nd->queue.push_back(c.data);
+					c.move();
+					if (c.tok == RecognizedToken::Comma) {
+						c.move();
 					}
 					else break;
 				}
 			}
 
-			nd->package = name.Data();
+			nd->package = name.data;
 			nd->name = name;
 			nd->parent_pack = nd.get();
 
-			if (c.Tok() != RecognizedToken::OpenBrace) {
-				ThrowWrongTokenError(c, "'{'");
+			if (c.tok != RecognizedToken::OpenBrace) {
+				throw_wrong_token_error(c, "'{'");
 			}
-			c.Move();
+			c.move();
 
 			while (true) {
-				if (c.Tok() == RecognizedToken::CloseBrace) {
-					c.Move();
+				if (c.tok == RecognizedToken::CloseBrace) {
+					c.move();
 					break;
 				}
-				else if (c.Tok() == RecognizedToken::Eof) {
+				else if (c.tok == RecognizedToken::Eof) {
 					break;
 				}
 				Declaration::parse(c, nd->members, nd.get(), nd.get());
@@ -551,7 +551,7 @@ namespace Corrosive {
 			into.push_back(std::move(nd));
 		}
 		else {
-			ThrowWrongTokenError(c, "'namespace', 'struct', 'class', 'function' or 'var'");
+			throw_wrong_token_error(c, "'namespace', 'struct', 'class', 'function' or 'var'");
 		}
 	}
 

@@ -116,7 +116,7 @@ namespace Corrosive {
 
 	void VariableDeclaration::print(unsigned int offset) const {
 		for (unsigned int i = 0; i < offset; i++) std::cout << "\t";
-		std::cout << "var " << name.Data() << " : ";
+		std::cout << "var " << name.data << " : ";
 		type->print();
 		std::cout << std::endl;
 	}
@@ -124,7 +124,7 @@ namespace Corrosive {
 	void TypedefDeclaration::print(unsigned int offset) const {
 		for (unsigned int i = 0; i < offset; i++) std::cout << "\t";
 
-		std::cout << "type " << name.Data() << " : ";
+		std::cout << "type " << name.data << " : ";
 		type->print();
 		std::cout << std::endl;
 	}
@@ -138,7 +138,7 @@ namespace Corrosive {
 			std::cout << "static ";
 		}
 
-		std::cout << name.Data();
+		std::cout << name.data;
 
 		std::cout << " : ";
 
@@ -151,7 +151,7 @@ namespace Corrosive {
 		for (unsigned int i = 0; i < offset; i++) std::cout << "\t";
 		std::cout << "generic function ";
 
-		std::cout << name.Data();
+		std::cout << name.data;
 
 		std::cout << "<";
 
@@ -180,7 +180,7 @@ namespace Corrosive {
 			std::cout << gen_id << " ";
 		}
 
-		std::cout<< name.Data();
+		std::cout<< name.data;
 		if (implements.size() > 0) {
 			std::cout << " : ";
 			for (int i = 0; i < implements.size(); i++) {
@@ -208,7 +208,7 @@ namespace Corrosive {
 			std::cout << "generic struct ";
 		
 
-		std::cout << name.Data() << " {" << std::endl;
+		std::cout << name.data << " {" << std::endl;
 		for (auto it = generated.begin(); it != generated.end(); it++) {
 			it->second->print(offset+1);
 		}
@@ -222,7 +222,7 @@ namespace Corrosive {
 	void NamespaceDeclaration::print(unsigned int offset) const {
 
 		for (unsigned int i = 0; i < offset; i++) std::cout << "\t";
-		std::cout << "namespace " << name.Data() << " {" << std::endl << std::endl;
+		std::cout << "namespace " << name.data << " {" << std::endl << std::endl;
 		
 		for (auto it = members.begin(); it != members.end(); it++) {
 			it->get()->print(offset+1);
@@ -252,7 +252,7 @@ namespace Corrosive {
 			return type;
 		}
 		else {
-			ThrowSpecificError(name, "This typedef caused a build cycle");
+			throw_specific_error(name, "This typedef caused a build cycle");
 		}
 
 		return nullptr;

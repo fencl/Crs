@@ -19,15 +19,15 @@ namespace Corrosive {
 		const Type* rType = nullptr;
 
 
-		if (c.Tok() == RecognizedToken::Eof) {
-			ThrowEofError(c, "an attempt to parse type");
+		if (c.tok == RecognizedToken::Eof) {
+			throw_eof_error(c, "an attempt to parse type");
 		}
 
 
-		if (c.Tok() == RecognizedToken::OpenParenthesis) {
+		if (c.tok == RecognizedToken::OpenParenthesis) {
 			PrimitiveType pType;
 			Cursor voidc;
-			voidc.Data("void");
+			voidc.data = "void";
 
 			pType.name = voidc;
 			pType.package = PredefinedNamespace;
@@ -36,95 +36,95 @@ namespace Corrosive {
 			rType = Contents::EmplaceType(pType);
 		}
 		else {
-			if (c.Tok() == RecognizedToken::OpenBracket) {
+			if (c.tok == RecognizedToken::OpenBracket) {
 				TupleType fType;
 				std::vector<const Type*> tps;
-				c.Move();
+				c.move();
 
 				while (true) {
-					if (c.Tok() == RecognizedToken::CloseBracket) {
-						c.Move(); break;
+					if (c.tok == RecognizedToken::CloseBracket) {
+						c.move(); break;
 					}
 
 					tps.push_back(Type::parse(c));
 
-					if (c.Tok() == RecognizedToken::Comma) c.Move(); else if (c.Tok() != RecognizedToken::CloseBracket) {
-						ThrowWrongTokenError(c, "',' or ']'");
+					if (c.tok == RecognizedToken::Comma) c.move(); else if (c.tok != RecognizedToken::CloseBracket) {
+						throw_wrong_token_error(c, "',' or ']'");
 					}
 				}
 				
-				if ((c.Tok() == RecognizedToken::Symbol && c.Data() == "ref") || c.Tok() == RecognizedToken::And) {
+				if ((c.tok == RecognizedToken::Symbol && c.data == "ref") || c.tok == RecognizedToken::And) {
 					fType.ref = true;
-					c.Move();
+					c.move();
 				}
 
 				fType.types = Contents::register_type_array(std::move(tps));
 				rType = Contents::EmplaceType(fType);
 
 			}
-			else if (c.Tok() == RecognizedToken::LessThan) {
+			else if (c.tok == RecognizedToken::LessThan) {
 				InterfaceType fType;
 				std::vector<const Type*> tps;
-				c.Move();
+				c.move();
 
 				while (true) {
-					if (c.Tok() == RecognizedToken::GreaterThan) {
-						c.Move(); break;
+					if (c.tok == RecognizedToken::GreaterThan) {
+						c.move(); break;
 					}
 
 					tps.push_back(Type::parse(c));
 
-					if (c.Tok() == RecognizedToken::Comma) c.Move(); else if (c.Tok() != RecognizedToken::GreaterThan) {
-						ThrowWrongTokenError(c, "',' or '>'");
+					if (c.tok == RecognizedToken::Comma) c.move(); else if (c.tok != RecognizedToken::GreaterThan) {
+						throw_wrong_token_error(c, "',' or '>'");
 					}
 				}
 				
-				if ((c.Tok() == RecognizedToken::Symbol && c.Data() == "ref") || c.Tok() == RecognizedToken::And) {
+				if ((c.tok == RecognizedToken::Symbol && c.data == "ref") || c.tok == RecognizedToken::And) {
 					fType.ref = true;
-					c.Move();
+					c.move();
 				}
 
 				fType.types = Contents::register_type_array(std::move(tps));
 				rType = Contents::EmplaceType(fType);
 			}
 			else {
-				if (c.Tok() != RecognizedToken::Symbol) {
-					ThrowNotANameError(c);
+				if (c.tok != RecognizedToken::Symbol) {
+					throw_not_a_name_error(c);
 				}
 
 				PrimitiveType pType;
 				pType.name = c;
-				c.Move();
+				c.move();
 
-				if (c.Tok() == RecognizedToken::DoubleColon) {
-					pType.package = pType.name.Data();
-					c.Move();
+				if (c.tok == RecognizedToken::DoubleColon) {
+					pType.package = pType.name.data;
+					c.move();
 					pType.name = c;
-					c.Move();
+					c.move();
 				}
 
-				if (c.Tok() == RecognizedToken::LessThan) {
+				if (c.tok == RecognizedToken::LessThan) {
 					TemplateContext tps;
 
-					c.Move();
+					c.move();
 					while (true) {
-						if (c.Tok() == RecognizedToken::GreaterThan) {
-							c.Move(); break;
+						if (c.tok == RecognizedToken::GreaterThan) {
+							c.move(); break;
 						}
 
 						tps.push_back(Type::parse(c));
 
-						if (c.Tok() == RecognizedToken::Comma) c.Move(); else if (c.Tok() != RecognizedToken::GreaterThan) {
-							ThrowWrongTokenError(c, "',' or '>'");
+						if (c.tok == RecognizedToken::Comma) c.move(); else if (c.tok != RecognizedToken::GreaterThan) {
+							throw_wrong_token_error(c, "',' or '>'");
 						}
 					}
 					pType.templates = Contents::register_generic_array(std::move(tps));
 				}
 
 
-				if ((c.Tok() == RecognizedToken::Symbol && c.Data() == "ref") || c.Tok() == RecognizedToken::And) {
+				if ((c.tok == RecognizedToken::Symbol && c.data == "ref") || c.tok == RecognizedToken::And) {
 					pType.ref = true;
-					c.Move();
+					c.move();
 				}
 
 				rType = Contents::EmplaceType(pType);
@@ -133,61 +133,61 @@ namespace Corrosive {
 
 
 		while (true) {
-			if (c.Tok() == RecognizedToken::OpenParenthesis) {
+			if (c.tok == RecognizedToken::OpenParenthesis) {
 				FunctionType fType;
 				std::vector<const Type*> tps;
 				fType.returns = rType;
 
-				c.Move();
+				c.move();
 				while (true) {
-					if (c.Tok() == RecognizedToken::CloseParenthesis) {
-						c.Move(); break;
+					if (c.tok == RecognizedToken::CloseParenthesis) {
+						c.move(); break;
 					}
 
 					if (argnames != nullptr)
 					{
 						argnames->push_back(c);
-						c.Move();
-						if (c.Tok() != RecognizedToken::Colon) {
-							ThrowWrongTokenError(c, "':'");
+						c.move();
+						if (c.tok != RecognizedToken::Colon) {
+							throw_wrong_token_error(c, "':'");
 						}
-						c.Move();
+						c.move();
 					}
 
 					tps.push_back(Type::parse(c));
 
-					if (c.Tok() == RecognizedToken::Comma) c.Move(); else if (c.Tok() != RecognizedToken::CloseParenthesis) {
-						ThrowWrongTokenError(c, "',' or ')'");
+					if (c.tok == RecognizedToken::Comma) c.move(); else if (c.tok != RecognizedToken::CloseParenthesis) {
+						throw_wrong_token_error(c, "',' or ')'");
 					}
 				}
 
-				if ((c.Tok() == RecognizedToken::Symbol && c.Data() == "ref") || c.Tok() == RecognizedToken::And) {
+				if ((c.tok == RecognizedToken::Symbol && c.data == "ref") || c.tok == RecognizedToken::And) {
 					fType.ref = true;
-					c.Move();
+					c.move();
 				}
 
 				fType.arguments = Contents::register_type_array(std::move(tps));
 				rType = Contents::EmplaceType(fType);
 			}
-			else if (c.Tok() == RecognizedToken::OpenBracket) {
+			else if (c.tok == RecognizedToken::OpenBracket) {
 				ArrayType aType;
 				aType.base = rType;
 
-				c.Move();
+				c.move();
 
 				aType.size = c;
 				Cursor c1 = c;
-				c1.Move();
-				if (c1.Tok() == RecognizedToken::CloseBracket) {
+				c1.move();
+				if (c1.tok == RecognizedToken::CloseBracket) {
 					aType.has_simple_size = true;
-					if (c.Tok() == RecognizedToken::Number)
-						aType.actual_size = (unsigned int)svtoi(c.Data());
-					else if (c.Tok() == RecognizedToken::UnsignedNumber)
-						aType.actual_size = (unsigned int)svtoi(c.Data().substr(0,c.Data().size()-1));
-					else if (c.Tok() == RecognizedToken::LongNumber)
-						aType.actual_size = (unsigned int)svtoi(c.Data().substr(0, c.Data().size() - 1));
-					else if (c.Tok() == RecognizedToken::UnsignedLongNumber)
-						aType.actual_size = (unsigned int)svtoi(c.Data().substr(0, c.Data().size() - 2));
+					if (c.tok == RecognizedToken::Number)
+						aType.actual_size = (unsigned int)svtoi(c.data);
+					else if (c.tok == RecognizedToken::UnsignedNumber)
+						aType.actual_size = (unsigned int)svtoi(c.data.substr(0,c.data.size()-1));
+					else if (c.tok == RecognizedToken::LongNumber)
+						aType.actual_size = (unsigned int)svtoi(c.data.substr(0, c.data.size() - 1));
+					else if (c.tok == RecognizedToken::UnsignedLongNumber)
+						aType.actual_size = (unsigned int)svtoi(c.data.substr(0, c.data.size() - 2));
 
 					c = c1;
 				}
@@ -206,31 +206,31 @@ namespace Corrosive {
 						if (v.t == t_i8 || v.t == t_i16 || v.t == t_i32 || v.t == t_i64) {
 							long long cv = LLVMConstIntGetSExtValue(v.v);
 							if (cv <= 0) {
-								ThrowSpecificError(ce, "Array cannot be created with negative or zero size");
+								throw_specific_error(ce, "Array cannot be created with negative or zero size");
 							}
 							aType.actual_size = (unsigned int)cv;
 						}
 						else if (v.t == t_u8 || v.t == t_u16 || v.t == t_u32 || v.t == t_u64) {
 							unsigned long long cv = LLVMConstIntGetZExtValue(v.v);
 							if (cv == 0) {
-								ThrowSpecificError(ce, "Array cannot be created with zero size");
+								throw_specific_error(ce, "Array cannot be created with zero size");
 							}
 							aType.actual_size = (unsigned int)cv;
 						}
 						else {
-							ThrowSpecificError(ce, "Array type must have constant integer size");
+							throw_specific_error(ce, "Array type must have constant integer size");
 						}
 					}
 
-					if (c.Tok() != RecognizedToken::CloseBracket) {
-						ThrowWrongTokenError(c, "']'");
+					if (c.tok != RecognizedToken::CloseBracket) {
+						throw_wrong_token_error(c, "']'");
 					}
 				}
-				c.Move();
+				c.move();
 
-				if ((c.Tok() == RecognizedToken::Symbol && c.Data() == "ref") || c.Tok() == RecognizedToken::And) {
+				if ((c.tok == RecognizedToken::Symbol && c.data == "ref") || c.tok == RecognizedToken::And) {
 					aType.ref = true;
-					c.Move();
+					c.move();
 				}
 
 				rType = Contents::EmplaceType(aType);

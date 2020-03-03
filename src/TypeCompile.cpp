@@ -25,7 +25,7 @@ namespace Corrosive {
 		ArrayType* self = (ArrayType*)this;
 
 		if (actual_size == 0) {
-			ThrowSpecificError(size, "Size of array type has not been evaluated (compiler error)");
+			throw_specific_error(size, "Size of array type has not been evaluated (compiler error)");
 		}
 
 		base->pre_compile(ctx);
@@ -88,9 +88,9 @@ namespace Corrosive {
 
 		PrimitiveType* self = (PrimitiveType*)this;
 
-		std::string_view nm = name.Data();
+		std::string_view nm = name.data;
 
-		if (package == PredefinedNamespace && name.Data() == "void") {
+		if (package == PredefinedNamespace && name.data == "void") {
 			self->llvm_type = self->llvm_lvalue = self->llvm_rvalue = LLVMVoidType();
 			self->is_heavy = false;
 			return;
@@ -98,14 +98,14 @@ namespace Corrosive {
 		else {
 			StructDeclaration* sd = Contents::find_struct(package, nm);
 			if (sd == nullptr) {
-				ThrowSpecificError(name, "Compiler is searching for structure type, but it was not found (compiler error)");
+				throw_specific_error(name, "Compiler is searching for structure type, but it was not found (compiler error)");
 			}
 			else {
 
 				if (sd->decl_type == StructDeclarationType::t_array || sd->decl_type == StructDeclarationType::t_tuple) {
 
 					if (templates == nullptr || templates->size() != 1)
-						ThrowSpecificError(name, "Wrong parameters given to predefined type");
+						throw_specific_error(name, "Wrong parameters given to predefined type");
 
 
 					CompileContext nctx = ctx;
@@ -132,7 +132,7 @@ namespace Corrosive {
 
 					if (sd->is_generic()) {
 						if (templates == nullptr) {
-							ThrowSpecificError(name, "Primitive type points to generic structure and was not given generic arguments");
+							throw_specific_error(name, "Primitive type points to generic structure and was not given generic arguments");
 						}
 						else {
 							StructDeclaration* gsd = ((GenericStructDeclaration*)sd)->create_template(nctx);
@@ -236,7 +236,7 @@ namespace Corrosive {
 		pre_compile(ctx);
 		PrimitiveType* self = (PrimitiveType*)this;
 
-		if (package == PredefinedNamespace && name.Data() == "void") {
+		if (package == PredefinedNamespace && name.data == "void") {
 			
 		}
 		else {

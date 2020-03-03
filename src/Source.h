@@ -6,6 +6,7 @@ namespace Corrosive {
 	class Source {
 	public:
 		std::string_view const Data() const;
+
 		void Load(const char* file);
 		void Read(Cursor& out, size_t offset, unsigned int left, unsigned int top) const;
 		void ReadAfter(Cursor& out, const Cursor& c) const;
