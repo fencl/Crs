@@ -288,8 +288,8 @@ namespace Corrosive {
 			{
 				std::unique_ptr<GenericStructDeclaration> gsd = std::make_unique<GenericStructDeclaration>();
 				for (auto&& it : gen_names) {
-					unsigned int gs = (unsigned int)gsd->Generics().size();
-					gsd->Generics()[it] = gs;
+					unsigned int gs = (unsigned int)gsd->generic_typenames.size();
+					gsd->generic_typenames[it] = gs;
 				}
 				sd = std::move(gsd);
 			}
@@ -333,7 +333,7 @@ namespace Corrosive {
 				else {
 					GenericStructDeclaration* gsd = (GenericStructDeclaration*)existing;
 					bool gen_nm_ok = true;
-					if (gsd->Generics().size() != gen_names.size()) {
+					if (gsd->generic_typenames.size() != gen_names.size()) {
 						gen_nm_ok = false;
 					}
 

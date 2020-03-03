@@ -46,22 +46,18 @@ namespace Corrosive {
 
 
 		
-		InitPrimitiveType("u8", p_nspc.get(), StructDeclarationType::t_u8, Corrosive::t_u8);
-		InitPrimitiveType("u16", p_nspc.get(), StructDeclarationType::t_u16, Corrosive::t_u16);
-		InitPrimitiveType("u32", p_nspc.get(), StructDeclarationType::t_u32, Corrosive::t_u32);
-		InitPrimitiveType("u64", p_nspc.get(), StructDeclarationType::t_u64, Corrosive::t_u64);
-
-		InitPrimitiveType("i8", p_nspc.get(), StructDeclarationType::t_i8, Corrosive::t_i8);
-		InitPrimitiveType("i16", p_nspc.get(), StructDeclarationType::t_i16, Corrosive::t_i16);
-		InitPrimitiveType("i32", p_nspc.get(), StructDeclarationType::t_i32, Corrosive::t_i32);
-		InitPrimitiveType("i64", p_nspc.get(), StructDeclarationType::t_i64, Corrosive::t_i64);
-
-		InitPrimitiveType("f32", p_nspc.get(), StructDeclarationType::t_f32, Corrosive::t_f32);
-		InitPrimitiveType("f64", p_nspc.get(), StructDeclarationType::t_f64, Corrosive::t_f64);
-
+		InitPrimitiveType("u8",   p_nspc.get(), StructDeclarationType::t_u8,   Corrosive::t_u8);
+		InitPrimitiveType("u16",  p_nspc.get(), StructDeclarationType::t_u16,  Corrosive::t_u16);
+		InitPrimitiveType("u32",  p_nspc.get(), StructDeclarationType::t_u32,  Corrosive::t_u32);
+		InitPrimitiveType("u64",  p_nspc.get(), StructDeclarationType::t_u64,  Corrosive::t_u64);
+		InitPrimitiveType("i8",   p_nspc.get(), StructDeclarationType::t_i8,   Corrosive::t_i8);
+		InitPrimitiveType("i16",  p_nspc.get(), StructDeclarationType::t_i16,  Corrosive::t_i16);
+		InitPrimitiveType("i32",  p_nspc.get(), StructDeclarationType::t_i32,  Corrosive::t_i32);
+		InitPrimitiveType("i64",  p_nspc.get(), StructDeclarationType::t_i64,  Corrosive::t_i64);
+		InitPrimitiveType("f32",  p_nspc.get(), StructDeclarationType::t_f32,  Corrosive::t_f32);
+		InitPrimitiveType("f64",  p_nspc.get(), StructDeclarationType::t_f64,  Corrosive::t_f64);
 		InitPrimitiveType("bool", p_nspc.get(), StructDeclarationType::t_bool, Corrosive::t_bool);
-
-		InitPrimitiveType("ptr", p_nspc.get(), StructDeclarationType::t_ptr, Corrosive::t_ptr);
+		InitPrimitiveType("ptr",  p_nspc.get(), StructDeclarationType::t_ptr,  Corrosive::t_ptr);
 
 		PrimitiveType pt_ptr_ref = *(PrimitiveType*)Corrosive::t_ptr;
 		pt_ptr_ref.ref = true;
@@ -76,7 +72,7 @@ namespace Corrosive {
 		t_array->package = PredefinedNamespace;
 		t_array->parent_pack = p_nspc.get();
 		t_array->parent = p_nspc.get();
-		t_array->Generics()["T"] = 0;
+		t_array->generic_typenames["T"] = 0;
 		Contents::RegisterStruct(PredefinedNamespace, "array", t_array.get());
 		std::unique_ptr<VariableDeclaration> t_array_val = std::make_unique<VariableDeclaration>();
 		n_c.Data("value"); 
@@ -99,7 +95,7 @@ namespace Corrosive {
 		t_tuple->package = PredefinedNamespace;
 		t_tuple->parent_pack = p_nspc.get();
 		t_tuple->parent = p_nspc.get();
-		t_tuple->Generics()["T"] = 0;
+		t_tuple->generic_typenames["T"] = 0;
 		Contents::RegisterStruct(PredefinedNamespace, "tuple", t_tuple.get());
 		std::unique_ptr<VariableDeclaration> t_tuple_val = std::make_unique<VariableDeclaration>();
 		n_c.Data("value");

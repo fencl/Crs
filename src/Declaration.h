@@ -103,12 +103,9 @@ namespace Corrosive {
 
 	class StructDeclaration : public Declaration {
 	public:
-		virtual void print(unsigned int offset) const;
-
-		virtual bool is_generic();
-
-		virtual void compile(CompileContext& ctx);
-		virtual void pre_compile(CompileContext& ctx);
+		virtual void print			(unsigned int offset) const;
+		virtual void compile		(CompileContext& ctx);
+		virtual void pre_compile	(CompileContext& ctx);
 
 		void test_interface_complete();
 		void build_lookup_table();
@@ -121,6 +118,9 @@ namespace Corrosive {
 
 		std::map<std::string_view, std::tuple<Declaration*, unsigned int, std::string_view>> lookup_table;
 		std::vector<std::pair<StructDeclaration*, const Corrosive::Type*>> implements;
+
+
+		virtual bool is_generic();
 
 		bool	has_lookup_table = false;
 		bool	is_trait = false;
@@ -139,20 +139,12 @@ namespace Corrosive {
 
 	class GenericStructDeclaration : public StructDeclaration {
 	public:
-		const std::map<std::string_view, int>& Generics() const;
-		std::map<std::string_view, int>& Generics();
-
 		StructDeclaration* create_template(CompileContext& ctx);
-
-		std::map<const TemplateContext*, std::unique_ptr<StructDeclaration>>& Generated();
-		const std::map<const TemplateContext*, std::unique_ptr<StructDeclaration>>& Generated() const;
-
 		virtual void print(unsigned int offset) const;
-
 		virtual bool is_generic();
-	protected:
-		std::map<const TemplateContext*,std::unique_ptr<StructDeclaration>> generated;
-		std::map<std::string_view,int> generic_typenames;
+
+		std::map<const TemplateContext*, std::unique_ptr<StructDeclaration>> generated;
+		std::map<std::string_view, int> generic_typenames;
 	};
 
 
@@ -160,9 +152,10 @@ namespace Corrosive {
 
 	class NamespaceDeclaration : public Declaration {
 	public:
-		std::vector<std::unique_ptr<Declaration>> members;
 		virtual void print(unsigned int offset) const;
-		std::vector<std::string_view> queue;
+
+		std::vector<std::unique_ptr<Declaration>>	members;
+		std::vector<std::string_view>				queue;
 	};
 }
 

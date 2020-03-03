@@ -65,11 +65,6 @@ namespace Corrosive {
 		return std::move(d);
 	}
 
-
-	std::map<const TemplateContext*, std::unique_ptr<StructDeclaration>>& GenericStructDeclaration::Generated() { return generated; }
-	const std::map<const TemplateContext*, std::unique_ptr<StructDeclaration>>& GenericStructDeclaration::Generated() const { return generated; }
-
-
 	StructDeclaration* GenericStructDeclaration::create_template(CompileContext& ctx) {
 		
 		auto it = generated.find(ctx.template_ctx);
@@ -149,9 +144,6 @@ namespace Corrosive {
 
 	std::map<std::string_view, int>& GenericFunctionDeclaration::Generics() { return generic_typenames; }
 	const std::map<std::string_view, int>& GenericFunctionDeclaration::Generics() const { return generic_typenames; }
-
-	std::map<std::string_view, int>& GenericStructDeclaration::Generics() { return generic_typenames; }
-	const std::map<std::string_view, int>& GenericStructDeclaration::Generics() const { return generic_typenames; }
 
 
 	void FunctionDeclaration::print(unsigned int offset) const {

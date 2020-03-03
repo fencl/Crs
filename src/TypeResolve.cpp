@@ -153,12 +153,12 @@ namespace Corrosive {
 			if (ctx.template_ctx != nullptr && ctx.parent_struct != nullptr && ctx.parent_struct->is_generic()) {
 				GenericStructDeclaration* gs = (GenericStructDeclaration*)ctx.parent_struct;
 
-				if (gs->Generics().size() != ctx.template_ctx->size()) {
+				if (gs->generic_typenames.size() != ctx.template_ctx->size()) {
 					ThrowSpecificError(name, "Target structure has different number of generic typenames");
 				}
 
-				auto tcf = gs->Generics().find(name.Data());
-				if (tcf != gs->Generics().end()) {
+				auto tcf = gs->generic_typenames.find(name.Data());
+				if (tcf != gs->generic_typenames.end()) {
 					const std::variant<unsigned int, const Type*>& tci = (*ctx.template_ctx)[tcf->second];
 
 					if (tci.index() == 0) {
