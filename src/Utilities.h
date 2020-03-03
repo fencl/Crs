@@ -4,4 +4,5 @@
 #include <string_view> 
 unsigned long long svtoi(std::string_view sv);
 double svtod(std::string_view sv);
+size_t rot(size_t n, int c);
 #endif

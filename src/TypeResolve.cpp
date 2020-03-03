@@ -2,7 +2,7 @@
 #include "Contents.h"
 #include "Error.h"
 #include "PredefinedTypes.h"
-#include "svtoi.h"
+#include "Utilities.h"
 #include "Expression.h"
 
 namespace Corrosive {
@@ -35,7 +35,7 @@ namespace Corrosive {
 		}
 
 		if (mod2) {
-			rt.arguments = Contents::RegisterTypeArray(std::move(rtp));
+			rt.arguments = Contents::register_type_array(std::move(rtp));
 			mod = true;
 		}
 
@@ -89,14 +89,14 @@ namespace Corrosive {
 		bool mod = false;
 		bool mod2 = false;
 
-		std::vector<const Type*> rtp = *rt.Types();
+		std::vector<const Type*> rtp = *rt.types;
 
 		for (auto it = rtp.begin(); it != rtp.end(); it++) {
 			mod2|=resolve_package_in_place(*it, ctx);
 		}
 		
 		if (mod2) {
-			rt.Types() = Contents::RegisterTypeArray(std::move(rtp));
+			rt.types = Contents::register_type_array(std::move(rtp));
 			mod = true;
 		}
 
@@ -118,7 +118,7 @@ namespace Corrosive {
 		}
 
 		if (mod2) {
-			rt.types = Contents::RegisterTypeArray(std::move(rtp));
+			rt.types = Contents::register_type_array(std::move(rtp));
 			mod = true;
 		}
 
@@ -142,7 +142,7 @@ namespace Corrosive {
 			}
 
 			if (mod2) {
-				rt.templates = Contents::RegisterGenericArray(std::move(tps));
+				rt.templates = Contents::register_generic_array(std::move(tps));
 				mod = true;
 			}
 		}
@@ -190,7 +190,7 @@ namespace Corrosive {
 
 			for (auto look = lookup.begin(); look != lookup.end(); look++) {
 
-				if (auto td = Contents::FindTypedef(*look, name.Data())) {
+				if (auto td = Contents::find_typedef(*look, name.Data())) {
 					if (templates != nullptr) {
 						//TODO: i can implement this easily, just have to stop being lazy.
 						ThrowSpecificError(name, "Type with generic declaration points to type definition that is not generic.");
@@ -200,7 +200,7 @@ namespace Corrosive {
 
 					return nt->clone_ref(ref);
 				}
-				else if (auto sd = Contents::FindStruct(*look, name.Data())) {
+				else if (auto sd = Contents::find_struct(*look, name.Data())) {
 					rt.structure = sd;
 					rt.package = *look;
 

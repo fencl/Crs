@@ -5,8 +5,7 @@
 #include <algorithm>
 #include <string>
 #include <string_view>
-#include "svtoi.h"
-#include <charconv>
+#include "Utilities.h"
 
 namespace Corrosive {
 	std::string_view const Cursor::Data() const {
@@ -297,21 +296,4 @@ namespace Corrosive {
 		}
 
 	}
-}
-
-
-unsigned long long svtoi(std::string_view sv) {
-	unsigned long long r = 0;
-	for (int i = 0; i < sv.length(); i++) {
-		r *= 10;
-		r += (unsigned char)(sv[i] - '0');
-	}
-	return r;
-}
-
-double svtod(std::string_view sv)
-{
-	double dbl;
-	auto result = std::from_chars(sv.data(), sv.data() + sv.size(), dbl);
-	return dbl;
 }

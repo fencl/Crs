@@ -42,13 +42,13 @@
     <ClInclude Include="..\src\Source.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\svtoi.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\Type.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\src\StackManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Utilities.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -102,6 +102,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\src\StackManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Utilities.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

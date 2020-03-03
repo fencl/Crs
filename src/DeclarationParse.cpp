@@ -102,11 +102,11 @@ namespace Corrosive {
 				}
 				vd->parent_pack = pack;
 
-				if (Contents::FindTypedef(vd->package, vd->name.Data()) != nullptr) {
+				if (Contents::find_typedef(vd->package, vd->name.Data()) != nullptr) {
 					ThrowSpecificError(vd->name, "Typedef with the same name already exist's it this package");
 				}
 				else {
-					Contents::RegisterTypedef(vd->package, vd->name.Data(), vd.get());
+					Contents::register_typedef(vd->package, vd->name.Data(), vd.get());
 				}
 
 				into.push_back(std::move(vd));
@@ -250,7 +250,7 @@ namespace Corrosive {
 				if (!isext)
 					ThrowSpecificError(name, "Only struct/class extensions can have cross-package identificator");
 				else
-					Contents::RegisterNamespace(overpack);
+					Contents::register_namespace(overpack);
 			}
 
 			if (c.Tok() == RecognizedToken::LessThan) {
@@ -307,7 +307,7 @@ namespace Corrosive {
 
 
 
-			if (auto existing = Contents::FindStruct(pkg, name.Data())) {
+			if (auto existing = Contents::find_struct(pkg, name.Data())) {
 				if (!isext && !existing->is_extending) {
 					ThrowSpecificError(name, "There already exist's class/structure with the same name");
 				}
@@ -439,7 +439,7 @@ namespace Corrosive {
 					}
 				}
 
-				Contents::RegisterStruct(sd->package, sd->name.Data(), sd.get());
+				Contents::register_struct(sd->package, sd->name.Data(), sd.get());
 
 				if (c.Tok() != RecognizedToken::OpenBrace) {
 					ThrowWrongTokenError(c, "'{'");
@@ -512,7 +512,7 @@ namespace Corrosive {
 			}
 			Cursor name = c;
 			c.Move();
-			Contents::RegisterNamespace(name.Data());
+			Contents::register_namespace(name.Data());
 
 
 			std::unique_ptr<NamespaceDeclaration> nd = std::make_unique<NamespaceDeclaration>();

@@ -1,15 +1,8 @@
 #include "Type.h"
+#include "Utilities.h"
 #include <iostream>
 
 namespace Corrosive {
-
-	static inline size_t rot(size_t n, int c)
-	{
-		const unsigned int mask = (CHAR_BIT * sizeof(n) - 1);
-		c &= mask;
-		return (n >> c) | (n << ((-c) & mask));
-	}
-
 	int Type::cmp(const Type& t2) const {
 		if (id() < t2.id()) return -1;
 		if (id() > t2.id()) return 1;
@@ -90,15 +83,15 @@ namespace Corrosive {
 		if (tcmp != 0) return tcmp;
 
 		InterfaceType& ft = (InterfaceType&)t2;
-		if (Types() < ft.Types()) return -1;
-		if (Types() > ft.Types()) return 1;
+		if (types < ft.types) return -1;
+		if (types > ft.types) return 1;
 		return 0;
 	}
 
 	size_t InterfaceType::hash() const {
 		size_t h = Type::hash();
 
-		h ^= rot(std::hash<size_t>()((size_t)Types()), 8);
+		h ^= rot(std::hash<size_t>()((size_t)types), 8);
 		return h;
 	}
 

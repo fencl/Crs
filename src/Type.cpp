@@ -4,7 +4,7 @@
 #include "Declaration.h"
 #include "Contents.h"
 #include "PredefinedTypes.h"
-#include "svtoi.h"
+#include "Utilities.h"
 
 namespace Corrosive {
 	
@@ -68,9 +68,6 @@ namespace Corrosive {
 	}
 
 	Type::~Type() {}
-
-	const std::vector<const Type*>*& InterfaceType::Types() { return types; }
-	const std::vector<const Type*>* const& InterfaceType::Types() const { return types; }
 
 	void InterfaceType::print() const {
 		std::cout << "<";

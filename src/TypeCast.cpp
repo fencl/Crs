@@ -108,10 +108,10 @@ namespace Corrosive {
 		else {
 			if (it->ref != ref) return false;
 
-			if (it->Types()->size() != Types()->size()) return false;
+			if (it->types->size() != types->size()) return false;
 
-			for (int i = 1; i < Types()->size(); i++) {
-				if (!(*Types())[i]->can_simple_cast_into((*it->Types())[i])) return false;
+			for (int i = 1; i < types->size(); i++) {
+				if (!(*types)[i]->can_simple_cast_into((*it->types)[i])) return false;
 			}
 			return true;
 		}

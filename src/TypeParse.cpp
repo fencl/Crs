@@ -4,7 +4,7 @@
 #include "Declaration.h"
 #include "Contents.h"
 #include "PredefinedTypes.h"
-#include "svtoi.h"
+#include "Utilities.h"
 #include "Expression.h"
 
 namespace Corrosive {
@@ -58,7 +58,7 @@ namespace Corrosive {
 					c.Move();
 				}
 
-				fType.types = Contents::RegisterTypeArray(std::move(tps));
+				fType.types = Contents::register_type_array(std::move(tps));
 				rType = Contents::EmplaceType(fType);
 
 			}
@@ -84,7 +84,7 @@ namespace Corrosive {
 					c.Move();
 				}
 
-				fType.Types() = Contents::RegisterTypeArray(std::move(tps));
+				fType.types = Contents::register_type_array(std::move(tps));
 				rType = Contents::EmplaceType(fType);
 			}
 			else {
@@ -118,7 +118,7 @@ namespace Corrosive {
 							ThrowWrongTokenError(c, "',' or '>'");
 						}
 					}
-					pType.templates = Contents::RegisterGenericArray(std::move(tps));
+					pType.templates = Contents::register_generic_array(std::move(tps));
 				}
 
 
@@ -166,7 +166,7 @@ namespace Corrosive {
 					c.Move();
 				}
 
-				fType.arguments = Contents::RegisterTypeArray(std::move(tps));
+				fType.arguments = Contents::register_type_array(std::move(tps));
 				rType = Contents::EmplaceType(fType);
 			}
 			else if (c.Tok() == RecognizedToken::OpenBracket) {

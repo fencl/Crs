@@ -152,28 +152,21 @@ namespace Corrosive {
 	public:
 		virtual void print() const;
 
-		virtual int id() const;
-		virtual int cmp(const Corrosive::Type& t2) const;
-		virtual size_t hash() const;
-		virtual const Type* resolve_package(CompileContext& ctx) const;
+		virtual int		id		() const;
+		virtual int		cmp		(const Type& t2) const;
+		virtual size_t	hash	() const;
 
-		virtual void compile(CompileContext& ctx) const;
-		virtual void pre_compile(CompileContext& ctx) const;
+		virtual const Type*		resolve_package			(CompileContext& ctx) const;
+		virtual void			compile					(CompileContext& ctx) const;
+		virtual void			pre_compile				(CompileContext& ctx) const;
+		virtual bool			can_simple_cast_into	(const Type* into) const;
+		virtual const Type*		clone_ref				(bool r) const;
 
-		virtual const Type* clone_ref(bool r) const;
-
-		virtual bool can_simple_cast_into(const Type* into) const;
-
-		const std::vector<const Type*>*& Types();
-		const std::vector<const Type*>* const& Types() const;
-
-	protected:
 		const std::vector<const Type*>* types;
 	};
 }
 
 namespace std {
-	
 	template<> struct hash<Corrosive::Type>
 	{
 		size_t operator()(const Corrosive::Type& t) const;

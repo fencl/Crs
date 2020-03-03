@@ -3,7 +3,7 @@
 #include "Error.h"
 #include "Contents.h"
 #include "PredefinedTypes.h"
-#include "svtoi.h"
+#include "Utilities.h"
 #include <iostream>
 #include "Expression.h"
 
@@ -88,7 +88,7 @@ namespace Corrosive {
 		if (llvm_type != nullptr) return;
 
 		InterfaceType* self = (InterfaceType*)this;
-		for (auto it = Types()->begin(); it != Types()->end(); it++) {
+		for (auto it = types->begin(); it != types->end(); it++) {
 			(*it)->pre_compile(ctx);
 		}
 	}
@@ -98,7 +98,7 @@ namespace Corrosive {
 
 		pre_compile(ctx);
 		InterfaceType* self = (InterfaceType*)this;
-		for (auto it = Types()->begin(); it != Types()->end(); it++) {
+		for (auto it = types->begin(); it != types->end(); it++) {
 			(*it)->compile(ctx);
 		}
 
@@ -145,7 +145,7 @@ namespace Corrosive {
 			return;
 		}
 		else {
-			StructDeclaration* sd = Contents::FindStruct(package, nm);
+			StructDeclaration* sd = Contents::find_struct(package, nm);
 			if (sd == nullptr) {
 				ThrowSpecificError(name, "Compiler is searching for structure type, but it was not found (compiler error)");
 			}

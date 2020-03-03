@@ -137,7 +137,7 @@ namespace Corrosive {
 						FunctionType nfd = *fdt;
 						std::vector<const Type*> nargs = *nfd.arguments;
 						nargs.insert(nargs.begin(), Contents::EmplaceType(thistype));
-						nfd.arguments = Contents::RegisterTypeArray(std::move(nargs));
+						nfd.arguments = Contents::register_type_array(std::move(nargs));
 						fdt = (const FunctionType*)Contents::EmplaceType(nfd);
 					}
 

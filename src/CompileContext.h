@@ -19,32 +19,31 @@ namespace Corrosive {
 	using TemplateContext = std::vector<const Type*>;
 
 	struct CompileContext {
-		StructDeclaration* parent_struct;
-		NamespaceDeclaration* parent_namespace;
-		const TemplateContext* template_ctx;
-		LLVMModuleRef module;
-		LLVMTargetDataRef target_layout;
+		StructDeclaration*		parent_struct;
+		NamespaceDeclaration*	parent_namespace = nullptr;
+		const TemplateContext*	template_ctx = nullptr;
+		LLVMModuleRef			module = nullptr;
+		LLVMTargetDataRef		target_layout = nullptr;
 	};
 
 	struct CompileContextExt {
-		CompileContext basic;
-		LLVMValueRef function = nullptr;
-		LLVMBasicBlockRef block = nullptr;
-		Declaration* unit = nullptr;
-		LLVMBuilderRef builder = nullptr;
-		LLVMBasicBlockRef fallback_and = nullptr;
-		std::vector<LLVMBasicBlockRef> incoming_blocks_and;
-		std::vector<LLVMValueRef> incoming_values_and;
-
-		LLVMBasicBlockRef fallback_or = nullptr;
-		std::vector<LLVMBasicBlockRef> incoming_blocks_or;
-		std::vector<LLVMValueRef> incoming_values_or;
+		CompileContext					basic;
+		LLVMValueRef					function = nullptr;
+		LLVMBasicBlockRef				block = nullptr;
+		Declaration*					unit = nullptr;
+		LLVMBuilderRef					builder = nullptr;
+		LLVMBasicBlockRef				fallback_and = nullptr;
+		std::vector<LLVMBasicBlockRef>	incoming_blocks_and;
+		std::vector<LLVMValueRef>		incoming_values_and;
+		LLVMBasicBlockRef				fallback_or = nullptr;
+		std::vector<LLVMBasicBlockRef>	incoming_blocks_or;
+		std::vector<LLVMValueRef>		incoming_values_or;
 	};
 
 	struct CompileValue {
-		LLVMValueRef v;
-		const Type* t;
-		bool lvalue;
+		LLVMValueRef	v = nullptr;
+		const Type*		t = nullptr;
+		bool			lvalue;
 	};
 }
 

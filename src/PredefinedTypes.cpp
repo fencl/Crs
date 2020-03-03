@@ -27,7 +27,7 @@ namespace Corrosive {
 		new_type->package = PredefinedNamespace;
 		new_type->parent_pack = p_nspc;
 		new_type->parent = p_nspc;
-		Contents::RegisterStruct(PredefinedNamespace, name, new_type.get());
+		Contents::register_struct(PredefinedNamespace, name, new_type.get());
 		p_nspc->members.push_back(std::move(new_type));
 
 		PrimitiveType pt_new_type;
@@ -37,7 +37,7 @@ namespace Corrosive {
 	}
 
 	void InitPredefinedTypes(std::vector<std::unique_ptr<Declaration>>& into) {
-		Contents::RegisterNamespace(PredefinedNamespace);
+		Contents::register_namespace(PredefinedNamespace);
 		std::unique_ptr<NamespaceDeclaration> p_nspc = std::make_unique<NamespaceDeclaration>();
 		Cursor n_c; n_c.Data(PredefinedNamespace);
 		p_nspc->name = n_c;
@@ -73,7 +73,7 @@ namespace Corrosive {
 		t_array->parent_pack = p_nspc.get();
 		t_array->parent = p_nspc.get();
 		t_array->generic_typenames["T"] = 0;
-		Contents::RegisterStruct(PredefinedNamespace, "array", t_array.get());
+		Contents::register_struct(PredefinedNamespace, "array", t_array.get());
 		std::unique_ptr<VariableDeclaration> t_array_val = std::make_unique<VariableDeclaration>();
 		n_c.Data("value"); 
 		t_array_val->name = n_c;
@@ -96,7 +96,7 @@ namespace Corrosive {
 		t_tuple->parent_pack = p_nspc.get();
 		t_tuple->parent = p_nspc.get();
 		t_tuple->generic_typenames["T"] = 0;
-		Contents::RegisterStruct(PredefinedNamespace, "tuple", t_tuple.get());
+		Contents::register_struct(PredefinedNamespace, "tuple", t_tuple.get());
 		std::unique_ptr<VariableDeclaration> t_tuple_val = std::make_unique<VariableDeclaration>();
 		n_c.Data("value");
 		t_tuple_val->name = n_c;

@@ -29,7 +29,7 @@
     <ClInclude Include="..\src\PredefinedTypes.h" />
     <ClInclude Include="..\src\Source.h" />
     <ClInclude Include="..\src\StackManager.h" />
-    <ClInclude Include="..\src\svtoi.h" />
+    <ClInclude Include="..\src\Utilities.h" />
     <ClInclude Include="..\src\Type.h" />
   </ItemGroup>
   <ItemGroup>
@@ -50,6 +50,7 @@
     <ClCompile Include="..\src\TypeCompile.cpp" />
     <ClCompile Include="..\src\TypeParse.cpp" />
     <ClCompile Include="..\src\TypeResolve.cpp" />
+    <ClCompile Include="..\src\Utilities.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
