@@ -25,6 +25,7 @@
     <ClInclude Include="..\src\Declaration.h" />
     <ClInclude Include="..\src\Error.h" />
     <ClInclude Include="..\src\Expression.h" />
+    <ClInclude Include="..\src\ir\IR.h" />
     <ClInclude Include="..\src\Operand.h" />
     <ClInclude Include="..\src\PredefinedTypes.h" />
     <ClInclude Include="..\src\Source.h" />
@@ -39,6 +40,8 @@
     <ClCompile Include="..\src\DeclarationParse.cpp" />
     <ClCompile Include="..\src\Error.cpp" />
     <ClCompile Include="..\src\Expression.cpp" />
+    <ClCompile Include="..\src\ir\IR.cpp" />
+    <ClCompile Include="..\src\ir\IRBuilder.cpp" />
     <ClCompile Include="..\src\Operand.cpp" />
     <ClCompile Include="..\src\PredefinedTypes.cpp" />
     <ClCompile Include="..\src\Program.cpp" />
