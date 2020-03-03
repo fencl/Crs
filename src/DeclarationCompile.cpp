@@ -135,9 +135,9 @@ namespace Corrosive {
 						thistype.ref = is_trait ?false:true;
 						thistype.templates = ctx.template_ctx;
 						FunctionType nfd = *fdt;
-						std::vector<const Type*> nargs = *nfd.Args();
+						std::vector<const Type*> nargs = *nfd.arguments;
 						nargs.insert(nargs.begin(), Contents::EmplaceType(thistype));
-						nfd.Args() = Contents::RegisterTypeArray(std::move(nargs));
+						nfd.arguments = Contents::RegisterTypeArray(std::move(nargs));
 						fdt = (const FunctionType*)Contents::EmplaceType(nfd);
 					}
 
@@ -217,7 +217,7 @@ namespace Corrosive {
 						iface_list[key] = f;
 					}
 					else {
-						if (!((const FunctionType*)nifc->second->type)->CanPrimCastIntoIgnoreThis(f->type)) {
+						if (!((const FunctionType*)nifc->second->type)->can_simple_cast_into_ignore_this(f->type)) {
 							ThrowSpecificError(name, "Structure has two interfaces with trait function");
 						}
 						if (nifc->second->is_static != f->is_static) {
@@ -235,7 +235,7 @@ namespace Corrosive {
 				std::string_view key = f->name.Data();
 				auto nifc = iface_list.find(key);
 				if (nifc != iface_list.end()) {
-					if (!((const FunctionType*)f->type)->CanPrimCastIntoIgnoreThis(nifc->second->type)) {
+					if (!((const FunctionType*)f->type)->can_simple_cast_into_ignore_this(nifc->second->type)) {
 						ThrowSpecificError(f->name, "Declaration is not compatible with trait declaration");
 					}
 					iface_list.erase(nifc);
@@ -364,12 +364,12 @@ namespace Corrosive {
 			LLVMPositionBuilderAtEnd(builder, llvm_block);
 
 			const FunctionType* ft = (const FunctionType*)type;
-			bool heavy_return = ft->Returns()->is_heavy;
+			bool heavy_return = ft->returns->is_heavy;
 
-			for (int i = 0; i < ft->Args()->size(); i++) {
+			for (int i = 0; i < ft->arguments->size(); i++) {
 				CompileValue cv;
 				cv.lvalue = true;
-				cv.t = (*ft->Args())[i];
+				cv.t = (*ft->arguments)[i];
 				cv.v = LLVMGetParam(function, i+heavy_return?1:0);
 
 				if (!cv.t->is_heavy) {

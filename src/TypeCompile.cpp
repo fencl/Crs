@@ -52,16 +52,16 @@ namespace Corrosive {
 		LLVMTypeRef ret;
 		std::vector<LLVMTypeRef> argtps;
 
-		Returns()->pre_compile(ctx);
-		if (!Returns()->is_heavy) {
-			ret = Returns()->LLVMTypeRValue();
+		returns->pre_compile(ctx);
+		if (!returns->is_heavy) {
+			ret = returns->LLVMTypeRValue();
 		}
 		else {
-			argtps.push_back(Returns()->LLVMTypeRValue());
+			argtps.push_back(returns->LLVMTypeRValue());
 			ret = LLVMVoidType();
 		}
 
-		for (auto it = Args()->begin(); it != Args()->end(); it++) {
+		for (auto it = arguments->begin(); it != arguments->end(); it++) {
 			(*it)->pre_compile(ctx);
 			argtps.push_back((*it)->LLVMTypeRValue());
 		}
@@ -75,9 +75,9 @@ namespace Corrosive {
 		pre_compile(ctx);
 		FunctionType* self = (FunctionType*)this;
 
-		Returns()->compile(ctx);
+		returns->compile(ctx);
 
-		for (auto it = Args()->begin(); it != Args()->end(); it++) {
+		for (auto it = arguments->begin(); it != arguments->end(); it++) {
 			(*it)->compile(ctx);
 		}
 
@@ -110,7 +110,7 @@ namespace Corrosive {
 		if (llvm_type != nullptr) return;
 
 		TupleType* self = (TupleType*)this;
-		for (auto it = Types()->begin(); it != Types()->end(); it++) {
+		for (auto it = types->begin(); it != types->end(); it++) {
 			(*it)->pre_compile(ctx);
 		}
 		self->is_heavy = true;
@@ -122,7 +122,7 @@ namespace Corrosive {
 		pre_compile(ctx);
 
 		TupleType* self = (TupleType*)this;
-		for (auto it = Types()->begin(); it != Types()->end(); it++) {
+		for (auto it = types->begin(); it != types->end(); it++) {
 			(*it)->compile(ctx);
 		}
 

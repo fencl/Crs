@@ -40,18 +40,18 @@ namespace Corrosive {
 		else {
 			if (ft->ref != ref) return false;
 
-			if (ft->Args()->size() != Args()->size()) return false;
-			if (!Returns()->can_simple_cast_into(ft->Returns())) return false;
+			if (ft->arguments->size() != arguments->size()) return false;
+			if (!returns->can_simple_cast_into(ft->returns)) return false;
 
-			for (int i = 0; i < Args()->size(); i++) {
-				if (!(*Args())[i]->can_simple_cast_into((*ft->Args())[i])) return false;
+			for (int i = 0; i < arguments->size(); i++) {
+				if (!(*arguments)[i]->can_simple_cast_into((*ft->arguments)[i])) return false;
 			}
 			return true;
 		}
 	}
 
 
-	bool FunctionType::CanPrimCastIntoIgnoreThis(const Type* t) const {
+	bool FunctionType::can_simple_cast_into_ignore_this(const Type* t) const {
 		if (Type::can_simple_cast_into(t)) return true;
 
 		const FunctionType* ft = dynamic_cast<const FunctionType*>(t);
@@ -59,11 +59,11 @@ namespace Corrosive {
 		else {
 			if (ft->ref != ref) return false;
 
-			if (ft->Args()->size() != Args()->size()) return false;
-			if (!Returns()->can_simple_cast_into(ft->Returns())) return false;
+			if (ft->arguments->size() != arguments->size()) return false;
+			if (!returns->can_simple_cast_into(ft->returns)) return false;
 
-			for (int i = 1; i < Args()->size(); i++) {
-				if (!(*Args())[i]->can_simple_cast_into((*ft->Args())[i])) return false;
+			for (int i = 1; i < arguments->size(); i++) {
+				if (!(*arguments)[i]->can_simple_cast_into((*ft->arguments)[i])) return false;
 			}
 			return true;
 		}
@@ -76,8 +76,8 @@ namespace Corrosive {
 		if (at == nullptr) return false;
 		else {
 			if (at->ref != ref) return false;
-			if (at->Size().Data() != Size().Data()) return false;
-			if (!Base()->can_simple_cast_into(at->Base())) return false;
+			if (at->size.Data() != size.Data()) return false;
+			if (!base->can_simple_cast_into(at->base)) return false;
 
 			return true;
 		}
@@ -90,10 +90,10 @@ namespace Corrosive {
 		if (tt == nullptr) return false;
 		else {
 			if (tt->ref != ref) return false;
-			if (tt->Types()->size() != Types()->size()) return false;
+			if (tt->types->size() != types->size()) return false;
 
-			for (int i = 1; i < Types()->size(); i++) {
-				if (!(*Types())[i]->can_simple_cast_into((*tt->Types())[i])) return false;
+			for (int i = 1; i < types->size(); i++) {
+				if (!(*types)[i]->can_simple_cast_into((*tt->types)[i])) return false;
 			}
 
 			return true;

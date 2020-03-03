@@ -19,16 +19,6 @@ namespace Corrosive {
 		return structure;
 	}*/
 
-	void ArrayType::ActualSize(unsigned int asz) const { ArrayType* at = (ArrayType*)this;  at->actual_size = asz; }
-
-
-	bool ArrayType::HasSimpleSize() const {
-		return simple_size;
-	}
-	void ArrayType::HasSimpleSize(bool b) {
-		simple_size = b;
-	}
-
 	LLVMTypeRef Type::LLVMType() const { return llvm_type; }
 	LLVMTypeRef Type::LLVMTypeLValue() const { return llvm_lvalue; }
 	LLVMTypeRef Type::LLVMTypeRValue() const { return llvm_rvalue; }
@@ -68,7 +58,7 @@ namespace Corrosive {
 		}
 		else {
 			std::cout << size.Data();
-			if (!HasSimpleSize()) {
+			if (!has_simple_size) {
 				std::cout << "... ("<<size.Offset()<<")";
 			}
 		}
@@ -79,42 +69,8 @@ namespace Corrosive {
 
 	Type::~Type() {}
 
-
-	const Type* FunctionType::Returns() const {
-		return returns;
-	}
-
-	const std::vector<const Type*>*const & FunctionType::Args() const {
-		return arguments;
-	}
-
-	const std::vector<const Type*>*& FunctionType::Args() {
-		return arguments;
-	}
-
-
-	void FunctionType::Returns(const Type* r) {
-		returns = r;
-	}
-
-
-	const Type* ArrayType::Base() const {
-		return base;
-	}
-
-	void ArrayType::Base(const Type* b) {
-		base = b;
-	}
-
-	Cursor ArrayType::Size() const { return size; }
-	void ArrayType::Size(Cursor s) { size = s; }
-
 	const std::vector<const Type*>*& InterfaceType::Types() { return types; }
 	const std::vector<const Type*>* const& InterfaceType::Types() const { return types; }
-	
-	const std::vector<const Type*>*& TupleType::Types() { return types; }
-	const std::vector<const Type*>* const& TupleType::Types() const { return types; }
-
 
 	void InterfaceType::print() const {
 		std::cout << "<";

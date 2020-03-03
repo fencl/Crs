@@ -58,7 +58,7 @@ namespace Corrosive {
 					c.Move();
 				}
 
-				fType.Types() = Contents::RegisterTypeArray(std::move(tps));
+				fType.types = Contents::RegisterTypeArray(std::move(tps));
 				rType = Contents::EmplaceType(fType);
 
 			}
@@ -136,7 +136,7 @@ namespace Corrosive {
 			if (c.Tok() == RecognizedToken::OpenParenthesis) {
 				FunctionType fType;
 				std::vector<const Type*> tps;
-				fType.Returns(rType);
+				fType.returns = rType;
 
 				c.Move();
 				while (true) {
@@ -166,33 +166,33 @@ namespace Corrosive {
 					c.Move();
 				}
 
-				fType.Args() = Contents::RegisterTypeArray(std::move(tps));
+				fType.arguments = Contents::RegisterTypeArray(std::move(tps));
 				rType = Contents::EmplaceType(fType);
 			}
 			else if (c.Tok() == RecognizedToken::OpenBracket) {
 				ArrayType aType;
-				aType.Base(rType);
+				aType.base = rType;
 
 				c.Move();
 
-				aType.Size(c);
+				aType.size = c;
 				Cursor c1 = c;
 				c1.Move();
 				if (c1.Tok() == RecognizedToken::CloseBracket) {
-					aType.HasSimpleSize(true);
+					aType.has_simple_size = true;
 					if (c.Tok() == RecognizedToken::Number)
-						aType.ActualSize((unsigned int)svtoi(c.Data()));
+						aType.actual_size = (unsigned int)svtoi(c.Data());
 					else if (c.Tok() == RecognizedToken::UnsignedNumber)
-						aType.ActualSize((unsigned int)svtoi(c.Data().substr(0,c.Data().size()-1)));
+						aType.actual_size = (unsigned int)svtoi(c.Data().substr(0,c.Data().size()-1));
 					else if (c.Tok() == RecognizedToken::LongNumber)
-						aType.ActualSize((unsigned int)svtoi(c.Data().substr(0, c.Data().size() - 1)));
+						aType.actual_size = (unsigned int)svtoi(c.Data().substr(0, c.Data().size() - 1));
 					else if (c.Tok() == RecognizedToken::UnsignedLongNumber)
-						aType.ActualSize((unsigned int)svtoi(c.Data().substr(0, c.Data().size() - 2)));
+						aType.actual_size = (unsigned int)svtoi(c.Data().substr(0, c.Data().size() - 2));
 
 					c = c1;
 				}
 				else {
-					aType.HasSimpleSize(false);
+					aType.has_simple_size = false;
 
 					if (ctx.parent_namespace == nullptr && ctx.parent_struct == nullptr) {
 						CompileContextExt ccext;
@@ -208,14 +208,14 @@ namespace Corrosive {
 							if (cv <= 0) {
 								ThrowSpecificError(ce, "Array cannot be created with negative or zero size");
 							}
-							aType.ActualSize((unsigned int)cv);
+							aType.actual_size = (unsigned int)cv;
 						}
 						else if (v.t == t_u8 || v.t == t_u16 || v.t == t_u32 || v.t == t_u64) {
 							unsigned long long cv = LLVMConstIntGetZExtValue(v.v);
 							if (cv == 0) {
 								ThrowSpecificError(ce, "Array cannot be created with zero size");
 							}
-							aType.ActualSize((unsigned int)cv);
+							aType.actual_size = (unsigned int)cv;
 						}
 						else {
 							ThrowSpecificError(ce, "Array type must have constant integer size");
@@ -227,17 +227,6 @@ namespace Corrosive {
 					}
 				}
 				c.Move();
-
-				/*int lvl = 1;
-				while (c.Tok() != RecognizedToken::Eof && lvl > 0) {
-					if (c.Tok() == RecognizedToken::CloseBracket) {
-						lvl -= 1;
-					}
-					else if (c.Tok() == RecognizedToken::OpenBracket) {
-						lvl += 1;
-					}
-					c.Move();
-				}*/
 
 				if ((c.Tok() == RecognizedToken::Symbol && c.Data() == "ref") || c.Tok() == RecognizedToken::And) {
 					aType.ref = true;

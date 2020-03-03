@@ -61,8 +61,8 @@ namespace Corrosive {
 
 	size_t FunctionType::hash() const {
 		size_t h = Type::hash();
-		h ^= rot(std::hash<size_t>()((size_t)Returns()), 5);
-		h ^= rot(std::hash<size_t>()((size_t)Args()), 6);
+		h ^= rot(std::hash<size_t>()((size_t)returns), 5);
+		h ^= rot(std::hash<size_t>()((size_t)arguments), 6);
 
 		return h;
 	}
@@ -72,15 +72,15 @@ namespace Corrosive {
 		if (tcmp != 0) return tcmp;
 
 		TupleType& ft = (TupleType&)t2;
-		if (Types() < ft.Types()) return -1;
-		if (Types() > ft.Types()) return 1;
+		if (types < ft.types) return -1;
+		if (types > ft.types) return 1;
 
 		return 0;
 	}
 
 	size_t TupleType::hash() const {
 		size_t h = Type::hash();
-		h ^= rot(std::hash<size_t>()((size_t)Types()), 7);
+		h ^= rot(std::hash<size_t>()((size_t)types), 7);
 		return h;
 	}
 
@@ -118,10 +118,10 @@ namespace Corrosive {
 			if (size.Data() < ft.size.Data()) return -1;
 			if (size.Data() > ft.size.Data()) return 1;
 
-			if (simple_size < ft.simple_size) return -1;
-			if (simple_size > ft.simple_size) return 1;
+			if (has_simple_size < ft.has_simple_size) return -1;
+			if (has_simple_size > ft.has_simple_size) return 1;
 
-			if (!HasSimpleSize()) {
+			if (!has_simple_size) {
 				if (size.Offset() < ft.size.Offset()) return -1;
 				if (size.Offset() > ft.size.Offset()) return 1;
 				if (size.Source() < ft.size.Source()) return -1;
@@ -135,13 +135,13 @@ namespace Corrosive {
 
 	size_t ArrayType::hash() const {
 		size_t h = Type::hash();
-		h ^= rot(std::hash<size_t>()((size_t)Base()), 9);
+		h ^= rot(std::hash<size_t>()((size_t)base), 9);
 		if (actual_size == 0) {
-			if (HasSimpleSize()) {
-				h ^= rot(std::hash<std::string_view>()(Size().Data()), 10);
+			if (has_simple_size) {
+				h ^= rot(std::hash<std::string_view>()(size.Data()), 10);
 			}
 			else {
-				h ^= rot(std::hash<std::string_view>()(Size().Data()), 11) ^ rot(std::hash<size_t>()(Size().Offset()), 12) ^ rot(std::hash<const void*>()(Size().Source()), 13);
+				h ^= rot(std::hash<std::string_view>()(size.Data()), 11) ^ rot(std::hash<size_t>()(size.Offset()), 12) ^ rot(std::hash<const void*>()(size.Source()), 13);
 			}
 		}
 		else

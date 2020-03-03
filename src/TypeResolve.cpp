@@ -26,7 +26,7 @@ namespace Corrosive {
 		bool mod = false;
 		bool mod2 = false;
 
-		std::vector<const Type*> rtp = *rt.Args();
+		std::vector<const Type*> rtp = *rt.arguments;
 
 		mod |= resolve_package_in_place(rt.returns,ctx);
 		
@@ -35,7 +35,7 @@ namespace Corrosive {
 		}
 
 		if (mod2) {
-			rt.Args() = Contents::RegisterTypeArray(std::move(rtp));
+			rt.arguments = Contents::RegisterTypeArray(std::move(rtp));
 			mod = true;
 		}
 
@@ -111,14 +111,14 @@ namespace Corrosive {
 		bool mod = false;
 		bool mod2 = false;
 
-		std::vector<const Type*> rtp = *rt.Types();
+		std::vector<const Type*> rtp = *rt.types;
 
 		for (auto it = rtp.begin(); it != rtp.end(); it++) {
 			mod2|=resolve_package_in_place(*it, ctx);
 		}
 
 		if (mod2) {
-			rt.Types() = Contents::RegisterTypeArray(std::move(rtp));
+			rt.types = Contents::RegisterTypeArray(std::move(rtp));
 			mod = true;
 		}
 

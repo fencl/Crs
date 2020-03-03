@@ -52,6 +52,9 @@ namespace Corrosive {
 	bool operator > (const Type& t1, const Type& t2);
 	bool operator < (const Type& t1, const Type& t2);
 
+
+
+
 	class PrimitiveType : public Type {
 	public:
 		virtual void print() const;
@@ -81,27 +84,19 @@ namespace Corrosive {
 		
 		virtual void print() const;
 
-		virtual int id() const;
-		virtual int cmp(const Type& t2) const;
-		virtual size_t hash() const;
-		virtual const Type* resolve_package(CompileContext& ctx) const;
+		virtual int		id		() const;
+		virtual int		cmp		(const Type& t2) const;
+		virtual size_t	hash	() const;
 
-		virtual void compile(CompileContext& ctx) const;
-		virtual void pre_compile(CompileContext& ctx) const;
+		virtual const Type*		resolve_package			(CompileContext& ctx) const;
+		virtual void			compile					(CompileContext& ctx) const;
+		virtual void			pre_compile				(CompileContext& ctx) const;
+		virtual bool			can_simple_cast_into	(const Type* into) const;
+		virtual const Type*		clone_ref				(bool r) const;
 
-		virtual bool can_simple_cast_into(const Type* into) const;
-		bool CanPrimCastIntoIgnoreThis(const Type* into) const;
+		bool can_simple_cast_into_ignore_this(const Type* into) const;
 
-
-		virtual const Type* clone_ref(bool r) const;
-
-		const Type* Returns() const;
-		void Returns(const Type*);
-
-		const std::vector<const Type*>* const & Args() const;
-		const std::vector<const Type*>*& Args();
-	protected:
-		const Type* returns = nullptr;
+		const Type*						returns = nullptr;
 		const std::vector<const Type*>* arguments;
 	};
 
@@ -112,35 +107,21 @@ namespace Corrosive {
 	public:
 		virtual void print() const;
 
-		virtual int id() const;
-		virtual int cmp(const Type& t2) const;
-		virtual size_t hash() const;
-		virtual const Type* resolve_package(CompileContext& ctx) const;
+		virtual int		id		() const;
+		virtual int		cmp		(const Type& t2) const;
+		virtual size_t	hash	() const;
 
-		virtual void compile(CompileContext& ctx) const;
-		virtual void pre_compile(CompileContext& ctx) const;
+		virtual const Type*		resolve_package			(CompileContext& ctx) const;
+		virtual void			compile					(CompileContext& ctx) const;
+		virtual void			pre_compile				(CompileContext& ctx) const;
+		virtual bool			can_simple_cast_into	(const Type* into) const;
+		virtual const Type*		clone_ref				(bool r) const;
 
-		virtual bool can_simple_cast_into(const Type* into) const;
 
-
-		virtual const Type* clone_ref(bool r) const;
-
-		const Type* Base() const;
-		void Base(const Type*);
-
-		Cursor Size() const;
-		void Size(Cursor);
-
-		void ActualSize(unsigned int) const;
-
-		bool HasSimpleSize() const;
-		void HasSimpleSize(bool b);
-
-	protected:
-		Cursor size;
-		unsigned int actual_size = 0;
-		bool simple_size = true;
-		const Type* base = nullptr;
+		Cursor			size;
+		unsigned int	actual_size = 0;
+		bool			has_simple_size = true;
+		const Type*		base		= nullptr;
 	};
 
 
@@ -151,22 +132,16 @@ namespace Corrosive {
 
 		virtual void print() const;
 
-		virtual int id() const;
-		virtual int cmp(const Corrosive::Type& t2) const;
-		virtual size_t hash() const;
-		virtual const Type* resolve_package(CompileContext& ctx) const;
+		virtual int		id		() const;
+		virtual int		cmp		(const Type& t2) const;
+		virtual size_t	hash		() const;
 
-		virtual void compile(CompileContext& ctx) const;
-		virtual void pre_compile(CompileContext& ctx) const;
+		virtual const Type*		resolve_package			(CompileContext& ctx) const;
+		virtual void			compile					(CompileContext& ctx) const;
+		virtual void			pre_compile				(CompileContext& ctx) const;
+		virtual bool			can_simple_cast_into	(const Type* into) const;
+		virtual const Type*		clone_ref				(bool r) const;
 
-		virtual const Type* clone_ref(bool r) const;
-
-		virtual bool can_simple_cast_into(const Type* into) const;
-
-		const std::vector<const Type*>*& Types();
-		const std::vector<const Type*>* const& Types() const;
-
-	protected:
 		const std::vector<const Type*>* types;
 	};
 

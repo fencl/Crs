@@ -136,9 +136,9 @@ namespace Corrosive {
 				c.Move();
 
 				LLVMValueRef ind[] = { v.v };
-				ret.v = LLVMBuildGEP2(ctx.builder, array_type->Base()->LLVMType(), ret.v, ind, 1, "");
+				ret.v = LLVMBuildGEP2(ctx.builder, array_type->base->LLVMType(), ret.v, ind, 1, "");
 				
-				ret.t = array_type->Base();
+				ret.t = array_type->base;
 				ret.lvalue = true;
 			}
 			else if (c.Tok() == RecognizedToken::Dot) {
