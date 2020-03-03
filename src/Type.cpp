@@ -9,19 +9,15 @@
 namespace Corrosive {
 	
 
-	StructDeclaration* PrimitiveType::Structure() const {
-		if (structure_cache == nullptr) {
+	/*StructDeclaration* PrimitiveType::Structure() const {
+		if (structure == nullptr) {
 			if (package == "")
 				ThrowSpecificError(name, "Type package was '' (compiler error)");
 
-			((PrimitiveType*)this)->structure_cache = Contents::FindStruct(package, name.Data());
+			((PrimitiveType*)this)->structure = Contents::FindStruct(package, name.Data());
 		}
-		return structure_cache;
-	}
-
-	bool Type::HeavyType() const {
-		return heavy_type;
-	}
+		return structure;
+	}*/
 
 	void ArrayType::ActualSize(unsigned int asz) const { ArrayType* at = (ArrayType*)this;  at->actual_size = asz; }
 
@@ -37,12 +33,12 @@ namespace Corrosive {
 	LLVMTypeRef Type::LLVMTypeLValue() const { return llvm_lvalue; }
 	LLVMTypeRef Type::LLVMTypeRValue() const { return llvm_rvalue; }
 
-	void Type::PrintLn() const {
-		Print();
+	void Type::print_ln() const {
+		print();
 		std::cout << std::endl;
 	}
 
-	void Type::Print() const {
+	void Type::print() const {
 
 		if (ref) {
 			std::cout << "&";
@@ -50,21 +46,21 @@ namespace Corrosive {
 	}
 
 
-	void FunctionType::Print() const {
-		returns->Print();
+	void FunctionType::print() const {
+		returns->print();
 		std::cout << " (";
 		for (auto it = arguments->begin(); it != arguments->end(); it++) {
 			if (it != arguments->begin()) {
 				std::cout << ", ";
 			}
-			(*it)->Print();
+			(*it)->print();
 		}
 		std::cout << ")";
-		Type::Print();
+		Type::print();
 	}
 
-	void ArrayType::Print() const {
-		base->Print();
+	void ArrayType::print() const {
+		base->print();
 
 		std::cout << " [";
 		if (actual_size!=0) {
@@ -78,7 +74,7 @@ namespace Corrosive {
 		}
 
 		std::cout << "]";
-		Type::Print();
+		Type::print();
 	}
 
 	Type::~Type() {}
@@ -113,9 +109,6 @@ namespace Corrosive {
 	Cursor ArrayType::Size() const { return size; }
 	void ArrayType::Size(Cursor s) { size = s; }
 
-	const TemplateContext*const & PrimitiveType::Templates() const { return templates; }
-	const TemplateContext*& PrimitiveType::Templates() { return templates; }
-
 	const std::vector<const Type*>*& InterfaceType::Types() { return types; }
 	const std::vector<const Type*>* const& InterfaceType::Types() const { return types; }
 	
@@ -123,32 +116,32 @@ namespace Corrosive {
 	const std::vector<const Type*>* const& TupleType::Types() const { return types; }
 
 
-	void InterfaceType::Print() const {
+	void InterfaceType::print() const {
 		std::cout << "<";
 		for (auto it = types->begin(); it != types->end(); it++) {
 			if (it != types->begin()) {
 				std::cout << ", ";
 			}
-			(*it)->Print();
+			(*it)->print();
 		}
 		std::cout << ">";
-		Type::Print();
+		Type::print();
 	}
 	
 	
-	void TupleType::Print() const {
+	void TupleType::print() const {
 		std::cout << "[";
 		for (auto it = types->begin(); it != types->end(); it++) {
 			if (it != types->begin()) {
 				std::cout << ", ";
 			}
-			(*it)->Print();
+			(*it)->print();
 		}
 		std::cout << "]";
-		Type::Print();
+		Type::print();
 	}
 
-	void PrimitiveType::Print() const {
+	void PrimitiveType::print() const {
 		if (package != "") {
 			std::cout << package;
 			std::cout << "::";
@@ -162,47 +155,37 @@ namespace Corrosive {
 					std::cout << ", ";
 				}
 
-				(*it)->Print();
+				(*it)->print();
 
 			}
 			std::cout << ">";
 		}
 
-		Type::Print();
+		Type::print();
 	}
 
-	void PrimitiveType::Name(Cursor n) {
-		name = n;
-	}
-	Cursor const PrimitiveType::Name() const {
-		return name;
-	}
-
-	std::string_view const PrimitiveType::Pack() const { return package; }
-	void PrimitiveType::Pack(std::string_view p) { package = p; }
-
-	int Type::ID() const { return 0; }
-	int PrimitiveType::ID() const { return 1; }
-	int FunctionType::ID() const { return 2; }
-	int TupleType::ID() const { return 3; }
-	int ArrayType::ID() const { return 4; }
-	int InterfaceType::ID() const { return 5; }
+	int Type::id() const { return 0; }
+	int PrimitiveType::id() const { return 1; }
+	int FunctionType::id() const { return 2; }
+	int TupleType::id() const { return 3; }
+	int ArrayType::id() const { return 4; }
+	int InterfaceType::id() const { return 5; }
 
 	bool operator == (const Type& t1, const Type& t2) {
-		return t1.Cmp(t2) == 0;
+		return t1.cmp(t2) == 0;
 	}
 
 	bool operator != (const Type& t1, const Type& t2) {
-		return t1.Cmp(t2) != 0;
+		return t1.cmp(t2) != 0;
 	}
 	bool operator > (const Type& t1, const Type& t2) {
-		return t1.Cmp(t2) > 0;
+		return t1.cmp(t2) > 0;
 	}
 	bool operator < (const Type& t1, const Type& t2) {
-		return t1.Cmp(t2) < 0;
+		return t1.cmp(t2) < 0;
 	}
 
-	const Type* Type::CloneRef(bool r) const { 
+	const Type* Type::clone_ref(bool r) const { 
 		if (ref && r) {
 			return t_ptr_ref;
 		}
@@ -216,7 +199,7 @@ namespace Corrosive {
 		return nullptr;
 	}
 
-	const Type* PrimitiveType::CloneRef(bool r) const {
+	const Type* PrimitiveType::clone_ref(bool r) const {
 		if (ref && r) {
 			return t_ptr_ref;
 		}
@@ -233,7 +216,7 @@ namespace Corrosive {
 		return nullptr;
 	}
 
-	const Type* ArrayType::CloneRef(bool r) const {
+	const Type* ArrayType::clone_ref(bool r) const {
 		if (ref && r) {
 			return t_ptr_ref;
 		}
@@ -250,7 +233,7 @@ namespace Corrosive {
 		return nullptr;
 	}
 
-	const Type* TupleType::CloneRef(bool r) const {
+	const Type* TupleType::clone_ref(bool r) const {
 		if (ref && r) {
 			return t_ptr_ref;
 		}
@@ -267,7 +250,7 @@ namespace Corrosive {
 		return nullptr;
 	}
 
-	const Type* InterfaceType::CloneRef(bool r) const {
+	const Type* InterfaceType::clone_ref(bool r) const {
 		if (ref && r) {
 			return t_ptr_ref;
 		}
@@ -284,7 +267,7 @@ namespace Corrosive {
 		return nullptr;
 	}
 
-	const Type* FunctionType::CloneRef(bool r) const {
+	const Type* FunctionType::clone_ref(bool r) const {
 		if (ref && r) {
 			return t_ptr_ref;
 		}

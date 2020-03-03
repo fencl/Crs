@@ -16,42 +16,35 @@ namespace Corrosive {
 	public:
 		virtual ~Type();
 
-		void PrintLn() const;
-		virtual void Print() const;
+		void			print_ln() const;
+		virtual void	print() const;
+		virtual int		id() const;
+		virtual int		cmp(const Type& t2) const;
+		virtual size_t	hash() const;
 
-		virtual int ID() const;
-		virtual int Cmp(const Type& t2) const;
-		virtual size_t Hash() const;
+		static bool resolve_package_in_place(const Type*& t, CompileContext& ctx);
 
-		virtual const Type* ResolvePackage(CompileContext& ctx) const;
-		
-		virtual void Compile(CompileContext& ctx) const;
-		virtual void PreCompile(CompileContext& ctx) const;
+		virtual const Type* clone_ref				(bool r) const;
+		virtual const Type* resolve_package			(CompileContext& ctx) const;
+		virtual void		compile					(CompileContext& ctx) const;
+		virtual void		pre_compile				(CompileContext& ctx) const;
+		virtual bool		can_simple_cast_into	(const Type* into) const;
 
-		virtual bool CanPrimCastInto(const Type* into) const;
-
-		static const Type* Parse(Cursor& c, std::vector<Cursor>* argnames = nullptr);
-		static const Type* ParseDirect(CompileContext& ctx, Cursor& c, std::vector<Cursor>* argnames = nullptr);
-
-		virtual const Type* CloneRef(bool r) const;
-
-		static bool ResolvePackageInPlace(const Type*& t, CompileContext& ctx);
-		bool HeavyType() const;
+		static const Type* parse		(Cursor& c, std::vector<Cursor>* argnames = nullptr);
+		static const Type* parse_direct	(CompileContext& ctx, Cursor& c, std::vector<Cursor>* argnames = nullptr);
 
 		LLVMTypeRef LLVMType() const;
 		LLVMTypeRef LLVMTypeLValue() const;
 		LLVMTypeRef LLVMTypeRValue() const;
 
-
 		bool ref = false;
+		bool is_heavy = false;
+		bool compiled = false;
 
 	protected:
 		LLVMTypeRef llvm_type = nullptr;
 		LLVMTypeRef llvm_lvalue = nullptr;
 		LLVMTypeRef llvm_rvalue = nullptr;
-		bool heavy_type = false;
-		unsigned int rc = 0;
-		bool compiled = false;
 	};
 
 	bool operator == (const Type& t1, const Type& t2);
@@ -61,39 +54,23 @@ namespace Corrosive {
 
 	class PrimitiveType : public Type {
 	public:
-		virtual void Print() const;
+		virtual void print() const;
 
-		virtual int ID() const;
-		virtual int Cmp(const Type& t2) const;
-		virtual size_t Hash() const;
-		virtual const Type* ResolvePackage(CompileContext& ctx) const;
-	
+		virtual int		id		() const;
+		virtual int		cmp		(const Type& t2) const;
+		virtual size_t	hash	() const;
 
-		virtual void Compile(CompileContext& ctx) const;
-		virtual void PreCompile(CompileContext& ctx) const;
-
-		virtual bool CanPrimCastInto(const Type* into) const;
-
-		std::string_view const Pack() const;
-		void Pack(std::string_view);
+		virtual const Type*		resolve_package			(CompileContext& ctx) const;
+		virtual void			compile					(CompileContext& ctx) const;
+		virtual void			pre_compile				(CompileContext& ctx) const;
+		virtual bool			can_simple_cast_into	(const Type* into) const;
+		virtual const Type*		clone_ref				(bool r) const;
 
 
-		virtual const Type* CloneRef(bool r) const;
-
-		Cursor const Name() const;
-		void Name(Cursor);
-
-		StructDeclaration* Structure() const;
-
-
-		const TemplateContext* const& Templates() const;
-		const TemplateContext*& Templates();
-
-
-		Cursor name;
-		std::string_view package;
-		StructDeclaration* structure_cache = nullptr;
-		const TemplateContext* templates;
+		Cursor					name;
+		std::string_view		package;
+		StructDeclaration*		structure = nullptr;
+		const TemplateContext*	templates;
 	};
 
 
@@ -102,21 +79,21 @@ namespace Corrosive {
 	class FunctionType : public Type {
 	public:
 		
-		virtual void Print() const;
+		virtual void print() const;
 
-		virtual int ID() const;
-		virtual int Cmp(const Type& t2) const;
-		virtual size_t Hash() const;
-		virtual const Type* ResolvePackage(CompileContext& ctx) const;
+		virtual int id() const;
+		virtual int cmp(const Type& t2) const;
+		virtual size_t hash() const;
+		virtual const Type* resolve_package(CompileContext& ctx) const;
 
-		virtual void Compile(CompileContext& ctx) const;
-		virtual void PreCompile(CompileContext& ctx) const;
+		virtual void compile(CompileContext& ctx) const;
+		virtual void pre_compile(CompileContext& ctx) const;
 
-		virtual bool CanPrimCastInto(const Type* into) const;
+		virtual bool can_simple_cast_into(const Type* into) const;
 		bool CanPrimCastIntoIgnoreThis(const Type* into) const;
 
 
-		virtual const Type* CloneRef(bool r) const;
+		virtual const Type* clone_ref(bool r) const;
 
 		const Type* Returns() const;
 		void Returns(const Type*);
@@ -133,20 +110,20 @@ namespace Corrosive {
 
 	class ArrayType : public Type {
 	public:
-		virtual void Print() const;
+		virtual void print() const;
 
-		virtual int ID() const;
-		virtual int Cmp(const Type& t2) const;
-		virtual size_t Hash() const;
-		virtual const Type* ResolvePackage(CompileContext& ctx) const;
+		virtual int id() const;
+		virtual int cmp(const Type& t2) const;
+		virtual size_t hash() const;
+		virtual const Type* resolve_package(CompileContext& ctx) const;
 
-		virtual void Compile(CompileContext& ctx) const;
-		virtual void PreCompile(CompileContext& ctx) const;
+		virtual void compile(CompileContext& ctx) const;
+		virtual void pre_compile(CompileContext& ctx) const;
 
-		virtual bool CanPrimCastInto(const Type* into) const;
+		virtual bool can_simple_cast_into(const Type* into) const;
 
 
-		virtual const Type* CloneRef(bool r) const;
+		virtual const Type* clone_ref(bool r) const;
 
 		const Type* Base() const;
 		void Base(const Type*);
@@ -172,19 +149,19 @@ namespace Corrosive {
 	class TupleType : public Type {
 	public:
 
-		virtual void Print() const;
+		virtual void print() const;
 
-		virtual int ID() const;
-		virtual int Cmp(const Corrosive::Type& t2) const;
-		virtual size_t Hash() const;
-		virtual const Type* ResolvePackage(CompileContext& ctx) const;
+		virtual int id() const;
+		virtual int cmp(const Corrosive::Type& t2) const;
+		virtual size_t hash() const;
+		virtual const Type* resolve_package(CompileContext& ctx) const;
 
-		virtual void Compile(CompileContext& ctx) const;
-		virtual void PreCompile(CompileContext& ctx) const;
+		virtual void compile(CompileContext& ctx) const;
+		virtual void pre_compile(CompileContext& ctx) const;
 
-		virtual const Type* CloneRef(bool r) const;
+		virtual const Type* clone_ref(bool r) const;
 
-		virtual bool CanPrimCastInto(const Type* into) const;
+		virtual bool can_simple_cast_into(const Type* into) const;
 
 		const std::vector<const Type*>*& Types();
 		const std::vector<const Type*>* const& Types() const;
@@ -198,19 +175,19 @@ namespace Corrosive {
 
 	class InterfaceType : public Type {
 	public:
-		virtual void Print() const;
+		virtual void print() const;
 
-		virtual int ID() const;
-		virtual int Cmp(const Corrosive::Type& t2) const;
-		virtual size_t Hash() const;
-		virtual const Type* ResolvePackage(CompileContext& ctx) const;
+		virtual int id() const;
+		virtual int cmp(const Corrosive::Type& t2) const;
+		virtual size_t hash() const;
+		virtual const Type* resolve_package(CompileContext& ctx) const;
 
-		virtual void Compile(CompileContext& ctx) const;
-		virtual void PreCompile(CompileContext& ctx) const;
+		virtual void compile(CompileContext& ctx) const;
+		virtual void pre_compile(CompileContext& ctx) const;
 
-		virtual const Type* CloneRef(bool r) const;
+		virtual const Type* clone_ref(bool r) const;
 
-		virtual bool CanPrimCastInto(const Type* into) const;
+		virtual bool can_simple_cast_into(const Type* into) const;
 
 		const std::vector<const Type*>*& Types();
 		const std::vector<const Type*>* const& Types() const;

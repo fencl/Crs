@@ -91,10 +91,7 @@ namespace Corrosive {
 	class GenericFunctionDeclaration : public FunctionDeclaration {
 	public:
 		virtual void print(unsigned int offset) const;
-		const std::map<std::string_view, int>& Generics() const;
-		std::map<std::string_view, int>& Generics();
 
-	protected:
 		std::map<std::string_view, int> generic_typenames;
 	};
 

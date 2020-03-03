@@ -9,15 +9,15 @@
 
 namespace Corrosive {
 	
-	void Type::Compile(CompileContext& ctx) const {
+	void Type::compile(CompileContext& ctx) const {
 		if (compiled) return;
 	}
 
-	void Type::PreCompile(CompileContext& ctx) const {
+	void Type::pre_compile(CompileContext& ctx) const {
 		if (llvm_type != nullptr) return;
 	}
 
-	void ArrayType::PreCompile(CompileContext& ctx) const {
+	void ArrayType::pre_compile(CompileContext& ctx) const {
 		if (llvm_type != nullptr) return;
 
 		ArrayType* self = (ArrayType*)this;
@@ -26,34 +26,34 @@ namespace Corrosive {
 			ThrowSpecificError(size, "Size of array type has not been evaluated (compiler error)");
 		}
 
-		base->PreCompile(ctx);
+		base->pre_compile(ctx);
 
-		self->heavy_type = true;
+		self->is_heavy = true;
 
 		self->llvm_type = LLVMArrayType(base->LLVMType(), self->actual_size);
 		self->llvm_lvalue = self->llvm_rvalue = LLVMPointerType(self->llvm_type, 0);
 	}
 
-	void ArrayType::Compile(CompileContext& ctx) const {
+	void ArrayType::compile(CompileContext& ctx) const {
 		if (compiled) return;
-		PreCompile(ctx);
+		pre_compile(ctx);
 
 		ArrayType* self = (ArrayType*)this;
 
-		base->Compile(ctx);
+		base->compile(ctx);
 
 		self->compiled = true;
 	}
 
-	void FunctionType::PreCompile(CompileContext& ctx) const {
+	void FunctionType::pre_compile(CompileContext& ctx) const {
 		if (llvm_type != nullptr) return;
 		FunctionType* self = (FunctionType*)this; 
 			
 		LLVMTypeRef ret;
 		std::vector<LLVMTypeRef> argtps;
 
-		Returns()->PreCompile(ctx);
-		if (!Returns()->HeavyType()) {
+		Returns()->pre_compile(ctx);
+		if (!Returns()->is_heavy) {
 			ret = Returns()->LLVMTypeRValue();
 		}
 		else {
@@ -62,68 +62,68 @@ namespace Corrosive {
 		}
 
 		for (auto it = Args()->begin(); it != Args()->end(); it++) {
-			(*it)->PreCompile(ctx);
+			(*it)->pre_compile(ctx);
 			argtps.push_back((*it)->LLVMTypeRValue());
 		}
-		self->heavy_type = true;
+		self->is_heavy = true;
 		self->llvm_type = LLVMFunctionType(ret, argtps.data(), (unsigned int)argtps.size(), false);
 	}
 
-	void FunctionType::Compile(CompileContext& ctx) const {
+	void FunctionType::compile(CompileContext& ctx) const {
 		if (compiled) return;
 
-		PreCompile(ctx);
+		pre_compile(ctx);
 		FunctionType* self = (FunctionType*)this;
 
-		Returns()->Compile(ctx);
+		Returns()->compile(ctx);
 
 		for (auto it = Args()->begin(); it != Args()->end(); it++) {
-			(*it)->Compile(ctx);
+			(*it)->compile(ctx);
 		}
 
 		self->compiled = true;
 	}
 
-	void InterfaceType::PreCompile(CompileContext& ctx) const {
+	void InterfaceType::pre_compile(CompileContext& ctx) const {
 		if (llvm_type != nullptr) return;
 
 		InterfaceType* self = (InterfaceType*)this;
 		for (auto it = Types()->begin(); it != Types()->end(); it++) {
-			(*it)->PreCompile(ctx);
+			(*it)->pre_compile(ctx);
 		}
 	}
 
-	void InterfaceType::Compile(CompileContext& ctx) const {
+	void InterfaceType::compile(CompileContext& ctx) const {
 		if (compiled) return;
 
-		PreCompile(ctx);
+		pre_compile(ctx);
 		InterfaceType* self = (InterfaceType*)this;
 		for (auto it = Types()->begin(); it != Types()->end(); it++) {
-			(*it)->Compile(ctx);
+			(*it)->compile(ctx);
 		}
 
 		self->compiled = true;
 	}
 
 
-	void TupleType::PreCompile(CompileContext& ctx) const {
+	void TupleType::pre_compile(CompileContext& ctx) const {
 		if (llvm_type != nullptr) return;
 
 		TupleType* self = (TupleType*)this;
 		for (auto it = Types()->begin(); it != Types()->end(); it++) {
-			(*it)->PreCompile(ctx);
+			(*it)->pre_compile(ctx);
 		}
-		self->heavy_type = true;
+		self->is_heavy = true;
 	}
 
 
-	void TupleType::Compile(CompileContext& ctx) const {
+	void TupleType::compile(CompileContext& ctx) const {
 		if (compiled) return;
-		PreCompile(ctx);
+		pre_compile(ctx);
 
 		TupleType* self = (TupleType*)this;
 		for (auto it = Types()->begin(); it != Types()->end(); it++) {
-			(*it)->Compile(ctx);
+			(*it)->compile(ctx);
 		}
 
 		self->compiled = true;
@@ -131,7 +131,7 @@ namespace Corrosive {
 
 
 
-	void PrimitiveType::PreCompile(CompileContext& ctx) const {
+	void PrimitiveType::pre_compile(CompileContext& ctx) const {
 		if (llvm_type != nullptr) return;
 
 
@@ -141,7 +141,7 @@ namespace Corrosive {
 
 		if (package == PredefinedNamespace && name.Data() == "void") {
 			self->llvm_type = self->llvm_lvalue = self->llvm_rvalue = LLVMVoidType();
-			self->heavy_type = false;
+			self->is_heavy = false;
 			return;
 		}
 		else {
@@ -153,34 +153,34 @@ namespace Corrosive {
 
 				if (sd->decl_type == StructDeclarationType::t_array || sd->decl_type == StructDeclarationType::t_tuple) {
 
-					if (Templates() == nullptr || Templates()->size() != 1)
+					if (templates == nullptr || templates->size() != 1)
 						ThrowSpecificError(name, "Wrong parameters given to predefined type");
 
 
 					CompileContext nctx = ctx;
-					nctx.template_ctx = Templates();
+					nctx.template_ctx = templates;
 
 					StructDeclaration* gsd = ((GenericStructDeclaration*)sd)->create_template(nctx);
-					self->structure_cache = gsd;
+					self->structure = gsd;
 
 					if (ref) {
-						(*Templates())[0]->Compile(nctx);
+						(*templates)[0]->compile(nctx);
 					}
 					else {
-						(*Templates())[0]->PreCompile(nctx);
+						(*templates)[0]->pre_compile(nctx);
 					}
 
-					self->llvm_type = (*Templates())[0]->LLVMType();
-					self->llvm_lvalue = (*Templates())[0]->LLVMTypeLValue();
-					self->llvm_rvalue = (*Templates())[0]->LLVMTypeRValue();
+					self->llvm_type = (*templates)[0]->LLVMType();
+					self->llvm_lvalue = (*templates)[0]->LLVMTypeLValue();
+					self->llvm_rvalue = (*templates)[0]->LLVMTypeRValue();
 				}
 				else {
 
 					CompileContext nctx = ctx;
-					nctx.template_ctx = Templates();
+					nctx.template_ctx = templates;
 
 					if (sd->is_generic()) {
-						if (Templates() == nullptr) {
+						if (templates == nullptr) {
 							ThrowSpecificError(name, "Primitive type points to generic structure and was not given generic arguments");
 						}
 						else {
@@ -190,10 +190,10 @@ namespace Corrosive {
 					}
 
 
-					self->structure_cache = sd;
+					self->structure = sd;
 
 					if (!ref && sd->decl_type == StructDeclarationType::Declared) {
-						self->heavy_type = true;
+						self->is_heavy = true;
 					}
 					
 					sd->pre_compile(nctx);
@@ -203,7 +203,7 @@ namespace Corrosive {
 						self->llvm_type = LLVMPointerType(self->llvm_type, 0);
 
 
-					if (HeavyType())
+					if (is_heavy)
 						self->llvm_lvalue = self->llvm_rvalue = LLVMPointerType(self->llvm_type, 0);
 					else {
 						self->llvm_lvalue = LLVMPointerType(self->llvm_type, 0);
@@ -217,9 +217,9 @@ namespace Corrosive {
 	}
 
 
-	void PrimitiveType::Compile(CompileContext& ctx) const {
+	void PrimitiveType::compile(CompileContext& ctx) const {
 		if (compiled) return;
-		PreCompile(ctx);
+		pre_compile(ctx);
 		PrimitiveType* self = (PrimitiveType*)this;
 
 
@@ -228,8 +228,8 @@ namespace Corrosive {
 		}
 		else {
 			CompileContext nctx = ctx;
-			nctx.template_ctx = Templates();
-			structure_cache->compile(nctx);
+			nctx.template_ctx = templates;
+			structure->compile(nctx);
 		}
 
 		self->compiled = true;

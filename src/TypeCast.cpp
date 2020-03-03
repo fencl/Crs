@@ -3,17 +3,17 @@
 
 namespace Corrosive {
 
-	bool Type::CanPrimCastInto(const Type* t) const {
+	bool Type::can_simple_cast_into(const Type* t) const {
 		//ptr case
 		const PrimitiveType* pt = dynamic_cast<const PrimitiveType*>(t);
-		if (pt != nullptr && ref && pt->Name().Data() == "ptr" && pt->Pack() == PredefinedNamespace) return true;
+		if (pt != nullptr && ref && pt->name.Data() == "ptr" && pt->package == PredefinedNamespace) return true;
 
 		return false;
 	}
 
 
-	bool PrimitiveType::CanPrimCastInto(const Type* t) const {
-		if (Type::CanPrimCastInto(t)) return true;
+	bool PrimitiveType::can_simple_cast_into(const Type* t) const {
+		if (Type::can_simple_cast_into(t)) return true;
 
 		// ptr case
 		if (package == PredefinedNamespace && name.Data() == "ptr" && ref) return true;
@@ -32,8 +32,8 @@ namespace Corrosive {
 	}
 
 
-	bool FunctionType::CanPrimCastInto(const Type* t) const{
-		if (Type::CanPrimCastInto(t)) return true;
+	bool FunctionType::can_simple_cast_into(const Type* t) const{
+		if (Type::can_simple_cast_into(t)) return true;
 
 		const FunctionType* ft = dynamic_cast<const FunctionType*>(t);
 		if (ft == nullptr) return false;
@@ -41,10 +41,10 @@ namespace Corrosive {
 			if (ft->ref != ref) return false;
 
 			if (ft->Args()->size() != Args()->size()) return false;
-			if (!Returns()->CanPrimCastInto(ft->Returns())) return false;
+			if (!Returns()->can_simple_cast_into(ft->Returns())) return false;
 
 			for (int i = 0; i < Args()->size(); i++) {
-				if (!(*Args())[i]->CanPrimCastInto((*ft->Args())[i])) return false;
+				if (!(*Args())[i]->can_simple_cast_into((*ft->Args())[i])) return false;
 			}
 			return true;
 		}
@@ -52,7 +52,7 @@ namespace Corrosive {
 
 
 	bool FunctionType::CanPrimCastIntoIgnoreThis(const Type* t) const {
-		if (Type::CanPrimCastInto(t)) return true;
+		if (Type::can_simple_cast_into(t)) return true;
 
 		const FunctionType* ft = dynamic_cast<const FunctionType*>(t);
 		if (ft == nullptr) return false;
@@ -60,31 +60,31 @@ namespace Corrosive {
 			if (ft->ref != ref) return false;
 
 			if (ft->Args()->size() != Args()->size()) return false;
-			if (!Returns()->CanPrimCastInto(ft->Returns())) return false;
+			if (!Returns()->can_simple_cast_into(ft->Returns())) return false;
 
 			for (int i = 1; i < Args()->size(); i++) {
-				if (!(*Args())[i]->CanPrimCastInto((*ft->Args())[i])) return false;
+				if (!(*Args())[i]->can_simple_cast_into((*ft->Args())[i])) return false;
 			}
 			return true;
 		}
 	}
 
-	bool ArrayType::CanPrimCastInto(const Type* t) const {
-		if (Type::CanPrimCastInto(t)) return true;
+	bool ArrayType::can_simple_cast_into(const Type* t) const {
+		if (Type::can_simple_cast_into(t)) return true;
 
 		const ArrayType* at = dynamic_cast<const ArrayType*>(t);
 		if (at == nullptr) return false;
 		else {
 			if (at->ref != ref) return false;
 			if (at->Size().Data() != Size().Data()) return false;
-			if (!Base()->CanPrimCastInto(at->Base())) return false;
+			if (!Base()->can_simple_cast_into(at->Base())) return false;
 
 			return true;
 		}
 	}
 
-	bool TupleType::CanPrimCastInto(const Type* t) const {
-		if (Type::CanPrimCastInto(t)) return true;
+	bool TupleType::can_simple_cast_into(const Type* t) const {
+		if (Type::can_simple_cast_into(t)) return true;
 
 		const TupleType* tt = dynamic_cast<const TupleType*>(t);
 		if (tt == nullptr) return false;
@@ -93,15 +93,15 @@ namespace Corrosive {
 			if (tt->Types()->size() != Types()->size()) return false;
 
 			for (int i = 1; i < Types()->size(); i++) {
-				if (!(*Types())[i]->CanPrimCastInto((*tt->Types())[i])) return false;
+				if (!(*Types())[i]->can_simple_cast_into((*tt->Types())[i])) return false;
 			}
 
 			return true;
 		}
 	}
 
-	bool InterfaceType::CanPrimCastInto(const Type* t) const {
-		if (Type::CanPrimCastInto(t)) return true;
+	bool InterfaceType::can_simple_cast_into(const Type* t) const {
+		if (Type::can_simple_cast_into(t)) return true;
 
 		const InterfaceType* it = dynamic_cast<const InterfaceType*>(t);
 		if (it == nullptr) return false;
@@ -111,7 +111,7 @@ namespace Corrosive {
 			if (it->Types()->size() != Types()->size()) return false;
 
 			for (int i = 1; i < Types()->size(); i++) {
-				if (!(*Types())[i]->CanPrimCastInto((*it->Types())[i])) return false;
+				if (!(*Types())[i]->can_simple_cast_into((*it->Types())[i])) return false;
 			}
 			return true;
 		}

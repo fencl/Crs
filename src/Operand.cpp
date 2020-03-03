@@ -8,7 +8,7 @@
 #include <iostream>
 
 namespace Corrosive {
-	CompileValue Operand::Parse(Cursor& c, CompileContextExt& ctx, CompileType cpt) {
+	CompileValue Operand::parse(Cursor& c, CompileContextExt& ctx, CompileType cpt) {
 		CompileValue ret;
 		ret.lvalue = false;
 		ret.t = nullptr;
@@ -16,7 +16,7 @@ namespace Corrosive {
 
 		if (c.Tok() == RecognizedToken::OpenParenthesis) {
 			c.Move();
-			ret = Expression::Parse(c, ctx, cpt);
+			ret = Expression::parse(c, ctx, cpt);
 			if (c.Tok() != RecognizedToken::CloseParenthesis) {
 				ThrowWrongTokenError(c, "')'");
 			}
@@ -128,7 +128,7 @@ namespace Corrosive {
 					ThrowSpecificError(c, "Operator requires array type");
 				}
 				c.Move();
-				CompileValue v = Expression::Parse(c, ctx, cpt);
+				CompileValue v = Expression::parse(c, ctx, cpt);
 				//check for integer type
 				if (c.Tok() != RecognizedToken::CloseBracket) {
 					ThrowWrongTokenError(c, "']'");
@@ -151,7 +151,7 @@ namespace Corrosive {
 
 				
 
-				StructDeclaration* sd = prim_type->Structure();
+				StructDeclaration* sd = prim_type->structure;
 
 				/*while (true)*/ {
 

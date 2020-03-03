@@ -18,14 +18,14 @@ namespace Corrosive {
 		public:
 			size_t operator()(const Type* const& t) const
 			{
-				return t->Hash();
+				return t->hash();
 			}
 		};
 
 		struct TypeCompare {
 		public:
 			bool operator() (const Type* const& t1, const Type* const& t2) const {
-				return t1->Cmp(*t2) == 0;
+				return t1->cmp(*t2) == 0;
 			}
 		};
 
@@ -42,7 +42,7 @@ namespace Corrosive {
 			{
 				size_t h = 0;
 				for (int i = 0; i < t->size(); i++) {
-					h ^= rot((*t)[i]->Hash(), i);
+					h ^= rot((*t)[i]->hash(), i);
 				}
 				return h;
 			}
@@ -53,7 +53,7 @@ namespace Corrosive {
 			bool operator() (const std::vector<const Type*>* const& t1, const std::vector<const Type*>* const& t2) const {
 				if (t1->size() != t2->size()) return false;
 				for (int i = 0; i < t1->size(); i++) {
-					if ((*t1)[i]->Cmp(*(*t2)[i]) != 0) return false;
+					if ((*t1)[i]->cmp(*(*t2)[i]) != 0) return false;
 				}
 				return true;
 			}
@@ -84,7 +84,7 @@ namespace Corrosive {
 				if (t1->size() != t2->size()) return false;
 
 				for (int i = 0; i < t1->size(); i++) {
-						if ((*t1)[i]->Cmp(*(*t2)[i]) != 0) return false;
+						if ((*t1)[i]->cmp(*(*t2)[i]) != 0) return false;
 					
 				}
 				return true;

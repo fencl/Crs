@@ -10,14 +10,14 @@
 namespace Corrosive {
 	void Expression::ToRvalue(CompileContextExt& ctx,CompileValue& value,CompileType cpt) {
 		if (value.lvalue) {
-			if (cpt == CompileType::Compile) {
+			if (cpt == CompileType::compile) {
 				value.lvalue = false;
 				value.v = LLVMBuildLoad2(ctx.builder, value.t->LLVMTypeRValue(), value.v, "");
 			}
 			else if (cpt == CompileType::Eval) {
 				value.lvalue = false;
 				void* ptr = (void*)LLVMConstIntGetZExtValue(value.v);
-				int size = LLVMABISizeOfType(ctx.basic.target_layout,value.t->LLVMType());
+				//int size = LLVMABISizeOfType(ctx.basic.target_layout,value.t->LLVMType());
 			}
 		}
 	}
@@ -89,7 +89,7 @@ namespace Corrosive {
 
 
 	int Expression::ArithValue(const PrimitiveType* pt) {
-		StructDeclarationType sdt = pt->Structure()->decl_type;
+		StructDeclarationType sdt = pt->structure->decl_type;
 
 		switch (sdt)
 		{
@@ -366,7 +366,7 @@ namespace Corrosive {
 		return ret;
 	}
 
-	CompileValue Expression::Parse(Cursor& c, CompileContextExt& ctx, CompileType cpt) {
+	CompileValue Expression::parse(Cursor& c, CompileContextExt& ctx, CompileType cpt) {
 		return Parse1(c, ctx, cpt);
 	}
 
@@ -408,7 +408,7 @@ namespace Corrosive {
 			}
 		}
 
-		if (ctx.fallback_and != nullptr && cpt == CompileType::Compile) {
+		if (ctx.fallback_and != nullptr && cpt == CompileType::compile) {
 			if (value.t != t_bool) {
 				ThrowSpecificError(c, "Operation requires right operand to be boolean");
 			}
@@ -478,7 +478,7 @@ namespace Corrosive {
 			}
 		}
 
-		if (ctx.fallback_or != nullptr && cpt == CompileType::Compile) {
+		if (ctx.fallback_or != nullptr && cpt == CompileType::compile) {
 			if (value.t != t_bool) {
 				ThrowSpecificError(c, "Operation requires right operand to be boolean");
 			}
@@ -516,7 +516,7 @@ namespace Corrosive {
 		int current_layer = -1;
 
 		while (true) {
-			CompileValue value = Operand::Parse(c, ctx, cpt);
+			CompileValue value = Operand::parse(c, ctx, cpt);
 			int op_v = -1;
 			int op_t = -1;
 
@@ -585,7 +585,7 @@ namespace Corrosive {
 					CompileValue& right = value;
 					CompileType cpt2 = cpt;
 
-					if (cpt == CompileType::Compile && LLVMIsConstant(left.v) && LLVMIsConstant(right.v))
+					if (cpt == CompileType::compile && LLVMIsConstant(left.v) && LLVMIsConstant(right.v))
 						cpt2 = CompileType::Eval;
 
 					value = EmitOperator(c, ctx, i, op_type[i], left, right, cpt2, op_v,op_t);

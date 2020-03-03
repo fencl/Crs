@@ -15,26 +15,6 @@ namespace Corrosive {
 	StructDeclaration* Declaration::parent_struct() const {
 		return dynamic_cast<StructDeclaration*>(parent);
 	}
-	
-
-	void Declaration::print(unsigned int offset) const {
-
-	}
-
-	void VariableDeclaration::print(unsigned int offset) const {
-		for (unsigned int i = 0; i < offset; i++) std::cout << "\t";
-		std::cout << "var " << name.Data() << " : ";
-		type->Print();
-		std::cout << std::endl;
-	}
-
-	void TypedefDeclaration::print(unsigned int offset) const {
-		for (unsigned int i = 0; i < offset; i++) std::cout << "\t";
-
-		std::cout << "type " << name.Data() << " : ";
-		type->Print();
-		std::cout << std::endl;
-	}
 
 	std::unique_ptr<Declaration> Declaration::clone() {
 		return nullptr;
@@ -42,26 +22,13 @@ namespace Corrosive {
 
 	std::unique_ptr<Declaration> VariableDeclaration::clone() {
 		std::unique_ptr<VariableDeclaration> d = std::make_unique<VariableDeclaration>();
-		d->name = name;
-		d->package = package;
-		d->parent = parent;
-		d->parent_pack = parent_pack;
-		d->type = type;
-
+		*d = *this;
 		return std::move(d);
 	}
 
 	std::unique_ptr<Declaration> FunctionDeclaration::clone() {
 		std::unique_ptr<FunctionDeclaration> d = std::make_unique<FunctionDeclaration>();
-		d->name = name;
-		d->package = package;
-		d->parent = parent;
-		d->parent_pack = parent_pack;
-		d->type = type;
-		d->is_static = is_static;
-		d->argnames = argnames;
-		d->block = block;
-		d->has_block = has_block;
+		*d = *this;
 		return std::move(d);
 	}
 
@@ -92,7 +59,7 @@ namespace Corrosive {
 				nctx.parent_struct = implements[i].first;
 				nctx.parent_namespace = implements[i].first->parent_pack;
 
-				Type::ResolvePackageInPlace(nex, nctx);
+				Type::resolve_package_in_place(nex, nctx);
 				sd->implements.push_back(std::make_pair(implements[i].first,std::move(nex)));
 			}
 
@@ -105,13 +72,13 @@ namespace Corrosive {
 					nctx.parent_struct = vd->parent_struct();
 					nctx.parent_namespace = vd->parent_pack;
 
-					Type::ResolvePackageInPlace(vd->type, nctx);
+					Type::resolve_package_in_place(vd->type, nctx);
 				}else if (auto fd = dynamic_cast<FunctionDeclaration*>(sd->members[i].get())) {
 					CompileContext nctx = ctx;
 					nctx.parent_struct = fd->parent_struct();
 					nctx.parent_namespace = fd->parent_pack;
 
-					Type::ResolvePackageInPlace(fd->type, nctx);
+					Type::resolve_package_in_place(fd->type, nctx);
 				}
 			}
 
@@ -142,9 +109,25 @@ namespace Corrosive {
 		}
 	}
 
-	std::map<std::string_view, int>& GenericFunctionDeclaration::Generics() { return generic_typenames; }
-	const std::map<std::string_view, int>& GenericFunctionDeclaration::Generics() const { return generic_typenames; }
 
+	void Declaration::print(unsigned int offset) const {
+
+	}
+
+	void VariableDeclaration::print(unsigned int offset) const {
+		for (unsigned int i = 0; i < offset; i++) std::cout << "\t";
+		std::cout << "var " << name.Data() << " : ";
+		type->print();
+		std::cout << std::endl;
+	}
+
+	void TypedefDeclaration::print(unsigned int offset) const {
+		for (unsigned int i = 0; i < offset; i++) std::cout << "\t";
+
+		std::cout << "type " << name.Data() << " : ";
+		type->print();
+		std::cout << std::endl;
+	}
 
 	void FunctionDeclaration::print(unsigned int offset) const {
 
@@ -159,7 +142,7 @@ namespace Corrosive {
 
 		std::cout << " : ";
 
-		type->Print();
+		type->print();
 		std::cout << std::endl;
 	}
 
@@ -173,14 +156,14 @@ namespace Corrosive {
 		std::cout << "<";
 
 		int i = 0;
-		for (auto it = Generics().begin(); it != Generics().end();it++) {
+		for (auto it = generic_typenames.begin(); it != generic_typenames.end();it++) {
 			if (i++ != 0) std::cout << ", ";
 			std::cout << it->first;
 		}
 
 		std::cout << "> : ";
 
-		type->Print();
+		type->print();
 		std::cout << std::endl;
 	}
 
@@ -203,7 +186,7 @@ namespace Corrosive {
 			for (int i = 0; i < implements.size(); i++) {
 				if (i != 0) std::cout << ", ";
 
-				implements[i].second->Print();
+				implements[i].second->print();
 			}
 		}
 
@@ -261,7 +244,7 @@ namespace Corrosive {
 			nctx.parent_struct = parent_struct();
 			nctx.template_ctx = nullptr;
 
-			Type::ResolvePackageInPlace(type, nctx);
+			Type::resolve_package_in_place(type, nctx);
 			resolve_progress = 2;
 			return type;
 		}

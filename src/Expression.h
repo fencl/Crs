@@ -11,7 +11,7 @@ namespace Corrosive {
 		static CompileValue Parse1(Cursor& c, CompileContextExt& ctx, CompileType comp_type);
 		static CompileValue Parse2(Cursor& c, CompileContextExt& ctx, CompileType comp_type);
 		static CompileValue Parse3(Cursor& c, CompileContextExt& ctx, CompileType comp_type);
-		static CompileValue Parse(Cursor& c, CompileContextExt& ctx, CompileType comp_type);
+		static CompileValue parse(Cursor& c, CompileContextExt& ctx, CompileType comp_type);
 
 		static void ToRvalue(CompileContextExt& ctx, CompileValue& value, CompileType cpt);
 

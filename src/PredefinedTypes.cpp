@@ -31,8 +31,8 @@ namespace Corrosive {
 		p_nspc->members.push_back(std::move(new_type));
 
 		PrimitiveType pt_new_type;
-		pt_new_type.Name(n_c);
-		pt_new_type.Pack(PredefinedNamespace);
+		pt_new_type.name = n_c;
+		pt_new_type.package = PredefinedNamespace;
 		into = Contents::EmplaceType(pt_new_type);
 	}
 
@@ -82,7 +82,7 @@ namespace Corrosive {
 		t_array_val->parent = t_array.get();
 		PrimitiveType t_array_val_type;
 		n_c.Data("T");
-		t_array_val_type.Name(n_c);
+		t_array_val_type.name = n_c;
 		t_array_val->type = Contents::EmplaceType(t_array_val_type);
 		t_array->members.push_back(std::move(t_array_val));
 		p_nspc->members.push_back(std::move(t_array));
@@ -105,7 +105,7 @@ namespace Corrosive {
 		t_tuple_val->parent = t_tuple.get();
 		PrimitiveType t_tuple_val_type;
 		n_c.Data("T");
-		t_tuple_val_type.Name(n_c);
+		t_tuple_val_type.name = n_c;
 		t_tuple_val->type = Contents::EmplaceType(t_tuple_val_type);
 		t_tuple->members.push_back(std::move(t_tuple_val));
 		p_nspc->members.push_back(std::move(t_tuple));

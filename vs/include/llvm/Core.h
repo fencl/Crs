@@ -2434,7 +2434,7 @@ unsigned LLVMGetIntrinsicID(LLVMValueRef Fn);
  * @see llvm::Intrinsic::getDeclaration()
  */
 LLVMValueRef LLVMGetIntrinsicDeclaration(LLVMModuleRef Mod,
-                                         unsigned ID,
+                                         unsigned id,
                                          LLVMTypeRef *ParamTypes,
                                          size_t ParamCount);
 
@@ -2444,7 +2444,7 @@ LLVMValueRef LLVMGetIntrinsicDeclaration(LLVMModuleRef Mod,
  *
  * @see llvm::Intrinsic::getType()
  */
-LLVMTypeRef LLVMIntrinsicGetType(LLVMContextRef Ctx, unsigned ID,
+LLVMTypeRef LLVMIntrinsicGetType(LLVMContextRef Ctx, unsigned id,
                                  LLVMTypeRef *ParamTypes, size_t ParamCount);
 
 /**
@@ -2452,7 +2452,7 @@ LLVMTypeRef LLVMIntrinsicGetType(LLVMContextRef Ctx, unsigned ID,
  *
  * @see llvm::Intrinsic::getName()
  */
-const char *LLVMIntrinsicGetName(unsigned ID, size_t *NameLength);
+const char *LLVMIntrinsicGetName(unsigned id, size_t *NameLength);
 
 /**
  * Copies the name of an overloaded intrinsic identified by a given list of
@@ -2463,7 +2463,7 @@ const char *LLVMIntrinsicGetName(unsigned ID, size_t *NameLength);
  *
  * @see llvm::Intrinsic::getName()
  */
-const char *LLVMIntrinsicCopyOverloadedName(unsigned ID,
+const char *LLVMIntrinsicCopyOverloadedName(unsigned id,
                                             LLVMTypeRef *ParamTypes,
                                             size_t ParamCount,
                                             size_t *NameLength);
@@ -2473,7 +2473,7 @@ const char *LLVMIntrinsicCopyOverloadedName(unsigned ID,
  *
  * @see llvm::Intrinsic::isOverloaded()
  */
-LLVMBool LLVMIntrinsicIsOverloaded(unsigned ID);
+LLVMBool LLVMIntrinsicIsOverloaded(unsigned id);
 
 /**
  * Obtain the calling function of a function.
@@ -3924,7 +3924,7 @@ LLVMValueRef LLVMBuildAtomicRMW(LLVMBuilderRef B, LLVMAtomicRMWBinOp op,
                                 LLVMAtomicOrdering ordering,
                                 LLVMBool singleThread);
 LLVMValueRef LLVMBuildAtomicCmpXchg(LLVMBuilderRef B, LLVMValueRef Ptr,
-                                    LLVMValueRef Cmp, LLVMValueRef New,
+                                    LLVMValueRef cmp, LLVMValueRef New,
                                     LLVMAtomicOrdering SuccessOrdering,
                                     LLVMAtomicOrdering FailureOrdering,
                                     LLVMBool SingleThread);

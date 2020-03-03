@@ -13,7 +13,7 @@ namespace Corrosive {
 	class Type;
 
 	enum class CompileType {
-		Compile, Eval, ShortCircuit
+		compile, Eval, ShortCircuit
 	};
 
 	using TemplateContext = std::vector<const Type*>;

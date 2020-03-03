@@ -10,20 +10,20 @@ namespace Corrosive {
 		return (n >> c) | (n << ((-c) & mask));
 	}
 
-	int Type::Cmp(const Type& t2) const {
-		if (ID() < t2.ID()) return -1;
-		if (ID() > t2.ID()) return 1;
+	int Type::cmp(const Type& t2) const {
+		if (id() < t2.id()) return -1;
+		if (id() > t2.id()) return 1;
 		if (ref < t2.ref) return -1;
 		if (ref > t2.ref) return 1;
 		return 0;
 	}
 
-	size_t Type::Hash() const {
-		return std::hash<int>()(ID()) ^ rot(std::hash<int>()(ref), 1);
+	size_t Type::hash() const {
+		return std::hash<int>()(id()) ^ rot(std::hash<int>()(ref), 1);
 	}
 
-	int PrimitiveType::Cmp(const Type& t2) const {
-		int tcmp = Type::Cmp(t2);
+	int PrimitiveType::cmp(const Type& t2) const {
+		int tcmp = Type::cmp(t2);
 		if (tcmp != 0) return tcmp;
 
 		PrimitiveType& pt = (PrimitiveType&)t2;
@@ -38,15 +38,15 @@ namespace Corrosive {
 		return 0;
 	}
 
-	size_t PrimitiveType::Hash() const {
-		size_t h = Type::Hash();
-		h ^= rot(std::hash<std::string_view>()(Name().Data()), 2) ^ rot(std::hash<std::string_view>()(Pack()), 3);
-		h ^= rot(std::hash<size_t>()((size_t)Templates()), 4);
+	size_t PrimitiveType::hash() const {
+		size_t h = Type::hash();
+		h ^= rot(std::hash<std::string_view>()(name.Data()), 2) ^ rot(std::hash<std::string_view>()(package), 3);
+		h ^= rot(std::hash<size_t>()((size_t)templates), 4);
 		return h;
 	}
 
-	int FunctionType::Cmp(const Type& t2) const {
-		int tcmp = Type::Cmp(t2);
+	int FunctionType::cmp(const Type& t2) const {
+		int tcmp = Type::cmp(t2);
 		if (tcmp != 0) return tcmp;
 
 		FunctionType& ft = (FunctionType&)t2;
@@ -59,16 +59,16 @@ namespace Corrosive {
 		return 0;
 	}
 
-	size_t FunctionType::Hash() const {
-		size_t h = Type::Hash();
+	size_t FunctionType::hash() const {
+		size_t h = Type::hash();
 		h ^= rot(std::hash<size_t>()((size_t)Returns()), 5);
 		h ^= rot(std::hash<size_t>()((size_t)Args()), 6);
 
 		return h;
 	}
 
-	int TupleType::Cmp(const Corrosive::Type& t2) const {
-		int tcmp = Type::Cmp(t2);
+	int TupleType::cmp(const Corrosive::Type& t2) const {
+		int tcmp = Type::cmp(t2);
 		if (tcmp != 0) return tcmp;
 
 		TupleType& ft = (TupleType&)t2;
@@ -78,15 +78,15 @@ namespace Corrosive {
 		return 0;
 	}
 
-	size_t TupleType::Hash() const {
-		size_t h = Type::Hash();
+	size_t TupleType::hash() const {
+		size_t h = Type::hash();
 		h ^= rot(std::hash<size_t>()((size_t)Types()), 7);
 		return h;
 	}
 
 
-	int InterfaceType::Cmp(const Corrosive::Type& t2) const {
-		int tcmp = Type::Cmp(t2);
+	int InterfaceType::cmp(const Corrosive::Type& t2) const {
+		int tcmp = Type::cmp(t2);
 		if (tcmp != 0) return tcmp;
 
 		InterfaceType& ft = (InterfaceType&)t2;
@@ -95,15 +95,15 @@ namespace Corrosive {
 		return 0;
 	}
 
-	size_t InterfaceType::Hash() const {
-		size_t h = Type::Hash();
+	size_t InterfaceType::hash() const {
+		size_t h = Type::hash();
 
 		h ^= rot(std::hash<size_t>()((size_t)Types()), 8);
 		return h;
 	}
 
-	int ArrayType::Cmp(const Type& t2) const {
-		int tcmp = Type::Cmp(t2);
+	int ArrayType::cmp(const Type& t2) const {
+		int tcmp = Type::cmp(t2);
 		if (tcmp != 0) return tcmp;
 
 
@@ -133,8 +133,8 @@ namespace Corrosive {
 	}
 
 
-	size_t ArrayType::Hash() const {
-		size_t h = Type::Hash();
+	size_t ArrayType::hash() const {
+		size_t h = Type::hash();
 		h ^= rot(std::hash<size_t>()((size_t)Base()), 9);
 		if (actual_size == 0) {
 			if (HasSimpleSize()) {
@@ -153,5 +153,5 @@ namespace Corrosive {
 }
 
 namespace std {
-	size_t hash<Corrosive::Type>::operator()(const Corrosive::Type& t) const { return t.Hash(); }
+	size_t hash<Corrosive::Type>::operator()(const Corrosive::Type& t) const { return t.hash(); }
 }

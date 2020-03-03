@@ -8,14 +8,14 @@
 #include "Expression.h"
 
 namespace Corrosive {
-	const Type* Type::Parse(Cursor& c, std::vector<Cursor>* argnames) {
+	const Type* Type::parse(Cursor& c, std::vector<Cursor>* argnames) {
 		CompileContext cctx;
 		cctx.parent_namespace = nullptr;
 		cctx.parent_struct = nullptr;
-		return ParseDirect(cctx, c, argnames);
+		return parse_direct(cctx, c, argnames);
 	}
 
-	const Type* Type::ParseDirect(CompileContext& ctx,Cursor& c, std::vector<Cursor>* argnames) {
+	const Type* Type::parse_direct(CompileContext& ctx,Cursor& c, std::vector<Cursor>* argnames) {
 		const Type* rType = nullptr;
 
 
@@ -29,8 +29,8 @@ namespace Corrosive {
 			Cursor voidc;
 			voidc.Data("void");
 
-			pType.Name(voidc);
-			pType.Pack(PredefinedNamespace);
+			pType.name = voidc;
+			pType.package = PredefinedNamespace;
 
 
 			rType = Contents::EmplaceType(pType);
@@ -46,7 +46,7 @@ namespace Corrosive {
 						c.Move(); break;
 					}
 
-					tps.push_back(Type::Parse(c));
+					tps.push_back(Type::parse(c));
 
 					if (c.Tok() == RecognizedToken::Comma) c.Move(); else if (c.Tok() != RecognizedToken::CloseBracket) {
 						ThrowWrongTokenError(c, "',' or ']'");
@@ -72,7 +72,7 @@ namespace Corrosive {
 						c.Move(); break;
 					}
 
-					tps.push_back(Type::Parse(c));
+					tps.push_back(Type::parse(c));
 
 					if (c.Tok() == RecognizedToken::Comma) c.Move(); else if (c.Tok() != RecognizedToken::GreaterThan) {
 						ThrowWrongTokenError(c, "',' or '>'");
@@ -93,13 +93,13 @@ namespace Corrosive {
 				}
 
 				PrimitiveType pType;
-				pType.Name(c);
+				pType.name = c;
 				c.Move();
 
 				if (c.Tok() == RecognizedToken::DoubleColon) {
-					pType.Pack(pType.Name().Data());
+					pType.package = pType.name.Data();
 					c.Move();
-					pType.Name(c);
+					pType.name = c;
 					c.Move();
 				}
 
@@ -112,13 +112,13 @@ namespace Corrosive {
 							c.Move(); break;
 						}
 
-						tps.push_back(Type::Parse(c));
+						tps.push_back(Type::parse(c));
 
 						if (c.Tok() == RecognizedToken::Comma) c.Move(); else if (c.Tok() != RecognizedToken::GreaterThan) {
 							ThrowWrongTokenError(c, "',' or '>'");
 						}
 					}
-					pType.Templates() = Contents::RegisterGenericArray(std::move(tps));
+					pType.templates = Contents::RegisterGenericArray(std::move(tps));
 				}
 
 
@@ -154,7 +154,7 @@ namespace Corrosive {
 						c.Move();
 					}
 
-					tps.push_back(Type::Parse(c));
+					tps.push_back(Type::parse(c));
 
 					if (c.Tok() == RecognizedToken::Comma) c.Move(); else if (c.Tok() != RecognizedToken::CloseParenthesis) {
 						ThrowWrongTokenError(c, "',' or ')'");
@@ -196,13 +196,13 @@ namespace Corrosive {
 
 					if (ctx.parent_namespace == nullptr && ctx.parent_struct == nullptr) {
 						CompileContextExt ccext;
-						Expression::Parse(c, ccext, CompileType::ShortCircuit);
+						Expression::parse(c, ccext, CompileType::ShortCircuit);
 					}
 					else {
 						CompileContextExt ccext;
 						ccext.basic = ctx;
 						Cursor ce = c;
-						CompileValue v = Expression::Parse(c, ccext, CompileType::Eval);
+						CompileValue v = Expression::parse(c, ccext, CompileType::Eval);
 						if (v.t == t_i8 || v.t == t_i16 || v.t == t_i32 || v.t == t_i64) {
 							long long cv = LLVMConstIntGetSExtValue(v.v);
 							if (cv <= 0) {

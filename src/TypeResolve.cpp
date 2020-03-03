@@ -7,8 +7,8 @@
 
 namespace Corrosive {
 
-	bool Type::ResolvePackageInPlace(const Type*& t, CompileContext& ctx) {
-		const Type* nt = t->ResolvePackage(ctx);
+	bool Type::resolve_package_in_place(const Type*& t, CompileContext& ctx) {
+		const Type* nt = t->resolve_package(ctx);
 		if (nt != nullptr) {
 			t = nt;
 			return true;
@@ -17,21 +17,21 @@ namespace Corrosive {
 		return false;
 	}
 
-	const Type* Type::ResolvePackage(CompileContext& ctx) const {
+	const Type* Type::resolve_package(CompileContext& ctx) const {
 		return nullptr;
 	}
 
-	const Type* FunctionType::ResolvePackage(CompileContext& ctx) const {
+	const Type* FunctionType::resolve_package(CompileContext& ctx) const {
 		FunctionType rt = *this;
 		bool mod = false;
 		bool mod2 = false;
 
 		std::vector<const Type*> rtp = *rt.Args();
 
-		mod |= ResolvePackageInPlace(rt.returns,ctx);
+		mod |= resolve_package_in_place(rt.returns,ctx);
 		
 		for (auto it = rtp.begin(); it != rtp.end(); it++) {
-			mod2 |= ResolvePackageInPlace((*it), ctx);
+			mod2 |= resolve_package_in_place((*it), ctx);
 		}
 
 		if (mod2) {
@@ -45,18 +45,18 @@ namespace Corrosive {
 			return nullptr;
 	}
 
-	const Type* ArrayType::ResolvePackage(CompileContext& ctx) const {
+	const Type* ArrayType::resolve_package(CompileContext& ctx) const {
 
 		ArrayType rt = *this;
 		bool mod = false;
 
-		mod |= ResolvePackageInPlace(rt.base, ctx);
+		mod |= resolve_package_in_place(rt.base, ctx);
 
 		CompileContextExt cctxext;
 		cctxext.basic = ctx;
 
 		Cursor cex = size;
-		CompileValue v = Expression::Parse(cex, cctxext, CompileType::Eval);
+		CompileValue v = Expression::parse(cex, cctxext, CompileType::Eval);
 
 		if (v.t == t_i8 || v.t == t_i16 || v.t == t_i32 || v.t == t_i64) {
 			long long cv = LLVMConstIntGetSExtValue(v.v);
@@ -84,7 +84,7 @@ namespace Corrosive {
 
 
 
-	const Type* InterfaceType::ResolvePackage(CompileContext& ctx) const {
+	const Type* InterfaceType::resolve_package(CompileContext& ctx) const {
 		InterfaceType rt = *this;
 		bool mod = false;
 		bool mod2 = false;
@@ -92,7 +92,7 @@ namespace Corrosive {
 		std::vector<const Type*> rtp = *rt.Types();
 
 		for (auto it = rtp.begin(); it != rtp.end(); it++) {
-			mod2|=ResolvePackageInPlace(*it, ctx);
+			mod2|=resolve_package_in_place(*it, ctx);
 		}
 		
 		if (mod2) {
@@ -106,7 +106,7 @@ namespace Corrosive {
 			return nullptr;
 	}
 
-	const Type* TupleType::ResolvePackage(CompileContext& ctx) const {
+	const Type* TupleType::resolve_package(CompileContext& ctx) const {
 		TupleType rt = *this;
 		bool mod = false;
 		bool mod2 = false;
@@ -114,7 +114,7 @@ namespace Corrosive {
 		std::vector<const Type*> rtp = *rt.Types();
 
 		for (auto it = rtp.begin(); it != rtp.end(); it++) {
-			mod2|=ResolvePackageInPlace(*it, ctx);
+			mod2|=resolve_package_in_place(*it, ctx);
 		}
 
 		if (mod2) {
@@ -129,20 +129,20 @@ namespace Corrosive {
 	}
 
 
-	const Type* PrimitiveType::ResolvePackage(CompileContext& ctx) const {
+	const Type* PrimitiveType::resolve_package(CompileContext& ctx) const {
 		PrimitiveType rt = *this;
 		bool mod = false;
 		bool mod2 = false;
 
-		if (rt.Templates() != nullptr) {
-			std::vector<const Type*> tps = *rt.Templates();
+		if (rt.templates != nullptr) {
+			std::vector<const Type*> tps = *rt.templates;
 
 			for (auto it = tps.begin(); it != tps.end(); it++) {
-				mod2 |= ResolvePackageInPlace(*it, ctx);
+				mod2 |= resolve_package_in_place(*it, ctx);
 			}
 
 			if (mod2) {
-				rt.Templates() = Contents::RegisterGenericArray(std::move(tps));
+				rt.templates = Contents::RegisterGenericArray(std::move(tps));
 				mod = true;
 			}
 		}
@@ -166,7 +166,7 @@ namespace Corrosive {
 					}
 
 					const Type* nptr = std::get<1>(tci);
-					return nptr->CloneRef(ref);
+					return nptr->clone_ref(ref);
 				}
 			}
 
@@ -191,17 +191,17 @@ namespace Corrosive {
 			for (auto look = lookup.begin(); look != lookup.end(); look++) {
 
 				if (auto td = Contents::FindTypedef(*look, name.Data())) {
-					if (Templates() != nullptr) {
+					if (templates != nullptr) {
 						//TODO: i can implement this easily, just have to stop being lazy.
 						ThrowSpecificError(name, "Type with generic declaration points to type definition that is not generic.");
 					}
 
 					const Type* nt = td->resolve_type();
 
-					return nt->CloneRef(ref);
+					return nt->clone_ref(ref);
 				}
 				else if (auto sd = Contents::FindStruct(*look, name.Data())) {
-					rt.structure_cache = sd;
+					rt.structure = sd;
 					rt.package = *look;
 
 					return Contents::EmplaceType(rt);

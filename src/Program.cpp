@@ -99,7 +99,7 @@ int main() {
 
 	if (false) {
 		for (auto&& t : Corrosive::Contents::AllTypes) {
-			t->PrintLn();
+			t->print_ln();
 		}
 	}
 	return 0;

@@ -35,7 +35,7 @@ namespace Corrosive {
 			}
 			c.Move();
 
-			const Corrosive::Type* tp = Type::Parse(c);
+			const Corrosive::Type* tp = Type::parse(c);
 
 			if (c.Tok() != RecognizedToken::Semicolon) {
 				ThrowWrongTokenError(c, "';'");
@@ -82,7 +82,7 @@ namespace Corrosive {
 			}
 			c.Move();
 
-			const Corrosive::Type* tp = Type::Parse(c);
+			const Corrosive::Type* tp = Type::parse(c);
 
 			if (c.Tok() != RecognizedToken::Semicolon) {
 				ThrowWrongTokenError(c, "';'");
@@ -160,8 +160,8 @@ namespace Corrosive {
 				std::unique_ptr<GenericFunctionDeclaration> gfd = std::make_unique<GenericFunctionDeclaration>();
 
 				for (auto&& it : gen_names) {
-					unsigned int gs = (unsigned int)gfd->Generics().size();
-					gfd->Generics()[it] = gs;
+					unsigned int gs = (unsigned int)gfd->generic_typenames.size();
+					gfd->generic_typenames[it] = gs;
 				}
 
 				fd = std::move(gfd);
@@ -169,7 +169,7 @@ namespace Corrosive {
 			else
 				fd = std::make_unique<FunctionDeclaration>();
 
-			const Corrosive::Type* type = Type::Parse(c, &fd->argnames);
+			const Corrosive::Type* type = Type::parse(c, &fd->argnames);
 
 			fd->name = name;
 			fd->type = type;
@@ -350,7 +350,7 @@ namespace Corrosive {
 
 					c.Move();
 					while (true) {
-						existing->implements.push_back(std::make_pair(sd.get(), Type::Parse(c)));
+						existing->implements.push_back(std::make_pair(sd.get(), Type::parse(c)));
 
 						if (c.Tok() == RecognizedToken::Comma) {
 							c.Move();
@@ -430,7 +430,7 @@ namespace Corrosive {
 
 					c.Move();
 					while (true) {
-						sd->implements.push_back(std::make_pair(sd.get(), Type::Parse(c)));
+						sd->implements.push_back(std::make_pair(sd.get(), Type::parse(c)));
 
 						if (c.Tok() == RecognizedToken::Comma) {
 							c.Move();

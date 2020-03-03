@@ -9,7 +9,7 @@ namespace Corrosive {
 
 	class Operand {
 	public:
-		static CompileValue Parse(Cursor& c, CompileContextExt& ctx, CompileType copm_type);
+		static CompileValue parse(Cursor& c, CompileContextExt& ctx, CompileType copm_type);
 	};
 }
 

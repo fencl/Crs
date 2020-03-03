@@ -64,16 +64,16 @@ namespace Corrosive {
 				CompileContext nctx = ctx;
 				nctx.parent_struct = implements[i].first;
 				nctx.parent_namespace = implements[i].first->parent_pack;
-				Type::ResolvePackageInPlace(ext, nctx);
+				Type::resolve_package_in_place(ext, nctx);
 
 				if (auto exttype = dynamic_cast<const PrimitiveType*>(ext)) {
-					if (exttype->Templates() == nullptr) {
+					if (exttype->templates == nullptr) {
 						if (exttype->ref)
 							ThrowSpecificError(name, "Structure cannot extend references");
 
-						std::pair<std::string_view, std::string_view> key = std::make_pair(exttype->Pack(), exttype->name.Data());
+						std::pair<std::string_view, std::string_view> key = std::make_pair(exttype->package, exttype->name.Data());
 
-						if (auto fs = exttype->Structure()) {
+						if (auto fs = exttype->structure) {
 							fs->pre_compile(ctx);
 							implements_structures.push_back(fs);
 						}
@@ -82,13 +82,13 @@ namespace Corrosive {
 						}
 					}
 					else {
-						if (auto fs = exttype->Structure()) {
+						if (auto fs = exttype->structure) {
 							if (!fs->is_generic()) {
 								ThrowSpecificError(exttype->name, "Target structure is not generic");
 							}
 							GenericStructDeclaration* gsd = (GenericStructDeclaration*)fs;
 							CompileContext nctx = ctx;
-							nctx.template_ctx = exttype->Templates();
+							nctx.template_ctx = exttype->templates;
 
 							auto gen = gsd->create_template(nctx);
 
@@ -130,10 +130,10 @@ namespace Corrosive {
 						PrimitiveType thistype;
 						Cursor ptrc;
 						ptrc.Data("ptr");
-						thistype.Name(is_trait ? ptrc : name);
-						thistype.Pack(is_trait ? "corrosive" : package);
+						thistype.name = is_trait ? ptrc : name;
+						thistype.package = is_trait ? "corrosive" : package;
 						thistype.ref = is_trait ?false:true;
-						thistype.Templates() = ctx.template_ctx;
+						thistype.templates = ctx.template_ctx;
 						FunctionType nfd = *fdt;
 						std::vector<const Type*> nargs = *nfd.Args();
 						nargs.insert(nargs.begin(), Contents::EmplaceType(thistype));
@@ -144,7 +144,7 @@ namespace Corrosive {
 					CompileContext nctx = ctx;
 					nctx.parent_struct = fdecl->parent_struct();
 					nctx.parent_namespace = fdecl->parent_pack;
-					Type::ResolvePackageInPlace(fdecl->type, nctx);
+					Type::resolve_package_in_place(fdecl->type, nctx);
 
 					Cursor thisc; thisc.Data("this");
 					fdecl->argnames.insert(fdecl->argnames.begin(), thisc);
@@ -289,7 +289,7 @@ namespace Corrosive {
 					StructDeclaration* alias_struct = nullptr;
 					
 					if (auto pt = dynamic_cast<const PrimitiveType*>(alias_var_type)) {
-						alias_struct = pt->Structure();
+						alias_struct = pt->structure;
 					}
 					else {
 						ThrowSpecificError(a_fm, "Alias points to variable with type that cannot be aliased");
@@ -331,8 +331,8 @@ namespace Corrosive {
 		nctx.parent_struct = parent_struct();
 		nctx.parent_namespace = parent_pack;
 
-		Type::ResolvePackageInPlace(type, nctx);
-		type->PreCompile(nctx);
+		Type::resolve_package_in_place(type, nctx);
+		type->pre_compile(nctx);
 	}
 
 	void FunctionDeclaration::compile(CompileContext& ctx) {
@@ -345,7 +345,7 @@ namespace Corrosive {
 			nctx.parent_struct = parent_struct();
 			nctx.parent_namespace = parent_pack;
 
-			type->Compile(nctx);
+			type->compile(nctx);
 
 
 			std::string f_name = "f.";
@@ -364,7 +364,7 @@ namespace Corrosive {
 			LLVMPositionBuilderAtEnd(builder, llvm_block);
 
 			const FunctionType* ft = (const FunctionType*)type;
-			bool heavy_return = ft->Returns()->HeavyType();
+			bool heavy_return = ft->Returns()->is_heavy;
 
 			for (int i = 0; i < ft->Args()->size(); i++) {
 				CompileValue cv;
@@ -372,7 +372,7 @@ namespace Corrosive {
 				cv.t = (*ft->Args())[i];
 				cv.v = LLVMGetParam(function, i+heavy_return?1:0);
 
-				if (!cv.t->HeavyType()) {
+				if (!cv.t->is_heavy) {
 					LLVMValueRef vr = cv.v;
 					cv.v = LLVMBuildAlloca(builder, cv.t->LLVMType(), "");
 					LLVMBuildStore(builder, vr,cv.v);
@@ -393,7 +393,7 @@ namespace Corrosive {
 			cctx.fallback_or = nullptr;
 			cctx.block = llvm_block;
 
-			Corrosive::CompileValue cv = Expression::Parse(c, cctx, Corrosive::CompileType::Compile);
+			Corrosive::CompileValue cv = Expression::parse(c, cctx, Corrosive::CompileType::compile);
 			LLVMBuildRet(cctx.builder, cv.v);
 
 			LLVMDisposeBuilder(builder);
@@ -419,8 +419,8 @@ namespace Corrosive {
 		CompileContext nctx = ctx;
 		nctx.parent_struct = parent_struct();
 		nctx.parent_namespace = parent_pack;
-		Type::ResolvePackageInPlace(type, nctx);
-		type->PreCompile(nctx);
+		Type::resolve_package_in_place(type, nctx);
+		type->pre_compile(nctx);
 	}
 
 	void VariableDeclaration::compile(CompileContext& ctx) {
@@ -432,7 +432,7 @@ namespace Corrosive {
 			CompileContext nctx = ctx;
 			nctx.parent_struct = parent_struct();
 			nctx.parent_namespace = parent_pack;
-			type->Compile(nctx);
+			type->compile(nctx);
 
 			compile_progress = 2;
 			return;
