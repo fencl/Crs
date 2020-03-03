@@ -175,7 +175,7 @@ namespace Corrosive {
 
 			lookup.push_back(PredefinedNamespace);
 			if (ctx.parent_namespace != nullptr) {
-				lookup.push_back(ctx.parent_namespace->Pack());
+				lookup.push_back(ctx.parent_namespace->package);
 			}
 			lookup.push_back("g");
 

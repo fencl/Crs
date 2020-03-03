@@ -31,7 +31,7 @@ int main() {
 	Corrosive::InitPredefinedTypes(decls);
 
 	while (c.Tok() != Corrosive::RecognizedToken::Eof)
-		Corrosive::Declaration::Parse(c, decls, nullptr,nullptr);
+		Corrosive::Declaration::parse(c, decls, nullptr,nullptr);
 
 
 	end = std::chrono::system_clock::now();
@@ -43,15 +43,15 @@ int main() {
 	
 	ctx.module = m;
 	ctx.target_layout = t_l;
-	ctx.parent_namespace = Corrosive::Contents::entry_point->ParentPack();
-	ctx.parent_struct = Corrosive::Contents::entry_point->ParentStruct();
+	ctx.parent_namespace = Corrosive::Contents::entry_point->parent_pack;
+	ctx.parent_struct = Corrosive::Contents::entry_point->parent_struct();
 	ctx.template_ctx = nullptr;
 
 	Corrosive::Contents::entry_point->Compile(ctx);
 		
 
 	for (auto&& it : Corrosive::Contents::StaticStructures) {
-		ctx.parent_namespace = it->ParentPack();
+		ctx.parent_namespace = it->parent_pack;
 		ctx.parent_struct = it;
 		ctx.template_ctx = it->template_ctx;
 		it->Compile(ctx);

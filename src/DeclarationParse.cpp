@@ -7,7 +7,7 @@
 
 
 namespace Corrosive {
-	void Declaration::Parse(Cursor& c, std::vector<std::unique_ptr<Declaration>>& into, Declaration* parent, NamespaceDeclaration* pack) {
+	void Declaration::parse(Cursor& c, std::vector<std::unique_ptr<Declaration>>& into, Declaration* parent, NamespaceDeclaration* pack) {
 		if (c.Data() == "var") {
 			if (dynamic_cast<StructDeclaration*>(parent) == nullptr) {
 				ThrowSpecificError(c, "Variable has to be a member of struct or class");
@@ -44,14 +44,14 @@ namespace Corrosive {
 
 			for (int i = 0; i < names.size(); i++) {
 				std::unique_ptr<VariableDeclaration> vd = std::make_unique<VariableDeclaration>();
-				vd->Name(names[i]);
+				vd->name = names[i];
 				vd->Type(tp);
 				if (parent != nullptr) {
-					vd->Pack(parent->Pack());
-					vd->Parent(parent);
+					vd->package = parent->package;
+					vd->parent = parent;
 				}
 
-				vd->ParentPack(pack);
+				vd->parent_pack = pack;
 
 				into.push_back(std::move(vd));
 			}
@@ -92,21 +92,21 @@ namespace Corrosive {
 			for (int i = 0; i < names.size(); i++) {
 
 				std::unique_ptr<TypedefDeclaration> vd = std::make_unique<TypedefDeclaration>();
-				vd->Name(names[i]);
+				vd->name = names[i];
 				vd->Type(tp);
 
 
 				if (parent != nullptr) {
-					vd->Pack(parent->Pack());
-					vd->Parent(parent);
+					vd->package = parent->package;
+					vd->parent = parent;
 				}
-				vd->ParentPack(pack);
+				vd->parent_pack = pack;
 
-				if (Contents::FindTypedef(vd->Pack(), vd->Name().Data()) != nullptr) {
-					ThrowSpecificError(vd->Name(), "Typedef with the same name already exist's it this package");
+				if (Contents::FindTypedef(vd->package, vd->name.Data()) != nullptr) {
+					ThrowSpecificError(vd->name, "Typedef with the same name already exist's it this package");
 				}
 				else {
-					Contents::RegisterTypedef(vd->Pack(), vd->Name().Data(), vd.get());
+					Contents::RegisterTypedef(vd->package, vd->name.Data(), vd.get());
 				}
 
 				into.push_back(std::move(vd));
@@ -171,7 +171,7 @@ namespace Corrosive {
 
 			const Corrosive::Type* tp = Type::Parse(c, fd->Argnames());
 
-			fd->Name(name);
+			fd->name = name;
 			fd->Type(tp);
 			fd->Static(iss);
 			if (name.Data() == "main") {
@@ -179,11 +179,11 @@ namespace Corrosive {
 			}
 
 			if (parent != nullptr) {
-				fd->Pack(parent->Pack());
-				fd->Parent(parent);
+				fd->package = parent->package;
+				fd->parent = parent;
 			}
 
-			fd->ParentPack(pack);
+			fd->parent_pack = pack;
 
 			if (c.Tok() == RecognizedToken::OpenBrace) {
 				fd->HasBlock(true);
@@ -277,7 +277,7 @@ namespace Corrosive {
 			std::string_view pkg = overpack;
 
 			if (parent != nullptr && pkg == "") {
-				pkg = parent->Pack();
+				pkg = parent->package;
 			}
 
 			std::unique_ptr<StructDeclaration> sd;
@@ -294,17 +294,16 @@ namespace Corrosive {
 				sd = std::move(gsd);
 			}
 
-			sd->Name(name);
+			sd->name = name;
 			sd->is_trait = is_trait;
 			sd->is_extending = isext;
-
-			sd->Pack(pkg);
+			sd->package = pkg;
 
 			if (parent != nullptr) {
-				sd->Parent(parent);
+				sd->parent = parent;
 			}
 
-			sd->ParentPack(pack);
+			sd->parent_pack = pack;
 
 
 
@@ -412,10 +411,10 @@ namespace Corrosive {
 						}
 					}
 					else {
-						Declaration::Parse(c, existing->Members, sd.get(), pack);
+						Declaration::parse(c, existing->Members, sd.get(), pack);
 						if (auto varmember = dynamic_cast<VariableDeclaration*>(existing->Members.back().get())) {
 							if (existing->decl_type!= StructDeclarationType::Declared)
-								ThrowSpecificError(varmember->Name(), "Cannot add new members into this structure");
+								ThrowSpecificError(varmember->name, "Cannot add new members into this structure");
 						}
 					}
 				}
@@ -440,7 +439,7 @@ namespace Corrosive {
 					}
 				}
 
-				Contents::RegisterStruct(sd->Pack(), sd->Name().Data(), sd.get());
+				Contents::RegisterStruct(sd->package, sd->name.Data(), sd.get());
 
 				if (c.Tok() != RecognizedToken::OpenBrace) {
 					ThrowWrongTokenError(c, "'{'");
@@ -495,7 +494,7 @@ namespace Corrosive {
 						}
 
 					} else {
-						Declaration::Parse(c, sd->Members, sd.get(), pack);
+						Declaration::parse(c, sd->Members, sd.get(), pack);
 					}
 				}
 			}
@@ -529,9 +528,9 @@ namespace Corrosive {
 				}
 			}
 
-			nd->Pack(name.Data());
-			nd->Name(name);
-			nd->ParentPack(nd.get());
+			nd->package = name.Data();
+			nd->name = name;
+			nd->parent_pack = nd.get();
 
 			if (c.Tok() != RecognizedToken::OpenBrace) {
 				ThrowWrongTokenError(c, "'{'");
@@ -546,7 +545,7 @@ namespace Corrosive {
 				else if (c.Tok() == RecognizedToken::Eof) {
 					break;
 				}
-				Declaration::Parse(c, nd->Members, nd.get(), nd.get());
+				Declaration::parse(c, nd->Members, nd.get(), nd.get());
 			}
 
 			into.push_back(std::move(nd));

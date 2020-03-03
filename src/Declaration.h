@@ -23,21 +23,7 @@ namespace Corrosive {
 
 		virtual std::unique_ptr<Declaration> Clone();
 
-		Cursor Name() const;
-		void Name(Cursor c);
-
-		std::string_view const Pack() const;
-		void Pack(std::string_view);
-
-		const Declaration* Parent() const;
-		void Parent(Declaration*);
-
-		NamespaceDeclaration* ParentPack() const;
-		void ParentPack(NamespaceDeclaration*);
-
-		StructDeclaration* ParentStruct() const;
-
-		static void Parse(Cursor& c, std::vector<std::unique_ptr<Declaration>>& into, Declaration* parent,NamespaceDeclaration* pack);
+		static void parse(Cursor& c, std::vector<std::unique_ptr<Declaration>>& into, Declaration* parent,NamespaceDeclaration* pack);
 
 		virtual void Print(unsigned int offset) const;
 
@@ -45,12 +31,13 @@ namespace Corrosive {
 		virtual void Compile(CompileContext& ctx);
 		virtual void PreCompile(CompileContext& ctx);
 
-	protected:
-		int llvm_compile_progress = 0;
 		Cursor name;
 		std::string_view package = "g";
+		int compile_progress = 0;
+
 		Declaration* parent = nullptr;
 		NamespaceDeclaration* parent_pack = nullptr;
+		StructDeclaration* parent_struct() const;
 	};
 
 	class VariableDeclaration : public Declaration {

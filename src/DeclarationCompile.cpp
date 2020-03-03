@@ -63,28 +63,28 @@ namespace Corrosive {
 
 				CompileContext nctx = ctx;
 				nctx.parent_struct = implements[i].first;
-				nctx.parent_namespace = implements[i].first->ParentPack();
+				nctx.parent_namespace = implements[i].first->parent_pack;
 				Type::ResolvePackageInPlace(ext, nctx);
 
 				if (auto exttype = dynamic_cast<const PrimitiveType*>(ext)) {
 					if (exttype->Templates() == nullptr) {
 						if (exttype->ref)
-							ThrowSpecificError(Name(), "Structure cannot extend references");
+							ThrowSpecificError(name, "Structure cannot extend references");
 
-						std::pair<std::string_view, std::string_view> key = std::make_pair(exttype->Pack(), exttype->Name().Data());
+						std::pair<std::string_view, std::string_view> key = std::make_pair(exttype->Pack(), exttype->name.Data());
 
 						if (auto fs = exttype->Structure()) {
 							fs->PreCompile(ctx);
 							extends_structures.push_back(fs);
 						}
 						else {
-							ThrowSpecificError(Name(), "Extended structure was not found in any package from the lookup queue");
+							ThrowSpecificError(name, "Extended structure was not found in any package from the lookup queue");
 						}
 					}
 					else {
 						if (auto fs = exttype->Structure()) {
 							if (!fs->is_generic()) {
-								ThrowSpecificError(exttype->Name(), "Target structure is not generic");
+								ThrowSpecificError(exttype->name, "Target structure is not generic");
 							}
 							GenericStructDeclaration* gsd = (GenericStructDeclaration*)fs;
 							CompileContext nctx = ctx;
@@ -97,19 +97,19 @@ namespace Corrosive {
 
 						}
 						else {
-							ThrowSpecificError(Name(), "Extended structure was not found in any package from the lookup queue");
+							ThrowSpecificError(name, "Extended structure was not found in any package from the lookup queue");
 						}
 					}
 
 				}
 				else {
-					ThrowSpecificError(Name(), "Structure cannot extend non-structural type");
+					ThrowSpecificError(name, "Structure cannot extend non-structural type");
 				}
 			}
 
 			for (auto it = extends_structures.begin(); it != extends_structures.end(); it++) {
 				if (!(*it)->is_trait) {
-					ThrowSpecificError(Name(), "All extended types needs to be classes");
+					ThrowSpecificError(name, "All extended types needs to be classes");
 				}
 				(*it)->PreCompile(ctx);
 			}
@@ -142,8 +142,8 @@ namespace Corrosive {
 					}
 
 					CompileContext nctx = ctx;
-					nctx.parent_struct = fdecl->ParentStruct();
-					nctx.parent_namespace = fdecl->ParentPack();
+					nctx.parent_struct = fdecl->parent_struct();
+					nctx.parent_namespace = fdecl->parent_pack;
 					Type::ResolvePackageInPlace(fdecl->Type(), nctx);
 
 					Cursor thisc; thisc.Data("this");
@@ -156,7 +156,7 @@ namespace Corrosive {
 					if (!is_trait)
 						mem_types.push_back(vdecl->Type()->LLVMType());
 					else
-						ThrowSpecificError(vdecl->Name(), "variable found in trait type");
+						ThrowSpecificError(vdecl->name, "variable found in trait type");
 				}
 				else if (fdecl != nullptr) {
 					if (is_trait)
@@ -174,10 +174,10 @@ namespace Corrosive {
 	}
 
 	void StructDeclaration::Compile(CompileContext& ctx) {
-		if (llvm_compile_progress == 0) {
+		if (compile_progress == 0) {
 			PreCompile(ctx);
 
-			llvm_compile_progress = 1;
+			compile_progress = 1;
 
 			for (auto it = extends_structures.begin(); it != extends_structures.end(); it++) {
 				(*it)->Compile(ctx);
@@ -192,13 +192,13 @@ namespace Corrosive {
 				}
 			}
 
-			llvm_compile_progress = 2;
+			compile_progress = 2;
 		}
-		else if (llvm_compile_progress == 2) {
+		else if (compile_progress == 2) {
 			return;
 		}
 		else {
-			ThrowSpecificError(Name(), "This structure caused build cycle");
+			ThrowSpecificError(name, "This structure caused build cycle");
 		}
 
 	}
@@ -210,7 +210,7 @@ namespace Corrosive {
 		for (auto it = extends_structures.begin(); it != extends_structures.end(); it++) {
 			for (auto mit = (*it)->Members.begin(); mit != (*it)->Members.end(); mit++) {
 				if (auto f = dynamic_cast<FunctionDeclaration*>(mit->get())) {
-					std::string_view  key = f->Name().Data();
+					std::string_view  key = f->name.Data();
 
 					auto nifc = iface_list.find(key);
 					if (nifc == iface_list.end()) {
@@ -218,10 +218,10 @@ namespace Corrosive {
 					}
 					else {
 						if (!((const FunctionType*)nifc->second->Type())->CanPrimCastIntoIgnoreThis(f->Type())) {
-							ThrowSpecificError(Name(), "Structure has two interfaces with trait function");
+							ThrowSpecificError(name, "Structure has two interfaces with trait function");
 						}
 						if (nifc->second->Static() != f->Static()) {
-							ThrowSpecificError(Name(), "Structure has two interfaces with trait function");
+							ThrowSpecificError(name, "Structure has two interfaces with trait function");
 						}
 					}
 				}
@@ -232,11 +232,11 @@ namespace Corrosive {
 			Declaration* actual_decl = FindDeclarationOfMember(it->first);
 
 			if (auto f = dynamic_cast<FunctionDeclaration*>(actual_decl)) {
-				std::string_view key = f->Name().Data();
+				std::string_view key = f->name.Data();
 				auto nifc = iface_list.find(key);
 				if (nifc != iface_list.end()) {
 					if (!((const FunctionType*)f->Type())->CanPrimCastIntoIgnoreThis(nifc->second->Type())) {
-						ThrowSpecificError(f->Name(), "Declaration is not compatible with trait declaration");
+						ThrowSpecificError(f->name, "Declaration is not compatible with trait declaration");
 					}
 					iface_list.erase(nifc);
 				}
@@ -245,7 +245,7 @@ namespace Corrosive {
 
 		for (auto it = iface_list.begin(); it != iface_list.end(); it++) {
 			if (!it->second->HasBlock())
-				ThrowSpecificError(Name(), "Structure lacks some functions from its interfaces");
+				ThrowSpecificError(name, "Structure lacks some functions from its interfaces");
 		}
 	}
 
@@ -260,17 +260,17 @@ namespace Corrosive {
 			if (auto f = dynamic_cast<FunctionDeclaration*>(it->get())) {
 				std::tuple<Declaration*, unsigned int, std::string_view> val = std::make_tuple(it->get(), 0,"");
 				
-				auto i = lookup_table.emplace(f->Name().Data(), val);
+				auto i = lookup_table.emplace(f->name.Data(), val);
 				if (!i.second) {
-					ThrowSpecificError(f->Name(), "Member with the same name already existed in the structure");
+					ThrowSpecificError(f->name, "Member with the same name already existed in the structure");
 				}
 			}
 			else if (auto v = dynamic_cast<VariableDeclaration*>(it->get())) {
 				std::tuple<Declaration*, unsigned int, std::string_view> val = std::make_tuple(it->get(), lookup_id++, "");
 				
-				auto i = lookup_table.emplace(v->Name().Data(), val);
+				auto i = lookup_table.emplace(v->name.Data(), val);
 				if (!i.second) {
-					ThrowSpecificError(v->Name(), "Member with the same name already existed in the structure");
+					ThrowSpecificError(v->name, "Member with the same name already existed in the structure");
 				}
 			}
 		}
@@ -328,36 +328,36 @@ namespace Corrosive {
 		if (Type()->LLVMType() != nullptr) return;
 
 		CompileContext nctx = ctx;
-		nctx.parent_struct = ParentStruct();
-		nctx.parent_namespace = ParentPack();
+		nctx.parent_struct = parent_struct();
+		nctx.parent_namespace = parent_pack;
 
 		Type::ResolvePackageInPlace(Type(), nctx);
 		Type()->PreCompile(nctx);
 	}
 
 	void FunctionDeclaration::Compile(CompileContext& ctx) {
-		if (llvm_compile_progress == 0) {
+		if (compile_progress == 0) {
 			PreCompile(ctx);
 
-			llvm_compile_progress = 1;
+			compile_progress = 1;
 
 			CompileContext nctx = ctx;
-			nctx.parent_struct = ParentStruct();
-			nctx.parent_namespace = ParentPack();
+			nctx.parent_struct = parent_struct();
+			nctx.parent_namespace = parent_pack;
 
 			Type()->Compile(nctx);
 
 
-			std::string name = "f.";
-			if (!Pack().empty()) {
-				name.append(Pack());
-				name.append(".");
+			std::string f_name = "f.";
+			if (!package.empty()) {
+				f_name.append(package);
+				f_name.append(".");
 			}
-			name.append(Name().Data());
+			f_name.append(name.Data());
 
 			unsigned long stack = StackManager::StackState();
 
-			function = LLVMAddFunction(ctx.module, name.c_str(), type->LLVMType());
+			function = LLVMAddFunction(ctx.module, f_name.c_str(), type->LLVMType());
 			LLVMBasicBlockRef block = LLVMAppendBasicBlock(function, "entry");
 			LLVMBuilderRef builder = LLVMCreateBuilder();
 
@@ -385,7 +385,7 @@ namespace Corrosive {
 			Corrosive::CompileContextExt cctx;
 			cctx.function = function;
 			cctx.unit = this;
-			cctx.basic.parent_namespace = ParentPack();
+			cctx.basic.parent_namespace = parent_pack;
 			cctx.basic.parent_struct = nullptr;
 			cctx.basic.template_ctx = nullptr;
 			cctx.builder = builder;
@@ -400,14 +400,14 @@ namespace Corrosive {
 
 
 			StackManager::StackStateRestore(stack);
-			llvm_compile_progress = 2;
+			compile_progress = 2;
 			return;
 		}
-		else if (llvm_compile_progress == 2) {
+		else if (compile_progress == 2) {
 			return;
 		}
 		else {
-			ThrowSpecificError(Name(), "This function caused build cycle");
+			ThrowSpecificError(name, "This function caused build cycle");
 		}
 
 		return;
@@ -417,31 +417,31 @@ namespace Corrosive {
 		if (Type()->LLVMType() != nullptr) return;
 
 		CompileContext nctx = ctx;
-		nctx.parent_struct = ParentStruct();
-		nctx.parent_namespace = ParentPack();
+		nctx.parent_struct = parent_struct();
+		nctx.parent_namespace = parent_pack;
 		Type::ResolvePackageInPlace(Type(), nctx);
 		Type()->PreCompile(nctx);
 	}
 
 	void VariableDeclaration::Compile(CompileContext& ctx) {
-		if (llvm_compile_progress == 0) {
+		if (compile_progress == 0) {
 			PreCompile(ctx);
 
-			llvm_compile_progress = 1;
+			compile_progress = 1;
 
 			CompileContext nctx = ctx;
-			nctx.parent_struct = ParentStruct();
-			nctx.parent_namespace = ParentPack();
+			nctx.parent_struct = parent_struct();
+			nctx.parent_namespace = parent_pack;
 			Type()->Compile(nctx);
 
-			llvm_compile_progress = 2;
+			compile_progress = 2;
 			return;
 		}
-		else if (llvm_compile_progress == 2) {
+		else if (compile_progress == 2) {
 			return;
 		}
 		else {
-			ThrowSpecificError(Name(), "This variable caused build cycle");
+			ThrowSpecificError(name, "This variable caused build cycle");
 		}
 
 		return;
