@@ -28,7 +28,7 @@ namespace Corrosive {
 		new_type->parent_pack = p_nspc;
 		new_type->parent = p_nspc;
 		Contents::RegisterStruct(PredefinedNamespace, name, new_type.get());
-		p_nspc->Members.push_back(std::move(new_type));
+		p_nspc->members.push_back(std::move(new_type));
 
 		PrimitiveType pt_new_type;
 		pt_new_type.Name(n_c);
@@ -87,9 +87,9 @@ namespace Corrosive {
 		PrimitiveType t_array_val_type;
 		n_c.Data("T");
 		t_array_val_type.Name(n_c);
-		t_array_val->Type(Contents::EmplaceType(t_array_val_type));
-		t_array->Members.push_back(std::move(t_array_val));
-		p_nspc->Members.push_back(std::move(t_array));
+		t_array_val->type = Contents::EmplaceType(t_array_val_type);
+		t_array->members.push_back(std::move(t_array_val));
+		p_nspc->members.push_back(std::move(t_array));
 
 
 		std::unique_ptr<GenericStructDeclaration> t_tuple = std::make_unique<GenericStructDeclaration>();
@@ -110,9 +110,9 @@ namespace Corrosive {
 		PrimitiveType t_tuple_val_type;
 		n_c.Data("T");
 		t_tuple_val_type.Name(n_c);
-		t_tuple_val->Type(Contents::EmplaceType(t_tuple_val_type));
-		t_tuple->Members.push_back(std::move(t_tuple_val));
-		p_nspc->Members.push_back(std::move(t_tuple));
+		t_tuple_val->type = Contents::EmplaceType(t_tuple_val_type);
+		t_tuple->members.push_back(std::move(t_tuple_val));
+		p_nspc->members.push_back(std::move(t_tuple));
 
 		into.push_back(std::move(p_nspc));
 	}

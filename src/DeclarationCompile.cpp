@@ -9,7 +9,7 @@
 
 namespace Corrosive {
 
-	void StructDeclaration::PreCompile(CompileContext& ctx) {
+	void StructDeclaration::pre_compile(CompileContext& ctx) {
 		if (llvm_type != nullptr) return;
 		Contents::StaticStructures.push_back(this);
 
@@ -74,8 +74,8 @@ namespace Corrosive {
 						std::pair<std::string_view, std::string_view> key = std::make_pair(exttype->Pack(), exttype->name.Data());
 
 						if (auto fs = exttype->Structure()) {
-							fs->PreCompile(ctx);
-							extends_structures.push_back(fs);
+							fs->pre_compile(ctx);
+							implements_structures.push_back(fs);
 						}
 						else {
 							ThrowSpecificError(name, "Extended structure was not found in any package from the lookup queue");
@@ -90,10 +90,10 @@ namespace Corrosive {
 							CompileContext nctx = ctx;
 							nctx.template_ctx = exttype->Templates();
 
-							auto gen = gsd->CreateTemplate(nctx);
+							auto gen = gsd->create_template(nctx);
 
-							gen->PreCompile(nctx);
-							extends_structures.push_back(gen);
+							gen->pre_compile(nctx);
+							implements_structures.push_back(gen);
 
 						}
 						else {
@@ -107,17 +107,17 @@ namespace Corrosive {
 				}
 			}
 
-			for (auto it = extends_structures.begin(); it != extends_structures.end(); it++) {
+			for (auto it = implements_structures.begin(); it != implements_structures.end(); it++) {
 				if (!(*it)->is_trait) {
 					ThrowSpecificError(name, "All extended types needs to be classes");
 				}
-				(*it)->PreCompile(ctx);
+				(*it)->pre_compile(ctx);
 			}
 
 			std::vector<LLVMTypeRef> mem_types;
 
-			for (int i = 0; i < Members.size(); i++) {
-				std::unique_ptr<Declaration>& decl = Members[i];
+			for (int i = 0; i < members.size(); i++) {
+				std::unique_ptr<Declaration>& decl = members[i];
 				VariableDeclaration* vdecl;
 				FunctionDeclaration* fdecl;
 
@@ -150,11 +150,11 @@ namespace Corrosive {
 					fdecl->Argnames()->insert(fdecl->Argnames()->begin(), thisc);
 				}
 
-				decl->PreCompile(ctx);
+				decl->pre_compile(ctx);
 
 				if (vdecl = dynamic_cast<VariableDeclaration*>(decl.get())) {
 					if (!is_trait)
-						mem_types.push_back(vdecl->Type()->LLVMType());
+						mem_types.push_back(vdecl->type->LLVMType());
 					else
 						ThrowSpecificError(vdecl->name, "variable found in trait type");
 				}
@@ -173,22 +173,22 @@ namespace Corrosive {
 		}
 	}
 
-	void StructDeclaration::Compile(CompileContext& ctx) {
+	void StructDeclaration::compile(CompileContext& ctx) {
 		if (compile_progress == 0) {
-			PreCompile(ctx);
+			pre_compile(ctx);
 
 			compile_progress = 1;
 
-			for (auto it = extends_structures.begin(); it != extends_structures.end(); it++) {
-				(*it)->Compile(ctx);
+			for (auto it = implements_structures.begin(); it != implements_structures.end(); it++) {
+				(*it)->compile(ctx);
 			}
 
-			for (int i = 0; i < Members.size(); i++) {
-				std::unique_ptr<Declaration>& decl = Members[i];
+			for (int i = 0; i < members.size(); i++) {
+				std::unique_ptr<Declaration>& decl = members[i];
 
 				if (auto vdecl = dynamic_cast<VariableDeclaration*>(decl.get())) {
-					if (!vdecl->Type()->ref)
-						vdecl->Compile(ctx);
+					if (!vdecl->type->ref)
+						vdecl->compile(ctx);
 				}
 			}
 
@@ -207,8 +207,8 @@ namespace Corrosive {
 	void StructDeclaration::test_interface_complete() {
 		std::map<std::string_view, FunctionDeclaration*> iface_list;
 
-		for (auto it = extends_structures.begin(); it != extends_structures.end(); it++) {
-			for (auto mit = (*it)->Members.begin(); mit != (*it)->Members.end(); mit++) {
+		for (auto it = implements_structures.begin(); it != implements_structures.end(); it++) {
+			for (auto mit = (*it)->members.begin(); mit != (*it)->members.end(); mit++) {
 				if (auto f = dynamic_cast<FunctionDeclaration*>(mit->get())) {
 					std::string_view  key = f->name.Data();
 
@@ -256,7 +256,7 @@ namespace Corrosive {
 
 		unsigned int lookup_id = 0;
 
-		for (auto it = Members.begin(); it != Members.end(); it++) {
+		for (auto it = members.begin(); it != members.end(); it++) {
 			if (auto f = dynamic_cast<FunctionDeclaration*>(it->get())) {
 				std::tuple<Declaration*, unsigned int, std::string_view> val = std::make_tuple(it->get(), 0,"");
 				
@@ -285,7 +285,7 @@ namespace Corrosive {
 			else {
 				Declaration* alias_var = std::get<0>(look->second);
 				if (auto v = dynamic_cast<VariableDeclaration*>(alias_var)) {
-					const Type* alias_var_type = v->Type();
+					const Type* alias_var_type = v->type;
 					StructDeclaration* alias_struct = nullptr;
 					
 					if (auto pt = dynamic_cast<const PrimitiveType*>(alias_var_type)) {
@@ -324,7 +324,7 @@ namespace Corrosive {
 		}
 	}
 
-	void FunctionDeclaration::PreCompile(CompileContext& ctx) {
+	void FunctionDeclaration::pre_compile(CompileContext& ctx) {
 		if (Type()->LLVMType() != nullptr) return;
 
 		CompileContext nctx = ctx;
@@ -335,9 +335,9 @@ namespace Corrosive {
 		Type()->PreCompile(nctx);
 	}
 
-	void FunctionDeclaration::Compile(CompileContext& ctx) {
+	void FunctionDeclaration::compile(CompileContext& ctx) {
 		if (compile_progress == 0) {
-			PreCompile(ctx);
+			pre_compile(ctx);
 
 			compile_progress = 1;
 
@@ -413,26 +413,26 @@ namespace Corrosive {
 		return;
 	}
 
-	void VariableDeclaration::PreCompile(CompileContext& ctx) {
-		if (Type()->LLVMType() != nullptr) return;
+	void VariableDeclaration::pre_compile(CompileContext& ctx) {
+		if (type->LLVMType() != nullptr) return;
 
 		CompileContext nctx = ctx;
 		nctx.parent_struct = parent_struct();
 		nctx.parent_namespace = parent_pack;
-		Type::ResolvePackageInPlace(Type(), nctx);
-		Type()->PreCompile(nctx);
+		Type::ResolvePackageInPlace(type, nctx);
+		type->PreCompile(nctx);
 	}
 
-	void VariableDeclaration::Compile(CompileContext& ctx) {
+	void VariableDeclaration::compile(CompileContext& ctx) {
 		if (compile_progress == 0) {
-			PreCompile(ctx);
+			pre_compile(ctx);
 
 			compile_progress = 1;
 
 			CompileContext nctx = ctx;
 			nctx.parent_struct = parent_struct();
 			nctx.parent_namespace = parent_pack;
-			Type()->Compile(nctx);
+			type->Compile(nctx);
 
 			compile_progress = 2;
 			return;
@@ -447,10 +447,10 @@ namespace Corrosive {
 		return;
 	}
 
-	void Declaration::PreCompile(CompileContext& ctx) {
+	void Declaration::pre_compile(CompileContext& ctx) {
 		return;
 	}
-	void Declaration::Compile(CompileContext& ctx) {
+	void Declaration::compile(CompileContext& ctx) {
 		return;
 	}
 

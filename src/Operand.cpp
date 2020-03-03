@@ -165,7 +165,7 @@ namespace Corrosive {
 					VariableDeclaration* vdecl = dynamic_cast<VariableDeclaration*>(decl);
 					if (vdecl != nullptr) {
 						ret.v = LLVMBuildStructGEP2(ctx.builder, sd->LLVMType(), ret.v, mid, "");
-						ret.t = vdecl->Type();
+						ret.t = vdecl->type;
 						ret.lvalue = true;
 					}
 					else {

@@ -47,14 +47,14 @@ int main() {
 	ctx.parent_struct = Corrosive::Contents::entry_point->parent_struct();
 	ctx.template_ctx = nullptr;
 
-	Corrosive::Contents::entry_point->Compile(ctx);
+	Corrosive::Contents::entry_point->compile(ctx);
 		
 
 	for (auto&& it : Corrosive::Contents::StaticStructures) {
 		ctx.parent_namespace = it->parent_pack;
 		ctx.parent_struct = it;
 		ctx.template_ctx = it->template_ctx;
-		it->Compile(ctx);
+		it->compile(ctx);
 	}
 
 	end = std::chrono::system_clock::now();
@@ -86,7 +86,7 @@ int main() {
 		for (auto it = decls.begin(); it != decls.end(); it++) {
 			auto s = dynamic_cast<Corrosive::StructDeclaration*>(it->get());
 			if (s == nullptr || !s->is_extending)
-				it->get()->Print(0);
+				it->get()->print(0);
 		}
 
 		std::cout << std::endl << std::endl;

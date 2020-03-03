@@ -16,15 +16,6 @@ namespace Corrosive {
 		return dynamic_cast<StructDeclaration*>(parent);
 	}
 	
-	const Corrosive::Type*& VariableDeclaration::Type() {
-		return type;
-	}
-
-	void VariableDeclaration::Type(const Corrosive::Type* t) {
-		type = t;
-	}
-
-
 	const Type*& TypedefDeclaration::Type() {
 		return type;
 	}
@@ -49,18 +40,18 @@ namespace Corrosive {
 	void FunctionDeclaration::Block(Cursor c) { block = c; }
 
 
-	void Declaration::Print(unsigned int offset) const {
+	void Declaration::print(unsigned int offset) const {
 
 	}
 
-	void VariableDeclaration::Print(unsigned int offset) const {
+	void VariableDeclaration::print(unsigned int offset) const {
 		for (unsigned int i = 0; i < offset; i++) std::cout << "\t";
 		std::cout << "var " << name.Data() << " : ";
 		type->Print();
 		std::cout << std::endl;
 	}
 
-	void TypedefDeclaration::Print(unsigned int offset) const {
+	void TypedefDeclaration::print(unsigned int offset) const {
 		for (unsigned int i = 0; i < offset; i++) std::cout << "\t";
 
 		std::cout << "type " << name.Data() << " : ";
@@ -68,22 +59,22 @@ namespace Corrosive {
 		std::cout << std::endl;
 	}
 
-	std::unique_ptr<Declaration> Declaration::Clone() {
+	std::unique_ptr<Declaration> Declaration::clone() {
 		return nullptr;
 	}
 
-	std::unique_ptr<Declaration> VariableDeclaration::Clone() {
+	std::unique_ptr<Declaration> VariableDeclaration::clone() {
 		std::unique_ptr<VariableDeclaration> d = std::make_unique<VariableDeclaration>();
 		d->name = name;
 		d->package = package;
 		d->parent = parent;
 		d->parent_pack = parent_pack;
-		d->Type(type);
+		d->type = type;
 
 		return std::move(d);
 	}
 
-	std::unique_ptr<Declaration> FunctionDeclaration::Clone() {
+	std::unique_ptr<Declaration> FunctionDeclaration::clone() {
 		std::unique_ptr<FunctionDeclaration> d = std::make_unique<FunctionDeclaration>();
 		d->name = name;
 		d->package = package;
@@ -102,7 +93,7 @@ namespace Corrosive {
 	const std::map<const TemplateContext*, std::unique_ptr<StructDeclaration>>& GenericStructDeclaration::Generated() const { return generated; }
 
 
-	StructDeclaration* GenericStructDeclaration::CreateTemplate(CompileContext& ctx) {
+	StructDeclaration* GenericStructDeclaration::create_template(CompileContext& ctx) {
 		
 		auto it = generated.find(ctx.template_ctx);
 		if (it != generated.end()) {
@@ -133,17 +124,17 @@ namespace Corrosive {
 				sd->implements.push_back(std::make_pair(implements[i].first,std::move(nex)));
 			}
 
-			sd->Members = std::vector<std::unique_ptr<Declaration>>(Members.size());
-			for (int i = 0; i < Members.size(); i++) {
-				sd->Members[i] = Members[i]->Clone();
+			sd->members = std::vector<std::unique_ptr<Declaration>>(members.size());
+			for (int i = 0; i < members.size(); i++) {
+				sd->members[i] = members[i]->clone();
 
-				if (auto vd = dynamic_cast<VariableDeclaration*>(sd->Members[i].get())) {
+				if (auto vd = dynamic_cast<VariableDeclaration*>(sd->members[i].get())) {
 					CompileContext nctx = ctx;
 					nctx.parent_struct = vd->parent_struct();
 					nctx.parent_namespace = vd->parent_pack;
 
-					Type::ResolvePackageInPlace(vd->Type(), nctx);
-				}else if (auto fd = dynamic_cast<FunctionDeclaration*>(sd->Members[i].get())) {
+					Type::ResolvePackageInPlace(vd->type, nctx);
+				}else if (auto fd = dynamic_cast<FunctionDeclaration*>(sd->members[i].get())) {
 					CompileContext nctx = ctx;
 					nctx.parent_struct = fd->parent_struct();
 					nctx.parent_namespace = fd->parent_pack;
@@ -186,7 +177,7 @@ namespace Corrosive {
 	const std::map<std::string_view, int>& GenericStructDeclaration::Generics() const { return generic_typenames; }
 
 
-	void FunctionDeclaration::Print(unsigned int offset) const {
+	void FunctionDeclaration::print(unsigned int offset) const {
 
 		for (unsigned int i = 0; i < offset; i++) std::cout << "\t";
 		std::cout << "function ";
@@ -203,7 +194,7 @@ namespace Corrosive {
 		std::cout << std::endl;
 	}
 
-	void GenericFunctionDeclaration::Print(unsigned int offset) const {
+	void GenericFunctionDeclaration::print(unsigned int offset) const {
 
 		for (unsigned int i = 0; i < offset; i++) std::cout << "\t";
 		std::cout << "generic function ";
@@ -224,7 +215,7 @@ namespace Corrosive {
 		std::cout << std::endl;
 	}
 
-	void StructDeclaration::Print(unsigned int offset) const {
+	void StructDeclaration::print(unsigned int offset) const {
 
 		for (unsigned int i = 0; i < offset; i++) std::cout << "\t";
 
@@ -248,15 +239,15 @@ namespace Corrosive {
 		}
 
 		std::cout << " {" <<std::endl;
-		for (auto it = Members.begin(); it != Members.end(); it++) {
-			it->get()->Print(offset+1);
+		for (auto it = members.begin(); it != members.end(); it++) {
+			it->get()->print(offset+1);
 		}
 
 		for (unsigned int i = 0; i < offset; i++) std::cout << "\t";
 		std::cout << "}" << std::endl << std::endl;
 	}
 
-	void GenericStructDeclaration::Print(unsigned int offset) const {
+	void GenericStructDeclaration::print(unsigned int offset) const {
 
 		for (unsigned int i = 0; i < offset; i++) std::cout << "\t";
 		if (is_trait)
@@ -267,7 +258,7 @@ namespace Corrosive {
 
 		std::cout << name.Data() << " {" << std::endl;
 		for (auto it = generated.begin(); it != generated.end(); it++) {
-			it->second->Print(offset+1);
+			it->second->print(offset+1);
 		}
 
 		for (unsigned int i = 0; i < offset; i++) std::cout << "\t";
@@ -276,13 +267,13 @@ namespace Corrosive {
 
 	
 
-	void NamespaceDeclaration::Print(unsigned int offset) const {
+	void NamespaceDeclaration::print(unsigned int offset) const {
 
 		for (unsigned int i = 0; i < offset; i++) std::cout << "\t";
 		std::cout << "namespace " << name.Data() << " {" << std::endl << std::endl;
 		
-		for (auto it = Members.begin(); it != Members.end(); it++) {
-			it->get()->Print(offset+1);
+		for (auto it = members.begin(); it != members.end(); it++) {
+			it->get()->print(offset+1);
 		}
 
 		for (unsigned int i = 0; i < offset; i++) std::cout << "\t";

@@ -17,61 +17,65 @@ namespace Corrosive {
 	class FunctionDeclaration;
 	class TypedefDeclaration;
 
+	enum class StructDeclarationType {
+		Declared, t_u8, t_u16, t_u32, t_u64, t_i8, t_i16, t_i32, t_i64, t_f32, t_f64, t_ptr, t_bool, t_array, t_tuple, t_string
+	};
+
 	class Declaration {
 	public:
 		virtual ~Declaration();
-
-		virtual std::unique_ptr<Declaration> Clone();
-
 		static void parse(Cursor& c, std::vector<std::unique_ptr<Declaration>>& into, Declaration* parent,NamespaceDeclaration* pack);
 
-		virtual void Print(unsigned int offset) const;
+		virtual std::unique_ptr<Declaration> clone();
 
+		virtual void print(unsigned int offset) const;
+		virtual void compile(CompileContext& ctx);
+		virtual void pre_compile(CompileContext& ctx);
 
-		virtual void Compile(CompileContext& ctx);
-		virtual void PreCompile(CompileContext& ctx);
-
-		Cursor name;
-		std::string_view package = "g";
-		int compile_progress = 0;
-
-		Declaration* parent = nullptr;
-		NamespaceDeclaration* parent_pack = nullptr;
-		StructDeclaration* parent_struct() const;
+		Cursor					name;
+		std::string_view		package = "g";
+		int						compile_progress = 0;
+		Declaration*			parent = nullptr;
+		NamespaceDeclaration*	parent_pack = nullptr;
+		StructDeclaration*		parent_struct() const;
 	};
+
+
+
 
 	class VariableDeclaration : public Declaration {
 	public:
-		const Corrosive::Type*& Type();
-		void Type(const Corrosive::Type*);
-
-		virtual std::unique_ptr<Declaration> Clone();
-
-		virtual void Print(unsigned int offset) const;
-
-
-		virtual void Compile(CompileContext& ctx);
-		virtual void PreCompile(CompileContext& ctx);
-	protected:
 		const Corrosive::Type* type;
+
+		virtual std::unique_ptr<Declaration> clone();
+		virtual void print(unsigned int offset) const;
+
+		virtual void compile(CompileContext& ctx);
+		virtual void pre_compile(CompileContext& ctx);
 	};
+
+
+
 
 	class TypedefDeclaration : public Declaration {
 	public:
 		const Corrosive::Type*& Type();
 		void Type(const Corrosive::Type*);
 
-		virtual void Print(unsigned int offset) const;
+		virtual void print(unsigned int offset) const;
 		const Corrosive::Type* ResolveType();
 	protected:
 		const Corrosive::Type* type;
 		int resolve_progress = 0;
 	};
 
+
+
+
 	class FunctionDeclaration : public Declaration {
 	public:
 
-		virtual std::unique_ptr<Declaration> Clone();
+		virtual std::unique_ptr<Declaration> clone();
 
 		const Corrosive::Type*& Type();
 
@@ -85,10 +89,10 @@ namespace Corrosive {
 
 		std::vector<Cursor>* Argnames();
 
-		virtual void Compile(CompileContext& ctx);
-		virtual void PreCompile(CompileContext& ctx);
+		virtual void compile(CompileContext& ctx);
+		virtual void pre_compile(CompileContext& ctx);
 
-		virtual void Print(unsigned int offset) const;
+		virtual void print(unsigned int offset) const;
 
 		bool Static() const;
 		void Static(bool b);
@@ -105,7 +109,7 @@ namespace Corrosive {
 
 	class GenericFunctionDeclaration : public FunctionDeclaration {
 	public:
-		virtual void Print(unsigned int offset) const;
+		virtual void print(unsigned int offset) const;
 		const std::map<std::string_view, int>& Generics() const;
 		std::map<std::string_view, int>& Generics();
 
@@ -114,21 +118,16 @@ namespace Corrosive {
 	};
 
 
-	enum class StructDeclarationType {
-		Declared,t_u8,t_u16,t_u32,t_u64, t_i8, t_i16, t_i32, t_i64, t_f32, t_f64,t_ptr,t_bool,t_array,t_tuple,t_string
-	};
+
 
 	class StructDeclaration : public Declaration {
 	public:
-
-		std::vector<std::unique_ptr<Declaration>> Members;
-
-		virtual void Print(unsigned int offset) const;
+		virtual void print(unsigned int offset) const;
 
 		virtual bool is_generic();
 
-		virtual void Compile(CompileContext& ctx);
-		virtual void PreCompile(CompileContext& ctx);
+		virtual void compile(CompileContext& ctx);
+		virtual void pre_compile(CompileContext& ctx);
 
 		void test_interface_complete();
 		void build_lookup_table();
@@ -136,17 +135,22 @@ namespace Corrosive {
 		LLVMTypeRef LLVMType();
 		Declaration* FindDeclarationOfMember(std::string_view name);
 
-		std::vector<std::pair<Cursor, Cursor>> aliases;
+		std::vector<std::unique_ptr<Declaration>>	members;
+		std::vector<std::pair<Cursor, Cursor>>		aliases;
+
 		std::map<std::string_view, std::tuple<Declaration*, unsigned int, std::string_view>> lookup_table;
-		bool has_lookup_table = false;
-		bool is_trait = false;
-		bool compiled = false;
-		int gen_id = 0;
-		StructDeclarationType decl_type = StructDeclarationType::Declared;
-		const TemplateContext* template_ctx = nullptr;
-		std::vector<StructDeclaration*> extends_structures;
 		std::vector<std::pair<StructDeclaration*, const Corrosive::Type*>> implements;
-		bool is_extending = false;
+
+		bool	has_lookup_table = false;
+		bool	is_trait = false;
+		bool	compiled = false;
+		int		gen_id = 0; 
+		bool	is_extending = false;
+
+		StructDeclarationType			decl_type = StructDeclarationType::Declared;
+		const TemplateContext*			template_ctx = nullptr;
+		std::vector<StructDeclaration*> implements_structures;
+		
 
 	protected:
 		LLVMTypeRef llvm_type = nullptr;
@@ -157,12 +161,12 @@ namespace Corrosive {
 		const std::map<std::string_view, int>& Generics() const;
 		std::map<std::string_view, int>& Generics();
 
-		StructDeclaration* CreateTemplate(CompileContext& ctx);
+		StructDeclaration* create_template(CompileContext& ctx);
 
 		std::map<const TemplateContext*, std::unique_ptr<StructDeclaration>>& Generated();
 		const std::map<const TemplateContext*, std::unique_ptr<StructDeclaration>>& Generated() const;
 
-		virtual void Print(unsigned int offset) const;
+		virtual void print(unsigned int offset) const;
 
 		virtual bool is_generic();
 	protected:
@@ -170,10 +174,13 @@ namespace Corrosive {
 		std::map<std::string_view,int> generic_typenames;
 	};
 
+
+
+
 	class NamespaceDeclaration : public Declaration {
 	public:
-		std::vector<std::unique_ptr<Declaration>> Members;
-		virtual void Print(unsigned int offset) const;
+		std::vector<std::unique_ptr<Declaration>> members;
+		virtual void print(unsigned int offset) const;
 		std::vector<std::string_view> queue;
 	};
 }

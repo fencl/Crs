@@ -160,7 +160,7 @@ namespace Corrosive {
 					CompileContext nctx = ctx;
 					nctx.template_ctx = Templates();
 
-					StructDeclaration* gsd = ((GenericStructDeclaration*)sd)->CreateTemplate(nctx);
+					StructDeclaration* gsd = ((GenericStructDeclaration*)sd)->create_template(nctx);
 					self->structure_cache = gsd;
 
 					if (ref) {
@@ -184,7 +184,7 @@ namespace Corrosive {
 							ThrowSpecificError(name, "Primitive type points to generic structure and was not given generic arguments");
 						}
 						else {
-							StructDeclaration* gsd = ((GenericStructDeclaration*)sd)->CreateTemplate(nctx);
+							StructDeclaration* gsd = ((GenericStructDeclaration*)sd)->create_template(nctx);
 							sd = gsd;
 						}
 					}
@@ -196,7 +196,7 @@ namespace Corrosive {
 						self->heavy_type = true;
 					}
 					
-					sd->PreCompile(nctx);
+					sd->pre_compile(nctx);
 
 					self->llvm_type = sd->LLVMType();
 					if (ref)
@@ -229,7 +229,7 @@ namespace Corrosive {
 		else {
 			CompileContext nctx = ctx;
 			nctx.template_ctx = Templates();
-			structure_cache->Compile(nctx);
+			structure_cache->compile(nctx);
 		}
 
 		self->compiled = true;

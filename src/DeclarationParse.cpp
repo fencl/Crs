@@ -45,7 +45,7 @@ namespace Corrosive {
 			for (int i = 0; i < names.size(); i++) {
 				std::unique_ptr<VariableDeclaration> vd = std::make_unique<VariableDeclaration>();
 				vd->name = names[i];
-				vd->Type(tp);
+				vd->type = tp;
 				if (parent != nullptr) {
 					vd->package = parent->package;
 					vd->parent = parent;
@@ -411,8 +411,8 @@ namespace Corrosive {
 						}
 					}
 					else {
-						Declaration::parse(c, existing->Members, sd.get(), pack);
-						if (auto varmember = dynamic_cast<VariableDeclaration*>(existing->Members.back().get())) {
+						Declaration::parse(c, existing->members, sd.get(), pack);
+						if (auto varmember = dynamic_cast<VariableDeclaration*>(existing->members.back().get())) {
 							if (existing->decl_type!= StructDeclarationType::Declared)
 								ThrowSpecificError(varmember->name, "Cannot add new members into this structure");
 						}
@@ -494,7 +494,7 @@ namespace Corrosive {
 						}
 
 					} else {
-						Declaration::parse(c, sd->Members, sd.get(), pack);
+						Declaration::parse(c, sd->members, sd.get(), pack);
 					}
 				}
 			}
@@ -545,7 +545,7 @@ namespace Corrosive {
 				else if (c.Tok() == RecognizedToken::Eof) {
 					break;
 				}
-				Declaration::parse(c, nd->Members, nd.get(), nd.get());
+				Declaration::parse(c, nd->members, nd.get(), nd.get());
 			}
 
 			into.push_back(std::move(nd));
