@@ -3,16 +3,23 @@
 #include <iostream>
 
 namespace Corrosive {
+
+	/*
+	 *	Type :: cmp
+	 *	compare two types
+	 *
+	 *	returns -1 for 'this is "smaller" type than t2' (ordering for maps)
+	 *			 1 for 'this is "larger" type than t2' 
+	 *			 0 for the same type
+	 */
+
+
 	int Type::cmp(const Type& t2) const {
 		if (id() < t2.id()) return -1;
 		if (id() > t2.id()) return 1;
 		if (ref < t2.ref) return -1;
 		if (ref > t2.ref) return 1;
 		return 0;
-	}
-
-	size_t Type::hash() const {
-		return std::hash<int>()(id()) ^ rot(std::hash<int>()(ref), 1);
 	}
 
 	int PrimitiveType::cmp(const Type& t2) const {
@@ -31,13 +38,6 @@ namespace Corrosive {
 		return 0;
 	}
 
-	size_t PrimitiveType::hash() const {
-		size_t h = Type::hash();
-		h ^= rot(std::hash<std::string_view>()(name.Data()), 2) ^ rot(std::hash<std::string_view>()(package), 3);
-		h ^= rot(std::hash<size_t>()((size_t)templates), 4);
-		return h;
-	}
-
 	int FunctionType::cmp(const Type& t2) const {
 		int tcmp = Type::cmp(t2);
 		if (tcmp != 0) return tcmp;
@@ -52,14 +52,6 @@ namespace Corrosive {
 		return 0;
 	}
 
-	size_t FunctionType::hash() const {
-		size_t h = Type::hash();
-		h ^= rot(std::hash<size_t>()((size_t)returns), 5);
-		h ^= rot(std::hash<size_t>()((size_t)arguments), 6);
-
-		return h;
-	}
-
 	int TupleType::cmp(const Corrosive::Type& t2) const {
 		int tcmp = Type::cmp(t2);
 		if (tcmp != 0) return tcmp;
@@ -71,13 +63,6 @@ namespace Corrosive {
 		return 0;
 	}
 
-	size_t TupleType::hash() const {
-		size_t h = Type::hash();
-		h ^= rot(std::hash<size_t>()((size_t)types), 7);
-		return h;
-	}
-
-
 	int InterfaceType::cmp(const Corrosive::Type& t2) const {
 		int tcmp = Type::cmp(t2);
 		if (tcmp != 0) return tcmp;
@@ -86,13 +71,6 @@ namespace Corrosive {
 		if (types < ft.types) return -1;
 		if (types > ft.types) return 1;
 		return 0;
-	}
-
-	size_t InterfaceType::hash() const {
-		size_t h = Type::hash();
-
-		h ^= rot(std::hash<size_t>()((size_t)types), 8);
-		return h;
 	}
 
 	int ArrayType::cmp(const Type& t2) const {
@@ -125,6 +103,44 @@ namespace Corrosive {
 		return 0;
 	}
 
+	/*
+	 *	Type :: hash
+	 *	returns hash int of the type
+	 *	used for unordered_map
+	 */
+
+
+	size_t Type::hash() const {
+		return std::hash<int>()(id()) ^ rot(std::hash<int>()(ref), 1);
+	}
+
+	size_t PrimitiveType::hash() const {
+		size_t h = Type::hash();
+		h ^= rot(std::hash<std::string_view>()(name.Data()), 2) ^ rot(std::hash<std::string_view>()(package), 3);
+		h ^= rot(std::hash<size_t>()((size_t)templates), 4);
+		return h;
+	}
+
+	size_t FunctionType::hash() const {
+		size_t h = Type::hash();
+		h ^= rot(std::hash<size_t>()((size_t)returns), 5);
+		h ^= rot(std::hash<size_t>()((size_t)arguments), 6);
+
+		return h;
+	}
+
+	size_t TupleType::hash() const {
+		size_t h = Type::hash();
+		h ^= rot(std::hash<size_t>()((size_t)types), 7);
+		return h;
+	}
+
+	size_t InterfaceType::hash() const {
+		size_t h = Type::hash();
+
+		h ^= rot(std::hash<size_t>()((size_t)types), 8);
+		return h;
+	}
 
 	size_t ArrayType::hash() const {
 		size_t h = Type::hash();

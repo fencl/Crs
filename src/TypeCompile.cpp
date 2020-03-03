@@ -8,10 +8,12 @@
 #include "Expression.h"
 
 namespace Corrosive {
-	
-	void Type::compile(CompileContext& ctx) const {
-		if (compiled) return;
-	}
+
+	/*
+	 *	After precompile we need to be sure of the type size
+	 *	this preccess is used to eliminate type cycles
+	 *
+	 */
 
 	void Type::pre_compile(CompileContext& ctx) const {
 		if (llvm_type != nullptr) return;
@@ -34,21 +36,11 @@ namespace Corrosive {
 		self->llvm_lvalue = self->llvm_rvalue = LLVMPointerType(self->llvm_type, 0);
 	}
 
-	void ArrayType::compile(CompileContext& ctx) const {
-		if (compiled) return;
-		pre_compile(ctx);
-
-		ArrayType* self = (ArrayType*)this;
-
-		base->compile(ctx);
-
-		self->compiled = true;
-	}
 
 	void FunctionType::pre_compile(CompileContext& ctx) const {
 		if (llvm_type != nullptr) return;
-		FunctionType* self = (FunctionType*)this; 
-			
+		FunctionType* self = (FunctionType*)this;
+
 		LLVMTypeRef ret;
 		std::vector<LLVMTypeRef> argtps;
 
@@ -69,21 +61,6 @@ namespace Corrosive {
 		self->llvm_type = LLVMFunctionType(ret, argtps.data(), (unsigned int)argtps.size(), false);
 	}
 
-	void FunctionType::compile(CompileContext& ctx) const {
-		if (compiled) return;
-
-		pre_compile(ctx);
-		FunctionType* self = (FunctionType*)this;
-
-		returns->compile(ctx);
-
-		for (auto it = arguments->begin(); it != arguments->end(); it++) {
-			(*it)->compile(ctx);
-		}
-
-		self->compiled = true;
-	}
-
 	void InterfaceType::pre_compile(CompileContext& ctx) const {
 		if (llvm_type != nullptr) return;
 
@@ -91,18 +68,6 @@ namespace Corrosive {
 		for (auto it = types->begin(); it != types->end(); it++) {
 			(*it)->pre_compile(ctx);
 		}
-	}
-
-	void InterfaceType::compile(CompileContext& ctx) const {
-		if (compiled) return;
-
-		pre_compile(ctx);
-		InterfaceType* self = (InterfaceType*)this;
-		for (auto it = types->begin(); it != types->end(); it++) {
-			(*it)->compile(ctx);
-		}
-
-		self->compiled = true;
 	}
 
 
@@ -115,20 +80,6 @@ namespace Corrosive {
 		}
 		self->is_heavy = true;
 	}
-
-
-	void TupleType::compile(CompileContext& ctx) const {
-		if (compiled) return;
-		pre_compile(ctx);
-
-		TupleType* self = (TupleType*)this;
-		for (auto it = types->begin(); it != types->end(); it++) {
-			(*it)->compile(ctx);
-		}
-
-		self->compiled = true;
-	}
-
 
 
 	void PrimitiveType::pre_compile(CompileContext& ctx) const {
@@ -195,7 +146,7 @@ namespace Corrosive {
 					if (!ref && sd->decl_type == StructDeclarationType::Declared) {
 						self->is_heavy = true;
 					}
-					
+
 					sd->pre_compile(nctx);
 
 					self->llvm_type = sd->LLVMType();
@@ -211,17 +162,79 @@ namespace Corrosive {
 					}
 
 				}
-				
+
 			}
-		}		
+		}
 	}
 
+
+
+
+	/*
+	 *	After compile we need to have the target structure compiled
+	 *
+	 */
+
+
+	void Type::compile(CompileContext& ctx) const {
+		if (compiled) return;
+	}
+
+	void ArrayType::compile(CompileContext& ctx) const {
+		if (compiled) return;
+		pre_compile(ctx);
+
+		ArrayType* self = (ArrayType*)this;
+
+		base->compile(ctx);
+
+		self->compiled = true;
+	}
+
+	void FunctionType::compile(CompileContext& ctx) const {
+		if (compiled) return;
+
+		pre_compile(ctx);
+		FunctionType* self = (FunctionType*)this;
+
+		returns->compile(ctx);
+
+		for (auto it = arguments->begin(); it != arguments->end(); it++) {
+			(*it)->compile(ctx);
+		}
+
+		self->compiled = true;
+	}
+
+
+	void InterfaceType::compile(CompileContext& ctx) const {
+		if (compiled) return;
+
+		pre_compile(ctx);
+		InterfaceType* self = (InterfaceType*)this;
+		for (auto it = types->begin(); it != types->end(); it++) {
+			(*it)->compile(ctx);
+		}
+
+		self->compiled = true;
+	}
+
+	void TupleType::compile(CompileContext& ctx) const {
+		if (compiled) return;
+		pre_compile(ctx);
+
+		TupleType* self = (TupleType*)this;
+		for (auto it = types->begin(); it != types->end(); it++) {
+			(*it)->compile(ctx);
+		}
+
+		self->compiled = true;
+	}
 
 	void PrimitiveType::compile(CompileContext& ctx) const {
 		if (compiled) return;
 		pre_compile(ctx);
 		PrimitiveType* self = (PrimitiveType*)this;
-
 
 		if (package == PredefinedNamespace && name.Data() == "void") {
 			
