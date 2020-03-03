@@ -8,7 +8,7 @@
 
 namespace Corrosive {
 	extern const char* PredefinedNamespace;
-	void InitPredefinedTypes(std::vector<std::unique_ptr<Declaration>>& into);
+	void init_predefined_types(std::vector<std::unique_ptr<Declaration>>& into);
 	extern const Type* t_i8;
 	extern const Type* t_i16;
 	extern const Type* t_i32;

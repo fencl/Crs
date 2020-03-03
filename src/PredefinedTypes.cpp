@@ -18,7 +18,7 @@ namespace Corrosive {
 	const Type* t_ptr = nullptr;
 	const Type* t_ptr_ref = nullptr;
 
-	void InitPrimitiveType(std::string_view name, NamespaceDeclaration* p_nspc, StructDeclarationType decl_type,const Corrosive::Type* & into) {
+	void init_primitive_type(std::string_view name, NamespaceDeclaration* p_nspc, StructDeclarationType decl_type,const Corrosive::Type* & into) {
 		Cursor n_c;
 		std::unique_ptr<StructDeclaration> new_type = std::make_unique<StructDeclaration>();
 		n_c.buffer = name;
@@ -36,7 +36,7 @@ namespace Corrosive {
 		into = Contents::emplace_type(pt_new_type);
 	}
 
-	void InitPredefinedTypes(std::vector<std::unique_ptr<Declaration>>& into) {
+	void init_predefined_types(std::vector<std::unique_ptr<Declaration>>& into) {
 		Contents::register_namespace(PredefinedNamespace);
 		std::unique_ptr<NamespaceDeclaration> p_nspc = std::make_unique<NamespaceDeclaration>();
 		Cursor n_c; n_c.buffer = PredefinedNamespace;
@@ -46,18 +46,18 @@ namespace Corrosive {
 
 
 		
-		InitPrimitiveType("u8",   p_nspc.get(), StructDeclarationType::t_u8,   Corrosive::t_u8);
-		InitPrimitiveType("u16",  p_nspc.get(), StructDeclarationType::t_u16,  Corrosive::t_u16);
-		InitPrimitiveType("u32",  p_nspc.get(), StructDeclarationType::t_u32,  Corrosive::t_u32);
-		InitPrimitiveType("u64",  p_nspc.get(), StructDeclarationType::t_u64,  Corrosive::t_u64);
-		InitPrimitiveType("i8",   p_nspc.get(), StructDeclarationType::t_i8,   Corrosive::t_i8);
-		InitPrimitiveType("i16",  p_nspc.get(), StructDeclarationType::t_i16,  Corrosive::t_i16);
-		InitPrimitiveType("i32",  p_nspc.get(), StructDeclarationType::t_i32,  Corrosive::t_i32);
-		InitPrimitiveType("i64",  p_nspc.get(), StructDeclarationType::t_i64,  Corrosive::t_i64);
-		InitPrimitiveType("f32",  p_nspc.get(), StructDeclarationType::t_f32,  Corrosive::t_f32);
-		InitPrimitiveType("f64",  p_nspc.get(), StructDeclarationType::t_f64,  Corrosive::t_f64);
-		InitPrimitiveType("bool", p_nspc.get(), StructDeclarationType::t_bool, Corrosive::t_bool);
-		InitPrimitiveType("ptr",  p_nspc.get(), StructDeclarationType::t_ptr,  Corrosive::t_ptr);
+		init_primitive_type("u8",   p_nspc.get(), StructDeclarationType::t_u8,   Corrosive::t_u8);
+		init_primitive_type("u16",  p_nspc.get(), StructDeclarationType::t_u16,  Corrosive::t_u16);
+		init_primitive_type("u32",  p_nspc.get(), StructDeclarationType::t_u32,  Corrosive::t_u32);
+		init_primitive_type("u64",  p_nspc.get(), StructDeclarationType::t_u64,  Corrosive::t_u64);
+		init_primitive_type("i8",   p_nspc.get(), StructDeclarationType::t_i8,   Corrosive::t_i8);
+		init_primitive_type("i16",  p_nspc.get(), StructDeclarationType::t_i16,  Corrosive::t_i16);
+		init_primitive_type("i32",  p_nspc.get(), StructDeclarationType::t_i32,  Corrosive::t_i32);
+		init_primitive_type("i64",  p_nspc.get(), StructDeclarationType::t_i64,  Corrosive::t_i64);
+		init_primitive_type("f32",  p_nspc.get(), StructDeclarationType::t_f32,  Corrosive::t_f32);
+		init_primitive_type("f64",  p_nspc.get(), StructDeclarationType::t_f64,  Corrosive::t_f64);
+		init_primitive_type("bool", p_nspc.get(), StructDeclarationType::t_bool, Corrosive::t_bool);
+		init_primitive_type("ptr",  p_nspc.get(), StructDeclarationType::t_ptr,  Corrosive::t_ptr);
 
 		PrimitiveType pt_ptr_ref = *(PrimitiveType*)Corrosive::t_ptr;
 		pt_ptr_ref.ref = true;

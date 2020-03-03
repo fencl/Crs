@@ -28,7 +28,7 @@ int main() {
 
 	Corrosive::Cursor c = src.read_first();
 	std::vector<std::unique_ptr<Corrosive::Declaration>> decls;
-	Corrosive::InitPredefinedTypes(decls);
+	Corrosive::init_predefined_types(decls);
 
 	while (c.tok != Corrosive::RecognizedToken::Eof)
 		Corrosive::Declaration::parse(c, decls, nullptr,nullptr);
