@@ -30,7 +30,7 @@ namespace Corrosive {
 
 		std::unique_ptr<StructDeclaration> t_u8 = std::make_unique<StructDeclaration>();
 		n_c.Data("u8");
-		t_u8->DeclType(StructDeclarationType::t_u8);
+		t_u8->decl_type = StructDeclarationType::t_u8;
 		t_u8->Name(n_c);
 		t_u8->Pack(PredefinedNamespace);
 		t_u8->ParentPack(p_nspc.get());
@@ -45,7 +45,7 @@ namespace Corrosive {
 
 		std::unique_ptr<StructDeclaration> t_u16 = std::make_unique<StructDeclaration>();
 		n_c.Data("u16");
-		t_u16->DeclType(StructDeclarationType::t_u16);
+		t_u16->decl_type = StructDeclarationType::t_u16;
 		t_u16->Name(n_c);
 		t_u16->Pack(PredefinedNamespace);
 		t_u16->ParentPack(p_nspc.get());
@@ -60,7 +60,7 @@ namespace Corrosive {
 
 		std::unique_ptr<StructDeclaration> t_u32 = std::make_unique<StructDeclaration>();
 		n_c.Data("u32");
-		t_u32->DeclType(StructDeclarationType::t_u32);
+		t_u32->decl_type = StructDeclarationType::t_u32;
 		t_u32->Name(n_c);
 		t_u32->Pack(PredefinedNamespace);
 		t_u32->ParentPack(p_nspc.get());
@@ -75,7 +75,7 @@ namespace Corrosive {
 
 		std::unique_ptr<StructDeclaration> t_u64 = std::make_unique<StructDeclaration>();
 		n_c.Data("u64");
-		t_u64->DeclType(StructDeclarationType::t_u64);
+		t_u64->decl_type = StructDeclarationType::t_u64;
 		t_u64->Name(n_c);
 		t_u64->Pack(PredefinedNamespace);
 		t_u64->ParentPack(p_nspc.get());
@@ -91,7 +91,7 @@ namespace Corrosive {
 
 		std::unique_ptr<StructDeclaration> t_i8 = std::make_unique<StructDeclaration>();
 		n_c.Data("i8");
-		t_i8->DeclType(StructDeclarationType::t_i8);
+		t_i8->decl_type = StructDeclarationType::t_i8;
 		t_i8->Name(n_c);
 		t_i8->Pack(PredefinedNamespace);
 		t_i8->ParentPack(p_nspc.get());
@@ -107,7 +107,7 @@ namespace Corrosive {
 
 		std::unique_ptr<StructDeclaration> t_i16 = std::make_unique<StructDeclaration>();
 		n_c.Data("i16");
-		t_i16->DeclType(StructDeclarationType::t_i16);
+		t_i16->decl_type = StructDeclarationType::t_i16;
 		t_i16->Name(n_c);
 		t_i16->Pack(PredefinedNamespace);
 		t_i16->ParentPack(p_nspc.get());
@@ -122,7 +122,7 @@ namespace Corrosive {
 
 		std::unique_ptr<StructDeclaration> t_i32 = std::make_unique<StructDeclaration>();
 		n_c.Data("i32");
-		t_i32->DeclType(StructDeclarationType::t_i32);
+		t_i32->decl_type = StructDeclarationType::t_i32;
 		t_i32->Name(n_c);
 		t_i32->Pack(PredefinedNamespace);
 		t_i32->ParentPack(p_nspc.get());
@@ -138,7 +138,7 @@ namespace Corrosive {
 
 		std::unique_ptr<StructDeclaration> t_i64 = std::make_unique<StructDeclaration>();
 		n_c.Data("i64");
-		t_i64->DeclType(StructDeclarationType::t_i64);
+		t_i64->decl_type = StructDeclarationType::t_i64;
 		t_i64->Name(n_c);
 		t_i64->Pack(PredefinedNamespace);
 		t_i64->ParentPack(p_nspc.get());
@@ -153,7 +153,7 @@ namespace Corrosive {
 
 		std::unique_ptr<StructDeclaration> t_f32 = std::make_unique<StructDeclaration>();
 		n_c.Data("f32");
-		t_f32->DeclType(StructDeclarationType::t_f32);
+		t_f32->decl_type = StructDeclarationType::t_f32;
 		t_f32->Name(n_c);
 		t_f32->Pack(PredefinedNamespace);
 		t_f32->ParentPack(p_nspc.get());
@@ -170,7 +170,7 @@ namespace Corrosive {
 
 		std::unique_ptr<StructDeclaration> t_f64 = std::make_unique<StructDeclaration>();
 		n_c.Data("f64");
-		t_f64->DeclType(StructDeclarationType::t_f64);
+		t_f64->decl_type = StructDeclarationType::t_f64;
 		t_f64->Name(n_c);
 		t_f64->Pack(PredefinedNamespace);
 		t_f64->ParentPack(p_nspc.get());
@@ -186,7 +186,7 @@ namespace Corrosive {
 
 		std::unique_ptr<StructDeclaration> t_bool = std::make_unique<StructDeclaration>();
 		n_c.Data("bool");
-		t_bool->DeclType(StructDeclarationType::t_bool);
+		t_bool->decl_type = StructDeclarationType::t_bool;
 		t_bool->Name(n_c);
 		t_bool->Pack(PredefinedNamespace);
 		t_bool->ParentPack(p_nspc.get());
@@ -203,7 +203,7 @@ namespace Corrosive {
 
 		std::unique_ptr<StructDeclaration> t_ptr = std::make_unique<StructDeclaration>();
 		n_c.Data("ptr");
-		t_ptr->DeclType(StructDeclarationType::t_ptr);
+		t_ptr->decl_type = StructDeclarationType::t_ptr;
 		t_ptr->Name(n_c);
 		t_ptr->Pack(PredefinedNamespace);
 		t_ptr->ParentPack(p_nspc.get());
@@ -214,7 +214,7 @@ namespace Corrosive {
 
 		std::unique_ptr<StructDeclaration> t_string = std::make_unique<StructDeclaration>();
 		n_c.Data("string");
-		t_string->DeclType(StructDeclarationType::t_string);
+		t_string->decl_type = StructDeclarationType::t_string;
 		t_string->Name(n_c);
 		t_string->Pack(PredefinedNamespace);
 		t_string->ParentPack(p_nspc.get());
@@ -224,7 +224,7 @@ namespace Corrosive {
 
 		std::unique_ptr<GenericStructDeclaration> t_array = std::make_unique<GenericStructDeclaration>();
 		n_c.Data("array");
-		t_array->DeclType(StructDeclarationType::t_array);
+		t_array->decl_type = StructDeclarationType::t_array;
 		t_array->Name(n_c);
 		t_array->Pack(PredefinedNamespace);
 		t_array->ParentPack(p_nspc.get());
@@ -247,7 +247,7 @@ namespace Corrosive {
 
 		std::unique_ptr<GenericStructDeclaration> t_tuple = std::make_unique<GenericStructDeclaration>();
 		n_c.Data("tuple");
-		t_tuple->DeclType(StructDeclarationType::t_tuple);
+		t_tuple->decl_type = StructDeclarationType::t_tuple;
 		t_tuple->Name(n_c);
 		t_tuple->Pack(PredefinedNamespace);
 		t_tuple->ParentPack(p_nspc.get());

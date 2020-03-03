@@ -155,8 +155,8 @@ namespace Corrosive {
 
 				/*while (true)*/ {
 
-					auto lt = sd->LookupTable.find(c.Data());
-					if (lt == sd->LookupTable.end()) {
+					auto lt = sd->lookup_table.find(c.Data());
+					if (lt == sd->lookup_table.end()) {
 						ThrowSpecificError(c, "Member was not found");
 					}
 					Declaration* decl = std::get<0>(lt->second);

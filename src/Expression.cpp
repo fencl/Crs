@@ -5,6 +5,7 @@
 #include "Declaration.h"
 #include "PredefinedTypes.h"
 #include <iostream>
+#include <llvm/Target.h>
 
 namespace Corrosive {
 	void Expression::ToRvalue(CompileContextExt& ctx,CompileValue& value,CompileType cpt) {
@@ -12,6 +13,11 @@ namespace Corrosive {
 			if (cpt == CompileType::Compile) {
 				value.lvalue = false;
 				value.v = LLVMBuildLoad2(ctx.builder, value.t->LLVMTypeRValue(), value.v, "");
+			}
+			else if (cpt == CompileType::Eval) {
+				value.lvalue = false;
+				void* ptr = (void*)LLVMConstIntGetZExtValue(value.v);
+				int size = LLVMABISizeOfType(ctx.basic.target_layout,value.t->LLVMType());
 			}
 		}
 	}
@@ -83,7 +89,7 @@ namespace Corrosive {
 
 
 	int Expression::ArithValue(const PrimitiveType* pt) {
-		StructDeclarationType sdt = pt->Structure()->DeclType();
+		StructDeclarationType sdt = pt->Structure()->decl_type;
 
 		switch (sdt)
 		{

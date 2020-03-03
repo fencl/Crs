@@ -18,6 +18,8 @@ int main() {
 	
 	LLVMModuleRef m = LLVMModuleCreateWithName("module");
 	LLVMSetTarget(m, "x86_64-pc-win32");
+	
+	LLVMTargetDataRef t_l = LLVMGetModuleDataLayout(m);
 
 	auto end = std::chrono::system_clock::now();
 	auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
@@ -40,6 +42,7 @@ int main() {
 
 	
 	ctx.module = m;
+	ctx.target_layout = t_l;
 	ctx.parent_namespace = Corrosive::Contents::entry_point->ParentPack();
 	ctx.parent_struct = Corrosive::Contents::entry_point->ParentStruct();
 	ctx.template_ctx = nullptr;
@@ -50,7 +53,7 @@ int main() {
 	for (auto&& it : Corrosive::Contents::StaticStructures) {
 		ctx.parent_namespace = it->ParentPack();
 		ctx.parent_struct = it;
-		ctx.template_ctx = it->Template();
+		ctx.template_ctx = it->template_ctx;
 		it->Compile(ctx);
 	}
 
@@ -82,7 +85,7 @@ int main() {
 		std::cout << std::endl;
 		for (auto it = decls.begin(); it != decls.end(); it++) {
 			auto s = dynamic_cast<Corrosive::StructDeclaration*>(it->get());
-			if (s == nullptr || !s->Extending())
+			if (s == nullptr || !s->is_extending)
 				it->get()->Print(0);
 		}
 

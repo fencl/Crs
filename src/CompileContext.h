@@ -2,6 +2,7 @@
 #ifndef _compile_context_crs_h
 #define _compile_context_crs_h
 #include <llvm/Core.h>
+#include <llvm/Target.h>
 #include <variant>
 #include <vector>
 
@@ -22,6 +23,7 @@ namespace Corrosive {
 		NamespaceDeclaration* parent_namespace;
 		const TemplateContext* template_ctx;
 		LLVMModuleRef module;
+		LLVMTargetDataRef target_layout;
 	};
 
 	struct CompileContextExt {

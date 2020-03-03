@@ -150,7 +150,7 @@ namespace Corrosive {
 
 		if (package == "") {
 
-			if (ctx.template_ctx != nullptr && ctx.parent_struct != nullptr && ctx.parent_struct->Generic()) {
+			if (ctx.template_ctx != nullptr && ctx.parent_struct != nullptr && ctx.parent_struct->is_generic()) {
 				GenericStructDeclaration* gs = (GenericStructDeclaration*)ctx.parent_struct;
 
 				if (gs->Generics().size() != ctx.template_ctx->size()) {

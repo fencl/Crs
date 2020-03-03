@@ -13,33 +13,33 @@ namespace Corrosive {
 		if (llvm_type != nullptr) return;
 		Contents::StaticStructures.push_back(this);
 
-		if (DeclType() == StructDeclarationType::t_i64 || DeclType() == StructDeclarationType::t_u64) {
+		if (decl_type == StructDeclarationType::t_i64 || decl_type == StructDeclarationType::t_u64) {
 			llvm_type = LLVMInt64Type();
-		}else if (DeclType() == StructDeclarationType::t_i32 || DeclType() == StructDeclarationType::t_u32) {
+		}else if (decl_type == StructDeclarationType::t_i32 || decl_type == StructDeclarationType::t_u32) {
 			llvm_type = LLVMInt32Type();
 		}
-		else if (DeclType() == StructDeclarationType::t_i16 || DeclType() == StructDeclarationType::t_u16) {
+		else if (decl_type == StructDeclarationType::t_i16 || decl_type == StructDeclarationType::t_u16) {
 			llvm_type = LLVMInt16Type();
 		}
-		else if (DeclType() == StructDeclarationType::t_i8 || DeclType() == StructDeclarationType::t_u8) {
+		else if (decl_type == StructDeclarationType::t_i8 || decl_type == StructDeclarationType::t_u8) {
 			llvm_type = LLVMInt8Type();
 		}
-		else if (DeclType() == StructDeclarationType::t_f32) {
+		else if (decl_type == StructDeclarationType::t_f32) {
 			llvm_type = LLVMFloatType();
 		}
-		else if (DeclType() == StructDeclarationType::t_f64) {
+		else if (decl_type == StructDeclarationType::t_f64) {
 			llvm_type = LLVMDoubleType();
 		}
-		else if (DeclType() == StructDeclarationType::t_bool) {
+		else if (decl_type == StructDeclarationType::t_bool) {
 			llvm_type = LLVMInt1Type();
 		}
-		else if(DeclType() == StructDeclarationType::t_ptr) {
+		else if(decl_type == StructDeclarationType::t_ptr) {
 			llvm_type = LLVMPointerType(LLVMVoidType(),0);
 		}
 		else {
 
 			std::string llvm_name;
-			if (Class())
+			if (is_trait)
 				llvm_name.append("t.");
 			else
 				llvm_name.append("s.");
@@ -50,20 +50,20 @@ namespace Corrosive {
 			}
 			llvm_name.append(name.Data());
 
-			if (GenID() != 0) {
+			if (gen_id != 0) {
 				llvm_name.append(".");
-				llvm_name.append(std::to_string(GenID()));
+				llvm_name.append(std::to_string(gen_id));
 			}
 
 			llvm_type = LLVMStructCreateNamed(LLVMGetGlobalContext(), llvm_name.c_str());
 
 
-			for (int i = 0; i < Extends().size(); i++) {
-				const Corrosive::Type*& ext = Extends()[i].second;
+			for (int i = 0; i < implements.size(); i++) {
+				const Corrosive::Type*& ext = implements[i].second;
 
 				CompileContext nctx = ctx;
-				nctx.parent_struct = Extends()[i].first;
-				nctx.parent_namespace = Extends()[i].first->ParentPack();
+				nctx.parent_struct = implements[i].first;
+				nctx.parent_namespace = implements[i].first->ParentPack();
 				Type::ResolvePackageInPlace(ext, nctx);
 
 				if (auto exttype = dynamic_cast<const PrimitiveType*>(ext)) {
@@ -83,7 +83,7 @@ namespace Corrosive {
 					}
 					else {
 						if (auto fs = exttype->Structure()) {
-							if (!fs->Generic()) {
+							if (!fs->is_generic()) {
 								ThrowSpecificError(exttype->Name(), "Target structure is not generic");
 							}
 							GenericStructDeclaration* gsd = (GenericStructDeclaration*)fs;
@@ -108,7 +108,7 @@ namespace Corrosive {
 			}
 
 			for (auto it = extends_structures.begin(); it != extends_structures.end(); it++) {
-				if (!(*it)->isClass) {
+				if (!(*it)->is_trait) {
 					ThrowSpecificError(Name(), "All extended types needs to be classes");
 				}
 				(*it)->PreCompile(ctx);
@@ -130,9 +130,9 @@ namespace Corrosive {
 						PrimitiveType thistype;
 						Cursor ptrc;
 						ptrc.Data("ptr");
-						thistype.Name(isClass ? ptrc : name);
-						thistype.Pack(isClass ? "corrosive" : package);
-						thistype.ref = isClass?false:true;
+						thistype.Name(is_trait ? ptrc : name);
+						thistype.Pack(is_trait ? "corrosive" : package);
+						thistype.ref = is_trait ?false:true;
 						thistype.Templates() = ctx.template_ctx;
 						FunctionType nfd = *fdt;
 						std::vector<const Type*> nargs = *nfd.Args();
@@ -153,23 +153,23 @@ namespace Corrosive {
 				decl->PreCompile(ctx);
 
 				if (vdecl = dynamic_cast<VariableDeclaration*>(decl.get())) {
-					if (!Class())
+					if (!is_trait)
 						mem_types.push_back(vdecl->Type()->LLVMType());
 					else
 						ThrowSpecificError(vdecl->Name(), "variable found in trait type");
 				}
 				else if (fdecl != nullptr) {
-					if (Class())
+					if (is_trait)
 						mem_types.push_back(LLVMPointerType(fdecl->Type()->LLVMType(), 0));
 				}
 			}
 
-			if (DeclType() == StructDeclarationType::Declared)
+			if (decl_type == StructDeclarationType::Declared)
 				LLVMStructSetBody(llvm_type, mem_types.data(), (unsigned int)mem_types.size(), false);
 
 
-			BuildLookupTable();
-			TestInterfaceComplete();
+			build_lookup_table();
+			test_interface_complete();
 		}
 	}
 
@@ -204,7 +204,7 @@ namespace Corrosive {
 	}
 
 
-	void StructDeclaration::TestInterfaceComplete() {
+	void StructDeclaration::test_interface_complete() {
 		std::map<std::string_view, FunctionDeclaration*> iface_list;
 
 		for (auto it = extends_structures.begin(); it != extends_structures.end(); it++) {
@@ -228,7 +228,7 @@ namespace Corrosive {
 			}
 		}
 
-		for (auto it = LookupTable.begin(); it != LookupTable.end(); it++) {
+		for (auto it = lookup_table.begin(); it != lookup_table.end(); it++) {
 			Declaration* actual_decl = FindDeclarationOfMember(it->first);
 
 			if (auto f = dynamic_cast<FunctionDeclaration*>(actual_decl)) {
@@ -250,7 +250,7 @@ namespace Corrosive {
 	}
 
 
-	void StructDeclaration::BuildLookupTable() {
+	void StructDeclaration::build_lookup_table() {
 		if (has_lookup_table) return;
 		has_lookup_table = true;
 
@@ -260,7 +260,7 @@ namespace Corrosive {
 			if (auto f = dynamic_cast<FunctionDeclaration*>(it->get())) {
 				std::tuple<Declaration*, unsigned int, std::string_view> val = std::make_tuple(it->get(), 0,"");
 				
-				auto i = LookupTable.emplace(f->Name().Data(), val);
+				auto i = lookup_table.emplace(f->Name().Data(), val);
 				if (!i.second) {
 					ThrowSpecificError(f->Name(), "Member with the same name already existed in the structure");
 				}
@@ -268,18 +268,18 @@ namespace Corrosive {
 			else if (auto v = dynamic_cast<VariableDeclaration*>(it->get())) {
 				std::tuple<Declaration*, unsigned int, std::string_view> val = std::make_tuple(it->get(), lookup_id++, "");
 				
-				auto i = LookupTable.emplace(v->Name().Data(), val);
+				auto i = lookup_table.emplace(v->Name().Data(), val);
 				if (!i.second) {
 					ThrowSpecificError(v->Name(), "Member with the same name already existed in the structure");
 				}
 			}
 		}
 
-		for (auto it = Aliases.begin(); it != Aliases.end(); it++) {
+		for (auto it = aliases.begin(); it != aliases.end(); it++) {
 			Cursor a_nm = it->first;
 			Cursor a_fm = it->second;
-			auto look = LookupTable.find(a_fm.Data());
-			if (look == LookupTable.end()) {
+			auto look = lookup_table.find(a_fm.Data());
+			if (look == lookup_table.end()) {
 				ThrowSpecificError(a_fm, "Member with this name was not declared in this structure");
 			}
 			else {
@@ -295,22 +295,22 @@ namespace Corrosive {
 						ThrowSpecificError(a_fm, "Alias points to variable with type that cannot be aliased");
 					}
 
-					alias_struct->BuildLookupTable();
+					alias_struct->build_lookup_table();
 
 					if (a_nm.Data().empty()) {
-						for (auto m_it = alias_struct->LookupTable.begin(); m_it != alias_struct->LookupTable.end(); m_it++) {
+						for (auto m_it = alias_struct->lookup_table.begin(); m_it != alias_struct->lookup_table.end(); m_it++) {
 							std::tuple<Declaration*, unsigned int, std::string_view> val = std::make_tuple(alias_struct, std::get<1>(look->second), m_it->first);
-							LookupTable.emplace((std::string_view)m_it->first,val);
+							lookup_table.emplace((std::string_view)m_it->first,val);
 						}
 					}
 					else {
-						auto m_it = alias_struct->LookupTable.find(a_nm.Data());
-						if (m_it == alias_struct->LookupTable.end()) {
+						auto m_it = alias_struct->lookup_table.find(a_nm.Data());
+						if (m_it == alias_struct->lookup_table.end()) {
 							ThrowSpecificError(a_nm, "Member with this name does not exist in the aliased structure");
 						}
 						else {
 							std::tuple<Declaration*, unsigned int, std::string_view> val = std::make_tuple(alias_struct, std::get<1>(look->second), m_it->first);
-							auto emp = LookupTable.emplace((std::string_view)m_it->first, val);
+							auto emp = lookup_table.emplace((std::string_view)m_it->first, val);
 							if (!emp.second) {
 								ThrowSpecificError(a_nm, "Member with the same name already exists in the structure");
 							}

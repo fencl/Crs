@@ -88,11 +88,11 @@ namespace Corrosive {
 
 		const TemplateContext* const& Templates() const;
 		const TemplateContext*& Templates();
-	protected:
+
+
 		Cursor name;
 		std::string_view package;
 		StructDeclaration* structure_cache = nullptr;
-
 		const TemplateContext* templates;
 	};
 

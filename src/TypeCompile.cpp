@@ -151,7 +151,7 @@ namespace Corrosive {
 			}
 			else {
 
-				if (sd->DeclType() == StructDeclarationType::t_array || sd->DeclType() == StructDeclarationType::t_tuple) {
+				if (sd->decl_type == StructDeclarationType::t_array || sd->decl_type == StructDeclarationType::t_tuple) {
 
 					if (Templates() == nullptr || Templates()->size() != 1)
 						ThrowSpecificError(name, "Wrong parameters given to predefined type");
@@ -179,7 +179,7 @@ namespace Corrosive {
 					CompileContext nctx = ctx;
 					nctx.template_ctx = Templates();
 
-					if (sd->Generic()) {
+					if (sd->is_generic()) {
 						if (Templates() == nullptr) {
 							ThrowSpecificError(name, "Primitive type points to generic structure and was not given generic arguments");
 						}
@@ -192,7 +192,7 @@ namespace Corrosive {
 
 					self->structure_cache = sd;
 
-					if (!ref && sd->DeclType() == StructDeclarationType::Declared) {
+					if (!ref && sd->decl_type == StructDeclarationType::Declared) {
 						self->heavy_type = true;
 					}
 					

@@ -208,7 +208,7 @@ namespace Corrosive {
 			}
 			else if (c.Tok() == RecognizedToken::Semicolon) {
 				StructDeclaration* ps = nullptr;
-				if (parent == nullptr || ((ps = dynamic_cast<StructDeclaration*>(parent)) != nullptr && !ps->Class())) {
+				if (parent == nullptr || ((ps = dynamic_cast<StructDeclaration*>(parent)) != nullptr && !ps->is_trait)) {
 					ThrowSpecificError(name, "Global functions and functions inside structures must have body");
 				}
 				c.Move();
@@ -220,7 +220,7 @@ namespace Corrosive {
 			into.push_back(std::move(fd));
 		}
 		else if (c.Data() == "struct" || c.Data() == "trait") {
-			bool isc = c.Data() == "trait";
+			bool is_trait = c.Data() == "trait";
 			bool isext = false;
 			std::string_view overpack = "";
 
@@ -295,8 +295,8 @@ namespace Corrosive {
 			}
 
 			sd->Name(name);
-			sd->Class(isc);
-			sd->Extending(isext);
+			sd->is_trait = is_trait;
+			sd->is_extending = isext;
 
 			sd->Pack(pkg);
 
@@ -309,26 +309,26 @@ namespace Corrosive {
 
 
 			if (auto existing = Contents::FindStruct(pkg, name.Data())) {
-				if (!isext && !existing->Extending()) {
+				if (!isext && !existing->is_extending) {
 					ThrowSpecificError(name, "There already exist's class/structure with the same name");
 				}
 
 
 				if (isext) {
-					if (isc && !existing->Class())
+					if (is_trait && !existing->is_trait)
 						ThrowSpecificError(name, "Cannot extend structure with class");
-					if (!isc && existing->Class())
+					if (!is_trait && existing->is_trait)
 						ThrowSpecificError(name, "Cannot extend class with structure");
 				}
 				else {
-					if (isc && !existing->Class())
+					if (is_trait && !existing->is_trait)
 						ThrowSpecificError(existing->name, "Cannot extend class with structure");
-					if (!isc && existing->Class())
+					if (!is_trait && existing->is_trait)
 						ThrowSpecificError(existing->name, "Cannot extend structure with class");
 				}
 
 				if (gen_names.size() == 0) {
-					if (existing->Generic())
+					if (existing->is_generic())
 						ThrowSpecificError(isext ? name : existing->name, "Cannot extend generic struct/class with non-generic struct/class");
 				}
 				else {
@@ -345,13 +345,13 @@ namespace Corrosive {
 
 
 				if (c.Tok() == RecognizedToken::Colon) {
-					if (isc) {
+					if (is_trait) {
 						ThrowSpecificError(c, "Classes cannot implement other classes");
 					}
 
 					c.Move();
 					while (true) {
-						existing->Extends().push_back(std::make_pair(sd.get(), Type::Parse(c)));
+						existing->implements.push_back(std::make_pair(sd.get(), Type::Parse(c)));
 
 						if (c.Tok() == RecognizedToken::Comma) {
 							c.Move();
@@ -386,7 +386,7 @@ namespace Corrosive {
 									ThrowNotANameError(c);
 								}
 								specific = true;
-								existing->Aliases.push_back(std::make_pair(c, alias_from));
+								existing->aliases.push_back(std::make_pair(c, alias_from));
 								c.Move();
 
 								if (c.Tok() == RecognizedToken::Semicolon) {
@@ -408,13 +408,13 @@ namespace Corrosive {
 
 						if (!specific) {
 							Cursor empty;
-							existing->Aliases.push_back(std::make_pair(empty, alias_from));
+							existing->aliases.push_back(std::make_pair(empty, alias_from));
 						}
 					}
 					else {
 						Declaration::Parse(c, existing->Members, sd.get(), pack);
 						if (auto varmember = dynamic_cast<VariableDeclaration*>(existing->Members.back().get())) {
-							if (existing->DeclType() != StructDeclarationType::Declared)
+							if (existing->decl_type!= StructDeclarationType::Declared)
 								ThrowSpecificError(varmember->Name(), "Cannot add new members into this structure");
 						}
 					}
@@ -425,13 +425,13 @@ namespace Corrosive {
 				// from here is normal, non-extending declaration
 
 				if (c.Tok() == RecognizedToken::Colon) {
-					if (isc) {
+					if (is_trait) {
 						ThrowSpecificError(c, "Classes cannot implement other classes");
 					}
 
 					c.Move();
 					while (true) {
-						sd->Extends().push_back(std::make_pair(sd.get(), Type::Parse(c)));
+						sd->implements.push_back(std::make_pair(sd.get(), Type::Parse(c)));
 
 						if (c.Tok() == RecognizedToken::Comma) {
 							c.Move();
@@ -469,7 +469,7 @@ namespace Corrosive {
 									ThrowNotANameError(c);
 								}
 								specific = true;
-								sd->Aliases.push_back(std::make_pair(c, alias_from));
+								sd->aliases.push_back(std::make_pair(c, alias_from));
 								c.Move();
 
 								if (c.Tok() == RecognizedToken::Semicolon) {
@@ -491,7 +491,7 @@ namespace Corrosive {
 
 						if (!specific) {
 							Cursor empty;
-							sd->Aliases.push_back(std::make_pair(empty,alias_from));
+							sd->aliases.push_back(std::make_pair(empty,alias_from));
 						}
 
 					} else {

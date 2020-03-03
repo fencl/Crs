@@ -138,51 +138,30 @@ namespace Corrosive {
 
 		virtual void Print(unsigned int offset) const;
 
-		bool Class() const;
-		void Class(bool c);
-
-		virtual bool Generic();
+		virtual bool is_generic();
 
 		virtual void Compile(CompileContext& ctx);
 		virtual void PreCompile(CompileContext& ctx);
 
-		void TestInterfaceComplete();
-		void BuildLookupTable();
-
-		int GenID() const;
-		void GenID(int id);
-
-		void Template(const TemplateContext* tc);
-		const TemplateContext* Template() const;
-
-		bool Extending();
-		void Extending(bool);
-
-		const std::vector<std::pair<StructDeclaration*, const Corrosive::Type*>>& Extends() const;
-		std::vector<std::pair<StructDeclaration*, const Corrosive::Type*>>& Extends();
-
-		StructDeclarationType DeclType() const;
-		void DeclType(StructDeclarationType t);
+		void test_interface_complete();
+		void build_lookup_table();
 
 		LLVMTypeRef LLVMType();
-
-		std::vector<std::pair<Cursor, Cursor>> Aliases;
-		std::map<std::string_view, std::tuple<Declaration*, unsigned int, std::string_view>> LookupTable;
-
 		Declaration* FindDeclarationOfMember(std::string_view name);
 
+		std::vector<std::pair<Cursor, Cursor>> aliases;
+		std::map<std::string_view, std::tuple<Declaration*, unsigned int, std::string_view>> lookup_table;
 		bool has_lookup_table = false;
-
-	protected:
-		std::vector<StructDeclaration*> extends_structures;
-		std::vector<std::pair<StructDeclaration*, const Corrosive::Type*>> extends;
-		bool isextending = false;
-		StructDeclarationType decl_type = StructDeclarationType::Declared;
-		const TemplateContext* template_ctx = nullptr;
-
-		bool isClass = false;
+		bool is_trait = false;
 		bool compiled = false;
 		int gen_id = 0;
+		StructDeclarationType decl_type = StructDeclarationType::Declared;
+		const TemplateContext* template_ctx = nullptr;
+		std::vector<StructDeclaration*> extends_structures;
+		std::vector<std::pair<StructDeclaration*, const Corrosive::Type*>> implements;
+		bool is_extending = false;
+
+	protected:
 		LLVMTypeRef llvm_type = nullptr;
 	};
 
@@ -198,7 +177,7 @@ namespace Corrosive {
 
 		virtual void Print(unsigned int offset) const;
 
-		virtual bool Generic();
+		virtual bool is_generic();
 	protected:
 		std::map<const TemplateContext*,std::unique_ptr<StructDeclaration>> generated;
 		std::map<std::string_view,int> generic_typenames;

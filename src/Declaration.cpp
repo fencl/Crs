@@ -33,10 +33,6 @@ namespace Corrosive {
 	StructDeclaration* Declaration::ParentStruct() const {
 		return dynamic_cast<StructDeclaration*>(parent);
 	}
-
-	bool StructDeclaration::Extending() { return isextending; }
-	void StructDeclaration::Extending(bool e) { isextending = e; }
-
 	
 	const Corrosive::Type*& VariableDeclaration::Type() {
 		return type;
@@ -57,11 +53,7 @@ namespace Corrosive {
 
 	bool FunctionDeclaration::Static() const { return isstatic; }
 	void FunctionDeclaration::Static(bool b) { isstatic = b; }
-
-	const std::vector<std::pair<StructDeclaration*, const Corrosive::Type*>>& StructDeclaration::Extends() const { return extends; }
-	std::vector<std::pair<StructDeclaration*, const Corrosive::Type*>>& StructDeclaration::Extends() { return extends; }
-
-
+	
 	const Corrosive::Type*& FunctionDeclaration::Type() { return type; }
 
 	void FunctionDeclaration::Type(const Corrosive::Type* t) {
@@ -127,12 +119,6 @@ namespace Corrosive {
 	std::map<const TemplateContext*, std::unique_ptr<StructDeclaration>>& GenericStructDeclaration::Generated() { return generated; }
 	const std::map<const TemplateContext*, std::unique_ptr<StructDeclaration>>& GenericStructDeclaration::Generated() const { return generated; }
 
-	int StructDeclaration::GenID() const { return gen_id; }
-	void StructDeclaration::GenID(int id) { gen_id = id; }
-
-
-	void StructDeclaration::Template(const TemplateContext* tc) { template_ctx = tc; }
-	const TemplateContext* StructDeclaration::Template() const { return template_ctx; }
 
 	StructDeclaration* GenericStructDeclaration::CreateTemplate(CompileContext& ctx) {
 		
@@ -143,25 +129,26 @@ namespace Corrosive {
 		else {
 			std::unique_ptr<StructDeclaration> sd = std::make_unique<StructDeclaration>();
 
-			sd->Template(ctx.template_ctx);
+			sd->template_ctx = ctx.template_ctx;
 
 			sd->Name(Name());
 			sd->Pack(Pack());
 			sd->Parent(parent);
-			sd->Class(isClass);
-			sd->DeclType(DeclType());
-			sd->Template(ctx.template_ctx);
+			sd->is_trait = is_trait;
 
-			sd->Aliases = Aliases;
+			sd->decl_type = decl_type;
+			sd->template_ctx = ctx.template_ctx;
 
-			for (int i = 0; i < Extends().size(); i++) {
-				const Corrosive::Type* nex = Extends()[i].second;
+			sd->aliases = aliases;
+
+			for (int i = 0; i < implements.size(); i++) {
+				const Corrosive::Type* nex = implements[i].second;
 				CompileContext nctx = ctx;
-				nctx.parent_struct = Extends()[i].first;
-				nctx.parent_namespace = Extends()[i].first->ParentPack();
+				nctx.parent_struct = implements[i].first;
+				nctx.parent_namespace = implements[i].first->ParentPack();
 
 				Type::ResolvePackageInPlace(nex, nctx);
-				sd->Extends().push_back(std::make_pair(Extends()[i].first,std::move(nex)));
+				sd->implements.push_back(std::make_pair(implements[i].first,std::move(nex)));
 			}
 
 			sd->Members = std::vector<std::unique_ptr<Declaration>>(Members.size());
@@ -182,7 +169,8 @@ namespace Corrosive {
 					Type::ResolvePackageInPlace(fd->Type(), nctx);
 				}
 			}
-			sd->GenID((int)generated.size()+1);
+
+			sd->gen_id = (int)generated.size()+1;
 			
 			auto ret = sd.get();
  			generated[ctx.template_ctx] = std::move(sd);
@@ -194,8 +182,8 @@ namespace Corrosive {
 
 
 	Declaration* StructDeclaration::FindDeclarationOfMember(std::string_view name) {
-		auto d = LookupTable.find(name);
-		if (d == LookupTable.end()) {
+		auto d = lookup_table.find(name);
+		if (d == lookup_table.end()) {
 			return nullptr;
 		}
 		else {
@@ -258,22 +246,22 @@ namespace Corrosive {
 
 		for (unsigned int i = 0; i < offset; i++) std::cout << "\t";
 
-		if (Class())
+		if (is_trait)
 			std::cout << "class ";
 		else
 			std::cout << "struct ";
 
-		if (GenID() > 0) {
-			std::cout << GenID() << " ";
+		if (gen_id > 0) {
+			std::cout << gen_id << " ";
 		}
 
 		std::cout<< Name().Data();
-		if (Extends().size() > 0) {
+		if (implements.size() > 0) {
 			std::cout << " : ";
-			for (int i = 0; i < Extends().size(); i++) {
+			for (int i = 0; i < implements.size(); i++) {
 				if (i != 0) std::cout << ", ";
 
-				Extends()[i].second->Print();
+				implements[i].second->Print();
 			}
 		}
 
@@ -289,7 +277,7 @@ namespace Corrosive {
 	void GenericStructDeclaration::Print(unsigned int offset) const {
 
 		for (unsigned int i = 0; i < offset; i++) std::cout << "\t";
-		if (Class())
+		if (is_trait)
 			std::cout << "generic class ";
 		else
 			std::cout << "generic struct ";
@@ -319,19 +307,12 @@ namespace Corrosive {
 		std::cout << "}" << std::endl << std::endl;
 	}
 
-	bool StructDeclaration::Class() const { return isClass; }
-	void StructDeclaration::Class(bool c) { isClass = c; }
-
-
-	StructDeclarationType StructDeclaration::DeclType() const { return decl_type; }
-	void StructDeclaration::DeclType(StructDeclarationType t) { decl_type = t; }
-
 	std::vector<Cursor>* FunctionDeclaration::Argnames() {
 		return &argnames;
 	}
 
-	bool StructDeclaration::Generic() { return false; }
-	bool GenericStructDeclaration::Generic() { return true; }
+	bool StructDeclaration::is_generic() { return false; }
+	bool GenericStructDeclaration::is_generic() { return true; }
 
 	const Type* TypedefDeclaration::ResolveType() {
 		if (resolve_progress == 0) {
