@@ -11,51 +11,51 @@ namespace Corrosive {
 
 
 
-	std::string_view const Source::Data() const {
-		return std::string_view(data);
+	std::string_view const Source::data() const {
+		return std::string_view(buffer);
 	}
 
 
-	void Source::Load(const char* file) {
+	void Source::load(const char* file) {
 
 		std::ifstream in(file, std::ios::in | std::ios::binary);
 		if (in)
 		{
 			in.seekg(0, std::ios::end);
-			data.resize((const unsigned int)in.tellg());
+			buffer.resize((const unsigned int)in.tellg());
 			in.seekg(0, std::ios::beg);
-			in.read(&data[0], data.size());
+			in.read(&buffer[0], buffer.size());
 			in.close();
 		}
 	}
 
-	void Source::ReadAfter(Cursor& out, const Cursor& c) const {
-		Read(out, c.offset + c.data.length(), c.left + (unsigned int)c.data.length(), c.top);
+	void Source::read_after(Cursor& out, const Cursor& c) const {
+		read(out, c.offset + c.buffer.length(), c.left + (unsigned int)c.buffer.length(), c.top);
 	}
 
 
-	Cursor Source::ReadFirst() const {
+	Cursor Source::read_first() const {
 		Cursor c;
-		Read(c, 0, 0, 0);
+		read(c, 0, 0, 0);
 		return c;
 	}
 
 
 	Cursor Cursor::next() const {
 		Cursor c;
-		((Corrosive::Source*)src)->ReadAfter(c, *this);
+		((Corrosive::Source*)src)->read_after(c, *this);
 		return c;
 	}
 
 	void Cursor::move() {
-		((Corrosive::Source*)src)->ReadAfter(*this, *this);
+		((Corrosive::Source*)src)->read_after(*this, *this);
 	}
 
-	void Source::Read(Cursor& out, size_t offset, unsigned int left, unsigned int top) const {
+	void Source::read(Cursor& out, size_t offset, unsigned int left, unsigned int top) const {
 		while (true) {
-			while (offset < data.size() && isspace(data[offset]))
+			while (offset < buffer.size() && isspace(buffer[offset]))
 			{
-				if (data[offset] == '\n')
+				if (buffer[offset] == '\n')
 				{
 					left = 0;
 					top++;
@@ -64,12 +64,12 @@ namespace Corrosive {
 				offset++;
 			}
 
-			if (offset < data.size() - 1 && data[offset] == '/' && data[offset + 1] == '*') {
+			if (offset < buffer.size() - 1 && buffer[offset] == '/' && buffer[offset + 1] == '*') {
 				offset += 3;
 
-				while (offset < data.size() && (data[offset] != '/' || data[offset - 1] != '*'))
+				while (offset < buffer.size() && (buffer[offset] != '/' || buffer[offset - 1] != '*'))
 				{
-					if (data[offset] == '\n')
+					if (buffer[offset] == '\n')
 					{
 						left = 0;
 						top++;
@@ -79,12 +79,12 @@ namespace Corrosive {
 				}
 				offset++;
 			}
-			else if (offset < data.size() - 1 && data[offset] == '/' && data[offset + 1] == '/') {
+			else if (offset < buffer.size() - 1 && buffer[offset] == '/' && buffer[offset + 1] == '/') {
 				offset += 2;
 
-				while (offset < data.size())
+				while (offset < buffer.size())
 				{
-					if (data[offset] == '\n')
+					if (buffer[offset] == '\n')
 					{
 						left = 0;
 						top++;
@@ -99,14 +99,14 @@ namespace Corrosive {
 			else break;
 		}
 
-		if (offset < data.size())
+		if (offset < buffer.size())
 		{
-			if (isalpha(data[offset]) || data[offset] == '_')
+			if (isalpha(buffer[offset]) || buffer[offset] == '_')
 			{
 				size_t start = offset;
 				unsigned int sleft = left;
 
-				while (isalnum(data[offset]) || data[offset] == '_')
+				while (isalnum(buffer[offset]) || buffer[offset] == '_')
 				{
 					offset++;
 					left++;
@@ -115,12 +115,12 @@ namespace Corrosive {
 				out.offset = start;
 				out.left = sleft;
 				out.top = top;
-				out.data = Data().substr(start, offset - start);
+				out.buffer = data().substr(start, offset - start);
 				out.tok = RecognizedToken::Symbol;
 
 				return;
 			}
-			else if (isdigit(data[offset]))
+			else if (isdigit(buffer[offset]))
 			{
 				bool floatt = false;
 				bool doublet = false;
@@ -130,28 +130,28 @@ namespace Corrosive {
 				size_t start = offset;
 				unsigned int sleft = left;
 
-				while (isdigit(data[offset]) || data[offset] == '.')
+				while (isdigit(buffer[offset]) || buffer[offset] == '.')
 				{
-					if (data[offset] == '.')
+					if (buffer[offset] == '.')
 						floatt = true;
 
 					offset++;
 					left++;
 				}
 
-				if (data[offset] == 'd' && floatt) {
+				if (buffer[offset] == 'd' && floatt) {
 					doublet = true;
 					offset++;
 					left++;
 				}
 
-				if (data[offset] == 'u' && !floatt) {
+				if (buffer[offset] == 'u' && !floatt) {
 					isusg = true;
 					offset++;
 					left++;
 				}
 
-				if (data[offset] == 'l' && !floatt) {
+				if (buffer[offset] == 'l' && !floatt) {
 					islong = true;
 					offset++;
 					left++;
@@ -161,7 +161,7 @@ namespace Corrosive {
 				out.offset = start;
 				out.left = sleft;
 				out.top = top;
-				out.data = Data().substr(start, offset - start);
+				out.buffer = data().substr(start, offset - start);
 				if (floatt) {
 					if (doublet)
 						out.tok = (RecognizedToken::DoubleNumber);
@@ -189,11 +189,11 @@ namespace Corrosive {
 				size_t start = offset;
 				unsigned int sleft = left;
 
-				char c = data[offset++];
+				char c = buffer[offset++];
 				char nc = '\0';
-				if (offset < data.size())
+				if (offset < buffer.size())
 				{
-					nc = data[offset];
+					nc = buffer[offset];
 				}
 
 				switch (c)
@@ -267,7 +267,7 @@ namespace Corrosive {
 				out.offset = start;
 				out.left = sleft;
 				out.top = top;
-				out.data = Data().substr(start, offset - start);
+				out.buffer = data().substr(start, offset - start);
 				return;
 			}
 		}

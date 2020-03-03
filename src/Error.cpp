@@ -18,18 +18,18 @@ namespace Corrosive {
 	}
 	void throw_not_a_name_error(const Cursor& c) {
 		throw_error_header(c);
-		std::cerr << "Symbol '" << c.data << "' is not a valid name";
+		std::cerr << "Symbol '" << c.buffer << "' is not a valid name";
 		throw_exit();
 	}
 
 	void throw_variable_not_found_error(const Cursor& c) {
 		throw_error_header(c);
-		std::cerr << "Variable with the name '" << c.data << "' was not found";
+		std::cerr << "Variable with the name '" << c.buffer << "' was not found";
 		throw_exit();
 	}
 	void throw_wrong_token_error(const Cursor& c, std::string_view expected) {
 		throw_error_header(c);
-		std::cerr << "Token '" << c.data << "' found but parser expected " << expected;
+		std::cerr << "Token '" << c.buffer << "' found but parser expected " << expected;
 		throw_exit();
 	}
 

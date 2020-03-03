@@ -50,7 +50,7 @@ namespace Corrosive {
 		static FunctionDeclaration* entry_point;
 
 		template<typename T>
-		static const Corrosive::Type* EmplaceType(T &t) {
+		static const Corrosive::Type* emplace_type(T &t) {
 			auto f = AllTypes.find((const Type*)&t);
 			if (f != AllTypes.end()) {
 				return (*f);

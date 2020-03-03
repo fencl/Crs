@@ -14,7 +14,7 @@ int main() {
 	auto start = std::chrono::system_clock::now();
 
 	Corrosive::Source src;
-	src.Load("..\\test\\test.crs");
+	src.load("..\\test\\test.crs");
 	
 	LLVMModuleRef m = LLVMModuleCreateWithName("module");
 	LLVMSetTarget(m, "x86_64-pc-win32");
@@ -26,7 +26,7 @@ int main() {
 	std::cout << "load: " << elapsed.count() << "ms" << std::endl;
 	start = end;
 
-	Corrosive::Cursor c = src.ReadFirst();
+	Corrosive::Cursor c = src.read_first();
 	std::vector<std::unique_ptr<Corrosive::Declaration>> decls;
 	Corrosive::InitPredefinedTypes(decls);
 

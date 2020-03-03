@@ -6,7 +6,7 @@ namespace Corrosive {
 	bool Type::can_simple_cast_into(const Type* t) const {
 		//ptr case
 		const PrimitiveType* pt = dynamic_cast<const PrimitiveType*>(t);
-		if (pt != nullptr && ref && pt->name.data == "ptr" && pt->package == PredefinedNamespace) return true;
+		if (pt != nullptr && ref && pt->name.buffer == "ptr" && pt->package == PredefinedNamespace) return true;
 
 		return false;
 	}
@@ -16,7 +16,7 @@ namespace Corrosive {
 		if (Type::can_simple_cast_into(t)) return true;
 
 		// ptr case
-		if (package == PredefinedNamespace && name.data == "ptr" && ref) return true;
+		if (package == PredefinedNamespace && name.buffer == "ptr" && ref) return true;
 
 		const PrimitiveType* pt = dynamic_cast<const PrimitiveType*>(t);
 		if (pt == nullptr) return false;
@@ -24,7 +24,7 @@ namespace Corrosive {
 			if (pt->ref != ref) return false;
 
 			if (pt->package != package) return false;
-			if (pt->name.data != name.data) return false;
+			if (pt->name.buffer != name.buffer) return false;
 			if (pt->templates != templates) return false;
 
 			return true;
@@ -76,7 +76,7 @@ namespace Corrosive {
 		if (at == nullptr) return false;
 		else {
 			if (at->ref != ref) return false;
-			if (at->size.data != size.data) return false;
+			if (at->size.buffer != size.buffer) return false;
 			if (!base->can_simple_cast_into(at->base)) return false;
 
 			return true;

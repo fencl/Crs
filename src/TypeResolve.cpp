@@ -40,7 +40,7 @@ namespace Corrosive {
 		}
 
 		if (mod)
-			return Contents::EmplaceType(rt);
+			return Contents::emplace_type(rt);
 		else
 			return nullptr;
 	}
@@ -77,7 +77,7 @@ namespace Corrosive {
 		}
 
 		if (mod)
-			return Contents::EmplaceType(rt);
+			return Contents::emplace_type(rt);
 		else 
 			return nullptr;
 	}
@@ -101,7 +101,7 @@ namespace Corrosive {
 		}
 
 		if (mod)
-			return Contents::EmplaceType(rt);
+			return Contents::emplace_type(rt);
 		else
 			return nullptr;
 	}
@@ -123,7 +123,7 @@ namespace Corrosive {
 		}
 
 		if (mod)
-			return Contents::EmplaceType(rt);
+			return Contents::emplace_type(rt);
 		else
 			return nullptr;
 	}
@@ -157,7 +157,7 @@ namespace Corrosive {
 					throw_specific_error(name, "Target structure has different number of generic typenames");
 				}
 
-				auto tcf = gs->generic_typenames.find(name.data);
+				auto tcf = gs->generic_typenames.find(name.buffer);
 				if (tcf != gs->generic_typenames.end()) {
 					const std::variant<unsigned int, const Type*>& tci = (*ctx.template_ctx)[tcf->second];
 
@@ -190,7 +190,7 @@ namespace Corrosive {
 
 			for (auto look = lookup.begin(); look != lookup.end(); look++) {
 
-				if (auto td = Contents::find_typedef(*look, name.data)) {
+				if (auto td = Contents::find_typedef(*look, name.buffer)) {
 					if (templates != nullptr) {
 						//TODO: i can implement this easily, just have to stop being lazy.
 						throw_specific_error(name, "Type with generic declaration points to type definition that is not generic.");
@@ -200,11 +200,11 @@ namespace Corrosive {
 
 					return nt->clone_ref(ref);
 				}
-				else if (auto sd = Contents::find_struct(*look, name.data)) {
+				else if (auto sd = Contents::find_struct(*look, name.buffer)) {
 					rt.structure = sd;
 					rt.package = *look;
 
-					return Contents::EmplaceType(rt);
+					return Contents::emplace_type(rt);
 				}
 			}
 
@@ -214,7 +214,7 @@ namespace Corrosive {
 		}
 
 		if (mod)
-			return Contents::EmplaceType(rt);
+			return Contents::emplace_type(rt);
 		else
 			return nullptr;
 

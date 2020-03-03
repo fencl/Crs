@@ -8,7 +8,7 @@
 
 namespace Corrosive {
 	void Declaration::parse(Cursor& c, std::vector<std::unique_ptr<Declaration>>& into, Declaration* parent, NamespaceDeclaration* pack) {
-		if (c.data == "var") {
+		if (c.buffer == "var") {
 			if (dynamic_cast<StructDeclaration*>(parent) == nullptr) {
 				throw_specific_error(c, "Variable has to be a member of struct or class");
 			}
@@ -56,7 +56,7 @@ namespace Corrosive {
 				into.push_back(std::move(vd));
 			}
 		}
-		else if (c.data == "type") {
+		else if (c.buffer == "type") {
 			if (dynamic_cast<StructDeclaration*>(parent) != nullptr) {
 				throw_specific_error(c, "Type cannot be a member of struct or class");
 			}
@@ -102,21 +102,21 @@ namespace Corrosive {
 				}
 				vd->parent_pack = pack;
 
-				if (Contents::find_typedef(vd->package, vd->name.data) != nullptr) {
+				if (Contents::find_typedef(vd->package, vd->name.buffer) != nullptr) {
 					throw_specific_error(vd->name, "Typedef with the same name already exist's it this package");
 				}
 				else {
-					Contents::register_typedef(vd->package, vd->name.data, vd.get());
+					Contents::register_typedef(vd->package, vd->name.buffer, vd.get());
 				}
 
 				into.push_back(std::move(vd));
 			}
 		}
-		else if (c.data == "function") {
+		else if (c.buffer == "function") {
 			bool is_static = false;
 			c.move();
 
-			if (c.tok == RecognizedToken::Symbol && c.data == "static") {
+			if (c.tok == RecognizedToken::Symbol && c.buffer == "static") {
 				is_static = true;
 				c.move();
 			}
@@ -136,7 +136,7 @@ namespace Corrosive {
 						throw_not_a_name_error(c);
 					}
 
-					gen_names.push_back(c.data);
+					gen_names.push_back(c.buffer);
 					c.move();
 					if (c.tok == RecognizedToken::Comma) {
 						c.move();
@@ -174,7 +174,7 @@ namespace Corrosive {
 			fd->name = name;
 			fd->type = type;
 			fd->is_static = is_static;
-			if (name.data == "main") {
+			if (name.buffer == "main") {
 				Contents::entry_point = fd.get();
 			}
 
@@ -219,8 +219,8 @@ namespace Corrosive {
 
 			into.push_back(std::move(fd));
 		}
-		else if (c.data == "struct" || c.data == "trait") {
-			bool is_trait = c.data == "trait";
+		else if (c.buffer == "struct" || c.buffer == "trait") {
+			bool is_trait = c.buffer == "trait";
 			bool isext = false;
 			std::string_view overpack = "";
 
@@ -229,7 +229,7 @@ namespace Corrosive {
 			}
 
 			c.move();
-			if (c.tok == RecognizedToken::Symbol && c.data == "extension") {
+			if (c.tok == RecognizedToken::Symbol && c.buffer == "extension") {
 				isext = true;
 				c.move();
 			}
@@ -241,7 +241,7 @@ namespace Corrosive {
 			std::vector<std::string_view> gen_names;
 			c.move();
 			if (c.tok == RecognizedToken::DoubleColon) {
-				overpack = name.data;
+				overpack = name.buffer;
 				c.move();
 				name = c;
 				c.move();
@@ -260,7 +260,7 @@ namespace Corrosive {
 						throw_not_a_name_error(c);
 					}
 
-					gen_names.push_back(c.data);
+					gen_names.push_back(c.buffer);
 					c.move();
 					if (c.tok == RecognizedToken::Comma) {
 						c.move();
@@ -307,7 +307,7 @@ namespace Corrosive {
 
 
 
-			if (auto existing = Contents::find_struct(pkg, name.data)) {
+			if (auto existing = Contents::find_struct(pkg, name.buffer)) {
 				if (!isext && !existing->is_extending) {
 					throw_specific_error(name, "There already exist's class/structure with the same name");
 				}
@@ -371,7 +371,7 @@ namespace Corrosive {
 					else if (c.tok == RecognizedToken::Eof) {
 						break;
 					}
-					else if (c.tok == RecognizedToken::Symbol && c.data == "alias") {
+					else if (c.tok == RecognizedToken::Symbol && c.buffer == "alias") {
 						c.move();
 						bool specific = false;
 						Cursor alias_from = c;
@@ -439,7 +439,7 @@ namespace Corrosive {
 					}
 				}
 
-				Contents::register_struct(sd->package, sd->name.data, sd.get());
+				Contents::register_struct(sd->package, sd->name.buffer, sd.get());
 
 				if (c.tok != RecognizedToken::OpenBrace) {
 					throw_wrong_token_error(c, "'{'");
@@ -454,7 +454,7 @@ namespace Corrosive {
 					else if (c.tok == RecognizedToken::Eof) {
 						break;
 					}
-					else if (c.tok == RecognizedToken::Symbol && c.data == "alias") {
+					else if (c.tok == RecognizedToken::Symbol && c.buffer == "alias") {
 						c.move();
 						bool specific = false;
 						Cursor alias_from = c;
@@ -502,7 +502,7 @@ namespace Corrosive {
 
 			into.push_back(std::move(sd));
 		}
-		else if (c.data == "package") {
+		else if (c.buffer == "package") {
 			if (dynamic_cast<NamespaceDeclaration*>(parent) != nullptr) {
 				throw_specific_error(c, "Packages cannot be nested");
 			}
@@ -512,14 +512,14 @@ namespace Corrosive {
 			}
 			Cursor name = c;
 			c.move();
-			Contents::register_namespace(name.data);
+			Contents::register_namespace(name.buffer);
 
 
 			std::unique_ptr<NamespaceDeclaration> nd = std::make_unique<NamespaceDeclaration>();
 			if (c.tok == RecognizedToken::Colon) {
 				c.move();
 				while (true) {
-					nd->queue.push_back(c.data);
+					nd->queue.push_back(c.buffer);
 					c.move();
 					if (c.tok == RecognizedToken::Comma) {
 						c.move();
@@ -528,7 +528,7 @@ namespace Corrosive {
 				}
 			}
 
-			nd->package = name.data;
+			nd->package = name.buffer;
 			nd->name = name;
 			nd->parent_pack = nd.get();
 

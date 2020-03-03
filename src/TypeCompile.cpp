@@ -88,9 +88,9 @@ namespace Corrosive {
 
 		PrimitiveType* self = (PrimitiveType*)this;
 
-		std::string_view nm = name.data;
+		std::string_view nm = name.buffer;
 
-		if (package == PredefinedNamespace && name.data == "void") {
+		if (package == PredefinedNamespace && name.buffer == "void") {
 			self->llvm_type = self->llvm_lvalue = self->llvm_rvalue = LLVMVoidType();
 			self->is_heavy = false;
 			return;
@@ -236,7 +236,7 @@ namespace Corrosive {
 		pre_compile(ctx);
 		PrimitiveType* self = (PrimitiveType*)this;
 
-		if (package == PredefinedNamespace && name.data == "void") {
+		if (package == PredefinedNamespace && name.buffer == "void") {
 			
 		}
 		else {

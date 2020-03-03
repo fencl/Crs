@@ -27,13 +27,13 @@ namespace Corrosive {
 		if (c.tok == RecognizedToken::OpenParenthesis) {
 			PrimitiveType pType;
 			Cursor voidc;
-			voidc.data = "void";
+			voidc.buffer = "void";
 
 			pType.name = voidc;
 			pType.package = PredefinedNamespace;
 
 
-			rType = Contents::EmplaceType(pType);
+			rType = Contents::emplace_type(pType);
 		}
 		else {
 			if (c.tok == RecognizedToken::OpenBracket) {
@@ -53,13 +53,13 @@ namespace Corrosive {
 					}
 				}
 				
-				if ((c.tok == RecognizedToken::Symbol && c.data == "ref") || c.tok == RecognizedToken::And) {
+				if ((c.tok == RecognizedToken::Symbol && c.buffer == "ref") || c.tok == RecognizedToken::And) {
 					fType.ref = true;
 					c.move();
 				}
 
 				fType.types = Contents::register_type_array(std::move(tps));
-				rType = Contents::EmplaceType(fType);
+				rType = Contents::emplace_type(fType);
 
 			}
 			else if (c.tok == RecognizedToken::LessThan) {
@@ -79,13 +79,13 @@ namespace Corrosive {
 					}
 				}
 				
-				if ((c.tok == RecognizedToken::Symbol && c.data == "ref") || c.tok == RecognizedToken::And) {
+				if ((c.tok == RecognizedToken::Symbol && c.buffer == "ref") || c.tok == RecognizedToken::And) {
 					fType.ref = true;
 					c.move();
 				}
 
 				fType.types = Contents::register_type_array(std::move(tps));
-				rType = Contents::EmplaceType(fType);
+				rType = Contents::emplace_type(fType);
 			}
 			else {
 				if (c.tok != RecognizedToken::Symbol) {
@@ -97,7 +97,7 @@ namespace Corrosive {
 				c.move();
 
 				if (c.tok == RecognizedToken::DoubleColon) {
-					pType.package = pType.name.data;
+					pType.package = pType.name.buffer;
 					c.move();
 					pType.name = c;
 					c.move();
@@ -122,12 +122,12 @@ namespace Corrosive {
 				}
 
 
-				if ((c.tok == RecognizedToken::Symbol && c.data == "ref") || c.tok == RecognizedToken::And) {
+				if ((c.tok == RecognizedToken::Symbol && c.buffer == "ref") || c.tok == RecognizedToken::And) {
 					pType.ref = true;
 					c.move();
 				}
 
-				rType = Contents::EmplaceType(pType);
+				rType = Contents::emplace_type(pType);
 			}
 		}
 
@@ -161,13 +161,13 @@ namespace Corrosive {
 					}
 				}
 
-				if ((c.tok == RecognizedToken::Symbol && c.data == "ref") || c.tok == RecognizedToken::And) {
+				if ((c.tok == RecognizedToken::Symbol && c.buffer == "ref") || c.tok == RecognizedToken::And) {
 					fType.ref = true;
 					c.move();
 				}
 
 				fType.arguments = Contents::register_type_array(std::move(tps));
-				rType = Contents::EmplaceType(fType);
+				rType = Contents::emplace_type(fType);
 			}
 			else if (c.tok == RecognizedToken::OpenBracket) {
 				ArrayType aType;
@@ -181,13 +181,13 @@ namespace Corrosive {
 				if (c1.tok == RecognizedToken::CloseBracket) {
 					aType.has_simple_size = true;
 					if (c.tok == RecognizedToken::Number)
-						aType.actual_size = (unsigned int)svtoi(c.data);
+						aType.actual_size = (unsigned int)svtoi(c.buffer);
 					else if (c.tok == RecognizedToken::UnsignedNumber)
-						aType.actual_size = (unsigned int)svtoi(c.data.substr(0,c.data.size()-1));
+						aType.actual_size = (unsigned int)svtoi(c.buffer.substr(0,c.buffer.size()-1));
 					else if (c.tok == RecognizedToken::LongNumber)
-						aType.actual_size = (unsigned int)svtoi(c.data.substr(0, c.data.size() - 1));
+						aType.actual_size = (unsigned int)svtoi(c.buffer.substr(0, c.buffer.size() - 1));
 					else if (c.tok == RecognizedToken::UnsignedLongNumber)
-						aType.actual_size = (unsigned int)svtoi(c.data.substr(0, c.data.size() - 2));
+						aType.actual_size = (unsigned int)svtoi(c.buffer.substr(0, c.buffer.size() - 2));
 
 					c = c1;
 				}
@@ -228,12 +228,12 @@ namespace Corrosive {
 				}
 				c.move();
 
-				if ((c.tok == RecognizedToken::Symbol && c.data == "ref") || c.tok == RecognizedToken::And) {
+				if ((c.tok == RecognizedToken::Symbol && c.buffer == "ref") || c.tok == RecognizedToken::And) {
 					aType.ref = true;
 					c.move();
 				}
 
-				rType = Contents::EmplaceType(aType);
+				rType = Contents::emplace_type(aType);
 			}
 			else break;
 		}

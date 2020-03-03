@@ -48,7 +48,7 @@ namespace Corrosive {
 				llvm_name.append(package);
 				llvm_name.append(".");
 			}
-			llvm_name.append(name.data);
+			llvm_name.append(name.buffer);
 
 			if (gen_id != 0) {
 				llvm_name.append(".");
@@ -71,7 +71,7 @@ namespace Corrosive {
 						if (exttype->ref)
 							throw_specific_error(name, "Structure cannot extend references");
 
-						std::pair<std::string_view, std::string_view> key = std::make_pair(exttype->package, exttype->name.data);
+						std::pair<std::string_view, std::string_view> key = std::make_pair(exttype->package, exttype->name.buffer);
 
 						if (auto fs = exttype->structure) {
 							fs->pre_compile(ctx);
@@ -129,16 +129,16 @@ namespace Corrosive {
 					if (!fdecl->is_static) {
 						PrimitiveType thistype;
 						Cursor ptrc;
-						ptrc.data = "ptr";
+						ptrc.buffer = "ptr";
 						thistype.name = is_trait ? ptrc : name;
 						thistype.package = is_trait ? "corrosive" : package;
 						thistype.ref = is_trait ?false:true;
 						thistype.templates = ctx.template_ctx;
 						FunctionType nfd = *fdt;
 						std::vector<const Type*> nargs = *nfd.arguments;
-						nargs.insert(nargs.begin(), Contents::EmplaceType(thistype));
+						nargs.insert(nargs.begin(), Contents::emplace_type(thistype));
 						nfd.arguments = Contents::register_type_array(std::move(nargs));
-						fdt = (const FunctionType*)Contents::EmplaceType(nfd);
+						fdt = (const FunctionType*)Contents::emplace_type(nfd);
 					}
 
 					CompileContext nctx = ctx;
@@ -146,7 +146,7 @@ namespace Corrosive {
 					nctx.parent_namespace = fdecl->parent_pack;
 					Type::resolve_package_in_place(fdecl->type, nctx);
 
-					Cursor thisc; thisc.data = "this";
+					Cursor thisc; thisc.buffer = "this";
 					fdecl->argnames.insert(fdecl->argnames.begin(), thisc);
 				}
 
@@ -210,7 +210,7 @@ namespace Corrosive {
 		for (auto it = implements_structures.begin(); it != implements_structures.end(); it++) {
 			for (auto mit = (*it)->members.begin(); mit != (*it)->members.end(); mit++) {
 				if (auto f = dynamic_cast<FunctionDeclaration*>(mit->get())) {
-					std::string_view  key = f->name.data;
+					std::string_view  key = f->name.buffer;
 
 					auto nifc = iface_list.find(key);
 					if (nifc == iface_list.end()) {
@@ -232,7 +232,7 @@ namespace Corrosive {
 			Declaration* actual_decl = FindDeclarationOfMember(it->first);
 
 			if (auto f = dynamic_cast<FunctionDeclaration*>(actual_decl)) {
-				std::string_view key = f->name.data;
+				std::string_view key = f->name.buffer;
 				auto nifc = iface_list.find(key);
 				if (nifc != iface_list.end()) {
 					if (!((const FunctionType*)f->type)->can_simple_cast_into_ignore_this(nifc->second->type)) {
@@ -260,7 +260,7 @@ namespace Corrosive {
 			if (auto f = dynamic_cast<FunctionDeclaration*>(it->get())) {
 				std::tuple<Declaration*, unsigned int, std::string_view> val = std::make_tuple(it->get(), 0,"");
 				
-				auto i = lookup_table.emplace(f->name.data, val);
+				auto i = lookup_table.emplace(f->name.buffer, val);
 				if (!i.second) {
 					throw_specific_error(f->name, "Member with the same name already existed in the structure");
 				}
@@ -268,7 +268,7 @@ namespace Corrosive {
 			else if (auto v = dynamic_cast<VariableDeclaration*>(it->get())) {
 				std::tuple<Declaration*, unsigned int, std::string_view> val = std::make_tuple(it->get(), lookup_id++, "");
 				
-				auto i = lookup_table.emplace(v->name.data, val);
+				auto i = lookup_table.emplace(v->name.buffer, val);
 				if (!i.second) {
 					throw_specific_error(v->name, "Member with the same name already existed in the structure");
 				}
@@ -278,7 +278,7 @@ namespace Corrosive {
 		for (auto it = aliases.begin(); it != aliases.end(); it++) {
 			Cursor a_nm = it->first;
 			Cursor a_fm = it->second;
-			auto look = lookup_table.find(a_fm.data);
+			auto look = lookup_table.find(a_fm.buffer);
 			if (look == lookup_table.end()) {
 				throw_specific_error(a_fm, "Member with this name was not declared in this structure");
 			}
@@ -297,14 +297,14 @@ namespace Corrosive {
 
 					alias_struct->build_lookup_table();
 
-					if (a_nm.data.empty()) {
+					if (a_nm.buffer.empty()) {
 						for (auto m_it = alias_struct->lookup_table.begin(); m_it != alias_struct->lookup_table.end(); m_it++) {
 							std::tuple<Declaration*, unsigned int, std::string_view> val = std::make_tuple(alias_struct, std::get<1>(look->second), m_it->first);
 							lookup_table.emplace((std::string_view)m_it->first,val);
 						}
 					}
 					else {
-						auto m_it = alias_struct->lookup_table.find(a_nm.data);
+						auto m_it = alias_struct->lookup_table.find(a_nm.buffer);
 						if (m_it == alias_struct->lookup_table.end()) {
 							throw_specific_error(a_nm, "Member with this name does not exist in the aliased structure");
 						}
@@ -353,7 +353,7 @@ namespace Corrosive {
 				f_name.append(package);
 				f_name.append(".");
 			}
-			f_name.append(name.data);
+			f_name.append(name.buffer);
 
 			unsigned long stack = StackManager::stack_state();
 
@@ -377,7 +377,7 @@ namespace Corrosive {
 					cv.v = LLVMBuildAlloca(builder, cv.t->LLVMType(), "");
 					LLVMBuildStore(builder, vr,cv.v);
 				}
-				StackManager::stack_push(argnames[i].data,cv);
+				StackManager::stack_push(argnames[i].buffer,cv);
 			}
 
 

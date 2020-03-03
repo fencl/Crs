@@ -5,14 +5,13 @@
 namespace Corrosive {
 	class Source {
 	public:
-		std::string_view const Data() const;
-
-		void Load(const char* file);
-		void Read(Cursor& out, size_t offset, unsigned int left, unsigned int top) const;
-		void ReadAfter(Cursor& out, const Cursor& c) const;
-		Cursor ReadFirst() const;
+		std::string_view const data() const;
+		void load(const char* file);
+		void read(Cursor& out, size_t offset, unsigned int left, unsigned int top) const;
+		void read_after(Cursor& out, const Cursor& c) const;
+		Cursor read_first() const;
 	private:
-		std::string data;
+		std::string buffer;
 	};
 }
 #endif

@@ -19,7 +19,7 @@ namespace Corrosive {
 
 		const void* src;
 		RecognizedToken tok;
-		std::string_view data;
+		std::string_view buffer;
 		unsigned int top = 0;
 		unsigned int left = 0;
 		size_t offset = 0;

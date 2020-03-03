@@ -68,13 +68,13 @@ namespace Corrosive {
 
 
 	void Operand::parse_symbol(CompileValue& ret, Cursor& c, CompileContextExt& ctx, CompileType cpt) {
-		if (c.data == "true") {
+		if (c.buffer == "true") {
 			c.move();
 			ret.lvalue = false;
 			ret.t = t_bool;
 			ret.v = LLVMConstInt(LLVMInt1Type(), true, false);
 		}
-		else if (c.data == "false") {
+		else if (c.buffer == "false") {
 			c.move();
 			ret.lvalue = false;
 			ret.t = t_bool;
@@ -94,8 +94,8 @@ namespace Corrosive {
 				c.move();
 			}
 
-			if (pack.data.empty()) {
-				if (auto sitm = StackManager::stack_find(name.data)) {
+			if (pack.buffer.empty()) {
+				if (auto sitm = StackManager::stack_find(name.buffer)) {
 					ret = sitm->value;
 				}
 				else {
@@ -113,9 +113,9 @@ namespace Corrosive {
 
 		std::string_view ndata;
 		if (usg)
-			ndata = c.data.substr(0, c.data.size() - 1);
+			ndata = c.buffer.substr(0, c.buffer.size() - 1);
 		else
-			ndata = c.data;
+			ndata = c.buffer;
 
 		unsigned long long d = svtoi(ndata);
 		c.move();
@@ -136,9 +136,9 @@ namespace Corrosive {
 
 		std::string_view ndata;
 		if (usg)
-			ndata = c.data.substr(0, c.data.size() - 2);
+			ndata = c.buffer.substr(0, c.buffer.size() - 2);
 		else
-			ndata = c.data.substr(0, c.data.size() - 1);
+			ndata = c.buffer.substr(0, c.buffer.size() - 1);
 
 		unsigned long long d = svtoi(ndata);
 		c.move();
@@ -159,9 +159,9 @@ namespace Corrosive {
 
 		std::string_view ndata;
 		if (dbl)
-			ndata = c.data.substr(0, c.data.size() - 1);
+			ndata = c.buffer.substr(0, c.buffer.size() - 1);
 		else
-			ndata = c.data;
+			ndata = c.buffer;
 
 		double d = svtod(ndata);
 		c.move();
@@ -212,7 +212,7 @@ namespace Corrosive {
 
 		/*while (true)*/ {
 
-			auto lt = sd->lookup_table.find(c.data);
+			auto lt = sd->lookup_table.find(c.buffer);
 			if (lt == sd->lookup_table.end()) {
 				throw_specific_error(c, "Member was not found");
 			}

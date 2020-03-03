@@ -57,7 +57,7 @@ namespace Corrosive {
 			std::cout << actual_size;
 		}
 		else {
-			std::cout << size.data;
+			std::cout << size.buffer;
 			if (!has_simple_size) {
 				std::cout << "... ("<<size.offset<<")";
 			}
@@ -99,7 +99,7 @@ namespace Corrosive {
 			std::cout << package;
 			std::cout << "::";
 		}
-		std::cout << name.data;
+		std::cout << name.buffer;
 
 		if (templates != nullptr && templates->size()>0) {
 			std::cout << "<";
@@ -160,7 +160,7 @@ namespace Corrosive {
 
 			PrimitiveType rt = *this;
 			rt.ref = true;
-			return Contents::EmplaceType(rt);
+			return Contents::emplace_type(rt);
 		}
 		else if (ref == r) {
 			return this;
@@ -177,7 +177,7 @@ namespace Corrosive {
 
 			ArrayType rt = *this;
 			rt.ref = true;
-			return Contents::EmplaceType(rt);
+			return Contents::emplace_type(rt);
 		}
 		else if (ref == r) {
 			return this;
@@ -194,7 +194,7 @@ namespace Corrosive {
 
 			TupleType rt = *this;
 			rt.ref = true;
-			return Contents::EmplaceType(rt);
+			return Contents::emplace_type(rt);
 		}
 		else if (ref == r) {
 			return this;
@@ -211,7 +211,7 @@ namespace Corrosive {
 
 			InterfaceType rt = *this;
 			rt.ref = true;
-			return Contents::EmplaceType(rt);
+			return Contents::emplace_type(rt);
 		}
 		else if (ref == r) {
 			return this;
@@ -227,7 +227,7 @@ namespace Corrosive {
 		else if (!ref && r) {
 			FunctionType rt = *this;
 			rt.ref = true;
-			return Contents::EmplaceType(rt);
+			return Contents::emplace_type(rt);
 		}
 		else if (ref == r) {
 			return this;

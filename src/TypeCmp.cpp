@@ -28,8 +28,8 @@ namespace Corrosive {
 
 		PrimitiveType& pt = (PrimitiveType&)t2;
 
-		if (name.data < pt.name.data) return -1;
-		if (name.data > pt.name.data) return 1;
+		if (name.buffer < pt.name.buffer) return -1;
+		if (name.buffer > pt.name.buffer) return 1;
 		if (package < pt.package) return -1;
 		if (package > pt.package) return 1;
 
@@ -86,8 +86,8 @@ namespace Corrosive {
 		if (actual_size > ft.actual_size) return 1;
 
 		if (actual_size == 0) {
-			if (size.data < ft.size.data) return -1;
-			if (size.data > ft.size.data) return 1;
+			if (size.buffer < ft.size.buffer) return -1;
+			if (size.buffer > ft.size.buffer) return 1;
 
 			if (has_simple_size < ft.has_simple_size) return -1;
 			if (has_simple_size > ft.has_simple_size) return 1;
@@ -116,7 +116,7 @@ namespace Corrosive {
 
 	size_t PrimitiveType::hash() const {
 		size_t h = Type::hash();
-		h ^= rot(std::hash<std::string_view>()(name.data), 2) ^ rot(std::hash<std::string_view>()(package), 3);
+		h ^= rot(std::hash<std::string_view>()(name.buffer), 2) ^ rot(std::hash<std::string_view>()(package), 3);
 		h ^= rot(std::hash<size_t>()((size_t)templates), 4);
 		return h;
 	}
@@ -147,10 +147,10 @@ namespace Corrosive {
 		h ^= rot(std::hash<size_t>()((size_t)base), 9);
 		if (actual_size == 0) {
 			if (has_simple_size) {
-				h ^= rot(std::hash<std::string_view>()(size.data), 10);
+				h ^= rot(std::hash<std::string_view>()(size.buffer), 10);
 			}
 			else {
-				h ^= rot(std::hash<std::string_view>()(size.data), 11) ^ rot(std::hash<size_t>()(size.offset), 12) ^ rot(std::hash<const void*>()(size.src), 13);
+				h ^= rot(std::hash<std::string_view>()(size.buffer), 11) ^ rot(std::hash<size_t>()(size.offset), 12) ^ rot(std::hash<const void*>()(size.src), 13);
 			}
 		}
 		else
