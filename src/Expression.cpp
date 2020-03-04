@@ -111,15 +111,12 @@ namespace Corrosive {
 		bool isf = false;
 		bool sig = false;
 
-		//rvalue(ctx, left, cpt);
-		//rvalue(ctx, right, cpt);
-
 		if (!arith_cast(ctx,left, right, isf, sig)) {
 			throw_specific_error(c, "Types of operands cannot be used in this operation");
 		}
 
-
 		CompileValue ret = left;
+
 		ret.lvalue = false;
 		if (l == 1 || l == 2)
 			ret.t = t_bool;
@@ -173,12 +170,21 @@ namespace Corrosive {
 	}
 
 	CompileValue Expression::parse(Cursor& c, CompileContextExt& ctx, CompileType cpt) {
-		return parse_or(c, ctx, cpt);
+
+		IRBlock* bpush = ctx.fallback;
+		ctx.fallback = nullptr;
+		CompileValue ret = parse_or(c, ctx, cpt);
+		ctx.fallback = bpush;
+
+		return ret;
 	}
 
 	CompileValue Expression::parse_and(Cursor& c, CompileContextExt& ctx, CompileType cpt) {
 
+		IRBlock* bpush = ctx.fallback;
+		ctx.fallback = nullptr;
 		CompileValue value = Expression::parse_operators(c, ctx, cpt);
+		ctx.fallback = bpush;
 		
 
 		while (c.tok == RecognizedToken::DoubleAnd) {
@@ -193,11 +199,14 @@ namespace Corrosive {
 			}
 			else {
 				if (cpt == CompileType::Eval) {
+					IRBlock* bpush = ctx.fallback;
+					ctx.fallback = nullptr;
 					CompileValue right = Expression::parse_operators(c, ctx, cpt);
+					ctx.fallback = bpush;
 				}
 				else {
-					if (!ctx.fallback_and) {
-						ctx.fallback_and = ctx.function->create_block(IRDataType::ibool);
+					if (!ctx.fallback) {
+						ctx.fallback = ctx.function->create_block(IRDataType::ibool);
 					}
 
 					rvalue(ctx, value, cpt);
@@ -208,26 +217,29 @@ namespace Corrosive {
 
 					IRBuilder::build_const_ibool(ctx.block, false);
 					IRBuilder::build_yield(ctx.block);
-					IRBuilder::build_jmpz(ctx.block, ctx.fallback_and, positive_block);
+					IRBuilder::build_jmpz(ctx.block, ctx.fallback, positive_block);
 					ctx.block = positive_block;
 
+					IRBlock* bpush = ctx.fallback;
+					ctx.fallback = nullptr;
 					value = Expression::parse_operators(c, ctx, cpt);
+					ctx.fallback = bpush;
 				}
 			}
 		}
 
-		if (ctx.fallback_and != nullptr && cpt == CompileType::compile) {
+		if (ctx.fallback != nullptr && cpt == CompileType::compile) {
 			if (value.t != t_bool) {
 				throw_specific_error(c, "Operation requires right operand to be boolean");
 			}
 
 			rvalue(ctx, value, cpt);
 			IRBuilder::build_yield(ctx.block);
-			IRBuilder::build_jmp(ctx.block, ctx.fallback_and);
-			ctx.function->append_block(ctx.fallback_and);
+			IRBuilder::build_jmp(ctx.block, ctx.fallback);
+			ctx.function->append_block(ctx.fallback);
 
-			ctx.block = ctx.fallback_and;
-			ctx.fallback_and = nullptr;
+			ctx.block = ctx.fallback;
+			ctx.fallback = nullptr;
 
 			IRBuilder::build_accept(ctx.block);
 			value.t = t_bool;
@@ -240,7 +252,12 @@ namespace Corrosive {
 
 
 	CompileValue Expression::parse_or(Cursor& c, CompileContextExt& ctx, CompileType cpt) {
+
+		IRBlock* bpush = ctx.fallback;
+		ctx.fallback = nullptr;
 		CompileValue value = Expression::parse_and(c, ctx, cpt);
+		ctx.fallback = bpush;
+
 		while (c.tok == RecognizedToken::DoubleOr) {
 			if (value.t != t_bool) {
 				throw_specific_error(c, "Operation requires left operand to be boolean");
@@ -249,16 +266,24 @@ namespace Corrosive {
 			c.move();
 
 			if (cpt == CompileType::ShortCircuit) {
+
+				IRBlock* bpush = ctx.fallback;
+				ctx.fallback = nullptr;
 				parse_and(c, ctx, CompileType::ShortCircuit);
+				ctx.fallback = bpush;
 			}
 			else {
 				
 				if (cpt == CompileType::Eval) {
+
+					IRBlock* bpush = ctx.fallback;
+					ctx.fallback = nullptr;
 					CompileValue right = Expression::parse_and(c, ctx, cpt);
+					ctx.fallback = bpush;
 				}
 				else {
-					if (!ctx.fallback_or) {
-						ctx.fallback_or = ctx.function->create_block(IRDataType::ibool);
+					if (!ctx.fallback) {
+						ctx.fallback = ctx.function->create_block(IRDataType::ibool);
 					}
 
 					rvalue(ctx, value, cpt);
@@ -269,7 +294,7 @@ namespace Corrosive {
 					IRBuilder::build_const_ibool(ctx.block, true);
 					IRBuilder::build_yield(ctx.block);
 
-					IRBuilder::build_jmpz(ctx.block, positive_block, ctx.fallback_or);
+					IRBuilder::build_jmpz(ctx.block, positive_block, ctx.fallback);
 					ctx.block = positive_block;
 
 					value = Expression::parse_and(c, ctx, cpt);
@@ -277,7 +302,7 @@ namespace Corrosive {
 			}
 		}
 
-		if (ctx.fallback_or != nullptr && cpt == CompileType::compile) {
+		if (ctx.fallback != nullptr && cpt == CompileType::compile) {
 			if (value.t != t_bool) {
 				throw_specific_error(c, "Operation requires right operand to be boolean");
 			}
@@ -285,11 +310,11 @@ namespace Corrosive {
 			rvalue(ctx, value, cpt);
 
 			IRBuilder::build_yield(ctx.block);
-			IRBuilder::build_jmp(ctx.block, ctx.fallback_or);
-			ctx.function->append_block(ctx.fallback_or);
+			IRBuilder::build_jmp(ctx.block, ctx.fallback);
+			ctx.function->append_block(ctx.fallback);
 
-			ctx.block = ctx.fallback_or;
-			ctx.fallback_or = nullptr;
+			ctx.block = ctx.fallback;
+			ctx.fallback = nullptr;
 
 			IRBuilder::build_accept(ctx.block);
 

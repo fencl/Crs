@@ -29,8 +29,7 @@ namespace Corrosive {
 		IRFunction*						function = nullptr;
 		IRBlock*						block = nullptr;
 		Declaration*					unit = nullptr;
-		IRBlock*						fallback_and = nullptr;
-		IRBlock*						fallback_or = nullptr;
+		IRBlock*						fallback = nullptr;
 	};
 
 	struct CompileValue {

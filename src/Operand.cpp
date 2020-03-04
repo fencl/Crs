@@ -174,8 +174,12 @@ namespace Corrosive {
 		double d = svtod(ndata);
 		c.move();
 
-		/*if (cpt != CompileType::ShortCircuit)
-			ret.v = LLVMConstReal(dbl ? LLVMDoubleType() : LLVMFloatType(), d);*/
+		if (cpt != CompileType::ShortCircuit) {
+			if (dbl)
+				IRBuilder::build_const_f64(ctx.block, d);
+			else
+				IRBuilder::build_const_f32(ctx.block, (float)d);
+		}
 
 		ret.t = dbl ? Corrosive::t_f64 : Corrosive::t_f32;
 		ret.lvalue = false;

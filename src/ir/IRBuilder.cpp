@@ -35,7 +35,6 @@ namespace Corrosive {
 
 
 	void IRBuilder::build_ret(IRBlock* block) {
-		// test for return type
 		block->parent->return_blocks.insert(block);
 		block->write_instruction(IRInstruction::ret);
 		if (block->stack.size() > 0) throw_ir_remaining_stack_error();

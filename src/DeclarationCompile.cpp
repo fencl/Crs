@@ -356,9 +356,9 @@ namespace Corrosive {
 			}
 			f_name.append(name.buffer);
 
-			//unsigned long stack = StackManager::stack_state();
+			unsigned long stack = StackManager::stack_state();
 
-			function = ctx.module->create_function(IRDataType::ibool);
+			function = ctx.module->create_function(((const FunctionType*)type)->returns->rvalue);
 			IRBlock* entry = function->create_block(IRDataType::none);
 			function->append_block(entry);
 			IRBuilder::build_discard(entry);
@@ -370,14 +370,7 @@ namespace Corrosive {
 				CompileValue cv;
 				cv.lvalue = true;
 				cv.t = (*ft->arguments)[i];
-				unsigned int argloc = 0;
-
-				/*if (!cv.t->is_heavy) {
-					argloc = function->register_local(cv.t);
-				}*/
-
-				argloc = function->register_local(cv.t);
-
+				unsigned int argloc = function->register_local(cv.t);
 				StackManager::stack_push(argnames[i].buffer,cv, argloc);
 			}
 
@@ -389,15 +382,14 @@ namespace Corrosive {
 			cctx.basic.parent_namespace = parent_pack;
 			cctx.basic.parent_struct = nullptr;
 			cctx.basic.template_ctx = nullptr;
-			cctx.fallback_and = nullptr;
-			cctx.fallback_or = nullptr;
+			cctx.fallback = nullptr;
 			cctx.block = entry;
 
 			Corrosive::CompileValue cv = Expression::parse(c, cctx, Corrosive::CompileType::compile);
 			IRBuilder::build_yield(cctx.block);
 			IRBuilder::build_ret(cctx.block);
 
-			//StackManager::stack_restore(stack);
+			StackManager::stack_restore(stack);
 			compile_progress = 2;
 			return;
 		}
