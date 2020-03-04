@@ -82,23 +82,8 @@ namespace Corrosive {
 		if (base < ft.base) return -1;
 		if (base > ft.base) return 1;
 
-		if (actual_size < ft.actual_size) return -1;
-		if (actual_size > ft.actual_size) return 1;
-
-		if (actual_size == 0) {
-			if (size.buffer < ft.size.buffer) return -1;
-			if (size.buffer > ft.size.buffer) return 1;
-
-			if (has_simple_size < ft.has_simple_size) return -1;
-			if (has_simple_size > ft.has_simple_size) return 1;
-
-			if (!has_simple_size) {
-				if (size.offset < ft.size.offset) return -1;
-				if (size.offset > ft.size.offset) return 1;
-				if (size.src < ft.size.src) return -1;
-				if (size.src > ft.size.src) return 1;
-			}
-		}
+		if (size < ft.size) return -1;
+		if (size > ft.size) return 1;
 
 		return 0;
 	}
@@ -145,17 +130,7 @@ namespace Corrosive {
 	size_t ArrayType::hash() const {
 		size_t h = Type::hash();
 		h ^= rot(std::hash<size_t>()((size_t)base), 9);
-		if (actual_size == 0) {
-			if (has_simple_size) {
-				h ^= rot(std::hash<std::string_view>()(size.buffer), 10);
-			}
-			else {
-				h ^= rot(std::hash<std::string_view>()(size.buffer), 11) ^ rot(std::hash<size_t>()(size.offset), 12) ^ rot(std::hash<const void*>()(size.src), 13);
-			}
-		}
-		else
-			h ^= rot(std::hash<unsigned int>()(actual_size), 14);
-
+		h ^= rot(std::hash<unsigned int>()(size), 10);
 		return h;
 	}
 

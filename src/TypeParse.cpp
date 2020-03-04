@@ -175,57 +175,22 @@ namespace Corrosive {
 
 				c.move();
 
-				aType.size = c;
 				Cursor c1 = c;
 				c1.move();
 				if (c1.tok == RecognizedToken::CloseBracket) {
-					aType.has_simple_size = true;
 					if (c.tok == RecognizedToken::Number)
-						aType.actual_size = (unsigned int)svtoi(c.buffer);
+						aType.size = (unsigned int)svtoi(c.buffer);
 					else if (c.tok == RecognizedToken::UnsignedNumber)
-						aType.actual_size = (unsigned int)svtoi(c.buffer.substr(0,c.buffer.size()-1));
+						aType.size = (unsigned int)svtoi(c.buffer.substr(0,c.buffer.size()-1));
 					else if (c.tok == RecognizedToken::LongNumber)
-						aType.actual_size = (unsigned int)svtoi(c.buffer.substr(0, c.buffer.size() - 1));
+						aType.size = (unsigned int)svtoi(c.buffer.substr(0, c.buffer.size() - 1));
 					else if (c.tok == RecognizedToken::UnsignedLongNumber)
-						aType.actual_size = (unsigned int)svtoi(c.buffer.substr(0, c.buffer.size() - 2));
+						aType.size = (unsigned int)svtoi(c.buffer.substr(0, c.buffer.size() - 2));
 
 					c = c1;
 				}
 				else {
-					aType.has_simple_size = false;
-
-					if (ctx.parent_namespace == nullptr && ctx.parent_struct == nullptr) {
-						CompileContextExt ccext;
-						Expression::parse(c, ccext, CompileType::ShortCircuit);
-					}
-					else {
-						/*CompileContextExt ccext;
-						ccext.basic = ctx;
-						Cursor ce = c;
-						CompileValue v = Expression::parse(c, ccext, CompileType::Eval);
-						if (v.t == t_i8 || v.t == t_i16 || v.t == t_i32 || v.t == t_i64) {
-							long long cv = 42; //LLVMConstIntGetSExtValue(v.v);
-							if (cv <= 0) {
-								throw_specific_error(ce, "Array cannot be created with negative or zero size");
-							}
-							aType.actual_size = (unsigned int)cv;
-						}
-						else if (v.t == t_u8 || v.t == t_u16 || v.t == t_u32 || v.t == t_u64) {
-							unsigned long long cv = 42;//LLVMConstIntGetZExtValue(v.v);
-							if (cv == 0) {
-								throw_specific_error(ce, "Array cannot be created with zero size");
-							}
-							aType.actual_size = (unsigned int)cv;
-						}
-						else {
-							throw_specific_error(ce, "Array type must have constant integer size");
-						}*/
-						aType.actual_size = 42;
-					}
-
-					if (c.tok != RecognizedToken::CloseBracket) {
-						throw_wrong_token_error(c, "']'");
-					}
+					throw_wrong_token_error(c, "']'");
 				}
 				c.move();
 

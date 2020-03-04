@@ -76,7 +76,7 @@ namespace Corrosive {
 		if (at == nullptr) return false;
 		else {
 			if (at->ref != ref) return false;
-			if (at->size.buffer != size.buffer) return false;
+			if (at->size != size) return false;
 			if (!base->can_simple_cast_into(at->base)) return false;
 
 			return true;

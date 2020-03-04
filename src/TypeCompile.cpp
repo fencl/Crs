@@ -24,15 +24,11 @@ namespace Corrosive {
 
 		ArrayType* self = (ArrayType*)this;
 
-		if (actual_size == 0) {
-			throw_specific_error(size, "Size of array type has not been evaluated (compiler error)");
-		}
-
 		base->pre_compile(ctx);
 
 		self->is_heavy = true;
 
-		self->llvm_type = LLVMArrayType(base->LLVMType(), self->actual_size);
+		self->llvm_type = LLVMArrayType(base->LLVMType(), self->size);
 		self->llvm_lvalue = self->llvm_rvalue = LLVMPointerType(self->llvm_type, 0);
 	}
 

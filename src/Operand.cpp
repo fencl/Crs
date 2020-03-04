@@ -121,9 +121,9 @@ namespace Corrosive {
 
 		if (cpt != CompileType::ShortCircuit) {
 			if (usg)
-				IRBuilder::build_const_u32(ctx.block, d);
+				IRBuilder::build_const_u32(ctx.block, (uint32_t)d);
 			else
-				IRBuilder::build_const_i32(ctx.block, d);
+				IRBuilder::build_const_i32(ctx.block, (int32_t)d);
 		}
 
 		ret.t = usg ? Corrosive::t_u32 : Corrosive::t_i32;

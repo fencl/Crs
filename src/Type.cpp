@@ -53,15 +53,8 @@ namespace Corrosive {
 		base->print();
 
 		std::cout << " [";
-		if (actual_size!=0) {
-			std::cout << actual_size;
-		}
-		else {
-			std::cout << size.buffer;
-			if (!has_simple_size) {
-				std::cout << "... ("<<size.offset<<")";
-			}
-		}
+
+		std::cout << size;
 
 		std::cout << "]";
 		Type::print();

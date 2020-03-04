@@ -7,7 +7,7 @@ namespace Corrosive {
 	IRFunction* IRModule::create_function(IRDataType returns) {
 		std::unique_ptr<IRFunction> function = std::make_unique<IRFunction>();
 		IRFunction* function_ptr = function.get();
-		function_ptr->id = functions.size();
+		function_ptr->id = (unsigned int)functions.size();
 		function_ptr->parent = this;
 		function_ptr->yields = returns;
 		functions.push_back(std::move(function));
@@ -17,7 +17,7 @@ namespace Corrosive {
 	IRBlock* IRFunction::create_block(IRDataType accepts) {
 		std::unique_ptr<IRBlock> block = std::make_unique<IRBlock>();
 		IRBlock* block_ptr = block.get();
-		block->id = blocks_memory.size();
+		block->id = (unsigned int)blocks_memory.size();
 		block->parent = this;
 		block->accepts = accepts;
 		blocks_memory.push_back(std::move(block));
@@ -39,7 +39,7 @@ namespace Corrosive {
 		}
 
 		unsigned char* r = &data_pool.back()->data[data_pool.back()->size];
-		data_pool.back()->size += size;
+		data_pool.back()->size += (unsigned int)size;
 		return r;
 	}
 

@@ -119,10 +119,8 @@ namespace Corrosive {
 		virtual const Type*		clone_ref				(bool r) const;
 
 
-		Cursor			size;
-		unsigned int	actual_size = 0;
-		bool			has_simple_size = true;
-		const Type*		base		= nullptr;
+		unsigned int size = 0;
+		const Type*	 base= nullptr;
 	};
 
 
