@@ -85,17 +85,15 @@ namespace Corrosive {
 			case IRDataType::u16: std::cout << "u16"; break;
 			case IRDataType::u32: std::cout << "u32"; break;
 			case IRDataType::u64: std::cout << "u64"; break;
-
 			case IRDataType::i8:  std::cout << "i8"; break;
 			case IRDataType::i16: std::cout << "i16"; break;
 			case IRDataType::i32: std::cout << "i32"; break;
 			case IRDataType::i64: std::cout << "i64"; break;
-
 			case IRDataType::f32: std::cout << "f32"; break;
 			case IRDataType::f64: std::cout << "f64"; break;
-
 			case IRDataType::ptr:  std::cout << "ptr"; break;
 			case IRDataType::none: std::cout << "none"; break;
+			default: std::cout << "error";
 		}
 	}
 
@@ -131,11 +129,23 @@ namespace Corrosive {
 			case IRInstruction::div:
 				std::cout << "   div\n";
 				break;
+			case IRInstruction::rem:
+				std::cout << "   rem\n";
+				break;
 			case IRInstruction::mul:
 				std::cout << "   mul\n";
 				break;
 			case IRInstruction::add:
 				std::cout << "   add\n";
+				break;
+			case IRInstruction::o_and:
+				std::cout << "   and\n";
+				break;
+			case IRInstruction::o_or:
+				std::cout << "   or\n";
+				break;
+			case IRInstruction::o_xor:
+				std::cout << "   xor\n";
 				break;
 
 			case IRInstruction::eq:
@@ -168,6 +178,13 @@ namespace Corrosive {
 				std::cout << *address << "\n";
 				break;
 			}
+			case IRInstruction::load: {
+				std::cout << "   load [";
+				auto type = read_data_type(IRDataType);
+				dump_data_type(*type);
+				std::cout << "]\n";
+				break;
+			}
 			case IRInstruction::jmpz: {
 				std::cout << "   jmpz ";
 				auto address = read_data_type(unsigned int);
@@ -187,6 +204,7 @@ namespace Corrosive {
 				std::cout << "] ";
 
 				switch (*type) {
+				case IRDataType::ibool:  std::cout << ((*read_data_type(uint8_t))?"true":"false"); break;
 				case IRDataType::u8:  std::cout << *read_data_type(uint8_t); break;
 				case IRDataType::u16: std::cout << *read_data_type(uint16_t); break;
 				case IRDataType::u32: std::cout << *read_data_type(uint32_t); break;

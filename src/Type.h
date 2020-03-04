@@ -9,6 +9,7 @@
 #include <variant>
 #include <unordered_set>
 #include "CompileContext.h"
+#include <llvm/Core.h>
 
 namespace Corrosive {
 	

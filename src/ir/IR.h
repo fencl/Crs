@@ -9,9 +9,9 @@
 namespace Corrosive {
 	class IRFunction;
 	class IRModule;
-
+	
 	enum class IRInstruction : unsigned char {
-		value, add, sub, div, mul, load, store, accept, discard, yield, ret, jmp, jmpz, eq, ne, gt, ge, lt, le
+		value, add, sub, div, mul, rem, o_and, o_or, o_xor, load, store, accept, discard, yield, ret, jmp, jmpz, eq, ne, gt, ge, lt, le
 	};
 
 	enum class IRDataType : unsigned char {
@@ -84,10 +84,12 @@ namespace Corrosive {
 		static void build_const_f32	  (IRBlock* block, float    value);
 		static void build_const_f64	  (IRBlock* block, double   value);
 
-
-
 		static IRDataType arith_result(IRDataType l,IRDataType r);
 		static void build_add(IRBlock* block);
+		static void build_load(IRBlock* block, IRDataType type);
+		static void build_and(IRBlock* block);
+		static void build_or(IRBlock* block);
+		static void build_xor(IRBlock* block);
 		static void build_eq(IRBlock* block);
 		static void build_ne(IRBlock* block);
 		static void build_gt(IRBlock* block);
@@ -96,6 +98,7 @@ namespace Corrosive {
 		static void build_le(IRBlock* block);
 		static void build_sub(IRBlock* block);
 		static void build_div(IRBlock* block);
+		static void build_rem(IRBlock* block);
 		static void build_mul(IRBlock* block);
 		static void build_accept(IRBlock* block);
 		static void build_discard(IRBlock* block);

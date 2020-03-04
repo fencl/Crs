@@ -9,9 +9,10 @@
 
 namespace Corrosive {
 	void Expression::rvalue(CompileContextExt& ctx,CompileValue& value,CompileType cpt) {
-		if (value.lvalue) {
+		/*if (value.lvalue) {
 			if (cpt == CompileType::compile) {
 				value.lvalue = false;
+				IRBuilder::build_load(block::)
 				value.v = LLVMBuildLoad2(ctx.builder, value.t->LLVMTypeRValue(), value.v, "");
 			}
 			else if (cpt == CompileType::Eval) {
@@ -19,76 +20,33 @@ namespace Corrosive {
 				void* ptr = (void*)LLVMConstIntGetZExtValue(value.v);
 				//int size = LLVMABISizeOfType(ctx.basic.target_layout,value.t->LLVMType());
 			}
-		}
+		}*/
 	}
 
 	void Expression::arith_promote(CompileValue& value,int from, int to) {
 		if (to == 10) {
-			if (from == 9)
-				value.v = LLVMConstFPExt(value.v, LLVMDoubleType());
-			else {
-				if (from % 2 == 1) {
-					value.v = LLVMConstUIToFP(value.v, LLVMDoubleType());
-				}
-				else {
-					value.v = LLVMConstSIToFP(value.v, LLVMDoubleType());
-				}
-			}
 			value.t = t_f64;
 		}
 		else if (to == 9) {
-			if (from % 2 == 1) {
-				value.v = LLVMConstUIToFP(value.v, LLVMFloatType());
-			}
-			else {
-				value.v = LLVMConstSIToFP(value.v, LLVMFloatType());
-			}
 			value.t = t_f32;
 		}
 		else if (to == 8 || to == 7) {
-			if (from % 2 == 1) {
-				value.v = LLVMConstZExt(value.v, LLVMInt64Type());
-			}
-			else {
-				value.v = LLVMConstSExt(value.v, LLVMInt64Type());
-			}
-
 			value.t = (to == 8 ? t_i64 : t_u64);
 		}
 		else if (to == 6 || to == 5) {
-			if (from % 2 == 1) {
-				value.v = LLVMConstZExt(value.v, LLVMInt32Type());
-			}
-			else {
-				value.v = LLVMConstSExt(value.v, LLVMInt32Type());
-			}
-
 			value.t = (to == 6 ? t_i32 : t_u32);
 		}
 		else if (to == 4 || to == 3) {
-			if (from % 2 == 1) {
-				value.v = LLVMConstZExt(value.v, LLVMInt16Type());
-			}
-			else {
-				value.v = LLVMConstSExt(value.v, LLVMInt16Type());
-			}
-
 			value.t = (to == 4 ? t_i16 : t_u16);
 		}
 		else if (to == 2 || to == 1) {
-			if (from % 2 == 1) {
-				value.v = LLVMConstZExt(value.v, LLVMInt8Type());
-			}
-			else {
-				value.v = LLVMConstSExt(value.v, LLVMInt8Type());
-			}
-
 			value.t = (to == 2 ? t_i8 : t_u8);
 		}
 	}
 
 
-	int Expression::arith_value(const PrimitiveType* pt) {
+	int Expression::arith_value(CompileContextExt& ctx, const PrimitiveType* pt) {
+		pt->compile(ctx.basic);
 		StructDeclarationType sdt = pt->structure->decl_type;
 
 		switch (sdt)
@@ -121,7 +79,7 @@ namespace Corrosive {
 		}
 	}
 
-	bool Expression::arith_cast(CompileValue& left, CompileValue& right, bool& isfloat,bool& issigned) {
+	bool Expression::arith_cast(CompileContextExt& ctx, CompileValue& left, CompileValue& right, bool& isfloat,bool& issigned) {
 		auto ltp = dynamic_cast<const PrimitiveType*>(left.t);
 		auto rtp = dynamic_cast<const PrimitiveType*>(right.t);
 
@@ -129,8 +87,8 @@ namespace Corrosive {
 			return false;
 		}
 		else {
-			int arith_value_left = arith_value(ltp);
-			int arith_value_right = arith_value(rtp);
+			int arith_value_left = arith_value(ctx,ltp);
+			int arith_value_right = arith_value(ctx,rtp);
 
 			int arith_value_res = std::max(arith_value_left, arith_value_right);
 			if (arith_value_res == 11) return false;
@@ -159,7 +117,7 @@ namespace Corrosive {
 		rvalue(ctx, left, cpt);
 		rvalue(ctx, right, cpt);
 
-		if (!arith_cast(left, right, isf, sig)) {
+		if (!arith_cast(ctx,left, right, isf, sig)) {
 			throw_specific_error(c, "Types of operands cannot be used in this operation");
 		}
 
@@ -173,193 +131,44 @@ namespace Corrosive {
 
 			if (l == 0) {
 				if (op == 0) {
-					if (cpt == CompileType::Eval)
-						ret.v = LLVMConstAnd(left.v, right.v);
-					else
-						ret.v = LLVMBuildAnd(ctx.builder, left.v, right.v, "");
+					IRBuilder::build_and(ctx.block);
 				}
 				else if (op == 1) {
-					if (cpt == CompileType::Eval)
-						ret.v = LLVMConstOr(left.v, right.v);
-					else
-						ret.v = LLVMBuildOr(ctx.builder,left.v, right.v,"");
+					IRBuilder::build_or(ctx.block);
 				}
 				else if (op == 2) {
-					if (cpt == CompileType::Eval)
-						ret.v = LLVMConstXor(left.v, right.v); 
-					else
-						ret.v = LLVMBuildXor(ctx.builder,left.v, right.v,"");
+					IRBuilder::build_xor(ctx.block);
 				}
 			}
 			else if (l == 1) {
-				if (isf) {
-					LLVMRealPredicate pred;
-
-					if (op == 0)
-						pred = LLVMRealPredicate::LLVMRealUEQ;
-					else if (op == 1)
-						pred = LLVMRealPredicate::LLVMRealUNE;
-
-					if (cpt == CompileType::Eval)
-						ret.v = LLVMConstFCmp(pred, left.v, right.v);
-					else
-						ret.v = LLVMBuildFCmp(ctx.builder, pred, left.v, right.v, "");
-				}
-				else {
-					LLVMIntPredicate pred;
-
-					if (op == 0)
-						pred = LLVMIntPredicate::LLVMIntEQ;
-					else if (op == 1)
-						pred = LLVMIntPredicate::LLVMIntNE;
-
-					if (cpt == CompileType::Eval)
-						ret.v = LLVMConstICmp(pred, left.v, right.v);
-					else
-						ret.v = LLVMBuildICmp(ctx.builder, pred, left.v, right.v, "");
-				}
+				if (op == 0)
+					IRBuilder::build_eq(ctx.block);
+				else if (op == 1)
+					IRBuilder::build_ne(ctx.block);
 			}
 			else if (l == 2) {
-				if (isf) {
-					LLVMRealPredicate pred;
-
-					if (op == 0)
-						pred = LLVMRealPredicate::LLVMRealOGT;
-					else if (op ==1)
-						pred = LLVMRealPredicate::LLVMRealOLT;
-					else if (op == 2)
-						pred = LLVMRealPredicate::LLVMRealOGE;
-					else if (op == 3)
-						pred = LLVMRealPredicate::LLVMRealOLE;
-
-					if (cpt == CompileType::Eval)
-						ret.v = LLVMConstFCmp(pred, left.v, right.v);
-					else
-						ret.v = LLVMBuildFCmp(ctx.builder, pred, left.v, right.v, "");
-				}
-				else {
-					LLVMIntPredicate pred;
-
-					if (sig) {
-						if (op == 0)
-							pred = LLVMIntPredicate::LLVMIntSGT;
-						else if (op == 1)
-							pred = LLVMIntPredicate::LLVMIntSLT;
-						else if (op == 2)
-							pred = LLVMIntPredicate::LLVMIntSGE;
-						else if (op == 3)
-							pred = LLVMIntPredicate::LLVMIntSLE;
-					}
-					else {
-						if (op == 0)
-							pred = LLVMIntPredicate::LLVMIntUGT;
-						else if (op == 1)
-							pred = LLVMIntPredicate::LLVMIntULT;
-						else if (op == 2)
-							pred = LLVMIntPredicate::LLVMIntUGE;
-						else if (op == 3)
-							pred = LLVMIntPredicate::LLVMIntULE;
-					}
-
-					if (cpt == CompileType::Eval)
-						ret.v = LLVMConstICmp(pred, left.v, right.v);
-					else
-						ret.v = LLVMBuildICmp(ctx.builder, pred, left.v, right.v, "");
-				}
+				if (op == 0)
+					IRBuilder::build_gt(ctx.block);
+				else if (op == 1)
+					IRBuilder::build_lt(ctx.block);
+				else if (op == 2)
+					IRBuilder::build_ge(ctx.block);
+				else if (op == 3)
+					IRBuilder::build_le(ctx.block);
 			}
 			else if (l == 3) {
-				if (op == 0) {
-					if (cpt == CompileType::Eval) {
-						if (isf)
-							ret.v = LLVMConstFAdd(left.v, right.v);
-						else
-							ret.v = LLVMConstAdd(left.v, right.v);
-					}
-					else {
-						if (isf)
-							ret.v = LLVMBuildFAdd(ctx.builder,left.v, right.v,"");
-						else
-							ret.v = LLVMBuildAdd(ctx.builder,left.v, right.v,"");
-					}
-				}
-				else if (op == 1) {
-
-					if (cpt == CompileType::Eval) {
-						if (isf)
-							ret.v = LLVMConstFSub(left.v, right.v);
-						else
-							ret.v = LLVMConstSub(left.v, right.v);
-					}
-					else if (cpt != CompileType::ShortCircuit) {
-						if (isf)
-							ret.v = LLVMBuildFSub(ctx.builder,left.v, right.v,"");
-						else
-							ret.v = LLVMBuildSub(ctx.builder,left.v, right.v,"");
-					}
-				}
+				if (op == 0)
+					IRBuilder::build_add(ctx.block);
+				else if (op == 1)
+					IRBuilder::build_sub(ctx.block);
 			}
 			else if (l == 4) {
-				if (op == 0) {
-
-					if (cpt == CompileType::Eval) {
-						if (isf)
-							ret.v = LLVMConstFMul(left.v, right.v);
-						else
-							ret.v = LLVMConstMul(left.v, right.v);
-					}
-					else {
-						if (isf)
-							ret.v = LLVMBuildFMul(ctx.builder,left.v, right.v,"");
-						else
-							ret.v = LLVMBuildMul(ctx.builder, left.v, right.v, "");
-					}
-				}
-				else if (op == 1) {
-
-					if (cpt == CompileType::Eval) {
-						if (isf)
-							ret.v = LLVMConstFDiv(left.v, right.v);
-						else {
-							if (sig)
-								ret.v = LLVMConstSDiv(left.v, right.v);
-							else
-								ret.v = LLVMConstUDiv(left.v, right.v);
-						}
-					}
-					else {
-						if (isf)
-							ret.v = LLVMBuildFDiv(ctx.builder, left.v, right.v, "");
-						else {
-							if (sig)
-								ret.v = LLVMBuildSDiv(ctx.builder, left.v, right.v, "");
-							else
-								ret.v = LLVMBuildUDiv(ctx.builder, left.v, right.v, "");
-						}
-					}
-				}
-				else if (op == 2) {
-
-					if (cpt == CompileType::Eval) {
-						if (isf)
-							ret.v = LLVMConstFRem(left.v, right.v);
-						else {
-							if (sig)
-								ret.v = LLVMConstSRem(left.v, right.v);
-							else
-								ret.v = LLVMConstURem(left.v, right.v);
-						}
-					}
-					else {
-						if (isf)
-							ret.v = LLVMBuildFRem(ctx.builder, left.v, right.v, "");
-						else {
-							if (sig)
-								ret.v = LLVMBuildSRem(ctx.builder, left.v, right.v, "");
-							else
-								ret.v = LLVMBuildURem(ctx.builder, left.v, right.v, "");
-						}
-					}
-				}
+				if (op == 0)
+					IRBuilder::build_mul(ctx.block);
+				else if (op == 1)
+					IRBuilder::build_div(ctx.block);
+				else if (op == 2)
+					IRBuilder::build_rem(ctx.block);
 			}
 		}
 
@@ -382,26 +191,28 @@ namespace Corrosive {
 
 			c.move();
 
-			if (cpt == CompileType::ShortCircuit || (value.v != nullptr && LLVMIsAConstantInt(value.v) && !LLVMConstIntGetZExtValue(value.v))) {
+			if (cpt == CompileType::ShortCircuit) {
 				parse_operators(c, ctx, CompileType::ShortCircuit);
 			}
 			else {
-
 				if (cpt == CompileType::Eval) {
 					CompileValue right = Expression::parse_operators(c, ctx, cpt);
-					value.v = LLVMConstAnd(value.v, right.v);
 				}
 				else {
 					if (!ctx.fallback_and) {
-						ctx.fallback_and = LLVMCreateBasicBlockInContext(LLVMGetGlobalContext(), "");
+						ctx.fallback_and = ctx.function->create_block(IRDataType::ibool);
 					}
+
 					rvalue(ctx, value, cpt);
-					ctx.incoming_blocks_and.push_back(ctx.block);
-					ctx.incoming_values_and.push_back(LLVMConstInt(LLVMInt1Type(), false, false));
-					LLVMBasicBlockRef positive_block = LLVMAppendBasicBlock(ctx.function, "");
-					LLVMBuildCondBr(ctx.builder, value.v, positive_block, ctx.fallback_and);
+					IRBlock* positive_block = ctx.function->create_block(IRDataType::ibool);
+					ctx.function->append_block(positive_block);
+
+					IRBuilder::build_discard(positive_block);
+
+					IRBuilder::build_const_ibool(ctx.block, false);
+					IRBuilder::build_yield(ctx.block);
+					IRBuilder::build_jmpz(ctx.block, ctx.fallback_and, positive_block);
 					ctx.block = positive_block;
-					LLVMPositionBuilderAtEnd(ctx.builder, positive_block);
 
 					value = Expression::parse_operators(c, ctx, cpt);
 				}
@@ -414,26 +225,16 @@ namespace Corrosive {
 			}
 
 			rvalue(ctx, value, cpt);
+			IRBuilder::build_yield(ctx.block);
+			IRBuilder::build_jmp(ctx.block, ctx.fallback_and);
+			ctx.function->append_block(ctx.fallback_and);
 
-			std::reverse(ctx.incoming_blocks_and.begin(), ctx.incoming_blocks_and.end());
-			std::reverse(ctx.incoming_values_and.begin(), ctx.incoming_values_and.end());
-			ctx.incoming_blocks_and.push_back(ctx.block);
-			ctx.incoming_values_and.push_back(value.v);
-			LLVMBuildBr(ctx.builder, ctx.fallback_and);
-			
-
-
-			LLVMAppendExistingBasicBlock(ctx.function, ctx.fallback_and);
 			ctx.block = ctx.fallback_and;
 			ctx.fallback_and = nullptr;
-			LLVMPositionBuilderAtEnd(ctx.builder, ctx.block);
-			value.v = LLVMBuildPhi(ctx.builder, LLVMInt1Type(), "");
+
+			IRBuilder::build_accept(ctx.block);
 			value.t = t_bool;
 			value.lvalue = false;
-			LLVMAddIncoming(value.v, ctx.incoming_values_and.data(), ctx.incoming_blocks_and.data(), (unsigned int)ctx.incoming_blocks_and.size());
-
-			ctx.incoming_values_and.clear();
-			ctx.incoming_blocks_and.clear();
 		}
 
 		return value;
@@ -450,28 +251,29 @@ namespace Corrosive {
 
 			c.move();
 
-			if (cpt == CompileType::ShortCircuit || (value.v != nullptr && LLVMIsAConstantInt(value.v) && LLVMConstIntGetZExtValue(value.v))) {
+			if (cpt == CompileType::ShortCircuit) {
 				parse_and(c, ctx, CompileType::ShortCircuit);
 			}
 			else {
 				
 				if (cpt == CompileType::Eval) {
 					CompileValue right = Expression::parse_and(c, ctx, cpt);
-					value.v = LLVMConstAnd(value.v, right.v);
 				}
 				else {
 					if (!ctx.fallback_or) {
-						ctx.fallback_or = LLVMCreateBasicBlockInContext(LLVMGetGlobalContext(), "");
+						ctx.fallback_or = ctx.function->create_block(IRDataType::ibool);
 					}
 
 					rvalue(ctx, value, cpt);
 
-					ctx.incoming_blocks_or.push_back(ctx.block);
-					ctx.incoming_values_or.push_back(LLVMConstInt(LLVMInt1Type(), true, false));
-					LLVMBasicBlockRef positive_block = LLVMAppendBasicBlock(ctx.function, "");
-					LLVMBuildCondBr(ctx.builder, value.v, ctx.fallback_or, positive_block);
+					IRBlock* positive_block = ctx.function->create_block(IRDataType::ibool);
+					ctx.function->append_block(positive_block);
+
+					IRBuilder::build_const_ibool(ctx.block, true);
+					IRBuilder::build_yield(ctx.block);
+
+					IRBuilder::build_jmpz(ctx.block, positive_block, ctx.fallback_or);
 					ctx.block = positive_block;
-					LLVMPositionBuilderAtEnd(ctx.builder, positive_block);
 
 					value = Expression::parse_and(c, ctx, cpt);
 				}
@@ -485,23 +287,17 @@ namespace Corrosive {
 
 			rvalue(ctx, value, cpt);
 
-			std::reverse(ctx.incoming_blocks_or.begin(), ctx.incoming_blocks_or.end());
-			std::reverse(ctx.incoming_values_or.begin(), ctx.incoming_values_or.end());
-			ctx.incoming_blocks_or.push_back(ctx.block);
-			ctx.incoming_values_or.push_back(value.v);
-			LLVMBuildBr(ctx.builder, ctx.fallback_or);
+			IRBuilder::build_yield(ctx.block);
+			IRBuilder::build_jmp(ctx.block, ctx.fallback_or);
+			ctx.function->append_block(ctx.fallback_or);
 
-			LLVMAppendExistingBasicBlock(ctx.function, ctx.fallback_or);
 			ctx.block = ctx.fallback_or;
 			ctx.fallback_or = nullptr;
-			LLVMPositionBuilderAtEnd(ctx.builder, ctx.block);
-			value.v = LLVMBuildPhi(ctx.builder, LLVMInt1Type(), "");
+
+			IRBuilder::build_accept(ctx.block);
+
 			value.t = t_bool;
 			value.lvalue = false;
-			LLVMAddIncoming(value.v, ctx.incoming_values_or.data(), ctx.incoming_blocks_or.data(), (unsigned int)ctx.incoming_blocks_or.size());
-
-			ctx.incoming_values_or.clear();
-			ctx.incoming_blocks_or.clear();
 		}
 
 		return value;
@@ -579,16 +375,13 @@ namespace Corrosive {
 			
 			for (int i = current_layer; i >= std::max(op_v, 0); i--) {
 
-				if (i>=0 && layer[i].v != nullptr) {
+				if (i>=0 && layer[i].t != nullptr) {
 					CompileValue& left = layer[i];
 					CompileValue& right = value;
 					CompileType cpt2 = cpt;
 
-					if (cpt == CompileType::compile && LLVMIsConstant(left.v) && LLVMIsConstant(right.v))
-						cpt2 = CompileType::Eval;
-
 					value = emit(c, ctx, i, op_type[i], left, right, cpt2, op_v, op_t);
-					layer[i].v = nullptr;
+					layer[i].t = nullptr;
 				}
 			}
 			

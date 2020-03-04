@@ -1,10 +1,9 @@
 #pragma once
 #ifndef _compile_context_crs_h
 #define _compile_context_crs_h
-#include <llvm/Core.h>
-#include <llvm/Target.h>
 #include <variant>
 #include <vector>
+#include "ir/IR.h"
 
 namespace Corrosive {
 	class Declaration;
@@ -22,26 +21,19 @@ namespace Corrosive {
 		StructDeclaration*		parent_struct;
 		NamespaceDeclaration*	parent_namespace = nullptr;
 		const TemplateContext*	template_ctx = nullptr;
-		LLVMModuleRef			module = nullptr;
-		LLVMTargetDataRef		target_layout = nullptr;
+		IRModule*				module = nullptr;
 	};
 
 	struct CompileContextExt {
 		CompileContext					basic;
-		LLVMValueRef					function = nullptr;
-		LLVMBasicBlockRef				block = nullptr;
+		IRFunction*						function = nullptr;
+		IRBlock*						block = nullptr;
 		Declaration*					unit = nullptr;
-		LLVMBuilderRef					builder = nullptr;
-		LLVMBasicBlockRef				fallback_and = nullptr;
-		std::vector<LLVMBasicBlockRef>	incoming_blocks_and;
-		std::vector<LLVMValueRef>		incoming_values_and;
-		LLVMBasicBlockRef				fallback_or = nullptr;
-		std::vector<LLVMBasicBlockRef>	incoming_blocks_or;
-		std::vector<LLVMValueRef>		incoming_values_or;
+		IRBlock*						fallback_and = nullptr;
+		IRBlock*						fallback_or = nullptr;
 	};
 
 	struct CompileValue {
-		LLVMValueRef	v = nullptr;
 		const Type*		t = nullptr;
 		bool			lvalue;
 	};

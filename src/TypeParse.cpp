@@ -199,19 +199,19 @@ namespace Corrosive {
 						Expression::parse(c, ccext, CompileType::ShortCircuit);
 					}
 					else {
-						CompileContextExt ccext;
+						/*CompileContextExt ccext;
 						ccext.basic = ctx;
 						Cursor ce = c;
 						CompileValue v = Expression::parse(c, ccext, CompileType::Eval);
 						if (v.t == t_i8 || v.t == t_i16 || v.t == t_i32 || v.t == t_i64) {
-							long long cv = LLVMConstIntGetSExtValue(v.v);
+							long long cv = 42; //LLVMConstIntGetSExtValue(v.v);
 							if (cv <= 0) {
 								throw_specific_error(ce, "Array cannot be created with negative or zero size");
 							}
 							aType.actual_size = (unsigned int)cv;
 						}
 						else if (v.t == t_u8 || v.t == t_u16 || v.t == t_u32 || v.t == t_u64) {
-							unsigned long long cv = LLVMConstIntGetZExtValue(v.v);
+							unsigned long long cv = 42;//LLVMConstIntGetZExtValue(v.v);
 							if (cv == 0) {
 								throw_specific_error(ce, "Array cannot be created with zero size");
 							}
@@ -219,7 +219,8 @@ namespace Corrosive {
 						}
 						else {
 							throw_specific_error(ce, "Array type must have constant integer size");
-						}
+						}*/
+						aType.actual_size = 42;
 					}
 
 					if (c.tok != RecognizedToken::CloseBracket) {

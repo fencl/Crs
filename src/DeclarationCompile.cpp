@@ -6,6 +6,7 @@
 #include "PredefinedTypes.h"
 #include "Expression.h"
 #include "StackManager.h"
+#include <llvm/Core.h>
 
 namespace Corrosive {
 
@@ -355,18 +356,17 @@ namespace Corrosive {
 			}
 			f_name.append(name.buffer);
 
-			unsigned long stack = StackManager::stack_state();
+			//unsigned long stack = StackManager::stack_state();
 
-			function = LLVMAddFunction(ctx.module, f_name.c_str(), type->LLVMType());
-			LLVMBasicBlockRef llvm_block = LLVMAppendBasicBlock(function, "entry");
-			LLVMBuilderRef builder = LLVMCreateBuilder();
-
-			LLVMPositionBuilderAtEnd(builder, llvm_block);
+			function = ctx.module->create_function(IRDataType::ibool);
+			IRBlock* entry = function->create_block(IRDataType::none);
+			function->append_block(entry);
+			IRBuilder::build_discard(entry);
 
 			const FunctionType* ft = (const FunctionType*)type;
 			bool heavy_return = ft->returns->is_heavy;
 
-			for (int i = 0; i < ft->arguments->size(); i++) {
+			/*for (int i = 0; i < ft->arguments->size(); i++) {
 				CompileValue cv;
 				cv.lvalue = true;
 				cv.t = (*ft->arguments)[i];
@@ -378,7 +378,7 @@ namespace Corrosive {
 					LLVMBuildStore(builder, vr,cv.v);
 				}
 				StackManager::stack_push(argnames[i].buffer,cv);
-			}
+			}*/
 
 
 			Cursor c = block;
@@ -388,18 +388,15 @@ namespace Corrosive {
 			cctx.basic.parent_namespace = parent_pack;
 			cctx.basic.parent_struct = nullptr;
 			cctx.basic.template_ctx = nullptr;
-			cctx.builder = builder;
 			cctx.fallback_and = nullptr;
 			cctx.fallback_or = nullptr;
-			cctx.block = llvm_block;
+			cctx.block = entry;
 
 			Corrosive::CompileValue cv = Expression::parse(c, cctx, Corrosive::CompileType::compile);
-			LLVMBuildRet(cctx.builder, cv.v);
+			IRBuilder::build_yield(cctx.block);
+			IRBuilder::build_ret(cctx.block);
 
-			LLVMDisposeBuilder(builder);
-
-
-			StackManager::stack_restore(stack);
+			//StackManager::stack_restore(stack);
 			compile_progress = 2;
 			return;
 		}

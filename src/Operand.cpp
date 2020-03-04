@@ -14,7 +14,6 @@ namespace Corrosive {
 		CompileValue ret;
 		ret.lvalue = false;
 		ret.t = nullptr;
-		ret.v = nullptr;
 
 
 		if (c.tok == RecognizedToken::OpenParenthesis) {
@@ -72,13 +71,13 @@ namespace Corrosive {
 			c.move();
 			ret.lvalue = false;
 			ret.t = t_bool;
-			ret.v = LLVMConstInt(LLVMInt1Type(), true, false);
+			IRBuilder::build_const_ibool(ctx.block, true);
 		}
 		else if (c.buffer == "false") {
 			c.move();
 			ret.lvalue = false;
 			ret.t = t_bool;
-			ret.v = LLVMConstInt(LLVMInt1Type(), false, false);
+			IRBuilder::build_const_ibool(ctx.block, false);
 		}
 		else {
 			Cursor pack;
@@ -120,8 +119,12 @@ namespace Corrosive {
 		unsigned long long d = svtoi(ndata);
 		c.move();
 
-		if (cpt != CompileType::ShortCircuit)
-			ret.v = LLVMConstInt(LLVMInt32Type(), d, !usg);
+		if (cpt != CompileType::ShortCircuit) {
+			if (usg)
+				IRBuilder::build_const_u32(ctx.block, d);
+			else
+				IRBuilder::build_const_i32(ctx.block, d);
+		}
 
 		ret.t = usg ? Corrosive::t_u32 : Corrosive::t_i32;
 		ret.lvalue = false;
@@ -143,8 +146,12 @@ namespace Corrosive {
 		unsigned long long d = svtoi(ndata);
 		c.move();
 
-		if (cpt != CompileType::ShortCircuit)
-			ret.v = LLVMConstInt(LLVMInt64Type(), d, !usg);
+		if (cpt != CompileType::ShortCircuit) {
+			if (usg)
+				IRBuilder::build_const_u64(ctx.block, d);
+			else
+				IRBuilder::build_const_i64(ctx.block, d);
+		}
 
 		ret.t = usg ? Corrosive::t_u64 : Corrosive::t_i64;
 		ret.lvalue = false;
@@ -166,8 +173,8 @@ namespace Corrosive {
 		double d = svtod(ndata);
 		c.move();
 
-		if (cpt != CompileType::ShortCircuit)
-			ret.v = LLVMConstReal(dbl ? LLVMDoubleType() : LLVMFloatType(), d);
+		/*if (cpt != CompileType::ShortCircuit)
+			ret.v = LLVMConstReal(dbl ? LLVMDoubleType() : LLVMFloatType(), d);*/
 
 		ret.t = dbl ? Corrosive::t_f64 : Corrosive::t_f32;
 		ret.lvalue = false;
@@ -190,8 +197,8 @@ namespace Corrosive {
 		}
 		c.move();
 
-		LLVMValueRef ind[] = { v.v };
-		ret.v = LLVMBuildGEP2(ctx.builder, array_type->base->LLVMType(), ret.v, ind, 1, "");
+		//LLVMValueRef ind[] = { v.v };
+		//ret.v = LLVMBuildGEP2(ctx.builder, array_type->base->LLVMType(), ret.v, ind, 1, "");
 
 		ret.t = array_type->base;
 		ret.lvalue = true;
@@ -221,7 +228,7 @@ namespace Corrosive {
 
 			VariableDeclaration* vdecl = dynamic_cast<VariableDeclaration*>(decl);
 			if (vdecl != nullptr) {
-				ret.v = LLVMBuildStructGEP2(ctx.builder, sd->LLVMType(), ret.v, mid, "");
+				//ret.v = LLVMBuildStructGEP2(ctx.builder, sd->LLVMType(), ret.v, mid, "");
 				ret.t = vdecl->type;
 				ret.lvalue = true;
 			}

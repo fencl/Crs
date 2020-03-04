@@ -10,7 +10,9 @@
 #include "Type.h"
 #include <unordered_map>
 #include <map>
+#include "ir/IR.h"
 
+#include <llvm/Core.h>
 namespace Corrosive {
 
 	class StructDeclaration;
@@ -79,7 +81,7 @@ namespace Corrosive {
 		virtual void pre_compile	(CompileContext& ctx);
 		virtual void print			(unsigned int offset) const;
 
-		LLVMValueRef function = nullptr;
+		IRFunction* function = nullptr;
 
 		const Corrosive::Type*	type;
 		std::vector<Cursor>		argnames;

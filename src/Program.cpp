@@ -17,10 +17,7 @@ int main() {
 	Corrosive::Source src;
 	src.load("..\\test\\test.crs");
 	
-	LLVMModuleRef m = LLVMModuleCreateWithName("module");
-	LLVMSetTarget(m, "x86_64-pc-win32");
-	
-	LLVMTargetDataRef t_l = LLVMGetModuleDataLayout(m);
+	std::unique_ptr<Corrosive::IRModule> m = std::make_unique<Corrosive::IRModule>();
 
 	auto end = std::chrono::system_clock::now();
 	auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
@@ -42,8 +39,7 @@ int main() {
 	Corrosive::CompileContext ctx;
 
 	
-	ctx.module = m;
-	ctx.target_layout = t_l;
+	ctx.module = m.get();
 	ctx.parent_namespace = Corrosive::Contents::entry_point->parent_pack;
 	ctx.parent_struct = Corrosive::Contents::entry_point->parent_struct();
 	ctx.template_ctx = nullptr;
@@ -76,8 +72,12 @@ int main() {
 	}*/
 
 	std::cout << "\n";
-	LLVMDumpModule(m);
-	std::cout << "\n";
+	for (auto&& f : m->functions) {
+		f->assert_flow();
+		f->dump();
+		std::cout << "\n";
+		std::cout << "\n";
+	}
 
 
 
@@ -102,50 +102,7 @@ int main() {
 		for (auto&& t : Corrosive::Contents::AllTypes) {
 			t->print_ln();
 		}
-	}
-
-	std::cout << std::endl << std::endl<<"IR Test\n\n";
-	std::unique_ptr<Corrosive::IRModule> irm = std::make_unique<Corrosive::IRModule>();
-	Corrosive::IRFunction* irf = irm->create_function(Corrosive::IRDataType::f64);
-
-	Corrosive::IRBlock* irentry_clear = irf->create_block(Corrosive::IRDataType::i32);
-	Corrosive::IRBlock* irentry_clear2 = irf->create_block(Corrosive::IRDataType::i32);
-	Corrosive::IRBlock* irentry = irf->create_block(Corrosive::IRDataType::none);
-	irf->append_block(irentry);
-	irf->append_block(irentry_clear);
-	irf->append_block(irentry_clear2);
-
-
-
-	Corrosive::IRBuilder::build_accept(irentry_clear);
-	Corrosive::IRBuilder::build_const_u64(irentry_clear, 17);
-	Corrosive::IRBuilder::build_add(irentry_clear);
-	Corrosive::IRBuilder::build_const_f64(irentry_clear, 56.54);
-	Corrosive::IRBuilder::build_div(irentry_clear);
-	Corrosive::IRBuilder::build_yield(irentry_clear);
-	Corrosive::IRBuilder::build_ret(irentry_clear);
-
-
-	Corrosive::IRBuilder::build_accept(irentry_clear2);
-	Corrosive::IRBuilder::build_const_f64(irentry_clear2, 156.32);
-	Corrosive::IRBuilder::build_div(irentry_clear2);
-	Corrosive::IRBuilder::build_yield(irentry_clear2);
-	Corrosive::IRBuilder::build_ret(irentry_clear2);
-
-
-	Corrosive::IRBuilder::build_discard(irentry);
-	Corrosive::IRBuilder::build_const_u32(irentry, 42);
-	Corrosive::IRBuilder::build_const_u32(irentry, 24);
-	Corrosive::IRBuilder::build_gt(irentry);
-	Corrosive::IRBuilder::build_const_i32(irentry, 13);
-	Corrosive::IRBuilder::build_yield(irentry);
-	Corrosive::IRBuilder::build_jmpz(irentry, irentry_clear, irentry_clear2);
-
-	irf->assert_flow();
-
-	irf->dump();
-
-
+	}	
 
 	return 0;
 }

@@ -52,6 +52,7 @@ namespace Corrosive {
 
 		mod |= resolve_package_in_place(rt.base, ctx);
 
+		/*
 		CompileContextExt cctxext;
 		cctxext.basic = ctx;
 
@@ -59,14 +60,14 @@ namespace Corrosive {
 		CompileValue v = Expression::parse(cex, cctxext, CompileType::Eval);
 
 		if (v.t == t_i8 || v.t == t_i16 || v.t == t_i32 || v.t == t_i64) {
-			long long cv = LLVMConstIntGetSExtValue(v.v);
+			long long cv = 42;//LLVMConstIntGetSExtValue(v.v);
 			if (cv <= 0) {
 				throw_specific_error(size, "Array cannot be created with negative or zero size");
 			}
 			rt.actual_size = (unsigned int)cv;
 		}
 		else if (v.t == t_u8 || v.t == t_u16 || v.t == t_u32 || v.t == t_u64) {
-			unsigned long long cv = LLVMConstIntGetZExtValue(v.v);
+			unsigned long long cv = 42;// LLVMConstIntGetZExtValue(v.v);
 			if (cv == 0) {
 				throw_specific_error(size, "Array cannot be created with zero size");
 			}
@@ -74,7 +75,8 @@ namespace Corrosive {
 		}
 		else {
 			throw_specific_error(size, "Array type must have constant integer size");
-		}
+		}*/
+		rt.actual_size = 10;
 
 		if (mod)
 			return Contents::emplace_type(rt);
