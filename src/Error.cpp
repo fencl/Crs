@@ -6,6 +6,27 @@ namespace Corrosive {
 		std::cerr << "Error (" << (c.left+1) << ":" << (c.top+1) << ")\n\t";
 	}
 
+	void throw_ir_wrong_data_flow_error() {
+		std::cerr << "Compiler Error:\n\tWrong data flow inside compiler IR";
+		throw_exit();
+	}
+
+	void throw_ir_nothing_on_stack_error() {
+		std::cerr << "Compiler Error:\n\tInstruction requires more argumens than the number of arguments on the stack";
+		throw_exit();
+	}
+
+
+	void throw_ir_remaining_stack_error() {
+		std::cerr << "Compiler Error:\n\tStack is not empty after terminator instruction";
+		throw_exit();
+	}
+
+	void throw_ir_wrong_arguments_error() {
+		std::cerr << "Compiler Error:\n\tInstruction cannot use argument(s) on the stack";
+		throw_exit();
+	}
+
 	void throw_specific_error(const Cursor& c, std::string_view text) {
 		throw_error_header(c);
 		std::cerr << text;
@@ -27,6 +48,7 @@ namespace Corrosive {
 		std::cerr << "Variable with the name '" << c.buffer << "' was not found";
 		throw_exit();
 	}
+
 	void throw_wrong_token_error(const Cursor& c, std::string_view expected) {
 		throw_error_header(c);
 		std::cerr << "Token '" << c.buffer << "' found but parser expected " << expected;

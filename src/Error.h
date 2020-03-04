@@ -10,5 +10,10 @@ namespace Corrosive {
 	void throw_variable_not_found_error(const Cursor& c);
 	void throw_wrong_token_error(const Cursor& c, std::string_view expected);
 	void throw_exit();
+
+	void throw_ir_wrong_data_flow_error();
+	void throw_ir_nothing_on_stack_error();
+	void throw_ir_remaining_stack_error();
+	void throw_ir_wrong_arguments_error();
 }
 #endif

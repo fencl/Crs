@@ -9,6 +9,7 @@
 #include "PredefinedTypes.h"
 #include "Operand.h"
 #include "Expression.h"
+#include "ir/IR.h"
 
 int main() {
 	auto start = std::chrono::system_clock::now();
@@ -102,5 +103,49 @@ int main() {
 			t->print_ln();
 		}
 	}
+
+	std::cout << std::endl << std::endl<<"IR Test\n\n";
+	std::unique_ptr<Corrosive::IRModule> irm = std::make_unique<Corrosive::IRModule>();
+	Corrosive::IRFunction* irf = irm->create_function(Corrosive::IRDataType::f64);
+
+	Corrosive::IRBlock* irentry_clear = irf->create_block(Corrosive::IRDataType::i32);
+	Corrosive::IRBlock* irentry_clear2 = irf->create_block(Corrosive::IRDataType::i32);
+	Corrosive::IRBlock* irentry = irf->create_block(Corrosive::IRDataType::none);
+	irf->append_block(irentry);
+	irf->append_block(irentry_clear);
+	irf->append_block(irentry_clear2);
+
+
+
+	Corrosive::IRBuilder::build_accept(irentry_clear);
+	Corrosive::IRBuilder::build_const_u64(irentry_clear, 17);
+	Corrosive::IRBuilder::build_add(irentry_clear);
+	Corrosive::IRBuilder::build_const_f64(irentry_clear, 56.54);
+	Corrosive::IRBuilder::build_div(irentry_clear);
+	Corrosive::IRBuilder::build_yield(irentry_clear);
+	Corrosive::IRBuilder::build_ret(irentry_clear);
+
+
+	Corrosive::IRBuilder::build_accept(irentry_clear2);
+	Corrosive::IRBuilder::build_const_f64(irentry_clear2, 156.32);
+	Corrosive::IRBuilder::build_div(irentry_clear2);
+	Corrosive::IRBuilder::build_yield(irentry_clear2);
+	Corrosive::IRBuilder::build_ret(irentry_clear2);
+
+
+	Corrosive::IRBuilder::build_discard(irentry);
+	Corrosive::IRBuilder::build_const_u32(irentry, 42);
+	Corrosive::IRBuilder::build_const_u32(irentry, 24);
+	Corrosive::IRBuilder::build_gt(irentry);
+	Corrosive::IRBuilder::build_const_i32(irentry, 13);
+	Corrosive::IRBuilder::build_yield(irentry);
+	Corrosive::IRBuilder::build_jmpz(irentry, irentry_clear, irentry_clear2);
+
+	irf->assert_flow();
+
+	irf->dump();
+
+
+
 	return 0;
 }
