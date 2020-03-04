@@ -19,10 +19,6 @@ namespace Corrosive {
 		return structure;
 	}*/
 
-	LLVMTypeRef Type::LLVMType() const { return llvm_type; }
-	LLVMTypeRef Type::LLVMTypeLValue() const { return llvm_lvalue; }
-	LLVMTypeRef Type::LLVMTypeRValue() const { return llvm_rvalue; }
-
 	void Type::print_ln() const {
 		print();
 		std::cout << std::endl;

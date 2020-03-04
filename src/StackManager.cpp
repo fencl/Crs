@@ -29,11 +29,12 @@ namespace Corrosive {
 	}
 
 
-	StackItem& StackManager::stack_push(std::string_view name, CompileValue value)
+	StackItem& StackManager::stack_push(std::string_view name, CompileValue value, unsigned int ir_local)
 	{
 		StackItem sitm;
 		sitm.name = name;
 		sitm.value = value;
+		sitm.ir_local = ir_local;
 		auto prev = stack_namespace.find(name);
 		if (prev == stack_namespace.end()) {
 			sitm.previous = ULONG_MAX;

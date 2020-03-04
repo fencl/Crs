@@ -9,13 +9,14 @@
 namespace Corrosive {
 	class IRFunction;
 	class IRModule;
+	class Type;
 	
 	enum class IRInstruction : unsigned char {
-		value, add, sub, div, mul, rem, o_and, o_or, o_xor, load, store, accept, discard, yield, ret, jmp, jmpz, eq, ne, gt, ge, lt, le
+		value, add, sub, div, mul, rem, o_and, o_or, o_xor, load, store, accept, discard, yield, ret, jmp, jmpz, eq, ne, gt, ge, lt, le, local
 	};
 
 	enum class IRDataType : unsigned char {
-		ibool,u8,i8,u16,i16,u32,i32,u64,i64,f32,f64,ptr,none
+		ibool,u8,i8,u16,i16,u32,i32,u64,i64,f32,f64,ptr,none,undefined
 	};
 
 	struct IRBlockData {
@@ -53,6 +54,7 @@ namespace Corrosive {
 		unsigned int id;
 		IRModule* parent;
 		IRDataType yields = IRDataType::none;
+		std::vector<const Type*> locals;
 		std::vector<IRBlock*> blocks;
 		std::vector<std::unique_ptr<IRBlock>> blocks_memory;
 		std::set<IRBlock*> return_blocks;
@@ -61,6 +63,7 @@ namespace Corrosive {
 		void append_block(IRBlock* block);
 		void dump();
 		void assert_flow();
+		unsigned int register_local(const Type* type);
 	};
 
 	class IRModule {
@@ -87,6 +90,8 @@ namespace Corrosive {
 		static IRDataType arith_result(IRDataType l,IRDataType r);
 		static void build_add(IRBlock* block);
 		static void build_load(IRBlock* block, IRDataType type);
+		static void build_store(IRBlock* block);
+		static void build_local(IRBlock* block,unsigned int id);
 		static void build_and(IRBlock* block);
 		static void build_or(IRBlock* block);
 		static void build_xor(IRBlock* block);

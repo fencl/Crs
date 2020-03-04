@@ -1,6 +1,7 @@
 #include "IR.h"
 #include <iostream>
 #include "../Error.h"
+#include "../Type.h"
 
 namespace Corrosive {
 
@@ -147,7 +148,6 @@ namespace Corrosive {
 			case IRInstruction::o_xor:
 				std::cout << "   xor\n";
 				break;
-
 			case IRInstruction::eq:
 				std::cout << "   eq\n";
 				break;
@@ -166,6 +166,9 @@ namespace Corrosive {
 			case IRInstruction::le:
 				std::cout << "   le\n";
 				break;
+			case IRInstruction::store:
+				std::cout << "   store\n";
+				break;
 			case IRInstruction::accept:
 				std::cout << "   accept\n";
 				break;
@@ -174,6 +177,12 @@ namespace Corrosive {
 				break;
 			case IRInstruction::jmp: {
 				std::cout << "   jmp ";
+				auto address = read_data_type(unsigned int);
+				std::cout << *address << "\n";
+				break;
+			}
+			case IRInstruction::local: {
+				std::cout << "   local ";
 				auto address = read_data_type(unsigned int);
 				std::cout << *address << "\n";
 				break;
@@ -228,8 +237,6 @@ namespace Corrosive {
 
 #undef read_data_type
 
-
-
 	void IRFunction :: assert_flow() {
 		for (auto b = blocks.begin(); b != blocks.end(); b++) {
 			(*b)->assert_flow();
@@ -248,5 +255,12 @@ namespace Corrosive {
 				throw_ir_wrong_data_flow_error();
 			}
 		}
+	}
+
+
+	unsigned int IRFunction::register_local(const Type* type) {
+		unsigned int r = locals.size();
+		locals.push_back(type);
+		return r;
 	}
 }

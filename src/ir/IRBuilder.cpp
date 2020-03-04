@@ -76,11 +76,36 @@ namespace Corrosive {
 
 		IRDataType t_v = block->stack.back();
 		block->stack.pop_back();
-		if (t_v != IRDataType::ptr)
-			throw_ir_wrong_arguments_error();
+		//if (t_v != IRDataType::ptr)
+		//	throw_ir_wrong_arguments_error();
 
 		block->write_instruction(IRInstruction::load); 
 		block->write_const_type(type);
+
+		block->stack.push_back(type);
+	}
+
+	void IRBuilder::build_store(IRBlock* block) {
+		if (block->stack.size() < 2) {
+			throw_ir_nothing_on_stack_error();
+		}
+
+		IRDataType t_v = block->stack.back();
+		block->stack.pop_back();
+
+		IRDataType t_p = block->stack.back();
+		block->stack.pop_back();
+		if (t_p != IRDataType::ptr)
+			throw_ir_wrong_arguments_error();
+
+		block->write_instruction(IRInstruction::store);
+	}
+
+
+	void IRBuilder::build_local(IRBlock* block, unsigned int id) {
+		block->stack.push_back(IRDataType::ptr);
+		block->write_instruction(IRInstruction::local);
+		block->write_value(sizeof(unsigned int), (unsigned char*)&id);
 	}
 
 	IRDataType IRBuilder::arith_result(IRDataType l, IRDataType r) {
@@ -192,6 +217,9 @@ namespace Corrosive {
 		block->stack.pop_back();
 		IRDataType t_l = block->stack.back();
 		block->stack.pop_back();
+
+		if (t_l > IRDataType::f64 || t_r > IRDataType::f64)
+			throw_ir_wrong_arguments_error();
 		block->write_instruction(IRInstruction::mul);
 		block->stack.push_back(arith_result(t_r, t_l));
 	}
@@ -204,6 +232,9 @@ namespace Corrosive {
 		block->stack.pop_back();
 		IRDataType t_l = block->stack.back();
 		block->stack.pop_back();
+
+		if ((t_l > IRDataType::f64 || t_r > IRDataType::f64) && t_l!=t_r)
+			throw_ir_wrong_arguments_error();
 		block->write_instruction(IRInstruction::eq);
 		block->stack.push_back(IRDataType::ibool);
 	}
@@ -215,6 +246,9 @@ namespace Corrosive {
 		block->stack.pop_back();
 		IRDataType t_l = block->stack.back();
 		block->stack.pop_back();
+
+		if ((t_l > IRDataType::f64 || t_r > IRDataType::f64) && t_l != t_r)
+			throw_ir_wrong_arguments_error();
 		block->write_instruction(IRInstruction::ne);
 		block->stack.push_back(IRDataType::ibool);
 	}
@@ -226,6 +260,9 @@ namespace Corrosive {
 		block->stack.pop_back();
 		IRDataType t_l = block->stack.back();
 		block->stack.pop_back();
+
+		if (t_l > IRDataType::f64 || t_r > IRDataType::f64)
+			throw_ir_wrong_arguments_error();
 		block->write_instruction(IRInstruction::gt);
 		block->stack.push_back(IRDataType::ibool);
 	}
@@ -238,6 +275,9 @@ namespace Corrosive {
 		block->stack.pop_back();
 		IRDataType t_l = block->stack.back();
 		block->stack.pop_back();
+
+		if (t_l > IRDataType::f64 || t_r > IRDataType::f64)
+			throw_ir_wrong_arguments_error();
 		block->write_instruction(IRInstruction::ge);
 		block->stack.push_back(IRDataType::ibool);
 	}
@@ -251,6 +291,9 @@ namespace Corrosive {
 		block->stack.pop_back();
 		IRDataType t_l = block->stack.back();
 		block->stack.pop_back();
+
+		if (t_l > IRDataType::f64 || t_r > IRDataType::f64)
+			throw_ir_wrong_arguments_error();
 		block->write_instruction(IRInstruction::lt);
 		block->stack.push_back(IRDataType::ibool);
 	}
@@ -263,6 +306,9 @@ namespace Corrosive {
 		block->stack.pop_back();
 		IRDataType t_l = block->stack.back();
 		block->stack.pop_back();
+
+		if (t_l > IRDataType::f64 || t_r > IRDataType::f64)
+			throw_ir_wrong_arguments_error();
 		block->write_instruction(IRInstruction::le);
 		block->stack.push_back(IRDataType::ibool);
 	}

@@ -95,6 +95,7 @@ namespace Corrosive {
 
 			if (pack.buffer.empty()) {
 				if (auto sitm = StackManager::stack_find(name.buffer)) {
+					IRBuilder::build_local(ctx.block,sitm->ir_local);
 					ret = sitm->value;
 				}
 				else {

@@ -9,18 +9,15 @@
 
 namespace Corrosive {
 	void Expression::rvalue(CompileContextExt& ctx,CompileValue& value,CompileType cpt) {
-		/*if (value.lvalue) {
+		if (value.lvalue) {
 			if (cpt == CompileType::compile) {
 				value.lvalue = false;
-				IRBuilder::build_load(block::)
-				value.v = LLVMBuildLoad2(ctx.builder, value.t->LLVMTypeRValue(), value.v, "");
+				IRBuilder::build_load(ctx.block, value.t->rvalue);
 			}
 			else if (cpt == CompileType::Eval) {
-				value.lvalue = false;
-				void* ptr = (void*)LLVMConstIntGetZExtValue(value.v);
-				//int size = LLVMABISizeOfType(ctx.basic.target_layout,value.t->LLVMType());
+				
 			}
-		}*/
+		}
 	}
 
 	void Expression::arith_promote(CompileValue& value,int from, int to) {
@@ -114,8 +111,8 @@ namespace Corrosive {
 		bool isf = false;
 		bool sig = false;
 
-		rvalue(ctx, left, cpt);
-		rvalue(ctx, right, cpt);
+		//rvalue(ctx, left, cpt);
+		//rvalue(ctx, right, cpt);
 
 		if (!arith_cast(ctx,left, right, isf, sig)) {
 			throw_specific_error(c, "Types of operands cannot be used in this operation");
@@ -372,6 +369,8 @@ namespace Corrosive {
 				op_v = 4;
 				op_t = 2;
 			}
+
+			rvalue(ctx, value, cpt);
 			
 			for (int i = current_layer; i >= std::max(op_v, 0); i--) {
 

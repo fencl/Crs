@@ -11,13 +11,14 @@ namespace Corrosive {
 		CompileValue value;
 		std::string_view name;
 		unsigned long previous = ULONG_MAX;
+		unsigned long ir_local = 0;
 	};
 
 	class StackManager {
 	public:
 		static unsigned long stack_state();
 		static void stack_restore(unsigned long state);
-		static StackItem& stack_push(std::string_view name, CompileValue value);
+		static StackItem& stack_push(std::string_view name, CompileValue value, unsigned int ir_local);
 		static StackItem* stack_find(std::string_view name);
 
 	private:

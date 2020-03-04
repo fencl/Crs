@@ -11,32 +11,33 @@
 namespace Corrosive {
 
 	void StructDeclaration::pre_compile(CompileContext& ctx) {
-		if (llvm_type != nullptr) return;
+		if (rvalue != IRDataType::undefined) return;
 		Contents::StaticStructures.push_back(this);
 
-		if (decl_type == StructDeclarationType::t_i64 || decl_type == StructDeclarationType::t_u64) {
-			llvm_type = LLVMInt64Type();
-		}else if (decl_type == StructDeclarationType::t_i32 || decl_type == StructDeclarationType::t_u32) {
-			llvm_type = LLVMInt32Type();
-		}
-		else if (decl_type == StructDeclarationType::t_i16 || decl_type == StructDeclarationType::t_u16) {
-			llvm_type = LLVMInt16Type();
-		}
-		else if (decl_type == StructDeclarationType::t_i8 || decl_type == StructDeclarationType::t_u8) {
-			llvm_type = LLVMInt8Type();
-		}
-		else if (decl_type == StructDeclarationType::t_f32) {
-			llvm_type = LLVMFloatType();
-		}
-		else if (decl_type == StructDeclarationType::t_f64) {
-			llvm_type = LLVMDoubleType();
-		}
-		else if (decl_type == StructDeclarationType::t_bool) {
-			llvm_type = LLVMInt1Type();
-		}
-		else if(decl_type == StructDeclarationType::t_ptr) {
-			llvm_type = LLVMPointerType(LLVMVoidType(),0);
-		}
+		if (decl_type == StructDeclarationType::t_i64)
+			rvalue = IRDataType::i64;
+		else if (decl_type == StructDeclarationType::t_u64)
+			rvalue = IRDataType::u64;
+		else if (decl_type == StructDeclarationType::t_i32)
+			rvalue = IRDataType::i32;
+		else if (decl_type == StructDeclarationType::t_u32)
+			rvalue = IRDataType::u32;
+		else if (decl_type == StructDeclarationType::t_i16)
+			rvalue = IRDataType::i16;
+		else if (decl_type == StructDeclarationType::t_u16)
+			rvalue = IRDataType::u16;
+		else if (decl_type == StructDeclarationType::t_i8)
+			rvalue = IRDataType::i8;
+		else if (decl_type == StructDeclarationType::t_u8)
+			rvalue = IRDataType::u8;
+		else if (decl_type == StructDeclarationType::t_bool)
+			rvalue = IRDataType::ibool;
+		else if (decl_type == StructDeclarationType::t_ptr)
+			rvalue = IRDataType::ptr;
+		else if (decl_type == StructDeclarationType::t_f32)
+			rvalue = IRDataType::f32;
+		else if (decl_type == StructDeclarationType::t_f64)
+			rvalue = IRDataType::f64;
 		else {
 
 			std::string llvm_name;
@@ -56,7 +57,6 @@ namespace Corrosive {
 				llvm_name.append(std::to_string(gen_id));
 			}
 
-			llvm_type = LLVMStructCreateNamed(LLVMGetGlobalContext(), llvm_name.c_str());
 
 
 			for (int i = 0; i < implements.size(); i++) {
@@ -115,7 +115,7 @@ namespace Corrosive {
 				(*it)->pre_compile(ctx);
 			}
 
-			std::vector<LLVMTypeRef> mem_types;
+			//std::vector<LLVMTypeRef> mem_types;
 
 			for (int i = 0; i < members.size(); i++) {
 				std::unique_ptr<Declaration>& decl = members[i];
@@ -153,7 +153,7 @@ namespace Corrosive {
 
 				decl->pre_compile(ctx);
 
-				if (vdecl = dynamic_cast<VariableDeclaration*>(decl.get())) {
+				/*if (vdecl = dynamic_cast<VariableDeclaration*>(decl.get())) {
 					if (!is_trait)
 						mem_types.push_back(vdecl->type->LLVMType());
 					else
@@ -162,11 +162,11 @@ namespace Corrosive {
 				else if (fdecl != nullptr) {
 					if (is_trait)
 						mem_types.push_back(LLVMPointerType(fdecl->type->LLVMType(), 0));
-				}
+				}*/
 			}
 
 			if (decl_type == StructDeclarationType::Declared)
-				LLVMStructSetBody(llvm_type, mem_types.data(), (unsigned int)mem_types.size(), false);
+				rvalue = IRDataType::ptr;
 
 
 			build_lookup_table();
@@ -326,7 +326,7 @@ namespace Corrosive {
 	}
 
 	void FunctionDeclaration::pre_compile(CompileContext& ctx) {
-		if (type->LLVMType() != nullptr) return;
+		if (type->rvalue != IRDataType::undefined) return;
 
 		CompileContext nctx = ctx;
 		nctx.parent_struct = parent_struct();
@@ -366,19 +366,20 @@ namespace Corrosive {
 			const FunctionType* ft = (const FunctionType*)type;
 			bool heavy_return = ft->returns->is_heavy;
 
-			/*for (int i = 0; i < ft->arguments->size(); i++) {
+			for (int i = 0; i < ft->arguments->size(); i++) {
 				CompileValue cv;
 				cv.lvalue = true;
 				cv.t = (*ft->arguments)[i];
-				cv.v = LLVMGetParam(function, i+heavy_return?1:0);
+				unsigned int argloc = 0;
 
-				if (!cv.t->is_heavy) {
-					LLVMValueRef vr = cv.v;
-					cv.v = LLVMBuildAlloca(builder, cv.t->LLVMType(), "");
-					LLVMBuildStore(builder, vr,cv.v);
-				}
-				StackManager::stack_push(argnames[i].buffer,cv);
-			}*/
+				/*if (!cv.t->is_heavy) {
+					argloc = function->register_local(cv.t);
+				}*/
+
+				argloc = function->register_local(cv.t);
+
+				StackManager::stack_push(argnames[i].buffer,cv, argloc);
+			}
 
 
 			Cursor c = block;
@@ -411,7 +412,7 @@ namespace Corrosive {
 	}
 
 	void VariableDeclaration::pre_compile(CompileContext& ctx) {
-		if (type->LLVMType() != nullptr) return;
+		if (type->rvalue != IRDataType::undefined) return;
 
 		CompileContext nctx = ctx;
 		nctx.parent_struct = parent_struct();

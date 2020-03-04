@@ -109,7 +109,6 @@ namespace Corrosive {
 		void test_interface_complete();
 		void build_lookup_table();
 
-		LLVMTypeRef LLVMType();
 		Declaration* FindDeclarationOfMember(std::string_view name);
 
 		std::vector<std::unique_ptr<Declaration>>	members;
@@ -130,10 +129,7 @@ namespace Corrosive {
 		StructDeclarationType			decl_type = StructDeclarationType::Declared;
 		const TemplateContext*			template_ctx = nullptr;
 		std::vector<StructDeclaration*> implements_structures;
-		
-
-	protected:
-		LLVMTypeRef llvm_type = nullptr;
+		IRDataType rvalue = IRDataType::undefined;
 	};
 
 	class GenericStructDeclaration : public StructDeclaration {

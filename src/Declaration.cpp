@@ -10,8 +10,6 @@ namespace Corrosive {
 	Declaration::~Declaration() {}
 
 
-	LLVMTypeRef StructDeclaration::LLVMType() { return llvm_type; }
-
 	StructDeclaration* Declaration::parent_struct() const {
 		return dynamic_cast<StructDeclaration*>(parent);
 	}

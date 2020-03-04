@@ -10,6 +10,7 @@
 #include <unordered_set>
 #include "CompileContext.h"
 #include <llvm/Core.h>
+#include "ir/IR.h"
 
 namespace Corrosive {
 	
@@ -34,18 +35,11 @@ namespace Corrosive {
 		static const Type* parse		(Cursor& c, std::vector<Cursor>* argnames = nullptr);
 		static const Type* parse_direct	(CompileContext& ctx, Cursor& c, std::vector<Cursor>* argnames = nullptr);
 
-		LLVMTypeRef LLVMType() const;
-		LLVMTypeRef LLVMTypeLValue() const;
-		LLVMTypeRef LLVMTypeRValue() const;
 
 		bool ref = false;
 		bool is_heavy = false;
 		bool compiled = false;
-
-	protected:
-		LLVMTypeRef llvm_type = nullptr;
-		LLVMTypeRef llvm_lvalue = nullptr;
-		LLVMTypeRef llvm_rvalue = nullptr;
+		IRDataType rvalue = IRDataType::undefined;
 	};
 
 	bool operator == (const Type& t1, const Type& t2);

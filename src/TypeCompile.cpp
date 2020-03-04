@@ -16,70 +16,60 @@ namespace Corrosive {
 	 */
 
 	void Type::pre_compile(CompileContext& ctx) const {
-		if (llvm_type != nullptr) return;
+		if (rvalue != IRDataType::undefined) return;
 	}
 
 	void ArrayType::pre_compile(CompileContext& ctx) const {
-		if (llvm_type != nullptr) return;
+		if (rvalue != IRDataType::undefined) return;
 
 		ArrayType* self = (ArrayType*)this;
-
 		base->pre_compile(ctx);
-
 		self->is_heavy = true;
-
-		self->llvm_type = LLVMArrayType(base->LLVMType(), self->size);
-		self->llvm_lvalue = self->llvm_rvalue = LLVMPointerType(self->llvm_type, 0);
+		self->rvalue = IRDataType::ptr;
 	}
 
 
 	void FunctionType::pre_compile(CompileContext& ctx) const {
-		if (llvm_type != nullptr) return;
+		if (rvalue != IRDataType::undefined) return;
 		FunctionType* self = (FunctionType*)this;
 
-		LLVMTypeRef ret;
-		std::vector<LLVMTypeRef> argtps;
-
+		
 		returns->pre_compile(ctx);
-		if (!returns->is_heavy) {
-			ret = returns->LLVMTypeRValue();
-		}
-		else {
-			argtps.push_back(returns->LLVMTypeRValue());
-			ret = LLVMVoidType();
-		}
 
 		for (auto it = arguments->begin(); it != arguments->end(); it++) {
 			(*it)->pre_compile(ctx);
-			argtps.push_back((*it)->LLVMTypeRValue());
 		}
+
 		self->is_heavy = true;
-		self->llvm_type = LLVMFunctionType(ret, argtps.data(), (unsigned int)argtps.size(), false);
+		self->rvalue = IRDataType::ptr;
 	}
 
 	void InterfaceType::pre_compile(CompileContext& ctx) const {
-		if (llvm_type != nullptr) return;
+		if (rvalue != IRDataType::undefined) return;
 
 		InterfaceType* self = (InterfaceType*)this;
 		for (auto it = types->begin(); it != types->end(); it++) {
 			(*it)->pre_compile(ctx);
 		}
+
+		self->rvalue = IRDataType::ptr;
 	}
 
 
 	void TupleType::pre_compile(CompileContext& ctx) const {
-		if (llvm_type != nullptr) return;
+		if (rvalue != IRDataType::undefined) return;
 
 		TupleType* self = (TupleType*)this;
 		for (auto it = types->begin(); it != types->end(); it++) {
 			(*it)->pre_compile(ctx);
 		}
 		self->is_heavy = true;
+		self->rvalue = IRDataType::ptr;
 	}
 
 
 	void PrimitiveType::pre_compile(CompileContext& ctx) const {
-		if (llvm_type != nullptr) return;
+		if (rvalue != IRDataType::undefined) return;
 
 
 		PrimitiveType* self = (PrimitiveType*)this;
@@ -87,7 +77,7 @@ namespace Corrosive {
 		std::string_view nm = name.buffer;
 
 		if (package == PredefinedNamespace && name.buffer == "void") {
-			self->llvm_type = self->llvm_lvalue = self->llvm_rvalue = LLVMVoidType();
+			self->rvalue = IRDataType::none;
 			self->is_heavy = false;
 			return;
 		}
@@ -117,9 +107,7 @@ namespace Corrosive {
 						(*templates)[0]->pre_compile(nctx);
 					}
 
-					self->llvm_type = (*templates)[0]->LLVMType();
-					self->llvm_lvalue = (*templates)[0]->LLVMTypeLValue();
-					self->llvm_rvalue = (*templates)[0]->LLVMTypeRValue();
+					self->rvalue = (*templates)[0]->rvalue;
 				}
 				else {
 
@@ -145,16 +133,12 @@ namespace Corrosive {
 
 					sd->pre_compile(nctx);
 
-					self->llvm_type = sd->LLVMType();
-					if (ref)
-						self->llvm_type = LLVMPointerType(self->llvm_type, 0);
 
-
-					if (is_heavy)
-						self->llvm_lvalue = self->llvm_rvalue = LLVMPointerType(self->llvm_type, 0);
+					if (ref) {
+						self->rvalue = IRDataType::ptr;
+					}
 					else {
-						self->llvm_lvalue = LLVMPointerType(self->llvm_type, 0);
-						self->llvm_rvalue = self->llvm_type;
+						self->rvalue = sd->rvalue;
 					}
 
 				}
