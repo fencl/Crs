@@ -12,7 +12,7 @@ namespace Corrosive {
 		if (value.lvalue) {
 			if (cpt == CompileType::compile) {
 				value.lvalue = false;
-				IRBuilder::build_load(ctx.block, value.t->rvalue);
+				IRBuilder::build_load(ctx.block, value.t->irtype->rvalue);
 			}
 			else if (cpt == CompileType::Eval) {
 				

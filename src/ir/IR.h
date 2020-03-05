@@ -9,7 +9,6 @@
 namespace Corrosive {
 	class IRFunction;
 	class IRModule;
-	class Type;
 	
 	enum class IRInstruction : unsigned char {
 		value, add, sub, div, mul, rem, o_and, o_or, o_xor, load, store, accept, discard, yield, ret, jmp, jmpz, eq, ne, gt, ge, lt, le, local
@@ -17,6 +16,10 @@ namespace Corrosive {
 
 	enum class IRDataType : unsigned char {
 		ibool,u8,i8,u16,i16,u32,i32,u64,i64,f32,f64,ptr,none,undefined
+	};
+
+	enum class IRArchitecture {
+		x86_64,i386
 	};
 
 	struct IRBlockData {
@@ -48,13 +51,33 @@ namespace Corrosive {
 		unsigned char* read_data(size_t, std::list<std::unique_ptr<IRBlockData>>::iterator& pool, size_t& memoff);
 	};
 
+	class IRType {
+	public:
+		~IRType();
+		IRType();
+		IRType(IRDataType rv,unsigned int sz, unsigned int alg);
+		IRDataType rvalue;
+		unsigned int size_in_bytes = 0;
+		unsigned int alignment_in_bytes = 0;
+
+		
+	};
+
+	class IRStruct : public IRType {
+	public:
+		IRStruct();
+		std::vector<std::pair<unsigned int, IRType*>> members;
+		void add_member(IRType* type);
+		void align_size();
+	};
 
 	class IRFunction {
 	public:
 		unsigned int id;
 		IRModule* parent;
-		IRDataType yields = IRDataType::none;
-		std::vector<const Type*> locals;
+		IRType* returns = nullptr;
+
+		std::vector<IRType*> locals;
 		std::vector<IRBlock*> blocks;
 		std::vector<std::unique_ptr<IRBlock>> blocks_memory;
 		std::set<IRBlock*> return_blocks;
@@ -63,14 +86,33 @@ namespace Corrosive {
 		void append_block(IRBlock* block);
 		void dump();
 		void assert_flow();
-		unsigned int register_local(const Type* type);
+		unsigned int register_local(IRType* type);
 	};
 
 	class IRModule {
 	public:
 		std::vector<std::unique_ptr<IRFunction>> functions;
+		std::vector<std::unique_ptr<IRType>> types;
+		IRArchitecture architecture = IRArchitecture::x86_64;
+		IRFunction* create_function(IRType* returns);
+		IRType* create_primitive_type(IRDataType rv, unsigned int sz, unsigned int alg);
+		IRStruct* create_struct_type();
 
-		IRFunction* create_function(IRDataType returns);
+		IRType* t_i8;
+		IRType* t_u8;
+		IRType* t_i16;
+		IRType* t_u16;
+		IRType* t_i32;
+		IRType* t_u32;
+		IRType* t_i64;
+		IRType* t_u64;
+		IRType* t_f32;
+		IRType* t_f64;
+		IRType* t_bool;
+		IRType* t_ptr;
+		IRType* t_void;
+
+		void build_default_types();
 	};
 
 	class IRBuilder {

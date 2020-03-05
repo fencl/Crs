@@ -18,6 +18,8 @@ int main() {
 	src.load("..\\test\\test.crs");
 	
 	std::unique_ptr<Corrosive::IRModule> m = std::make_unique<Corrosive::IRModule>();
+	m->architecture = Corrosive::IRArchitecture::x86_64;
+	m->build_default_types();
 
 	auto end = std::chrono::system_clock::now();
 	auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);

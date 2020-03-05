@@ -129,7 +129,8 @@ namespace Corrosive {
 		StructDeclarationType			decl_type = StructDeclarationType::Declared;
 		const TemplateContext*			template_ctx = nullptr;
 		std::vector<StructDeclaration*> implements_structures;
-		IRDataType rvalue = IRDataType::undefined;
+
+		IRType* irtype = nullptr;
 	};
 
 	class GenericStructDeclaration : public StructDeclaration {

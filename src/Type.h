@@ -39,7 +39,7 @@ namespace Corrosive {
 		bool ref = false;
 		bool is_heavy = false;
 		bool compiled = false;
-		IRDataType rvalue = IRDataType::undefined;
+		IRType* irtype = nullptr;
 	};
 
 	bool operator == (const Type& t1, const Type& t2);

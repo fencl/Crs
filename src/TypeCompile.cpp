@@ -16,21 +16,21 @@ namespace Corrosive {
 	 */
 
 	void Type::pre_compile(CompileContext& ctx) const {
-		if (rvalue != IRDataType::undefined) return;
+		if (irtype != nullptr) return;
 	}
 
 	void ArrayType::pre_compile(CompileContext& ctx) const {
-		if (rvalue != IRDataType::undefined) return;
+		if (irtype != nullptr) return;
 
 		ArrayType* self = (ArrayType*)this;
 		base->pre_compile(ctx);
 		self->is_heavy = true;
-		self->rvalue = IRDataType::ptr;
+		self->irtype = ctx.module->t_i32;//REAPIR!
 	}
 
 
 	void FunctionType::pre_compile(CompileContext& ctx) const {
-		if (rvalue != IRDataType::undefined) return;
+		if (irtype != nullptr) return;
 		FunctionType* self = (FunctionType*)this;
 
 		
@@ -41,35 +41,35 @@ namespace Corrosive {
 		}
 
 		self->is_heavy = true;
-		self->rvalue = IRDataType::ptr;
+		self->irtype = ctx.module->t_i32;//REAPIR!
 	}
 
 	void InterfaceType::pre_compile(CompileContext& ctx) const {
-		if (rvalue != IRDataType::undefined) return;
+		if (irtype != nullptr) return;
 
 		InterfaceType* self = (InterfaceType*)this;
 		for (auto it = types->begin(); it != types->end(); it++) {
 			(*it)->pre_compile(ctx);
 		}
 
-		self->rvalue = IRDataType::ptr;
+		self->irtype = ctx.module->t_i32;//REAPIR!
 	}
 
 
 	void TupleType::pre_compile(CompileContext& ctx) const {
-		if (rvalue != IRDataType::undefined) return;
+		if (irtype != nullptr) return;
 
 		TupleType* self = (TupleType*)this;
 		for (auto it = types->begin(); it != types->end(); it++) {
 			(*it)->pre_compile(ctx);
 		}
 		self->is_heavy = true;
-		self->rvalue = IRDataType::ptr;
+		self->irtype = ctx.module->t_i32;//REAPIR!
 	}
 
 
 	void PrimitiveType::pre_compile(CompileContext& ctx) const {
-		if (rvalue != IRDataType::undefined) return;
+		if (irtype != nullptr) return;
 
 
 		PrimitiveType* self = (PrimitiveType*)this;
@@ -77,7 +77,7 @@ namespace Corrosive {
 		std::string_view nm = name.buffer;
 
 		if (package == PredefinedNamespace && name.buffer == "void") {
-			self->rvalue = IRDataType::none;
+			self->irtype = ctx.module->t_void;
 			self->is_heavy = false;
 			return;
 		}
@@ -107,7 +107,7 @@ namespace Corrosive {
 						(*templates)[0]->pre_compile(nctx);
 					}
 
-					self->rvalue = (*templates)[0]->rvalue;
+					self->irtype = (*templates)[0]->irtype;
 				}
 				else {
 
@@ -135,10 +135,10 @@ namespace Corrosive {
 
 
 					if (ref) {
-						self->rvalue = IRDataType::ptr;
+						self->irtype = ctx.module->t_ptr;
 					}
 					else {
-						self->rvalue = sd->rvalue;
+						self->irtype = sd->irtype;
 					}
 
 				}

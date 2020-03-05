@@ -1,16 +1,16 @@
 #include "IR.h"
 #include <iostream>
 #include "../Error.h"
-#include "../Type.h"
+#include <algorithm>
 
 namespace Corrosive {
 
-	IRFunction* IRModule::create_function(IRDataType returns) {
+	IRFunction* IRModule::create_function(IRType* returns) {
 		std::unique_ptr<IRFunction> function = std::make_unique<IRFunction>();
 		IRFunction* function_ptr = function.get();
 		function_ptr->id = (unsigned int)functions.size();
 		function_ptr->parent = this;
-		function_ptr->yields = returns;
+		function_ptr->returns = returns;
 		functions.push_back(std::move(function));
 		return function_ptr;
 	}
@@ -63,7 +63,7 @@ namespace Corrosive {
 
 	void IRFunction::dump() {
 		std::cout << "function " << id << " -> ";
-		IRBlock::dump_data_type(yields);
+		IRBlock::dump_data_type(returns->rvalue);
 		std::cout << "\n";
 
 		for (auto b = blocks.begin(); b != blocks.end(); b++) {
@@ -243,7 +243,7 @@ namespace Corrosive {
 		}
 
 		for (auto b = return_blocks.begin(); b != return_blocks.end(); b++) {
-			if ((*b)->yields != yields) {
+			if ((*b)->yields != returns->rvalue) {
 				throw_ir_wrong_data_flow_error();
 			}
 		}
@@ -258,9 +258,76 @@ namespace Corrosive {
 	}
 
 
-	unsigned int IRFunction::register_local(const Type* type) {
-		unsigned int r = locals.size();
+	unsigned int IRFunction::register_local(IRType* type) {
+		unsigned int r = (unsigned int)locals.size();
 		locals.push_back(type);
 		return r;
+	}
+
+	unsigned int _align_up(unsigned int value, unsigned int alignment) {
+		return value + (alignment - (value % alignment));
+	}
+
+	void IRStruct::add_member(IRType* type) {
+		unsigned int n_size = _align_up(size_in_bytes, type->alignment_in_bytes);
+		members.push_back(std::make_pair(n_size, type));
+		size_in_bytes = n_size + type->size_in_bytes;
+		alignment_in_bytes = std::max(alignment_in_bytes, type->alignment_in_bytes);
+	}
+
+
+	void IRStruct::align_size() {
+		size_in_bytes = _align_up(size_in_bytes, alignment_in_bytes);
+	}
+
+
+	IRType::~IRType() {}
+	IRType::IRType() : rvalue(IRDataType::undefined), size_in_bytes(0), alignment_in_bytes(0){}
+	IRType::IRType(IRDataType rv, unsigned int sz, unsigned int alg) : rvalue(rv), size_in_bytes(sz), alignment_in_bytes(alg) {}
+
+	IRStruct::IRStruct() : IRType(IRDataType::ptr,0,0) {}
+
+
+	IRType* IRModule::create_primitive_type(IRDataType rv, unsigned int sz, unsigned int alg) {
+		std::unique_ptr<IRType> t = std::make_unique<IRType>(rv, sz, alg);
+		IRType* rt = t.get();
+		types.push_back(std::move(t));
+		return rt;
+	}
+
+	IRStruct* IRModule::create_struct_type() {
+		std::unique_ptr<IRStruct> t = std::make_unique<IRStruct>();
+		IRStruct* rt = t.get();
+		types.push_back(std::move(t));
+		return rt;
+	}
+
+	void IRModule::build_default_types() {
+
+		t_void = create_primitive_type(IRDataType::none, 0, 0);
+
+		t_i8 = create_primitive_type(IRDataType::i8, 1, 1);
+		t_u8 = create_primitive_type(IRDataType::u8, 1, 1);
+		t_bool = create_primitive_type(IRDataType::ibool, 1, 1);
+
+		t_i16 = create_primitive_type(IRDataType::i16, 2, 2);
+		t_u16 = create_primitive_type(IRDataType::u16, 2, 2);
+
+		t_i32 = create_primitive_type(IRDataType::i32, 4, 4);
+		t_u32 = create_primitive_type(IRDataType::u32, 4, 4);
+
+		t_f32 = create_primitive_type(IRDataType::f32, 4, 4);
+		t_f64 = create_primitive_type(IRDataType::f64, 8, 8);
+
+		if (architecture == IRArchitecture::i386) {
+			t_i64 = create_primitive_type(IRDataType::i64, 8, 4);
+			t_u64 = create_primitive_type(IRDataType::u64, 8, 4);
+			t_ptr = create_primitive_type(IRDataType::ptr, 4, 4);
+		}
+		else if (architecture == IRArchitecture::x86_64) {
+			t_i64 = create_primitive_type(IRDataType::i64, 8, 8);
+			t_u64 = create_primitive_type(IRDataType::u64, 8, 8);
+			t_ptr = create_primitive_type(IRDataType::ptr, 8, 8);
+		}
 	}
 }

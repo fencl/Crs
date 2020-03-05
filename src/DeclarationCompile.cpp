@@ -11,33 +11,33 @@
 namespace Corrosive {
 
 	void StructDeclaration::pre_compile(CompileContext& ctx) {
-		if (rvalue != IRDataType::undefined) return;
+		if (irtype != nullptr) return;
 		Contents::StaticStructures.push_back(this);
 
 		if (decl_type == StructDeclarationType::t_i64)
-			rvalue = IRDataType::i64;
+			irtype = ctx.module->t_i64;
 		else if (decl_type == StructDeclarationType::t_u64)
-			rvalue = IRDataType::u64;
+			irtype = ctx.module->t_u64;
 		else if (decl_type == StructDeclarationType::t_i32)
-			rvalue = IRDataType::i32;
+			irtype = ctx.module->t_i32;
 		else if (decl_type == StructDeclarationType::t_u32)
-			rvalue = IRDataType::u32;
+			irtype = ctx.module->t_u32;
 		else if (decl_type == StructDeclarationType::t_i16)
-			rvalue = IRDataType::i16;
+			irtype = ctx.module->t_i16;
 		else if (decl_type == StructDeclarationType::t_u16)
-			rvalue = IRDataType::u16;
+			irtype = ctx.module->t_u16;
 		else if (decl_type == StructDeclarationType::t_i8)
-			rvalue = IRDataType::i8;
+			irtype = ctx.module->t_i8;
 		else if (decl_type == StructDeclarationType::t_u8)
-			rvalue = IRDataType::u8;
+			irtype = ctx.module->t_u8;
 		else if (decl_type == StructDeclarationType::t_bool)
-			rvalue = IRDataType::ibool;
+			irtype = ctx.module->t_bool;
 		else if (decl_type == StructDeclarationType::t_ptr)
-			rvalue = IRDataType::ptr;
+			irtype = ctx.module->t_ptr;
 		else if (decl_type == StructDeclarationType::t_f32)
-			rvalue = IRDataType::f32;
+			irtype = ctx.module->t_f32;
 		else if (decl_type == StructDeclarationType::t_f64)
-			rvalue = IRDataType::f64;
+			irtype = ctx.module->t_f64;
 		else {
 
 			std::string llvm_name;
@@ -133,7 +133,7 @@ namespace Corrosive {
 						ptrc.buffer = "ptr";
 						thistype.name = is_trait ? ptrc : name;
 						thistype.package = is_trait ? "corrosive" : package;
-						thistype.ref = is_trait ?false:true;
+						thistype.ref = is_trait ? false : true;
 						thistype.templates = ctx.template_ctx;
 						FunctionType nfd = *fdt;
 						std::vector<const Type*> nargs = *nfd.arguments;
@@ -164,10 +164,6 @@ namespace Corrosive {
 						mem_types.push_back(LLVMPointerType(fdecl->type->LLVMType(), 0));
 				}*/
 			}
-
-			if (decl_type == StructDeclarationType::Declared)
-				rvalue = IRDataType::ptr;
-
 
 			build_lookup_table();
 			test_interface_complete();
@@ -326,7 +322,7 @@ namespace Corrosive {
 	}
 
 	void FunctionDeclaration::pre_compile(CompileContext& ctx) {
-		if (type->rvalue != IRDataType::undefined) return;
+		if (type->irtype!=nullptr) return;
 
 		CompileContext nctx = ctx;
 		nctx.parent_struct = parent_struct();
@@ -358,7 +354,7 @@ namespace Corrosive {
 
 			unsigned long stack = StackManager::stack_state();
 
-			function = ctx.module->create_function(((const FunctionType*)type)->returns->rvalue);
+			function = ctx.module->create_function(((const FunctionType*)type)->returns->irtype);
 			IRBlock* entry = function->create_block(IRDataType::none);
 			function->append_block(entry);
 			IRBuilder::build_discard(entry);
@@ -370,7 +366,7 @@ namespace Corrosive {
 				CompileValue cv;
 				cv.lvalue = true;
 				cv.t = (*ft->arguments)[i];
-				unsigned int argloc = function->register_local(cv.t);
+				unsigned int argloc = function->register_local(cv.t->irtype);
 				StackManager::stack_push(argnames[i].buffer,cv, argloc);
 			}
 
@@ -379,6 +375,7 @@ namespace Corrosive {
 			Corrosive::CompileContextExt cctx;
 			cctx.function = function;
 			cctx.unit = this;
+			cctx.basic.module = ctx.module;
 			cctx.basic.parent_namespace = parent_pack;
 			cctx.basic.parent_struct = nullptr;
 			cctx.basic.template_ctx = nullptr;
@@ -403,7 +400,7 @@ namespace Corrosive {
 	}
 
 	void VariableDeclaration::pre_compile(CompileContext& ctx) {
-		if (type->rvalue != IRDataType::undefined) return;
+		if (type->irtype != nullptr) return;
 
 		CompileContext nctx = ctx;
 		nctx.parent_struct = parent_struct();

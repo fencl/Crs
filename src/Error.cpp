@@ -16,6 +16,11 @@ namespace Corrosive {
 		throw_exit();
 	}
 
+	void throw_ir_wrong_type_error() {
+		std::cerr << "Compiler Error:\n\tPassed broken type";
+		throw_exit();
+	}
+
 
 	void throw_ir_remaining_stack_error() {
 		std::cerr << "Compiler Error:\n\tStack is not empty after terminator instruction";
