@@ -41,7 +41,7 @@ namespace Corrosive {
 		}
 
 		self->is_heavy = true;
-		self->irtype = ctx.module->t_i32;//REAPIR!
+		self->irtype = ctx.module->t_ptr; // maybe we can create special function type, as far as ir code is concerned we don't need to care. LLVM on the other hand...
 	}
 
 	void InterfaceType::pre_compile(CompileContext& ctx) const {
@@ -60,11 +60,14 @@ namespace Corrosive {
 		if (irtype != nullptr) return;
 
 		TupleType* self = (TupleType*)this;
+
+		self->irtype = ctx.module->create_struct_type();
+
 		for (auto it = types->begin(); it != types->end(); it++) {
 			(*it)->pre_compile(ctx);
+			((IRStruct*)self->irtype)->add_member((*it)->irtype);
 		}
 		self->is_heavy = true;
-		self->irtype = ctx.module->t_i32;//REAPIR!
 	}
 
 

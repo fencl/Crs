@@ -1,9 +1,33 @@
 #include "IR.h"
 #include <iostream>
-#include "../Error.h"
 #include <algorithm>
 
 namespace Corrosive {
+	void throw_ir_wrong_data_flow_error() {
+		std::cerr << "Compiler Error:\n\tWrong data flow inside compiler IR";
+		exit(1);
+	}
+
+	void throw_ir_nothing_on_stack_error() {
+		std::cerr << "Compiler Error:\n\tInstruction requires more argumens than the number of arguments on the stack";
+		exit(1);
+	}
+
+	void throw_ir_wrong_type_error() {
+		std::cerr << "Compiler Error:\n\tPassed broken type";
+		exit(1);
+	}
+
+
+	void throw_ir_remaining_stack_error() {
+		std::cerr << "Compiler Error:\n\tStack is not empty after terminator instruction";
+		exit(1);
+	}
+
+	void throw_ir_wrong_arguments_error() {
+		std::cerr << "Compiler Error:\n\tInstruction cannot use argument(s) on the stack";
+		exit(1);
+	}
 
 	IRFunction* IRModule::create_function(IRType* returns) {
 		std::unique_ptr<IRFunction> function = std::make_unique<IRFunction>();

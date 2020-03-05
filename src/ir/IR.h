@@ -7,6 +7,13 @@
 #include <list>
 
 namespace Corrosive {
+
+	void throw_ir_wrong_data_flow_error();
+	void throw_ir_nothing_on_stack_error();
+	void throw_ir_remaining_stack_error();
+	void throw_ir_wrong_arguments_error();
+	void throw_ir_wrong_type_error();
+
 	class IRFunction;
 	class IRModule;
 	

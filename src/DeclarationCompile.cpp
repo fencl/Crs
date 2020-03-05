@@ -115,6 +115,8 @@ namespace Corrosive {
 				(*it)->pre_compile(ctx);
 			}
 
+			IRStruct* s_type = ctx.module->create_struct_type();
+
 			//std::vector<LLVMTypeRef> mem_types;
 
 			for (int i = 0; i < members.size(); i++) {
@@ -153,17 +155,19 @@ namespace Corrosive {
 
 				decl->pre_compile(ctx);
 
-				/*if (vdecl = dynamic_cast<VariableDeclaration*>(decl.get())) {
+				if (vdecl = dynamic_cast<VariableDeclaration*>(decl.get())) {
 					if (!is_trait)
-						mem_types.push_back(vdecl->type->LLVMType());
+						s_type->add_member(vdecl->type->irtype);
 					else
 						throw_specific_error(vdecl->name, "variable found in trait type");
 				}
 				else if (fdecl != nullptr) {
 					if (is_trait)
-						mem_types.push_back(LLVMPointerType(fdecl->type->LLVMType(), 0));
-				}*/
+						s_type->add_member(ctx.module->t_ptr);
+				}
 			}
+
+			irtype = s_type;
 
 			build_lookup_table();
 			test_interface_complete();
