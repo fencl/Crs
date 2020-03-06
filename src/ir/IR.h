@@ -18,7 +18,7 @@ namespace Corrosive {
 	class IRModule;
 	
 	enum class IRInstruction : unsigned char {
-		value, add, sub, div, mul, rem, o_and, o_or, o_xor, load, store, accept, discard, yield, ret, jmp, jmpz, eq, ne, gt, ge, lt, le, local
+		value, add, sub, div, mul, rem, o_and, o_or, o_xor, load, store, accept, discard, yield, ret, jmp, jmpz, eq, ne, gt, ge, lt, le, local, member
 	};
 
 	enum class IRDataType : unsigned char {
@@ -141,6 +141,7 @@ namespace Corrosive {
 		static void build_load(IRBlock* block, IRDataType type);
 		static void build_store(IRBlock* block);
 		static void build_local(IRBlock* block,unsigned int id);
+		static void build_member(IRBlock* block,IRStruct* type,unsigned int id);
 		static void build_and(IRBlock* block);
 		static void build_or(IRBlock* block);
 		static void build_xor(IRBlock* block);

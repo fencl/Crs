@@ -12,6 +12,7 @@ namespace Corrosive {
 
 	void StructDeclaration::pre_compile(CompileContext& ctx) {
 		if (irtype != nullptr) return;
+
 		Contents::StaticStructures.push_back(this);
 
 		if (decl_type == StructDeclarationType::t_i64)
@@ -115,7 +116,7 @@ namespace Corrosive {
 				(*it)->pre_compile(ctx);
 			}
 
-			IRStruct* s_type = ctx.module->create_struct_type();
+			irtype = ctx.module->create_struct_type();
 
 			//std::vector<LLVMTypeRef> mem_types;
 
@@ -157,17 +158,17 @@ namespace Corrosive {
 
 				if (vdecl = dynamic_cast<VariableDeclaration*>(decl.get())) {
 					if (!is_trait)
-						s_type->add_member(vdecl->type->irtype);
+						((IRStruct*)irtype)->add_member(vdecl->type->irtype);
 					else
 						throw_specific_error(vdecl->name, "variable found in trait type");
 				}
 				else if (fdecl != nullptr) {
 					if (is_trait)
-						s_type->add_member(ctx.module->t_ptr);
+						((IRStruct*)irtype)->add_member(ctx.module->t_ptr);
 				}
 			}
 
-			irtype = s_type;
+			((IRStruct*)irtype)->align_size();
 
 			build_lookup_table();
 			test_interface_complete();

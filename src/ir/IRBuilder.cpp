@@ -107,6 +107,22 @@ namespace Corrosive {
 		block->write_value(sizeof(unsigned int), (unsigned char*)&id);
 	}
 
+
+	void IRBuilder::build_member(IRBlock* block, IRStruct* type, unsigned int id) {
+		if (block->stack.size() < 1) {
+			throw_ir_nothing_on_stack_error();
+		}
+		IRDataType t_p = block->stack.back();
+		block->stack.pop_back();
+		if (t_p != IRDataType::ptr)
+			throw_ir_wrong_arguments_error();
+
+		block->stack.push_back(IRDataType::ptr);
+		block->write_instruction(IRInstruction::member);
+		block->write_value(sizeof(IRType*), (unsigned char*)&type);
+		block->write_value(sizeof(unsigned int), (unsigned char*)&id);
+	}
+
 	IRDataType IRBuilder::arith_result(IRDataType l, IRDataType r) {
 		return std::max(l, r);
 	}

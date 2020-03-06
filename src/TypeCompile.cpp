@@ -67,6 +67,9 @@ namespace Corrosive {
 			(*it)->pre_compile(ctx);
 			((IRStruct*)self->irtype)->add_member((*it)->irtype);
 		}
+
+		((IRStruct*)irtype)->align_size();
+
 		self->is_heavy = true;
 	}
 

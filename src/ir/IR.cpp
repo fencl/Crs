@@ -211,6 +211,13 @@ namespace Corrosive {
 				std::cout << *address << "\n";
 				break;
 			}
+			case IRInstruction::member: {
+				std::cout << "   member ";
+				auto type = read_data_type(IRDataType*);
+				auto address = read_data_type(unsigned int);
+				std::cout << *address << "\n";
+				break;
+			}
 			case IRInstruction::load: {
 				std::cout << "   load [";
 				auto type = read_data_type(IRDataType);
