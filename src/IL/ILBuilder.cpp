@@ -57,96 +57,98 @@ namespace Corrosive {
 
 	template< template<typename Ty> class op> bool _il_builder_const_op(ILBlock* block, ILDataType l, ILDataType r) {
 		ILDataType res_t = ILBuilder::arith_result(l, r);
+		switch (res_t) {
+			case ILDataType::i8: {
+					int8_t rval = _il_block_value_pop_into<int8_t>(block, r);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					int8_t lval = _il_block_value_pop_into<int8_t>(block, l);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					op<int8_t> o;
+					if (!ILBuilder::build_const_i8(block, o(lval, rval))) return false;
+				}break;
+			case ILDataType::u8: {
+					uint8_t rval = _il_block_value_pop_into<uint8_t>(block, r);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					uint8_t lval = _il_block_value_pop_into<uint8_t>(block, l);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					op<uint8_t> o;
+					if (!ILBuilder::build_const_u8(block, o(lval, rval))) return false;
+				}break;
+			case ILDataType::ibool: {
+					uint8_t rval = _il_block_value_pop_into<uint8_t>(block, r);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					uint8_t lval = _il_block_value_pop_into<uint8_t>(block, l);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					op<uint8_t> o;
+					if (!ILBuilder::build_const_ibool(block, o(lval, rval))) return false;
+				}break;
+			case ILDataType::i16: {
+					int16_t rval = _il_block_value_pop_into<int16_t>(block, r);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					int16_t lval = _il_block_value_pop_into<int16_t>(block, l);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					op<int16_t> o;
+					if (!ILBuilder::build_const_i16(block, o(lval, rval))) return false;
+				}break;
+			case ILDataType::u16: {
+					uint16_t rval = _il_block_value_pop_into<uint16_t>(block, r);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					uint16_t lval = _il_block_value_pop_into<uint16_t>(block, l);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					op<uint16_t> o;
+					if (!ILBuilder::build_const_u16(block, o(lval, rval))) return false;
+				}break;
+			case ILDataType::i32: {
+					int32_t rval = _il_block_value_pop_into<int32_t>(block, r);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					int32_t lval = _il_block_value_pop_into<int32_t>(block, l);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					op<int32_t> o;
+					if (!ILBuilder::build_const_i32(block, o(lval, rval))) return false;
+				}break;
+			case ILDataType::u32: {
+					uint32_t rval = _il_block_value_pop_into<uint32_t>(block, r);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					uint32_t lval = _il_block_value_pop_into<uint32_t>(block, l);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					op<uint32_t> o;
+					if (!ILBuilder::build_const_u32(block, o(lval, rval))) return false;
+				}break;
+			case ILDataType::i64: {
+					int64_t rval = _il_block_value_pop_into<int64_t>(block, r);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					int64_t lval = _il_block_value_pop_into<int64_t>(block, l);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					op<int64_t> o;
+					if (!ILBuilder::build_const_i64(block, o(lval, rval))) return false;
+				}break;
+			case ILDataType::u64: {
+					uint64_t rval = _il_block_value_pop_into<uint64_t>(block, r);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					uint64_t lval = _il_block_value_pop_into<uint64_t>(block, l);
+					block->pop<ILInstruction>();
+					op<uint64_t> o;
+					if (!ILBuilder::build_const_u64(block, o(lval, rval))) return false;
+				}break;
+		}
 
-		if (res_t == ILDataType::i8) {
-			int8_t rval = _il_block_value_pop_into<int8_t>(block, r);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			int8_t lval = _il_block_value_pop_into<int8_t>(block, l);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			op<int8_t> o;
-			if (!ILBuilder::build_const_i8(block, o(lval, rval))) return false;
-		}
-		else if (res_t == ILDataType::u8) {
-			uint8_t rval = _il_block_value_pop_into<uint8_t>(block, r);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			uint8_t lval = _il_block_value_pop_into<uint8_t>(block, l);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			op<uint8_t> o;
-			if (!ILBuilder::build_const_u8(block, o(lval, rval))) return false;
-		}
-		else if (res_t == ILDataType::ibool) {
-			uint8_t rval = _il_block_value_pop_into<uint8_t>(block, r);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			uint8_t lval = _il_block_value_pop_into<uint8_t>(block, l);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			op<uint8_t> o;
-			if (!ILBuilder::build_const_ibool(block, o(lval, rval))) return false;
-		}
-		else if (res_t == ILDataType::i16) {
-			int16_t rval = _il_block_value_pop_into<int16_t>(block, r);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			int16_t lval = _il_block_value_pop_into<int16_t>(block, l);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			op<int16_t> o;
-			if (!ILBuilder::build_const_i16(block, o(lval, rval))) return false;
-		}
-		else if (res_t == ILDataType::u16) {
-			uint16_t rval = _il_block_value_pop_into<uint16_t>(block, r);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			uint16_t lval = _il_block_value_pop_into<uint16_t>(block, l);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			op<uint16_t> o;
-			if (!ILBuilder::build_const_u16(block, o(lval, rval))) return false;
-		}
-		else if (res_t == ILDataType::i32) {
-			int32_t rval = _il_block_value_pop_into<int32_t>(block, r);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			int32_t lval = _il_block_value_pop_into<int32_t>(block, l);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			op<int32_t> o;
-			if (!ILBuilder::build_const_i32(block, o(lval, rval))) return false;
-		}
-		else if (res_t == ILDataType::u32) {
-			uint32_t rval = _il_block_value_pop_into<uint32_t>(block, r);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			uint32_t lval = _il_block_value_pop_into<uint32_t>(block, l);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			op<uint32_t> o;
-			if (!ILBuilder::build_const_u32(block, o(lval, rval))) return false;
-		}
-		else if (res_t == ILDataType::i64) {
-			int64_t rval = _il_block_value_pop_into<int64_t>(block, r);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			int64_t lval = _il_block_value_pop_into<int64_t>(block, l);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			op<int64_t> o;
-			if (!ILBuilder::build_const_i64(block,o(lval, rval))) return false;
-		}
-		else if (res_t == ILDataType::u64) {
-			uint64_t rval = _il_block_value_pop_into<uint64_t>(block, r);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			uint64_t lval = _il_block_value_pop_into<uint64_t>(block, l);
-			block->pop<ILInstruction>();
-			op<uint64_t> o;
-			if (!ILBuilder::build_const_u64(block, o(lval, rval))) return false;
-		}
 		return true;
 	}
 
@@ -154,95 +156,98 @@ namespace Corrosive {
 	template< template<typename Ty> class op> bool _il_builder_const_op_bool(ILBlock* block, ILDataType l, ILDataType r) {
 		ILDataType res_t = ILBuilder::arith_result(l, r);
 
-		if (res_t == ILDataType::i8) {
-			int8_t rval = _il_block_value_pop_into<int8_t>(block, r);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			int8_t lval = _il_block_value_pop_into<int8_t>(block, l);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			op<int8_t> o;
-			if (!ILBuilder::build_const_ibool(block, (uint8_t)o(lval, rval))) return false;
+		switch (res_t) {
+			case ILDataType::i8: {
+					int8_t rval = _il_block_value_pop_into<int8_t>(block, r);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					int8_t lval = _il_block_value_pop_into<int8_t>(block, l);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					op<int8_t> o;
+					if (!ILBuilder::build_const_ibool(block, (uint8_t)o(lval, rval))) return false;
+				}break;
+			case ILDataType::u8: {
+					uint8_t rval = _il_block_value_pop_into<uint8_t>(block, r);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					uint8_t lval = _il_block_value_pop_into<uint8_t>(block, l);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					op<uint8_t> o;
+					if (!ILBuilder::build_const_ibool(block, (uint8_t)o(lval, rval))) return false;
+				}break;
+			case ILDataType::ibool: {
+					uint8_t rval = _il_block_value_pop_into<uint8_t>(block, r);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					uint8_t lval = _il_block_value_pop_into<uint8_t>(block, l);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					op<uint8_t> o;
+					if (!ILBuilder::build_const_ibool(block, (uint8_t)o(lval, rval))) return false;
+				}break;
+			case ILDataType::i16: {
+					int16_t rval = _il_block_value_pop_into<int16_t>(block, r);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					int16_t lval = _il_block_value_pop_into<int16_t>(block, l);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					op<int16_t> o;
+					if (!ILBuilder::build_const_ibool(block, (uint8_t)o(lval, rval))) return false;
+				}break;
+			case ILDataType::u16: {
+					uint16_t rval = _il_block_value_pop_into<uint16_t>(block, r);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					uint16_t lval = _il_block_value_pop_into<uint16_t>(block, l);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					op<uint16_t> o;
+					if (!ILBuilder::build_const_ibool(block, (uint8_t)o(lval, rval))) return false;
+				}break;
+			case ILDataType::i32: {
+					int32_t rval = _il_block_value_pop_into<int32_t>(block, r);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					int32_t lval = _il_block_value_pop_into<int32_t>(block, l);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					op<int32_t> o;
+					if (!ILBuilder::build_const_ibool(block, (uint8_t)o(lval, rval))) return false;
+				}break;
+			case ILDataType::u32: {
+					uint32_t rval = _il_block_value_pop_into<uint32_t>(block, r);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					uint32_t lval = _il_block_value_pop_into<uint32_t>(block, l);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					op<uint32_t> o;
+					if (!ILBuilder::build_const_ibool(block, (uint8_t)o(lval, rval))) return false;
+				}break;
+			case ILDataType::i64: {
+					int64_t rval = _il_block_value_pop_into<int64_t>(block, r);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					int64_t lval = _il_block_value_pop_into<int64_t>(block, l);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					op<int64_t> o;
+					if (!ILBuilder::build_const_ibool(block, (uint8_t)o(lval, rval))) return false;
+				}break;
+			case ILDataType::u64: {
+					uint64_t rval = _il_block_value_pop_into<uint64_t>(block, r);
+					block->pop<ILDataType>();
+					block->pop<ILInstruction>();
+					uint64_t lval = _il_block_value_pop_into<uint64_t>(block, l);
+					block->pop<ILInstruction>();
+					op<uint64_t> o;
+					if (!ILBuilder::build_const_ibool(block, (uint8_t)o(lval, rval))) return false;
+				}break;
 		}
-		else if (res_t == ILDataType::u8) {
-			uint8_t rval = _il_block_value_pop_into<uint8_t>(block, r);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			uint8_t lval = _il_block_value_pop_into<uint8_t>(block, l);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			op<uint8_t> o;
-			if (!ILBuilder::build_const_ibool(block, (uint8_t)o(lval, rval))) return false;
-		}
-		else if (res_t == ILDataType::ibool) {
-			uint8_t rval = _il_block_value_pop_into<uint8_t>(block, r);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			uint8_t lval = _il_block_value_pop_into<uint8_t>(block, l);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			op<uint8_t> o;
-			if (!ILBuilder::build_const_ibool(block, (uint8_t)o(lval, rval))) return false;
-		}
-		else if (res_t == ILDataType::i16) {
-			int16_t rval = _il_block_value_pop_into<int16_t>(block, r);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			int16_t lval = _il_block_value_pop_into<int16_t>(block, l);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			op<int16_t> o;
-			if (!ILBuilder::build_const_ibool(block, (uint8_t)o(lval, rval))) return false;
-		}
-		else if (res_t == ILDataType::u16) {
-			uint16_t rval = _il_block_value_pop_into<uint16_t>(block, r);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			uint16_t lval = _il_block_value_pop_into<uint16_t>(block, l);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			op<uint16_t> o;
-			if (!ILBuilder::build_const_ibool(block, (uint8_t)o(lval, rval))) return false;
-		}
-		else if (res_t == ILDataType::i32) {
-			int32_t rval = _il_block_value_pop_into<int32_t>(block, r);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			int32_t lval = _il_block_value_pop_into<int32_t>(block, l);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			op<int32_t> o;
-			if (!ILBuilder::build_const_ibool(block, (uint8_t)o(lval, rval))) return false;
-		}
-		else if (res_t == ILDataType::u32) {
-			uint32_t rval = _il_block_value_pop_into<uint32_t>(block, r);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			uint32_t lval = _il_block_value_pop_into<uint32_t>(block, l);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			op<uint32_t> o;
-			if (!ILBuilder::build_const_ibool(block, (uint8_t)o(lval, rval))) return false;
-		}
-		else if (res_t == ILDataType::i64) {
-			int64_t rval = _il_block_value_pop_into<int64_t>(block, r);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			int64_t lval = _il_block_value_pop_into<int64_t>(block, l);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			op<int64_t> o;
-			if (!ILBuilder::build_const_ibool(block, (uint8_t)o(lval, rval))) return false;
-		}
-		else if (res_t == ILDataType::u64) {
-			uint64_t rval = _il_block_value_pop_into<uint64_t>(block, r);
-			block->pop<ILDataType>();
-			block->pop<ILInstruction>();
-			uint64_t lval = _il_block_value_pop_into<uint64_t>(block, l);
-			block->pop<ILInstruction>();
-			op<uint64_t> o;
-			if (!ILBuilder::build_const_ibool(block, (uint8_t)o(lval, rval))) return false;
-		}
+
 		return true;
 	}
 

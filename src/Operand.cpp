@@ -15,36 +15,50 @@ namespace Corrosive {
 		ret.lvalue = false;
 		ret.t = nullptr;
 
+		switch (c.tok) {
+			case RecognizedToken::OpenParenthesis: {
+					if (!parse_expression(ret, c, ctx, cpt)) return false;
+				}break;
 
-		if (c.tok == RecognizedToken::OpenParenthesis) {
-			if (!parse_expression(ret, c, ctx, cpt)) return false;
-		}
-		else if (c.tok == RecognizedToken::Symbol) {
-			if (!parse_symbol(ret, c, ctx, cpt)) return false;
-		}
-		else if (c.tok == RecognizedToken::Number || c.tok == RecognizedToken::UnsignedNumber) {
-			if (!parse_number(ret, c, ctx, cpt)) return false;
-		}
-		else if (c.tok == RecognizedToken::LongNumber || c.tok == RecognizedToken::UnsignedLongNumber) {
-			if (!parse_long_number(ret, c, ctx, cpt)) return false;
-		}
-		else if (c.tok == RecognizedToken::FloatNumber || c.tok == RecognizedToken::DoubleNumber) {
-			if (!parse_float_number(ret, c, ctx, cpt)) return false;
-		}
-		else {
-			throw_specific_error(c, "Expected to parse operand");
-			return false;
-		}
+			case RecognizedToken::Symbol: {
+					if (!parse_symbol(ret, c, ctx, cpt)) return false;
+				}break;
 
+			case RecognizedToken::Number:
+			case RecognizedToken::UnsignedNumber: {
+					if (!parse_number(ret, c, ctx, cpt)) return false;
+				}break;
+
+			case RecognizedToken::LongNumber:
+			case RecognizedToken::UnsignedLongNumber: {
+					if (!parse_long_number(ret, c, ctx, cpt)) return false;
+				}break;
+
+			case RecognizedToken::FloatNumber:
+			case RecognizedToken::DoubleNumber: {
+					if (!parse_float_number(ret, c, ctx, cpt)) return false;
+				}break;
+
+			default: {
+					throw_specific_error(c, "Expected to parse operand");
+					return false;
+				} break;
+		}
 
 		while (true) {
-			if (c.tok == RecognizedToken::OpenBracket) {
-				if (!parse_array_operator(ret, c, ctx, cpt)) return false;
+			switch (c.tok) {
+				case RecognizedToken::OpenBracket: {
+						if (!parse_array_operator(ret, c, ctx, cpt)) return false;
+					}break;
+				case RecognizedToken::Dot: {
+						if (!parse_dot_operator(ret, c, ctx, cpt)) return false;
+					}break;
+				default: goto break_while;
 			}
-			else if (c.tok == RecognizedToken::Dot) {
-				if (!parse_dot_operator(ret, c, ctx, cpt)) return false;
-			}
-			else break;
+
+			continue;
+		break_while:
+			break;
 		}
 
 		res = ret;

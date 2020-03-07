@@ -23,23 +23,18 @@ namespace Corrosive {
 	}
 
 	void Expression::arith_promote(CompileValue& value,int from, int to) {
-		if (to == 10) {
-			value.t = t_f64;
-		}
-		else if (to == 9) {
-			value.t = t_f32;
-		}
-		else if (to == 8 || to == 7) {
-			value.t = (to == 8 ? t_i64 : t_u64);
-		}
-		else if (to == 6 || to == 5) {
-			value.t = (to == 6 ? t_i32 : t_u32);
-		}
-		else if (to == 4 || to == 3) {
-			value.t = (to == 4 ? t_i16 : t_u16);
-		}
-		else if (to == 2 || to == 1) {
-			value.t = (to == 2 ? t_i8 : t_u8);
+		switch (to) {
+			case 0: value.t = t_bool; break;
+			case 1: value.t = t_u8; break;
+			case 2: value.t = t_i8; break;
+			case 3: value.t = t_u16; break;
+			case 4: value.t = t_i16; break;
+			case 5: value.t = t_u32; break;
+			case 6: value.t = t_i32; break;
+			case 7: value.t = t_u64; break;
+			case 8: value.t = t_i64; break;
+			case 9: value.t = t_f32; break;
+			case 10: value.t = t_f64; break;
 		}
 	}
 
@@ -131,58 +126,69 @@ namespace Corrosive {
 			ret.t = t_bool;
 
 		if(cpt != CompileType::ShortCircuit) {
-
-			if (l == 0) {
-				if (op == 0) {
-					if (!ILBuilder::build_and(ctx.block)) return false;
-				}
-				else if (op == 1) {
-					if (!ILBuilder::build_or(ctx.block)) return false;
-				}
-				else if (op == 2) {
-					if (!ILBuilder::build_xor(ctx.block)) return false;
-				}
-			}
-			else if (l == 1) {
-				if (op == 0) {
-					if (!ILBuilder::build_eq(ctx.block)) return false;
-				}
-				else if (op == 1) {
-					if (!ILBuilder::build_ne(ctx.block)) return false;
-				}
-			}
-			else if (l == 2) {
-				if (op == 0) {
-					if (!ILBuilder::build_gt(ctx.block)) return false;
-				}
-				else if (op == 1) {
-					if (!ILBuilder::build_lt(ctx.block)) return false;
-				}
-				else if (op == 2) {
-					if (!ILBuilder::build_ge(ctx.block)) return false;
-				}
-				else if (op == 3) {
-					if (!ILBuilder::build_le(ctx.block)) return false;
-				}
-			}
-			else if (l == 3) {
-				if (op == 0) {
-					if (!ILBuilder::build_add(ctx.block)) return false;
-				}
-				else if (op == 1) {
-					if (!ILBuilder::build_sub(ctx.block)) return false;
-				}
-			}
-			else if (l == 4) {
-				if (op == 0) {
-					if (!ILBuilder::build_mul(ctx.block)) return false;
-				}
-				else if (op == 1) {
-					if (!ILBuilder::build_div(ctx.block)) return false;
-				}
-				else if (op == 2) {
-					if (!ILBuilder::build_rem(ctx.block)) return false;
-				}
+			switch (l) {
+				case 0: {
+						switch (op) {
+							case 0: {
+									if (!ILBuilder::build_and(ctx.block)) return false;
+								}break;
+							case 1: {
+									if (!ILBuilder::build_or(ctx.block)) return false;
+								}break;
+							case 2: {
+									if (!ILBuilder::build_xor(ctx.block)) return false;
+								}break;
+						}
+					}break;
+				case 1: {
+						switch (op) {
+							case 0: {
+									if (!ILBuilder::build_eq(ctx.block)) return false;
+								}break;
+							case 1: {
+									if (!ILBuilder::build_ne(ctx.block)) return false;
+								}break;
+						}
+					}break;
+				case 2: {
+						switch (op) {
+							case 0: {
+									if (!ILBuilder::build_gt(ctx.block)) return false;
+								}break;
+							case 1: {
+									if (!ILBuilder::build_lt(ctx.block)) return false;
+								} break;
+							case 2: {
+									if (!ILBuilder::build_ge(ctx.block)) return false;
+								}break;
+							case 3: {
+									if (!ILBuilder::build_le(ctx.block)) return false;
+								}break;
+						}
+					}break;
+				case 3: {
+						switch (op) {
+							case 0: {
+									if (!ILBuilder::build_add(ctx.block)) return false;
+								}break;
+							case 1: {
+									if (!ILBuilder::build_sub(ctx.block)) return false;
+								}break;
+						}
+					}break;
+				case 4: {
+						switch (op) {
+							case 0: {
+									if (!ILBuilder::build_mul(ctx.block)) return false;
+								}break;
+							case 1: {
+									if (!ILBuilder::build_div(ctx.block)) return false;
+								} break;
+							case 2: {
+									if (!ILBuilder::build_rem(ctx.block)) return false;
+								}break;
+						}
+					}break;
 			}
 		}
 
@@ -350,61 +356,65 @@ namespace Corrosive {
 			int op_v = -1;
 			int op_t = -1;
 
-			if (c.tok == RecognizedToken::And) {
-				op_v = 0;
-				op_t = 0;
-			}
-			else if (c.tok == RecognizedToken::Or) {
-				op_v = 0;
-				op_t = 1;
-			}
-			else if(c.tok == RecognizedToken::Xor) {
-				op_v = 0;
-				op_t = 2;
-			}
-			else if (c.tok == RecognizedToken::DoubleEquals) {
-				op_v = 1;
-				op_t = 0;
-			}
-			else if (c.tok == RecognizedToken::NotEquals) {
-				op_v = 1;
-				op_t = 1;
-			}
-			else  if (c.tok == RecognizedToken::GreaterThan) {
-				op_v = 2;
-				op_t = 0;
-			}
-			else if (c.tok == RecognizedToken::LessThan) {
-				op_v = 2;
-				op_t = 1;
-			}
-			else if(c.tok == RecognizedToken::GreaterOrEqual) {
-				op_v = 2;
-				op_t = 2;
-			}
-			else if (c.tok == RecognizedToken::LessOrEqual) {
-				op_v = 2;
-				op_t = 3;
-			}
-			else if (c.tok == RecognizedToken::Plus) {
-				op_v = 3;
-				op_t = 0;
-			}
-			else if (c.tok == RecognizedToken::Minus) {
-				op_v = 3;
-				op_t = 1;
-			}
-			else if (c.tok == RecognizedToken::Star) {
-				op_v = 4;
-				op_t = 0;
-			}
-			else if (c.tok == RecognizedToken::Slash) {
-				op_v = 4;
-				op_t = 1;
-			}
-			else if (c.tok == RecognizedToken::Percent) {
-				op_v = 4;
-				op_t = 2;
+			switch (c.tok)
+			{
+
+				case RecognizedToken::And: {
+						op_v = 0;
+						op_t = 0;
+					}break;
+				case RecognizedToken::Or: {
+						op_v = 0;
+						op_t = 1;
+					} break;
+				case RecognizedToken::Xor: {
+						op_v = 0;
+						op_t = 2;
+					}break;
+				case RecognizedToken::DoubleEquals: {
+						op_v = 1;
+						op_t = 0;
+					} break;
+				case RecognizedToken::NotEquals: {
+						op_v = 1;
+						op_t = 1;
+					}break;
+				case RecognizedToken::GreaterThan: {
+						op_v = 2;
+						op_t = 0;
+					}break;
+				case RecognizedToken::LessThan: {
+						op_v = 2;
+						op_t = 1;
+					}break;
+				case RecognizedToken::GreaterOrEqual: {
+						op_v = 2;
+						op_t = 2;
+					}break;
+				case RecognizedToken::LessOrEqual: {
+						op_v = 2;
+						op_t = 3;
+					}break;
+				case RecognizedToken::Plus: {
+						op_v = 3;
+						op_t = 0;
+					}break;
+				case RecognizedToken::Minus: {
+						op_v = 3;
+						op_t = 1;
+					}break;
+				case RecognizedToken::Star: {
+						op_v = 4;
+						op_t = 0;
+					}break;
+				case RecognizedToken::Slash: {
+						op_v = 4;
+						op_t = 1;
+					}break;
+				case RecognizedToken::Percent: {
+						op_v = 4;
+						op_t = 2;
+					}break;
 			}
 
 			if (!rvalue(ctx, value, cpt)) return false;

@@ -24,97 +24,51 @@ namespace Corrosive {
 			return false;
 		}
 
+		switch (c.tok) {
+			case RecognizedToken::OpenParenthesis: {
+					PrimitiveType pType;
+					Cursor voidc;
+					voidc.buffer = "void";
+					pType.name = voidc;
+					pType.package = PredefinedNamespace;
+					rType = Contents::emplace_type(pType);
+				} break;
 
-		if (c.tok == RecognizedToken::OpenParenthesis) {
-			PrimitiveType pType;
-			Cursor voidc;
-			voidc.buffer = "void";
+			case RecognizedToken::OpenBracket: {
+					TupleType fType;
+					std::vector<const Type*> tps;
+					c.move();
 
-			pType.name = voidc;
-			pType.package = PredefinedNamespace;
+					while (true) {
+						if (c.tok == RecognizedToken::CloseBracket) {
+							c.move(); break;
+						}
 
+						const Type* res;
+						if (!Type::parse(c, res)) return false;
+						tps.push_back(res);
 
-			rType = Contents::emplace_type(pType);
-		}
-		else {
-			if (c.tok == RecognizedToken::OpenBracket) {
-				TupleType fType;
-				std::vector<const Type*> tps;
-				c.move();
-
-				while (true) {
-					if (c.tok == RecognizedToken::CloseBracket) {
-						c.move(); break;
+						if (c.tok == RecognizedToken::Comma) c.move(); else if (c.tok != RecognizedToken::CloseBracket) {
+							throw_wrong_token_error(c, "',' or ']'");
+							return false;
+						}
 					}
 
-					const Type* res;
-					if (!Type::parse(c,res)) return false;
-					tps.push_back(res);
-
-					if (c.tok == RecognizedToken::Comma) c.move(); else if (c.tok != RecognizedToken::CloseBracket) {
-						throw_wrong_token_error(c, "',' or ']'");
-						return false;
-					}
-				}
-				
-				if ((c.tok == RecognizedToken::Symbol && c.buffer == "ref") || c.tok == RecognizedToken::And) {
-					fType.ref = true;
-					c.move();
-				}
-
-				fType.types = Contents::register_type_array(std::move(tps));
-				rType = Contents::emplace_type(fType);
-
-			}
-			else if (c.tok == RecognizedToken::LessThan) {
-				InterfaceType fType;
-				std::vector<const Type*> tps;
-				c.move();
-
-				while (true) {
-					if (c.tok == RecognizedToken::GreaterThan) {
-						c.move(); break;
+					if ((c.tok == RecognizedToken::Symbol && c.buffer == "ref") || c.tok == RecognizedToken::And) {
+						fType.ref = true;
+						c.move();
 					}
 
-					const Type* res;
-					if (!Type::parse(c, res)) return false;
-					tps.push_back(res);
+					fType.types = Contents::register_type_array(std::move(tps));
+					rType = Contents::emplace_type(fType);
 
+				} break;
 
-					if (c.tok == RecognizedToken::Comma) c.move(); else if (c.tok != RecognizedToken::GreaterThan) {
-						throw_wrong_token_error(c, "',' or '>'");
-						return false;
-					}
-				}
-				
-				if ((c.tok == RecognizedToken::Symbol && c.buffer == "ref") || c.tok == RecognizedToken::And) {
-					fType.ref = true;
+			case RecognizedToken::LessThan: {
+					InterfaceType fType;
+					std::vector<const Type*> tps;
 					c.move();
-				}
 
-				fType.types = Contents::register_type_array(std::move(tps));
-				rType = Contents::emplace_type(fType);
-			}
-			else {
-				if (c.tok != RecognizedToken::Symbol) {
-					throw_not_a_name_error(c);
-				}
-
-				PrimitiveType pType;
-				pType.name = c;
-				c.move();
-
-				if (c.tok == RecognizedToken::DoubleColon) {
-					pType.package = pType.name.buffer;
-					c.move();
-					pType.name = c;
-					c.move();
-				}
-
-				if (c.tok == RecognizedToken::LessThan) {
-					TemplateContext tps;
-
-					c.move();
 					while (true) {
 						if (c.tok == RecognizedToken::GreaterThan) {
 							c.move(); break;
@@ -124,101 +78,150 @@ namespace Corrosive {
 						if (!Type::parse(c, res)) return false;
 						tps.push_back(res);
 
+
 						if (c.tok == RecognizedToken::Comma) c.move(); else if (c.tok != RecognizedToken::GreaterThan) {
 							throw_wrong_token_error(c, "',' or '>'");
-
 							return false;
 						}
 					}
-					pType.templates = Contents::register_generic_array(std::move(tps));
-				}
 
+					if ((c.tok == RecognizedToken::Symbol && c.buffer == "ref") || c.tok == RecognizedToken::And) {
+						fType.ref = true;
+						c.move();
+					}
 
-				if ((c.tok == RecognizedToken::Symbol && c.buffer == "ref") || c.tok == RecognizedToken::And) {
-					pType.ref = true;
+					fType.types = Contents::register_type_array(std::move(tps));
+					rType = Contents::emplace_type(fType);
+				} break;
+
+			default: {
+					if (c.tok != RecognizedToken::Symbol) {
+						throw_not_a_name_error(c);
+					}
+
+					PrimitiveType pType;
+					pType.name = c;
 					c.move();
-				}
 
-				rType = Contents::emplace_type(pType);
-			}
+					if (c.tok == RecognizedToken::DoubleColon) {
+						pType.package = pType.name.buffer;
+						c.move();
+						pType.name = c;
+						c.move();
+					}
+
+					if (c.tok == RecognizedToken::LessThan) {
+						TemplateContext tps;
+
+						c.move();
+						while (true) {
+							if (c.tok == RecognizedToken::GreaterThan) {
+								c.move(); break;
+							}
+
+							const Type* res;
+							if (!Type::parse(c, res)) return false;
+							tps.push_back(res);
+
+							if (c.tok == RecognizedToken::Comma) c.move(); else if (c.tok != RecognizedToken::GreaterThan) {
+								throw_wrong_token_error(c, "',' or '>'");
+
+								return false;
+							}
+						}
+						pType.templates = Contents::register_generic_array(std::move(tps));
+					}
+
+
+					if ((c.tok == RecognizedToken::Symbol && c.buffer == "ref") || c.tok == RecognizedToken::And) {
+						pType.ref = true;
+						c.move();
+					}
+
+					rType = Contents::emplace_type(pType);
+				} break;
 		}
 
 
 		while (true) {
-			if (c.tok == RecognizedToken::OpenParenthesis) {
-				FunctionType fType;
-				std::vector<const Type*> tps;
-				fType.returns = rType;
+			switch (c.tok) {
+				case RecognizedToken::OpenParenthesis: {
+						FunctionType fType;
+						std::vector<const Type*> tps;
+						fType.returns = rType;
 
-				c.move();
-				while (true) {
-					if (c.tok == RecognizedToken::CloseParenthesis) {
-						c.move(); break;
-					}
-
-					if (argnames != nullptr)
-					{
-						argnames->push_back(c);
 						c.move();
-						if (c.tok != RecognizedToken::Colon) {
-							throw_wrong_token_error(c, "':'");
+						while (true) {
+							if (c.tok == RecognizedToken::CloseParenthesis) {
+								c.move(); break;
+							}
+
+							if (argnames != nullptr)
+							{
+								argnames->push_back(c);
+								c.move();
+								if (c.tok != RecognizedToken::Colon) {
+									throw_wrong_token_error(c, "':'");
+									return false;
+								}
+								c.move();
+							}
+
+							const Type* res;
+							if (!Type::parse(c, res)) return false;
+							tps.push_back(res);
+
+							if (c.tok == RecognizedToken::Comma) c.move(); else if (c.tok != RecognizedToken::CloseParenthesis) {
+								throw_wrong_token_error(c, "',' or ')'");
+								return false;
+							}
+						}
+
+						if ((c.tok == RecognizedToken::Symbol && c.buffer == "ref") || c.tok == RecognizedToken::And) {
+							fType.ref = true;
+							c.move();
+						}
+
+						fType.arguments = Contents::register_type_array(std::move(tps));
+						rType = Contents::emplace_type(fType);
+					}break;
+				case RecognizedToken::OpenBracket: {
+						ArrayType aType;
+						aType.base = rType;
+
+						c.move();
+
+						Cursor c1 = c;
+						c1.move();
+						if (c1.tok == RecognizedToken::CloseBracket) {
+							switch (c.tok) {
+								case RecognizedToken::Number: aType.size = (unsigned int)svtoi(c.buffer); break;
+								case RecognizedToken::UnsignedNumber: aType.size = (unsigned int)svtoi(c.buffer.substr(0, c.buffer.size() - 1)); break;
+								case RecognizedToken::LongNumber: aType.size = (unsigned int)svtoi(c.buffer.substr(0, c.buffer.size() - 1)); break;
+								case RecognizedToken::UnsignedLongNumber: aType.size = (unsigned int)svtoi(c.buffer.substr(0, c.buffer.size() - 2)); break;
+							}
+
+							c = c1;
+						}
+						else {
+							throw_wrong_token_error(c, "']'");
 							return false;
 						}
 						c.move();
-					}
 
-					const Type* res;
-					if (!Type::parse(c, res)) return false;
-					tps.push_back(res);
+						if ((c.tok == RecognizedToken::Symbol && c.buffer == "ref") || c.tok == RecognizedToken::And) {
+							aType.ref = true;
+							c.move();
+						}
 
-					if (c.tok == RecognizedToken::Comma) c.move(); else if (c.tok != RecognizedToken::CloseParenthesis) {
-						throw_wrong_token_error(c, "',' or ')'");
-						return false;
-					}
-				}
-
-				if ((c.tok == RecognizedToken::Symbol && c.buffer == "ref") || c.tok == RecognizedToken::And) {
-					fType.ref = true;
-					c.move();
-				}
-
-				fType.arguments = Contents::register_type_array(std::move(tps));
-				rType = Contents::emplace_type(fType);
+						rType = Contents::emplace_type(aType);
+					} break;
+				default: goto while_break;
 			}
-			else if (c.tok == RecognizedToken::OpenBracket) {
-				ArrayType aType;
-				aType.base = rType;
 
-				c.move();
-
-				Cursor c1 = c;
-				c1.move();
-				if (c1.tok == RecognizedToken::CloseBracket) {
-					if (c.tok == RecognizedToken::Number)
-						aType.size = (unsigned int)svtoi(c.buffer);
-					else if (c.tok == RecognizedToken::UnsignedNumber)
-						aType.size = (unsigned int)svtoi(c.buffer.substr(0,c.buffer.size()-1));
-					else if (c.tok == RecognizedToken::LongNumber)
-						aType.size = (unsigned int)svtoi(c.buffer.substr(0, c.buffer.size() - 1));
-					else if (c.tok == RecognizedToken::UnsignedLongNumber)
-						aType.size = (unsigned int)svtoi(c.buffer.substr(0, c.buffer.size() - 2));
-
-					c = c1;
-				}
-				else {
-					throw_wrong_token_error(c, "']'");
-					return false;
-				}
-				c.move();
-
-				if ((c.tok == RecognizedToken::Symbol && c.buffer == "ref") || c.tok == RecognizedToken::And) {
-					aType.ref = true;
-					c.move();
-				}
-
-				rType = Contents::emplace_type(aType);
-			}
-			else break;
+			continue;
+		while_break:
+			break;
 		}
 
 		into = rType;
