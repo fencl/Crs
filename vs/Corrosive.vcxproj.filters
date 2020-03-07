@@ -122,5 +122,8 @@
     <ClCompile Include="..\src\IL\ILBuilder.cpp">
       <Filter>Source Files\IL</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\IL\ILEvaluator.cpp">
+      <Filter>Source Files\IL</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

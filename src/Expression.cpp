@@ -14,7 +14,7 @@ namespace Corrosive {
 				value.lvalue = false;
 				if (!ILBuilder::build_load(ctx.block, value.t->iltype->rvalue)) return false;
 			}
-			else if (cpt == CompileType::Eval) {
+			else if (cpt == CompileType::eval) {
 				
 			}
 		}
@@ -125,7 +125,7 @@ namespace Corrosive {
 		if (l == 1 || l == 2)
 			ret.t = t_bool;
 
-		if(cpt != CompileType::ShortCircuit) {
+		if(cpt == CompileType::compile) {
 			switch (l) {
 				case 0: {
 						switch (op) {
@@ -191,6 +191,72 @@ namespace Corrosive {
 					}break;
 			}
 		}
+		else if (cpt == CompileType::eval) {
+			switch (l) {
+				case 0: {
+						switch (op) {
+							case 0: {
+									if (!ILBuilder::eval_and(ctx.eval)) return false;
+								}break;
+							case 1: {
+									if (!ILBuilder::eval_or(ctx.eval)) return false;
+								}break;
+							case 2: {
+									if (!ILBuilder::eval_xor(ctx.eval)) return false;
+								}break;
+						}
+					}break;
+				case 1: {
+						switch (op) {
+							case 0: {
+									if (!ILBuilder::eval_eq(ctx.eval)) return false;
+								}break;
+							case 1: {
+									if (!ILBuilder::eval_ne(ctx.eval)) return false;
+								}break;
+						}
+					}break;
+				case 2: {
+						switch (op) {
+							case 0: {
+									if (!ILBuilder::eval_gt(ctx.eval)) return false;
+								}break;
+							case 1: {
+									if (!ILBuilder::eval_lt(ctx.eval)) return false;
+								} break;
+							case 2: {
+									if (!ILBuilder::eval_ge(ctx.eval)) return false;
+								}break;
+							case 3: {
+									if (!ILBuilder::eval_le(ctx.eval)) return false;
+								}break;
+						}
+					}break;
+				case 3: {
+						switch (op) {
+							case 0: {
+									if (!ILBuilder::eval_add(ctx.eval)) return false;
+								}break;
+							case 1: {
+									if (!ILBuilder::eval_sub(ctx.eval)) return false;
+								}break;
+						}
+					}break;
+				case 4: {
+						switch (op) {
+							case 0: {
+									if (!ILBuilder::eval_mul(ctx.eval)) return false;
+								}break;
+							case 1: {
+									if (!ILBuilder::eval_div(ctx.eval)) return false;
+								} break;
+							case 2: {
+									if (!ILBuilder::eval_rem(ctx.eval)) return false;
+								}break;
+						}
+					}break;
+			}
+		}
 
 		res = ret;
 		return true;
@@ -205,7 +271,7 @@ namespace Corrosive {
 
 		ILBlock* fallback = nullptr;
 		CompileValue value;
-		if (!Expression::parse_operators(c, ctx,res, cpt)) return false;
+		if (!Expression::parse_operators(c, ctx, value, cpt)) return false;
 		
 
 		while (c.tok == RecognizedToken::DoubleAnd) {
@@ -216,14 +282,21 @@ namespace Corrosive {
 
 			c.move();
 
-			if (cpt == CompileType::ShortCircuit) {
+			if (cpt == CompileType::short_circuit) {
 				CompileValue tmp;
-				if (!parse_operators(c, ctx, tmp, CompileType::ShortCircuit)) return false;
+				if (!parse_operators(c, ctx, tmp, CompileType::short_circuit)) return false;
 			}
 			else {
-				if (cpt == CompileType::Eval) {
-					CompileValue right;
-					if (!Expression::parse_operators(c, ctx, right, cpt)) return false;
+				if (cpt == CompileType::eval) {
+					uint8_t v = ctx.eval->read_last_register_value<uint8_t>();
+					if (v) {
+						CompileValue right;
+						if (!Expression::parse_operators(c, ctx, right, cpt)) return false;
+					}
+					else {
+						CompileValue tmp;
+						if (!parse_operators(c, ctx, tmp, CompileType::short_circuit)) return false;
+					}
 				}
 				else {
 					if (!fallback) {
@@ -231,6 +304,7 @@ namespace Corrosive {
 					}
 
 					if (!rvalue(ctx, value, cpt)) return false;
+
 					ILBlock* positive_block = ctx.function->create_block(ILDataType::ibool);
 					ctx.function->append_block(positive_block);
 
@@ -286,15 +360,22 @@ namespace Corrosive {
 
 			c.move();
 
-			if (cpt == CompileType::ShortCircuit) {
+			if (cpt == CompileType::short_circuit) {
 				CompileValue tmp;
-				if (!parse_and(c, ctx,tmp, CompileType::ShortCircuit)) return false;
+				if (!parse_and(c, ctx,tmp, CompileType::short_circuit)) return false;
 			}
 			else {
 				
-				if (cpt == CompileType::Eval) {
-					CompileValue right;
-					if (!Expression::parse_and(c, ctx,right, cpt)) return false;
+				if (cpt == CompileType::eval) {
+					uint8_t v = ctx.eval->read_last_register_value<uint8_t>();
+					if (!v) {
+						CompileValue right;
+						if (!Expression::parse_and(c, ctx, right, cpt)) return false;
+					}
+					else {
+						CompileValue tmp;
+						if (!parse_and(c, ctx, tmp, CompileType::short_circuit)) return false;
+					}
 				}
 				else {
 					if (!fallback) {
@@ -352,7 +433,7 @@ namespace Corrosive {
 
 		while (true) {
 			CompileValue value;
-			if (!Operand::parse(c, ctx, value,cpt)) return false;
+			if (!Operand::parse(c, ctx, value, cpt)) return false;
 			int op_v = -1;
 			int op_t = -1;
 
@@ -424,9 +505,8 @@ namespace Corrosive {
 				if (i>=0 && layer[i].t != nullptr) {
 					CompileValue& left = layer[i];
 					CompileValue& right = value;
-					CompileType cpt2 = cpt;
 
-					if (!emit(c, ctx, value, i, op_type[i], left, right, cpt2, op_v, op_t)) return false;
+					if (!emit(c, ctx, value, i, op_type[i], left, right, cpt, op_v, op_t)) return false;
 					layer[i].t = nullptr;
 				}
 			}

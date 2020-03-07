@@ -41,15 +41,27 @@ int main() {
 	start = end;
 	Corrosive::CompileContext ctx;
 
-
 	if (alive) {
 		ctx.module = m.get();
 		ctx.parent_namespace = Corrosive::Contents::entry_point->parent_pack;
 		ctx.parent_struct = Corrosive::Contents::entry_point->parent_struct();
 		ctx.template_ctx = nullptr;
-		alive &= Corrosive::Contents::entry_point->compile(ctx);
+		c = Corrosive::Contents::entry_point->block;
+		Corrosive::CompileContextExt ctxext;
+		ctxext.basic = ctx;
+		std::unique_ptr<Corrosive::ILEvaluator> evaluator = std::make_unique<Corrosive::ILEvaluator>();
+		evaluator->parent = m.get();
+		ctxext.eval = evaluator.get();
+		ctxext.unit = Corrosive::Contents::entry_point;
+		
+		Corrosive::CompileValue res;
+		Corrosive::Expression::parse(c, ctxext, res, Corrosive::CompileType::eval);
+		
+		std::cout << evaluator->pop_register_value<int32_t>() << std::endl;
 
-		for (auto&& it : Corrosive::Contents::StaticStructures) {
+		//alive &= Corrosive::Contents::entry_point->compile(ctx);
+
+		/*for (auto&& it : Corrosive::Contents::StaticStructures) {
 
 			if (alive) {
 				ctx.parent_namespace = it->parent_pack;
@@ -57,8 +69,10 @@ int main() {
 				ctx.template_ctx = it->template_ctx;
 				alive &= it->compile(ctx);
 			}
-		}
+		}*/
 	}
+
+
 
 	end = std::chrono::system_clock::now();
 	elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);

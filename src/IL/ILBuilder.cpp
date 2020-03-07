@@ -143,6 +143,7 @@ namespace Corrosive {
 					block->pop<ILDataType>();
 					block->pop<ILInstruction>();
 					uint64_t lval = _il_block_value_pop_into<uint64_t>(block, l);
+					block->pop<ILDataType>();
 					block->pop<ILInstruction>();
 					op<uint64_t> o;
 					if (!ILBuilder::build_const_u64(block, o(lval, rval))) return false;
@@ -242,6 +243,7 @@ namespace Corrosive {
 					block->pop<ILDataType>();
 					block->pop<ILInstruction>();
 					uint64_t lval = _il_block_value_pop_into<uint64_t>(block, l);
+					block->pop<ILDataType>();
 					block->pop<ILInstruction>();
 					op<uint64_t> o;
 					if (!ILBuilder::build_const_ibool(block, (uint8_t)o(lval, rval))) return false;
@@ -349,11 +351,12 @@ namespace Corrosive {
 			return false;
 		}
 
+		ILDataType t_p = block->stack.back().second;
+		block->stack.pop_back();
+
 		ILDataType t_v = block->stack.back().second;
 		block->stack.pop_back();
 
-		ILDataType t_p = block->stack.back().second;
-		block->stack.pop_back();
 		if (t_p != ILDataType::ptr) {
 			throw_il_wrong_arguments_error();
 			return false;

@@ -89,6 +89,7 @@ namespace Corrosive {
 
 	class ILFunction {
 	public:
+		~ILFunction();
 		unsigned int id;
 		ILModule* parent;
 		ILType* returns = nullptr;
@@ -103,6 +104,46 @@ namespace Corrosive {
 		void dump();
 		bool assert_flow();
 		unsigned int register_local(ILType* type);
+	};
+
+	class ILEvaluator {
+	public:
+		using register_value = uint64_t;
+
+		unsigned char memory_stack[1024 * 4];
+		unsigned char memory_heap[1024 * 1024];
+
+		unsigned char* map_pointer(register_value ptr);
+
+		unsigned char register_stack[256];
+		ILDataType register_type_stack[64];
+
+		unsigned char* memory_stack_pointer = memory_stack;
+		unsigned char* register_stack_pointer = register_stack;
+		ILDataType* register_type_stack_pointer = register_type_stack;
+
+		register_value yield;
+		ILDataType yield_type;
+
+		ILModule* parent;
+
+		void write_register_value(size_t size, unsigned char* value);
+		void pop_register_value(size_t size, unsigned char* into);
+		ILDataType pop_register_type();
+		void write_register_type(ILDataType t);
+
+
+		size_t register_size(ILDataType t);
+
+
+		template<typename T> inline T read_last_register_value() {
+			return *(((T*)register_stack_pointer)-1);
+		}
+
+		template<typename T> inline T pop_register_value() {
+			register_stack_pointer -= sizeof(T);
+			return *((T*)register_stack_pointer);
+		}
 	};
 
 	class ILModule {
@@ -133,6 +174,19 @@ namespace Corrosive {
 
 	class ILBuilder {
 	public:
+
+		static bool eval_const_ibool (ILEvaluator* eval_ctx, int8_t   value);
+		static bool eval_const_i8    (ILEvaluator* eval_ctx, int8_t   value);
+		static bool eval_const_i16   (ILEvaluator* eval_ctx, int16_t  value);
+		static bool eval_const_i32   (ILEvaluator* eval_ctx, int32_t  value);
+		static bool eval_const_i64   (ILEvaluator* eval_ctx, int64_t  value);
+		static bool eval_const_u8    (ILEvaluator* eval_ctx, uint8_t  value);
+		static bool eval_const_u16   (ILEvaluator* eval_ctx, uint16_t value);
+		static bool eval_const_u32   (ILEvaluator* eval_ctx, uint32_t value);
+		static bool eval_const_u64   (ILEvaluator* eval_ctx, uint64_t value);
+		static bool eval_const_f32   (ILEvaluator* eval_ctx, float    value);
+		static bool eval_const_f64   (ILEvaluator* eval_ctx, double   value);
+
 		static bool build_const_ibool (ILBlock* block, int8_t   value);
 		static bool build_const_i8	  (ILBlock* block, int8_t   value);
 		static bool build_const_i16	  (ILBlock* block, int16_t  value);
@@ -144,6 +198,32 @@ namespace Corrosive {
 		static bool build_const_u64	  (ILBlock* block, uint64_t value);
 		static bool build_const_f32	  (ILBlock* block, float    value);
 		static bool build_const_f64	  (ILBlock* block, double   value);
+
+
+		static bool eval_add(ILEvaluator* eval_ctx);
+		static bool eval_load(ILEvaluator* eval_ctx, ILDataType type);
+		static bool eval_store(ILEvaluator* eval_ctx);
+		static bool eval_local(ILEvaluator* eval_ctx, unsigned int id);
+		static bool eval_member(ILEvaluator* eval_ctx, ILStruct* type, unsigned int id);
+		static bool eval_and(ILEvaluator* eval_ctx);
+		static bool eval_or(ILEvaluator* eval_ctx);
+		static bool eval_xor(ILEvaluator* eval_ctx);
+		static bool eval_eq(ILEvaluator* eval_ctx);
+		static bool eval_ne(ILEvaluator* eval_ctx);
+		static bool eval_gt(ILEvaluator* eval_ctx);
+		static bool eval_lt(ILEvaluator* eval_ctx);
+		static bool eval_ge(ILEvaluator* eval_ctx);
+		static bool eval_le(ILEvaluator* eval_ctx);
+		static bool eval_sub(ILEvaluator* eval_ctx);
+		static bool eval_div(ILEvaluator* eval_ctx);
+		static bool eval_rem(ILEvaluator* eval_ctx);
+		static bool eval_mul(ILEvaluator* eval_ctx);
+		static bool eval_accept(ILEvaluator* eval_ctx);
+		static bool eval_discard(ILEvaluator* eval_ctx);
+		static bool eval_yield(ILEvaluator* eval_ctx);
+		//static bool eval_ret(ILEvaluator* eval_ctx);
+		//static bool eval_jmp(ILEvaluator* eval_ctx, ILBlock* address);
+		//static bool eval_jmpz(ILEvaluator* eval_ctx, ILBlock* ifz, ILBlock* ifnz);
 
 		static ILDataType arith_result(ILDataType l,ILDataType r);
 		static bool build_add(ILBlock* block);

@@ -25,6 +25,8 @@ namespace Corrosive {
 		std::cerr << "Compiler Error:\n\tInstruction cannot use argument(s) on the stack" << std::endl;
 	}
 
+	ILFunction::~ILFunction() {}
+
 	ILFunction* ILModule::create_function(ILType* returns) {
 		std::unique_ptr<ILFunction> function = std::make_unique<ILFunction>();
 		ILFunction* function_ptr = function.get();

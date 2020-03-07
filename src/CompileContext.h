@@ -12,7 +12,7 @@ namespace Corrosive {
 	class Type;
 
 	enum class CompileType {
-		compile, Eval, ShortCircuit
+		compile, eval, short_circuit
 	};
 
 	using TemplateContext = std::vector<const Type*>;
@@ -28,6 +28,7 @@ namespace Corrosive {
 		CompileContext					basic;
 		ILFunction*						function = nullptr;
 		ILBlock*						block = nullptr;
+		ILEvaluator*					eval = nullptr;
 		Declaration*					unit = nullptr;
 	};
 

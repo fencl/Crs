@@ -90,13 +90,23 @@ namespace Corrosive {
 			c.move();
 			ret.lvalue = false;
 			ret.t = t_bool;
-			ILBuilder::build_const_ibool(ctx.block, true);
+			if (cpt == CompileType::compile) {
+				if (!ILBuilder::build_const_ibool(ctx.block, true)) return false;
+			}
+			else if (cpt == CompileType::eval) {
+				if (!ILBuilder::eval_const_ibool(ctx.eval, true)) return false;
+			}
 		}
 		else if (c.buffer == "false") {
 			c.move();
 			ret.lvalue = false;
 			ret.t = t_bool;
-			ILBuilder::build_const_ibool(ctx.block, false);
+			if (cpt == CompileType::compile) {
+				if (!ILBuilder::build_const_ibool(ctx.block, false)) return false;
+			}
+			else if (cpt == CompileType::eval) {
+				if (!ILBuilder::eval_const_ibool(ctx.eval, false)) return false;
+			}
 		}
 		else {
 			Cursor pack;
@@ -114,9 +124,16 @@ namespace Corrosive {
 			}
 
 			if (pack.buffer.empty()) {
-				if (auto sitm = StackManager::stack_find(name.buffer)) {
-					ILBuilder::build_local(ctx.block,sitm->ir_local);
-					ret = sitm->value;
+				if (cpt == CompileType::compile) {
+					if (auto sitm = StackManager::stack_find(name.buffer)) {
+
+						ILBuilder::build_local(ctx.block, sitm->ir_local);
+						ret = sitm->value;
+					}
+					else {
+						throw_variable_not_found_error(name);
+						return false;
+					}
 				}
 				else {
 					throw_variable_not_found_error(name);
@@ -143,11 +160,18 @@ namespace Corrosive {
 		unsigned long long d = svtoi(ndata);
 		c.move();
 
-		if (cpt != CompileType::ShortCircuit) {
+		if (cpt == CompileType::compile) {
 			if (usg)
 				ILBuilder::build_const_u32(ctx.block, (uint32_t)d);
 			else
 				ILBuilder::build_const_i32(ctx.block, (int32_t)d);
+		}
+		else if (cpt == CompileType::eval) {
+			if (usg)
+				ILBuilder::eval_const_u32(ctx.eval, (uint32_t)d);
+			else
+				ILBuilder::eval_const_i32(ctx.eval, (int32_t)d);
+
 		}
 
 		ret.t = usg ? Corrosive::t_u32 : Corrosive::t_i32;
@@ -171,11 +195,18 @@ namespace Corrosive {
 		unsigned long long d = svtoi(ndata);
 		c.move();
 
-		if (cpt != CompileType::ShortCircuit) {
+		if (cpt == CompileType::compile) {
 			if (usg)
 				ILBuilder::build_const_u64(ctx.block, d);
 			else
 				ILBuilder::build_const_i64(ctx.block, d);
+		}
+		else if (cpt == CompileType::eval) {
+			if (usg)
+				ILBuilder::eval_const_u64(ctx.eval, d);
+			else
+				ILBuilder::eval_const_i64(ctx.eval, d);
+
 		}
 
 		ret.t = usg ? Corrosive::t_u64 : Corrosive::t_i64;
@@ -199,11 +230,18 @@ namespace Corrosive {
 		double d = svtod(ndata);
 		c.move();
 
-		if (cpt != CompileType::ShortCircuit) {
+		if (cpt == CompileType::compile) {
 			if (dbl)
 				ILBuilder::build_const_f64(ctx.block, d);
 			else
 				ILBuilder::build_const_f32(ctx.block, (float)d);
+		}
+		else if (cpt == CompileType::eval) {
+			if (dbl)
+				ILBuilder::eval_const_f64(ctx.eval, d);
+			else
+				ILBuilder::eval_const_f32(ctx.eval, (float)d);
+
 		}
 
 		ret.t = dbl ? Corrosive::t_f64 : Corrosive::t_f32;

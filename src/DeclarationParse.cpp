@@ -330,8 +330,6 @@ namespace Corrosive {
 
 			sd->parent_pack = pack;
 
-
-
 			if (auto existing = Contents::find_struct(pkg, name.buffer)) {
 				if (!isext && !existing->is_extending) {
 					throw_specific_error(name, "There already exist's class/structure with the same name");
