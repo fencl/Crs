@@ -13,11 +13,11 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Header Files\IR">
-      <UniqueIdentifier>{f47e84c3-2f68-4ec6-9585-ccd19705ef61}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\IR">
+    <Filter Include="Source Files\IL">
       <UniqueIdentifier>{624822b5-edc8-4fa8-8f58-e214fd2a2664}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\IL">
+      <UniqueIdentifier>{f47e84c3-2f68-4ec6-9585-ccd19705ef61}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -57,8 +57,8 @@
     <ClInclude Include="..\src\Utilities.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\ir\IR.h">
-      <Filter>Header Files\IR</Filter>
+    <ClInclude Include="..\src\IL\IL.h">
+      <Filter>Header Files\IL</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -116,11 +116,11 @@
     <ClCompile Include="..\src\Utilities.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\ir\IR.cpp">
-      <Filter>Source Files\IR</Filter>
+    <ClCompile Include="..\src\IL\IL.cpp">
+      <Filter>Source Files\IL</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\ir\IRBuilder.cpp">
-      <Filter>Source Files\IR</Filter>
+    <ClCompile Include="..\src\IL\ILBuilder.cpp">
+      <Filter>Source Files\IL</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

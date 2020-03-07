@@ -3,7 +3,7 @@
 #define _compile_context_crs_h
 #include <variant>
 #include <vector>
-#include "ir/IR.h"
+#include "IL/IL.h"
 
 namespace Corrosive {
 	class Declaration;
@@ -21,13 +21,13 @@ namespace Corrosive {
 		StructDeclaration*		parent_struct;
 		NamespaceDeclaration*	parent_namespace = nullptr;
 		const TemplateContext*	template_ctx = nullptr;
-		IRModule*				module = nullptr;
+		ILModule*				module = nullptr;
 	};
 
 	struct CompileContextExt {
 		CompileContext					basic;
-		IRFunction*						function = nullptr;
-		IRBlock*						block = nullptr;
+		ILFunction*						function = nullptr;
+		ILBlock*						block = nullptr;
 		Declaration*					unit = nullptr;
 	};
 

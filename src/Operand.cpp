@@ -71,13 +71,13 @@ namespace Corrosive {
 			c.move();
 			ret.lvalue = false;
 			ret.t = t_bool;
-			IRBuilder::build_const_ibool(ctx.block, true);
+			ILBuilder::build_const_ibool(ctx.block, true);
 		}
 		else if (c.buffer == "false") {
 			c.move();
 			ret.lvalue = false;
 			ret.t = t_bool;
-			IRBuilder::build_const_ibool(ctx.block, false);
+			ILBuilder::build_const_ibool(ctx.block, false);
 		}
 		else {
 			Cursor pack;
@@ -95,7 +95,7 @@ namespace Corrosive {
 
 			if (pack.buffer.empty()) {
 				if (auto sitm = StackManager::stack_find(name.buffer)) {
-					IRBuilder::build_local(ctx.block,sitm->ir_local);
+					ILBuilder::build_local(ctx.block,sitm->ir_local);
 					ret = sitm->value;
 				}
 				else {
@@ -122,9 +122,9 @@ namespace Corrosive {
 
 		if (cpt != CompileType::ShortCircuit) {
 			if (usg)
-				IRBuilder::build_const_u32(ctx.block, (uint32_t)d);
+				ILBuilder::build_const_u32(ctx.block, (uint32_t)d);
 			else
-				IRBuilder::build_const_i32(ctx.block, (int32_t)d);
+				ILBuilder::build_const_i32(ctx.block, (int32_t)d);
 		}
 
 		ret.t = usg ? Corrosive::t_u32 : Corrosive::t_i32;
@@ -149,9 +149,9 @@ namespace Corrosive {
 
 		if (cpt != CompileType::ShortCircuit) {
 			if (usg)
-				IRBuilder::build_const_u64(ctx.block, d);
+				ILBuilder::build_const_u64(ctx.block, d);
 			else
-				IRBuilder::build_const_i64(ctx.block, d);
+				ILBuilder::build_const_i64(ctx.block, d);
 		}
 
 		ret.t = usg ? Corrosive::t_u64 : Corrosive::t_i64;
@@ -176,9 +176,9 @@ namespace Corrosive {
 
 		if (cpt != CompileType::ShortCircuit) {
 			if (dbl)
-				IRBuilder::build_const_f64(ctx.block, d);
+				ILBuilder::build_const_f64(ctx.block, d);
 			else
-				IRBuilder::build_const_f32(ctx.block, (float)d);
+				ILBuilder::build_const_f32(ctx.block, (float)d);
 		}
 
 		ret.t = dbl ? Corrosive::t_f64 : Corrosive::t_f32;
@@ -233,7 +233,7 @@ namespace Corrosive {
 
 			VariableDeclaration* vdecl = dynamic_cast<VariableDeclaration*>(decl);
 			if (vdecl != nullptr) {
-				IRBuilder::build_member(ctx.block, ((IRStruct*)sd->irtype), mid);
+				ILBuilder::build_member(ctx.block, ((ILStruct*)sd->iltype), mid);
 				//ret.v = LLVMBuildStructGEP2(ctx.builder, sd->LLVMType(), ret.v, mid, "");
 				ret.t = vdecl->type;
 				ret.lvalue = true;

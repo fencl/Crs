@@ -10,7 +10,7 @@
 #include <unordered_set>
 #include "CompileContext.h"
 #include <llvm/Core.h>
-#include "ir/IR.h"
+#include "IL/IL.h"
 
 namespace Corrosive {
 	
@@ -39,7 +39,7 @@ namespace Corrosive {
 		bool ref = false;
 		bool is_heavy = false;
 		bool compiled = false;
-		IRType* irtype = nullptr;
+		ILType* iltype = nullptr;
 	};
 
 	bool operator == (const Type& t1, const Type& t2);

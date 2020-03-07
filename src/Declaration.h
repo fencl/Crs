@@ -10,7 +10,7 @@
 #include "Type.h"
 #include <unordered_map>
 #include <map>
-#include "ir/IR.h"
+#include "IL/IL.h"
 
 #include <llvm/Core.h>
 namespace Corrosive {
@@ -81,7 +81,7 @@ namespace Corrosive {
 		virtual void pre_compile	(CompileContext& ctx);
 		virtual void print			(unsigned int offset) const;
 
-		IRFunction* function = nullptr;
+		ILFunction* function = nullptr;
 
 		const Corrosive::Type*	type;
 		std::vector<Cursor>		argnames;
@@ -130,7 +130,7 @@ namespace Corrosive {
 		const TemplateContext*			template_ctx = nullptr;
 		std::vector<StructDeclaration*> implements_structures;
 
-		IRType* irtype = nullptr;
+		ILType* iltype = nullptr;
 	};
 
 	class GenericStructDeclaration : public StructDeclaration {

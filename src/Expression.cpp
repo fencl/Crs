@@ -12,7 +12,7 @@ namespace Corrosive {
 		if (value.lvalue) {
 			if (cpt == CompileType::compile) {
 				value.lvalue = false;
-				IRBuilder::build_load(ctx.block, value.t->irtype->rvalue);
+				ILBuilder::build_load(ctx.block, value.t->iltype->rvalue);
 			}
 			else if (cpt == CompileType::Eval) {
 				
@@ -125,44 +125,44 @@ namespace Corrosive {
 
 			if (l == 0) {
 				if (op == 0) {
-					IRBuilder::build_and(ctx.block);
+					ILBuilder::build_and(ctx.block);
 				}
 				else if (op == 1) {
-					IRBuilder::build_or(ctx.block);
+					ILBuilder::build_or(ctx.block);
 				}
 				else if (op == 2) {
-					IRBuilder::build_xor(ctx.block);
+					ILBuilder::build_xor(ctx.block);
 				}
 			}
 			else if (l == 1) {
 				if (op == 0)
-					IRBuilder::build_eq(ctx.block);
+					ILBuilder::build_eq(ctx.block);
 				else if (op == 1)
-					IRBuilder::build_ne(ctx.block);
+					ILBuilder::build_ne(ctx.block);
 			}
 			else if (l == 2) {
 				if (op == 0)
-					IRBuilder::build_gt(ctx.block);
+					ILBuilder::build_gt(ctx.block);
 				else if (op == 1)
-					IRBuilder::build_lt(ctx.block);
+					ILBuilder::build_lt(ctx.block);
 				else if (op == 2)
-					IRBuilder::build_ge(ctx.block);
+					ILBuilder::build_ge(ctx.block);
 				else if (op == 3)
-					IRBuilder::build_le(ctx.block);
+					ILBuilder::build_le(ctx.block);
 			}
 			else if (l == 3) {
 				if (op == 0)
-					IRBuilder::build_add(ctx.block);
+					ILBuilder::build_add(ctx.block);
 				else if (op == 1)
-					IRBuilder::build_sub(ctx.block);
+					ILBuilder::build_sub(ctx.block);
 			}
 			else if (l == 4) {
 				if (op == 0)
-					IRBuilder::build_mul(ctx.block);
+					ILBuilder::build_mul(ctx.block);
 				else if (op == 1)
-					IRBuilder::build_div(ctx.block);
+					ILBuilder::build_div(ctx.block);
 				else if (op == 2)
-					IRBuilder::build_rem(ctx.block);
+					ILBuilder::build_rem(ctx.block);
 			}
 		}
 
@@ -176,7 +176,7 @@ namespace Corrosive {
 
 	CompileValue Expression::parse_and(Cursor& c, CompileContextExt& ctx, CompileType cpt) {
 
-		IRBlock* fallback = nullptr;
+		ILBlock* fallback = nullptr;
 		CompileValue value = Expression::parse_operators(c, ctx, cpt);
 		
 
@@ -196,18 +196,18 @@ namespace Corrosive {
 				}
 				else {
 					if (!fallback) {
-						fallback = ctx.function->create_block(IRDataType::ibool);
+						fallback = ctx.function->create_block(ILDataType::ibool);
 					}
 
 					rvalue(ctx, value, cpt);
-					IRBlock* positive_block = ctx.function->create_block(IRDataType::ibool);
+					ILBlock* positive_block = ctx.function->create_block(ILDataType::ibool);
 					ctx.function->append_block(positive_block);
 
-					IRBuilder::build_discard(positive_block);
+					ILBuilder::build_discard(positive_block);
 
-					IRBuilder::build_const_ibool(ctx.block, false);
-					IRBuilder::build_yield(ctx.block);
-					IRBuilder::build_jmpz(ctx.block, fallback, positive_block);
+					ILBuilder::build_const_ibool(ctx.block, false);
+					ILBuilder::build_yield(ctx.block);
+					ILBuilder::build_jmpz(ctx.block, fallback, positive_block);
 					ctx.block = positive_block;
 
 					value = Expression::parse_operators(c, ctx, cpt);
@@ -221,14 +221,14 @@ namespace Corrosive {
 			}
 
 			rvalue(ctx, value, cpt);
-			IRBuilder::build_yield(ctx.block);
-			IRBuilder::build_jmp(ctx.block, fallback);
+			ILBuilder::build_yield(ctx.block);
+			ILBuilder::build_jmp(ctx.block, fallback);
 			ctx.function->append_block(fallback);
 
 			ctx.block = fallback;
 			fallback = nullptr;
 
-			IRBuilder::build_accept(ctx.block);
+			ILBuilder::build_accept(ctx.block);
 			value.t = t_bool;
 			value.lvalue = false;
 		}
@@ -240,7 +240,7 @@ namespace Corrosive {
 
 	CompileValue Expression::parse_or(Cursor& c, CompileContextExt& ctx, CompileType cpt) {
 
-		IRBlock* fallback = nullptr;
+		ILBlock* fallback = nullptr;
 
 		CompileValue value = Expression::parse_and(c, ctx, cpt);
 
@@ -261,18 +261,18 @@ namespace Corrosive {
 				}
 				else {
 					if (!fallback) {
-						fallback = ctx.function->create_block(IRDataType::ibool);
+						fallback = ctx.function->create_block(ILDataType::ibool);
 					}
 
 					rvalue(ctx, value, cpt);
 
-					IRBlock* positive_block = ctx.function->create_block(IRDataType::ibool);
+					ILBlock* positive_block = ctx.function->create_block(ILDataType::ibool);
 					ctx.function->append_block(positive_block);
 
-					IRBuilder::build_const_ibool(ctx.block, true);
-					IRBuilder::build_yield(ctx.block);
+					ILBuilder::build_const_ibool(ctx.block, true);
+					ILBuilder::build_yield(ctx.block);
 
-					IRBuilder::build_jmpz(ctx.block, positive_block, fallback);
+					ILBuilder::build_jmpz(ctx.block, positive_block, fallback);
 					ctx.block = positive_block;
 
 					value = Expression::parse_and(c, ctx, cpt);
@@ -287,14 +287,14 @@ namespace Corrosive {
 
 			rvalue(ctx, value, cpt);
 
-			IRBuilder::build_yield(ctx.block);
-			IRBuilder::build_jmp(ctx.block, fallback);
+			ILBuilder::build_yield(ctx.block);
+			ILBuilder::build_jmp(ctx.block, fallback);
 			ctx.function->append_block(fallback);
 
 			ctx.block = fallback;
 			fallback = nullptr;
 
-			IRBuilder::build_accept(ctx.block);
+			ILBuilder::build_accept(ctx.block);
 
 			value.t = t_bool;
 			value.lvalue = false;

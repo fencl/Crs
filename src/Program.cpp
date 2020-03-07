@@ -9,7 +9,7 @@
 #include "PredefinedTypes.h"
 #include "Operand.h"
 #include "Expression.h"
-#include "ir/IR.h"
+#include "IL/IL.h"
 
 int main() {
 	auto start = std::chrono::system_clock::now();
@@ -17,8 +17,8 @@ int main() {
 	Corrosive::Source src;
 	src.load("..\\test\\test.crs");
 	
-	std::unique_ptr<Corrosive::IRModule> m = std::make_unique<Corrosive::IRModule>();
-	m->architecture = Corrosive::IRArchitecture::x86_64;
+	std::unique_ptr<Corrosive::ILModule> m = std::make_unique<Corrosive::ILModule>();
+	m->architecture = Corrosive::ILArchitecture::x86_64;
 	m->build_default_types();
 
 	auto end = std::chrono::system_clock::now();

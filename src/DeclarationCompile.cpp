@@ -11,34 +11,34 @@
 namespace Corrosive {
 
 	void StructDeclaration::pre_compile(CompileContext& ctx) {
-		if (irtype != nullptr) return;
+		if (iltype != nullptr) return;
 
 		Contents::StaticStructures.push_back(this);
 
 		if (decl_type == StructDeclarationType::t_i64)
-			irtype = ctx.module->t_i64;
+			iltype = ctx.module->t_i64;
 		else if (decl_type == StructDeclarationType::t_u64)
-			irtype = ctx.module->t_u64;
+			iltype = ctx.module->t_u64;
 		else if (decl_type == StructDeclarationType::t_i32)
-			irtype = ctx.module->t_i32;
+			iltype = ctx.module->t_i32;
 		else if (decl_type == StructDeclarationType::t_u32)
-			irtype = ctx.module->t_u32;
+			iltype = ctx.module->t_u32;
 		else if (decl_type == StructDeclarationType::t_i16)
-			irtype = ctx.module->t_i16;
+			iltype = ctx.module->t_i16;
 		else if (decl_type == StructDeclarationType::t_u16)
-			irtype = ctx.module->t_u16;
+			iltype = ctx.module->t_u16;
 		else if (decl_type == StructDeclarationType::t_i8)
-			irtype = ctx.module->t_i8;
+			iltype = ctx.module->t_i8;
 		else if (decl_type == StructDeclarationType::t_u8)
-			irtype = ctx.module->t_u8;
+			iltype = ctx.module->t_u8;
 		else if (decl_type == StructDeclarationType::t_bool)
-			irtype = ctx.module->t_bool;
+			iltype = ctx.module->t_bool;
 		else if (decl_type == StructDeclarationType::t_ptr)
-			irtype = ctx.module->t_ptr;
+			iltype = ctx.module->t_ptr;
 		else if (decl_type == StructDeclarationType::t_f32)
-			irtype = ctx.module->t_f32;
+			iltype = ctx.module->t_f32;
 		else if (decl_type == StructDeclarationType::t_f64)
-			irtype = ctx.module->t_f64;
+			iltype = ctx.module->t_f64;
 		else {
 
 			std::string llvm_name;
@@ -116,7 +116,7 @@ namespace Corrosive {
 				(*it)->pre_compile(ctx);
 			}
 
-			irtype = ctx.module->create_struct_type();
+			iltype = ctx.module->create_struct_type();
 
 			//std::vector<LLVMTypeRef> mem_types;
 
@@ -158,17 +158,17 @@ namespace Corrosive {
 
 				if (vdecl = dynamic_cast<VariableDeclaration*>(decl.get())) {
 					if (!is_trait)
-						((IRStruct*)irtype)->add_member(vdecl->type->irtype);
+						((ILStruct*)iltype)->add_member(vdecl->type->iltype);
 					else
 						throw_specific_error(vdecl->name, "variable found in trait type");
 				}
 				else if (fdecl != nullptr) {
 					if (is_trait)
-						((IRStruct*)irtype)->add_member(ctx.module->t_ptr);
+						((ILStruct*)iltype)->add_member(ctx.module->t_ptr);
 				}
 			}
 
-			((IRStruct*)irtype)->align_size();
+			((ILStruct*)iltype)->align_size();
 
 			build_lookup_table();
 			test_interface_complete();
@@ -327,7 +327,7 @@ namespace Corrosive {
 	}
 
 	void FunctionDeclaration::pre_compile(CompileContext& ctx) {
-		if (type->irtype!=nullptr) return;
+		if (type->iltype!=nullptr) return;
 
 		CompileContext nctx = ctx;
 		nctx.parent_struct = parent_struct();
@@ -359,10 +359,10 @@ namespace Corrosive {
 
 			unsigned long stack = StackManager::stack_state();
 
-			function = ctx.module->create_function(((const FunctionType*)type)->returns->irtype);
-			IRBlock* entry = function->create_block(IRDataType::none);
+			function = ctx.module->create_function(((const FunctionType*)type)->returns->iltype);
+			ILBlock* entry = function->create_block(ILDataType::none);
 			function->append_block(entry);
-			IRBuilder::build_discard(entry);
+			ILBuilder::build_discard(entry);
 
 			const FunctionType* ft = (const FunctionType*)type;
 			bool heavy_return = ft->returns->is_heavy;
@@ -371,7 +371,7 @@ namespace Corrosive {
 				CompileValue cv;
 				cv.lvalue = true;
 				cv.t = (*ft->arguments)[i];
-				unsigned int argloc = function->register_local(cv.t->irtype);
+				unsigned int argloc = function->register_local(cv.t->iltype);
 				StackManager::stack_push(argnames[i].buffer,cv, argloc);
 			}
 
@@ -387,8 +387,8 @@ namespace Corrosive {
 			cctx.block = entry;
 
 			Corrosive::CompileValue cv = Expression::parse(c, cctx, Corrosive::CompileType::compile);
-			IRBuilder::build_yield(cctx.block);
-			IRBuilder::build_ret(cctx.block);
+			ILBuilder::build_yield(cctx.block);
+			ILBuilder::build_ret(cctx.block);
 
 			StackManager::stack_restore(stack);
 			compile_progress = 2;
@@ -405,7 +405,7 @@ namespace Corrosive {
 	}
 
 	void VariableDeclaration::pre_compile(CompileContext& ctx) {
-		if (type->irtype != nullptr) return;
+		if (type->iltype != nullptr) return;
 
 		CompileContext nctx = ctx;
 		nctx.parent_struct = parent_struct();

@@ -11,10 +11,10 @@ namespace Corrosive {
 	void throw_wrong_token_error(const Cursor& c, std::string_view expected);
 	void throw_exit();
 
-	void throw_ir_wrong_data_flow_error();
-	void throw_ir_nothing_on_stack_error();
-	void throw_ir_remaining_stack_error();
-	void throw_ir_wrong_arguments_error();
-	void throw_ir_wrong_type_error();
+	void throw_il_wrong_data_flow_error();
+	void throw_il_nothing_on_stack_error();
+	void throw_il_remaining_stack_error();
+	void throw_il_wrong_arguments_error();
+	void throw_il_wrong_type_error();
 }
 #endif

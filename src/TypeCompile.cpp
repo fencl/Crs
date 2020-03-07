@@ -16,21 +16,21 @@ namespace Corrosive {
 	 */
 
 	void Type::pre_compile(CompileContext& ctx) const {
-		if (irtype != nullptr) return;
+		if (iltype != nullptr) return;
 	}
 
 	void ArrayType::pre_compile(CompileContext& ctx) const {
-		if (irtype != nullptr) return;
+		if (iltype != nullptr) return;
 
 		ArrayType* self = (ArrayType*)this;
 		base->pre_compile(ctx);
 		self->is_heavy = true;
-		self->irtype = ctx.module->t_i32;//REAPIR!
+		self->iltype = ctx.module->t_i32;//REAPIR!
 	}
 
 
 	void FunctionType::pre_compile(CompileContext& ctx) const {
-		if (irtype != nullptr) return;
+		if (iltype != nullptr) return;
 		FunctionType* self = (FunctionType*)this;
 
 		
@@ -41,41 +41,41 @@ namespace Corrosive {
 		}
 
 		self->is_heavy = true;
-		self->irtype = ctx.module->t_ptr; // maybe we can create special function type, as far as ir code is concerned we don't need to care. LLVM on the other hand...
+		self->iltype = ctx.module->t_ptr; // maybe we can create special function type, as far as ir code is concerned we don't need to care. LLVM on the other hand...
 	}
 
 	void InterfaceType::pre_compile(CompileContext& ctx) const {
-		if (irtype != nullptr) return;
+		if (iltype != nullptr) return;
 
 		InterfaceType* self = (InterfaceType*)this;
 		for (auto it = types->begin(); it != types->end(); it++) {
 			(*it)->pre_compile(ctx);
 		}
 
-		self->irtype = ctx.module->t_i32;//REAPIR!
+		self->iltype = ctx.module->t_i32;//REAPIR!
 	}
 
 
 	void TupleType::pre_compile(CompileContext& ctx) const {
-		if (irtype != nullptr) return;
+		if (iltype != nullptr) return;
 
 		TupleType* self = (TupleType*)this;
 
-		self->irtype = ctx.module->create_struct_type();
+		self->iltype = ctx.module->create_struct_type();
 
 		for (auto it = types->begin(); it != types->end(); it++) {
 			(*it)->pre_compile(ctx);
-			((IRStruct*)self->irtype)->add_member((*it)->irtype);
+			((ILStruct*)self->iltype)->add_member((*it)->iltype);
 		}
 
-		((IRStruct*)irtype)->align_size();
+		((ILStruct*)iltype)->align_size();
 
 		self->is_heavy = true;
 	}
 
 
 	void PrimitiveType::pre_compile(CompileContext& ctx) const {
-		if (irtype != nullptr) return;
+		if (iltype != nullptr) return;
 
 
 		PrimitiveType* self = (PrimitiveType*)this;
@@ -83,7 +83,7 @@ namespace Corrosive {
 		std::string_view nm = name.buffer;
 
 		if (package == PredefinedNamespace && name.buffer == "void") {
-			self->irtype = ctx.module->t_void;
+			self->iltype = ctx.module->t_void;
 			self->is_heavy = false;
 			return;
 		}
@@ -113,7 +113,7 @@ namespace Corrosive {
 						(*templates)[0]->pre_compile(nctx);
 					}
 
-					self->irtype = (*templates)[0]->irtype;
+					self->iltype = (*templates)[0]->iltype;
 				}
 				else {
 
@@ -141,10 +141,10 @@ namespace Corrosive {
 
 
 					if (ref) {
-						self->irtype = ctx.module->t_ptr;
+						self->iltype = ctx.module->t_ptr;
 					}
 					else {
-						self->irtype = sd->irtype;
+						self->iltype = sd->iltype;
 					}
 
 				}
