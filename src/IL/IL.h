@@ -62,7 +62,7 @@ namespace Corrosive {
 
 		void dump();
 		static void dump_data_type(ILDataType dt);
-		void assert_flow();
+		bool assert_flow();
 	private:
 		unsigned char* reserve_data(size_t size);
 		void memmove(std::list<std::unique_ptr<ILBlockData>>::iterator& pool, size_t& memoff, size_t off);
@@ -101,7 +101,7 @@ namespace Corrosive {
 		ILBlock* create_block(ILDataType accepts);
 		void append_block(ILBlock* block);
 		void dump();
-		void assert_flow();
+		bool assert_flow();
 		unsigned int register_local(ILType* type);
 	};
 
@@ -133,43 +133,43 @@ namespace Corrosive {
 
 	class ILBuilder {
 	public:
-		static void build_const_ibool (ILBlock* block, int8_t   value);
-		static void build_const_i8	  (ILBlock* block, int8_t   value);
-		static void build_const_i16	  (ILBlock* block, int16_t  value);
-		static void build_const_i32	  (ILBlock* block, int32_t  value);
-		static void build_const_i64	  (ILBlock* block, int64_t  value);
-		static void build_const_u8	  (ILBlock* block, uint8_t  value);
-		static void build_const_u16	  (ILBlock* block, uint16_t value);
-		static void build_const_u32	  (ILBlock* block, uint32_t value);
-		static void build_const_u64	  (ILBlock* block, uint64_t value);
-		static void build_const_f32	  (ILBlock* block, float    value);
-		static void build_const_f64	  (ILBlock* block, double   value);
+		static bool build_const_ibool (ILBlock* block, int8_t   value);
+		static bool build_const_i8	  (ILBlock* block, int8_t   value);
+		static bool build_const_i16	  (ILBlock* block, int16_t  value);
+		static bool build_const_i32	  (ILBlock* block, int32_t  value);
+		static bool build_const_i64	  (ILBlock* block, int64_t  value);
+		static bool build_const_u8	  (ILBlock* block, uint8_t  value);
+		static bool build_const_u16	  (ILBlock* block, uint16_t value);
+		static bool build_const_u32	  (ILBlock* block, uint32_t value);
+		static bool build_const_u64	  (ILBlock* block, uint64_t value);
+		static bool build_const_f32	  (ILBlock* block, float    value);
+		static bool build_const_f64	  (ILBlock* block, double   value);
 
 		static ILDataType arith_result(ILDataType l,ILDataType r);
-		static void build_add(ILBlock* block);
-		static void build_load(ILBlock* block, ILDataType type);
-		static void build_store(ILBlock* block);
-		static void build_local(ILBlock* block,unsigned int id);
-		static void build_member(ILBlock* block,ILStruct* type,unsigned int id);
-		static void build_and(ILBlock* block);
-		static void build_or(ILBlock* block);
-		static void build_xor(ILBlock* block);
-		static void build_eq(ILBlock* block);
-		static void build_ne(ILBlock* block);
-		static void build_gt(ILBlock* block);
-		static void build_lt(ILBlock* block);
-		static void build_ge(ILBlock* block);
-		static void build_le(ILBlock* block);
-		static void build_sub(ILBlock* block);
-		static void build_div(ILBlock* block);
-		static void build_rem(ILBlock* block);
-		static void build_mul(ILBlock* block);
-		static void build_accept(ILBlock* block);
-		static void build_discard(ILBlock* block);
-		static void build_yield(ILBlock* block);
-		static void build_ret(ILBlock* block);
-		static void build_jmp(ILBlock* block,ILBlock* address);
-		static void build_jmpz(ILBlock* block,ILBlock* ifz, ILBlock* ifnz);
+		static bool build_add(ILBlock* block);
+		static bool build_load(ILBlock* block, ILDataType type);
+		static bool build_store(ILBlock* block);
+		static bool build_local(ILBlock* block,unsigned int id);
+		static bool build_member(ILBlock* block,ILStruct* type,unsigned int id);
+		static bool build_and(ILBlock* block);
+		static bool build_or(ILBlock* block);
+		static bool build_xor(ILBlock* block);
+		static bool build_eq(ILBlock* block);
+		static bool build_ne(ILBlock* block);
+		static bool build_gt(ILBlock* block);
+		static bool build_lt(ILBlock* block);
+		static bool build_ge(ILBlock* block);
+		static bool build_le(ILBlock* block);
+		static bool build_sub(ILBlock* block);
+		static bool build_div(ILBlock* block);
+		static bool build_rem(ILBlock* block);
+		static bool build_mul(ILBlock* block);
+		static bool build_accept(ILBlock* block);
+		static bool build_discard(ILBlock* block);
+		static bool build_yield(ILBlock* block);
+		static bool build_ret(ILBlock* block);
+		static bool build_jmp(ILBlock* block,ILBlock* address);
+		static bool build_jmpz(ILBlock* block,ILBlock* ifz, ILBlock* ifnz);
 	};
 }
 

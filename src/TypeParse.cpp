@@ -8,19 +8,20 @@
 #include "Expression.h"
 
 namespace Corrosive {
-	const Type* Type::parse(Cursor& c, std::vector<Cursor>* argnames) {
+	bool Type::parse(Cursor& c,const Type*& into,std::vector<Cursor>* argnames) {
 		CompileContext cctx;
 		cctx.parent_namespace = nullptr;
 		cctx.parent_struct = nullptr;
-		return parse_direct(cctx, c, argnames);
+		return parse_direct(cctx, c,into, argnames);
 	}
 
-	const Type* Type::parse_direct(CompileContext& ctx,Cursor& c, std::vector<Cursor>* argnames) {
+	bool Type::parse_direct(CompileContext& ctx,Cursor& c, const Type*& into, std::vector<Cursor>* argnames) {
 		const Type* rType = nullptr;
 
 
 		if (c.tok == RecognizedToken::Eof) {
 			throw_eof_error(c, "an attempt to parse type");
+			return false;
 		}
 
 
@@ -46,10 +47,13 @@ namespace Corrosive {
 						c.move(); break;
 					}
 
-					tps.push_back(Type::parse(c));
+					const Type* res;
+					if (!Type::parse(c,res)) return false;
+					tps.push_back(res);
 
 					if (c.tok == RecognizedToken::Comma) c.move(); else if (c.tok != RecognizedToken::CloseBracket) {
 						throw_wrong_token_error(c, "',' or ']'");
+						return false;
 					}
 				}
 				
@@ -72,10 +76,14 @@ namespace Corrosive {
 						c.move(); break;
 					}
 
-					tps.push_back(Type::parse(c));
+					const Type* res;
+					if (!Type::parse(c, res)) return false;
+					tps.push_back(res);
+
 
 					if (c.tok == RecognizedToken::Comma) c.move(); else if (c.tok != RecognizedToken::GreaterThan) {
 						throw_wrong_token_error(c, "',' or '>'");
+						return false;
 					}
 				}
 				
@@ -112,10 +120,14 @@ namespace Corrosive {
 							c.move(); break;
 						}
 
-						tps.push_back(Type::parse(c));
+						const Type* res;
+						if (!Type::parse(c, res)) return false;
+						tps.push_back(res);
 
 						if (c.tok == RecognizedToken::Comma) c.move(); else if (c.tok != RecognizedToken::GreaterThan) {
 							throw_wrong_token_error(c, "',' or '>'");
+
+							return false;
 						}
 					}
 					pType.templates = Contents::register_generic_array(std::move(tps));
@@ -150,14 +162,18 @@ namespace Corrosive {
 						c.move();
 						if (c.tok != RecognizedToken::Colon) {
 							throw_wrong_token_error(c, "':'");
+							return false;
 						}
 						c.move();
 					}
 
-					tps.push_back(Type::parse(c));
+					const Type* res;
+					if (!Type::parse(c, res)) return false;
+					tps.push_back(res);
 
 					if (c.tok == RecognizedToken::Comma) c.move(); else if (c.tok != RecognizedToken::CloseParenthesis) {
 						throw_wrong_token_error(c, "',' or ')'");
+						return false;
 					}
 				}
 
@@ -191,6 +207,7 @@ namespace Corrosive {
 				}
 				else {
 					throw_wrong_token_error(c, "']'");
+					return false;
 				}
 				c.move();
 
@@ -204,6 +221,7 @@ namespace Corrosive {
 			else break;
 		}
 
-		return rType;
+		into = rType;
+		return true;
 	}
 }

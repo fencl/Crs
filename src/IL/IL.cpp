@@ -6,28 +6,23 @@
 namespace Corrosive {
 	void throw_il_wrong_data_flow_error() {
 		std::cerr << "Compiler Error:\n\tWrong data flow inside compiler IL";
-		exit(1);
 	}
 
 	void throw_il_nothing_on_stack_error() {
-		std::cerr << "Compiler Error:\n\tInstruction requires more argumens than the number of arguments on the stack";
-		exit(1);
+		std::cerr << "Compiler Error:\n\tInstruction requires more argumens than the number of arguments on the stack" << std::endl;
 	}
 
 	void throw_il_wrong_type_error() {
-		std::cerr << "Compiler Error:\n\tPassed broken type";
-		exit(1);
+		std::cerr << "Compiler Error:\n\tPassed broken type" << std::endl;
 	}
 
 
 	void throw_il_remaining_stack_error() {
-		std::cerr << "Compiler Error:\n\tStack is not empty after terminator instruction";
-		exit(1);
+		std::cerr << "Compiler Error:\n\tStack is not empty after terminator instruction" << std::endl;
 	}
 
 	void throw_il_wrong_arguments_error() {
-		std::cerr << "Compiler Error:\n\tInstruction cannot use argument(s) on the stack";
-		exit(1);
+		std::cerr << "Compiler Error:\n\tInstruction cannot use argument(s) on the stack" << std::endl;
 	}
 
 	ILFunction* ILModule::create_function(ILType* returns) {
@@ -269,24 +264,30 @@ namespace Corrosive {
 
 #undef read_data_type
 
-	void ILFunction :: assert_flow() {
+	bool ILFunction :: assert_flow() {
 		for (auto b = blocks.begin(); b != blocks.end(); b++) {
-			(*b)->assert_flow();
+			if (!(*b)->assert_flow()) return false;
 		}
 
 		for (auto b = return_blocks.begin(); b != return_blocks.end(); b++) {
 			if ((*b)->yields != returns->rvalue) {
 				throw_il_wrong_data_flow_error();
+				return false;
 			}
 		}
+
+		return true;
 	}
 
-	void ILBlock::assert_flow() {
+	bool ILBlock::assert_flow() {
 		for (auto b = predecessors.begin(); b != predecessors.end(); b++) {
 			if ((*b)->yields != accepts) {
 				throw_il_wrong_data_flow_error();
+				return false;
 			}
 		}
+
+		return true;
 	}
 
 

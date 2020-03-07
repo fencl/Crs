@@ -7,10 +7,11 @@
 
 
 namespace Corrosive {
-	void Declaration::parse(Cursor& c, std::vector<std::unique_ptr<Declaration>>& into, Declaration* parent, NamespaceDeclaration* pack) {
+	bool Declaration::parse(Cursor& c, std::vector<std::unique_ptr<Declaration>>& into, Declaration* parent, NamespaceDeclaration* pack) {
 		if (c.buffer == "var") {
 			if (dynamic_cast<StructDeclaration*>(parent) == nullptr) {
 				throw_specific_error(c, "Variable has to be a member of struct or class");
+				return false;
 			}
 
 			c.move();
@@ -19,6 +20,7 @@ namespace Corrosive {
 			while (true) {
 				if (c.tok != RecognizedToken::Symbol) {
 					throw_not_a_name_error(c);
+					return false;
 				}
 				names.push_back(c);
 				c.move();
@@ -32,13 +34,16 @@ namespace Corrosive {
 
 			if (c.tok != RecognizedToken::Colon) {
 				throw_wrong_token_error(c, "':'");
+				return false;
 			}
 			c.move();
 
-			const Corrosive::Type* tp = Type::parse(c);
+			const Corrosive::Type* tp;
+			if (!Type::parse(c,tp)) return false;
 
 			if (c.tok != RecognizedToken::Semicolon) {
 				throw_wrong_token_error(c, "';'");
+				return false;
 			}
 			c.move();
 
@@ -59,6 +64,7 @@ namespace Corrosive {
 		else if (c.buffer == "type") {
 			if (dynamic_cast<StructDeclaration*>(parent) != nullptr) {
 				throw_specific_error(c, "Type cannot be a member of struct or class");
+				return false;
 			}
 
 			c.move();
@@ -67,6 +73,7 @@ namespace Corrosive {
 			while (true) {
 				if (c.tok != RecognizedToken::Symbol) {
 					throw_not_a_name_error(c);
+					return false;
 				}
 				names.push_back(c);
 				c.move();
@@ -79,13 +86,16 @@ namespace Corrosive {
 
 			if (c.tok != RecognizedToken::Colon) {
 				throw_wrong_token_error(c, "':'");
+				return false;
 			}
 			c.move();
 
-			const Corrosive::Type* tp = Type::parse(c);
+			const Corrosive::Type* tp;
+			if (!Type::parse(c,tp)) return false;
 
 			if (c.tok != RecognizedToken::Semicolon) {
 				throw_wrong_token_error(c, "';'");
+				return false;
 			}
 			c.move();
 
@@ -104,6 +114,7 @@ namespace Corrosive {
 
 				if (Contents::find_typedef(vd->package, vd->name.buffer) != nullptr) {
 					throw_specific_error(vd->name, "Typedef with the same name already exist's it this package");
+					return false;
 				}
 				else {
 					Contents::register_typedef(vd->package, vd->name.buffer, vd.get());
@@ -123,6 +134,7 @@ namespace Corrosive {
 
 			if (c.tok != RecognizedToken::Symbol) {
 				throw_not_a_name_error(c);
+				return false;
 			}
 
 			Cursor name = c;
@@ -134,6 +146,7 @@ namespace Corrosive {
 				while (true) {
 					if (c.tok != RecognizedToken::Symbol) {
 						throw_not_a_name_error(c);
+						return false;
 					}
 
 					gen_names.push_back(c.buffer);
@@ -146,12 +159,14 @@ namespace Corrosive {
 
 				if (c.tok != RecognizedToken::GreaterThan) {
 					throw_wrong_token_error(c, "',' or '>'");
+					return false;
 				}
 				c.move();
 			}
 
 			if (c.tok != RecognizedToken::Colon) {
 				throw_wrong_token_error(c, "':'");
+				return false;
 			}
 			c.move();
 
@@ -169,7 +184,8 @@ namespace Corrosive {
 			else
 				fd = std::make_unique<FunctionDeclaration>();
 
-			const Corrosive::Type* type = Type::parse(c, &fd->argnames);
+			const Corrosive::Type* type;
+			if (!Type::parse(c, type,&fd->argnames)) return false;
 
 			fd->name = name;
 			fd->type = type;
@@ -210,11 +226,13 @@ namespace Corrosive {
 				StructDeclaration* ps = nullptr;
 				if (parent == nullptr || ((ps = dynamic_cast<StructDeclaration*>(parent)) != nullptr && !ps->is_trait)) {
 					throw_specific_error(name, "Global functions and functions inside structures must have body");
+					return false;
 				}
 				c.move();
 			}
 			else {
 				throw_wrong_token_error(c, "'{' or ';'");
+				return false;
 			}
 
 			into.push_back(std::move(fd));
@@ -226,6 +244,7 @@ namespace Corrosive {
 
 			if (dynamic_cast<StructDeclaration*>(parent) != nullptr) {
 				throw_specific_error(c, "Structures cannot be nested");
+				return false;
 			}
 
 			c.move();
@@ -236,6 +255,7 @@ namespace Corrosive {
 
 			if (c.tok != RecognizedToken::Symbol) {
 				throw_not_a_name_error(c);
+				return false;
 			}
 			Cursor name = c;
 			std::vector<std::string_view> gen_names;
@@ -247,10 +267,13 @@ namespace Corrosive {
 				c.move();
 
 
-				if (!isext)
+				if (!isext) {
 					throw_specific_error(name, "Only struct/class extensions can have cross-package identificator");
-				else
+					return false;
+				}
+				else {
 					Contents::register_namespace(overpack);
+				}
 			}
 
 			if (c.tok == RecognizedToken::LessThan) {
@@ -258,6 +281,7 @@ namespace Corrosive {
 				while (true) {
 					if (c.tok != RecognizedToken::Symbol) {
 						throw_not_a_name_error(c);
+						return false;
 					}
 
 					gen_names.push_back(c.buffer);
@@ -270,6 +294,7 @@ namespace Corrosive {
 
 				if (c.tok != RecognizedToken::GreaterThan) {
 					throw_wrong_token_error(c, "',' or '>'");
+					return false;
 				}
 				c.move();
 			}
@@ -310,25 +335,36 @@ namespace Corrosive {
 			if (auto existing = Contents::find_struct(pkg, name.buffer)) {
 				if (!isext && !existing->is_extending) {
 					throw_specific_error(name, "There already exist's class/structure with the same name");
+					return false;
 				}
 
 
 				if (isext) {
-					if (is_trait && !existing->is_trait)
+					if (is_trait && !existing->is_trait) {
 						throw_specific_error(name, "Cannot extend structure with class");
-					if (!is_trait && existing->is_trait)
+						return false;
+					}
+					if (!is_trait && existing->is_trait) {
 						throw_specific_error(name, "Cannot extend class with structure");
+						return false;
+					}
 				}
 				else {
-					if (is_trait && !existing->is_trait)
+					if (is_trait && !existing->is_trait) {
 						throw_specific_error(existing->name, "Cannot extend class with structure");
-					if (!is_trait && existing->is_trait)
+						return false;
+					}
+					if (!is_trait && existing->is_trait) {
 						throw_specific_error(existing->name, "Cannot extend structure with class");
+						return false;
+					}
 				}
 
 				if (gen_names.size() == 0) {
-					if (existing->is_generic())
+					if (existing->is_generic()) {
 						throw_specific_error(isext ? name : existing->name, "Cannot extend generic struct/class with non-generic struct/class");
+						return false;
+					}
 				}
 				else {
 					GenericStructDeclaration* gsd = (GenericStructDeclaration*)existing;
@@ -337,8 +373,10 @@ namespace Corrosive {
 						gen_nm_ok = false;
 					}
 
-					if (!gen_nm_ok)
+					if (!gen_nm_ok) {
 						throw_specific_error(name, "Generic typenames do not match extended structure/class");
+						return false;
+					}
 				}
 
 
@@ -346,11 +384,15 @@ namespace Corrosive {
 				if (c.tok == RecognizedToken::Colon) {
 					if (is_trait) {
 						throw_specific_error(c, "Classes cannot implement other classes");
+						return false;
 					}
 
 					c.move();
 					while (true) {
-						existing->implements.push_back(std::make_pair(sd.get(), Type::parse(c)));
+						const Type* tp;
+						if (!Type::parse(c, tp)) return false;
+
+						existing->implements.push_back(std::make_pair(sd.get(), tp));
 
 						if (c.tok == RecognizedToken::Comma) {
 							c.move();
@@ -361,6 +403,7 @@ namespace Corrosive {
 
 				if (c.tok != RecognizedToken::OpenBrace) {
 					throw_wrong_token_error(c, "'{'");
+					return false;
 				}
 				c.move();
 				while (true) {
@@ -383,6 +426,7 @@ namespace Corrosive {
 							while (true) {
 								if (c.tok != RecognizedToken::Symbol) {
 									throw_not_a_name_error(c);
+									return false;
 								}
 								specific = true;
 								existing->aliases.push_back(std::make_pair(c, alias_from));
@@ -393,6 +437,7 @@ namespace Corrosive {
 								}
 								else if (c.tok != RecognizedToken::Comma) {
 									throw_wrong_token_error(c, "',' or ';'");
+									return false;
 								}
 								else {
 									c.move();
@@ -402,6 +447,7 @@ namespace Corrosive {
 
 						if (c.tok != RecognizedToken::Semicolon) {
 							throw_wrong_token_error(c, "';'");
+							return false;
 						}
 						c.move();
 
@@ -413,8 +459,10 @@ namespace Corrosive {
 					else {
 						Declaration::parse(c, existing->members, sd.get(), pack);
 						if (auto varmember = dynamic_cast<VariableDeclaration*>(existing->members.back().get())) {
-							if (existing->decl_type!= StructDeclarationType::Declared)
+							if (existing->decl_type != StructDeclarationType::Declared) {
 								throw_specific_error(varmember->name, "Cannot add new members into this structure");
+								return false;
+							}
 						}
 					}
 				}
@@ -426,11 +474,14 @@ namespace Corrosive {
 				if (c.tok == RecognizedToken::Colon) {
 					if (is_trait) {
 						throw_specific_error(c, "Classes cannot implement other classes");
+						return false;
 					}
 
 					c.move();
 					while (true) {
-						sd->implements.push_back(std::make_pair(sd.get(), Type::parse(c)));
+						const Type* tp;
+						if (!Type::parse(c,tp)) return false;
+						sd->implements.push_back(std::make_pair(sd.get(), tp));
 
 						if (c.tok == RecognizedToken::Comma) {
 							c.move();
@@ -443,6 +494,7 @@ namespace Corrosive {
 
 				if (c.tok != RecognizedToken::OpenBrace) {
 					throw_wrong_token_error(c, "'{'");
+					return false;
 				}
 				c.move();
 
@@ -466,6 +518,7 @@ namespace Corrosive {
 							while (true) {
 								if (c.tok != RecognizedToken::Symbol) {
 									throw_not_a_name_error(c);
+									return false;
 								}
 								specific = true;
 								sd->aliases.push_back(std::make_pair(c, alias_from));
@@ -476,6 +529,7 @@ namespace Corrosive {
 								}
 								else if (c.tok != RecognizedToken::Comma) {
 									throw_wrong_token_error(c, "',' or ';'");
+									return false;
 								}
 								else {
 									c.move();
@@ -485,6 +539,7 @@ namespace Corrosive {
 
 						if (c.tok != RecognizedToken::Semicolon) {
 							throw_wrong_token_error(c, "';'");
+							return false;
 						}
 						c.move();
 
@@ -494,7 +549,7 @@ namespace Corrosive {
 						}
 
 					} else {
-						Declaration::parse(c, sd->members, sd.get(), pack);
+						if (!Declaration::parse(c, sd->members, sd.get(), pack)) return false;
 					}
 				}
 			}
@@ -505,10 +560,12 @@ namespace Corrosive {
 		else if (c.buffer == "package") {
 			if (dynamic_cast<NamespaceDeclaration*>(parent) != nullptr) {
 				throw_specific_error(c, "Packages cannot be nested");
+				return false;
 			}
 			c.move();
 			if (c.tok != RecognizedToken::Symbol) {
 				throw_not_a_name_error(c);
+				return false;
 			}
 			Cursor name = c;
 			c.move();
@@ -545,14 +602,16 @@ namespace Corrosive {
 				else if (c.tok == RecognizedToken::Eof) {
 					break;
 				}
-				Declaration::parse(c, nd->members, nd.get(), nd.get());
+				if (!Declaration::parse(c, nd->members, nd.get(), nd.get())) return false;
 			}
 
 			into.push_back(std::move(nd));
 		}
 		else {
 			throw_wrong_token_error(c, "'namespace', 'struct', 'class', 'function' or 'var'");
+			return false;
 		}
-	}
 
+		return true;
+	}
 }

@@ -7,31 +7,34 @@
 
 namespace Corrosive {
 
-	bool Type::resolve_package_in_place(const Type*& t, CompileContext& ctx) {
-		const Type* nt = t->resolve_package(ctx);
+	bool Type::resolve_package_in_place(CompileContext& ctx,const Type*& t, bool& mod) {
+		const Type* nt;
+		if (!t->resolve_package(ctx,nt)) return false;
+
 		if (nt != nullptr) {
 			t = nt;
-			return true;
+			mod = true;
 		}
 
-		return false;
+		return true;
 	}
 
-	const Type* Type::resolve_package(CompileContext& ctx) const {
-		return nullptr;
+	bool Type::resolve_package(CompileContext& ctx, const Type*& into) const {
+		into = nullptr;
+		return true;
 	}
 
-	const Type* FunctionType::resolve_package(CompileContext& ctx) const {
+	bool FunctionType::resolve_package(CompileContext& ctx, const Type*& into) const {
 		FunctionType rt = *this;
 		bool mod = false;
 		bool mod2 = false;
 
 		std::vector<const Type*> rtp = *rt.arguments;
 
-		mod |= resolve_package_in_place(rt.returns,ctx);
+		if (!resolve_package_in_place(ctx, rt.returns, mod)) return false;
 		
 		for (auto it = rtp.begin(); it != rtp.end(); it++) {
-			mod2 |= resolve_package_in_place((*it), ctx);
+			if (!resolve_package_in_place(ctx, (*it), mod2)) false;
 		}
 
 		if (mod2) {
@@ -40,27 +43,31 @@ namespace Corrosive {
 		}
 
 		if (mod)
-			return Contents::emplace_type(rt);
+			into = Contents::emplace_type(rt);
 		else
-			return nullptr;
+			into = nullptr;
+
+		return true;
 	}
 
-	const Type* ArrayType::resolve_package(CompileContext& ctx) const {
+	bool ArrayType::resolve_package(CompileContext& ctx, const Type*& into) const {
 
 		ArrayType rt = *this;
 		bool mod = false;
 
-		mod |= resolve_package_in_place(rt.base, ctx);
+		if (!resolve_package_in_place(ctx, rt.base, mod)) return false;
 
 		if (mod)
-			return Contents::emplace_type(rt);
+			into = Contents::emplace_type(rt);
 		else 
-			return nullptr;
+			into = nullptr;
+
+		return true;
 	}
 
 
 
-	const Type* InterfaceType::resolve_package(CompileContext& ctx) const {
+	bool InterfaceType::resolve_package(CompileContext& ctx, const Type*& into) const {
 		InterfaceType rt = *this;
 		bool mod = false;
 		bool mod2 = false;
@@ -68,7 +75,7 @@ namespace Corrosive {
 		std::vector<const Type*> rtp = *rt.types;
 
 		for (auto it = rtp.begin(); it != rtp.end(); it++) {
-			mod2|=resolve_package_in_place(*it, ctx);
+			if (!resolve_package_in_place(ctx, *it, mod2)) false;
 		}
 		
 		if (mod2) {
@@ -77,12 +84,14 @@ namespace Corrosive {
 		}
 
 		if (mod)
-			return Contents::emplace_type(rt);
+			into = Contents::emplace_type(rt);
 		else
-			return nullptr;
+			into = nullptr;
+
+		return true;
 	}
 
-	const Type* TupleType::resolve_package(CompileContext& ctx) const {
+	bool TupleType::resolve_package(CompileContext& ctx, const Type*& into) const {
 		TupleType rt = *this;
 		bool mod = false;
 		bool mod2 = false;
@@ -90,7 +99,7 @@ namespace Corrosive {
 		std::vector<const Type*> rtp = *rt.types;
 
 		for (auto it = rtp.begin(); it != rtp.end(); it++) {
-			mod2|=resolve_package_in_place(*it, ctx);
+			if (!resolve_package_in_place(ctx, *it, mod2)) return false;
 		}
 
 		if (mod2) {
@@ -99,13 +108,14 @@ namespace Corrosive {
 		}
 
 		if (mod)
-			return Contents::emplace_type(rt);
+			into = Contents::emplace_type(rt);
 		else
-			return nullptr;
+			into = nullptr;
+		return true;
 	}
 
 
-	const Type* PrimitiveType::resolve_package(CompileContext& ctx) const {
+	bool PrimitiveType::resolve_package(CompileContext& ctx, const Type*& into) const {
 		PrimitiveType rt = *this;
 		bool mod = false;
 		bool mod2 = false;
@@ -114,7 +124,7 @@ namespace Corrosive {
 			std::vector<const Type*> tps = *rt.templates;
 
 			for (auto it = tps.begin(); it != tps.end(); it++) {
-				mod2 |= resolve_package_in_place(*it, ctx);
+				if (!resolve_package_in_place(ctx, *it, mod2)) return false;
 			}
 
 			if (mod2) {
@@ -131,6 +141,7 @@ namespace Corrosive {
 
 				if (gs->generic_typenames.size() != ctx.template_ctx->size()) {
 					throw_specific_error(name, "Target structure has different number of generic typenames");
+					return false;
 				}
 
 				auto tcf = gs->generic_typenames.find(name.buffer);
@@ -139,10 +150,12 @@ namespace Corrosive {
 
 					if (tci.index() == 0) {
 						throw_specific_error(name, "Generic argument referenced is integer, not type");
+						return false;
 					}
 
 					const Type* nptr = std::get<1>(tci);
-					return nptr->clone_ref(ref);
+					into= nptr->clone_ref(ref);
+					return true;
 				}
 			}
 
@@ -170,30 +183,33 @@ namespace Corrosive {
 					if (templates != nullptr) {
 						//TODO: i can implement this easily, just have to stop being lazy.
 						throw_specific_error(name, "Type with generic declaration points to type definition that is not generic.");
+						return false;
 					}
 
-					const Type* nt = td->resolve_type();
+					const Type* nt;
+					if (!td->resolve_type(nt)) return false;
 
-					return nt->clone_ref(ref);
+					into = nt->clone_ref(ref);
+					return true;
 				}
 				else if (auto sd = Contents::find_struct(*look, name.buffer)) {
 					rt.structure = sd;
 					rt.package = *look;
 
-					return Contents::emplace_type(rt);
+					into = Contents::emplace_type(rt);
+					return true;
 				}
 			}
 
 			throw_specific_error(name, "This type was not found in any package from the lookup queue");
-
-			return nullptr;
+			return false;
 		}
 
 		if (mod)
-			return Contents::emplace_type(rt);
+			into = Contents::emplace_type(rt);
 		else
-			return nullptr;
+			into = nullptr;
 
-
+		return true;
 	}
 }

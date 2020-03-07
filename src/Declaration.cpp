@@ -30,11 +30,12 @@ namespace Corrosive {
 		return std::move(d);
 	}
 
-	StructDeclaration* GenericStructDeclaration::create_template(CompileContext& ctx) {
+	bool GenericStructDeclaration::create_template(CompileContext& ctx, StructDeclaration*& into) {
 		
 		auto it = generated.find(ctx.template_ctx);
 		if (it != generated.end()) {
-			return it->second.get();
+			into = it->second.get();
+			return true;
 		}
 		else {
 			std::unique_ptr<StructDeclaration> sd = std::make_unique<StructDeclaration>();
@@ -56,8 +57,8 @@ namespace Corrosive {
 				CompileContext nctx = ctx;
 				nctx.parent_struct = implements[i].first;
 				nctx.parent_namespace = implements[i].first->parent_pack;
-
-				Type::resolve_package_in_place(nex, nctx);
+				bool tmp;
+				if (!Type::resolve_package_in_place(nctx, nex,tmp)) return false;
 				sd->implements.push_back(std::make_pair(implements[i].first,std::move(nex)));
 			}
 
@@ -70,13 +71,15 @@ namespace Corrosive {
 					nctx.parent_struct = vd->parent_struct();
 					nctx.parent_namespace = vd->parent_pack;
 
-					Type::resolve_package_in_place(vd->type, nctx);
+					bool tmp;
+					if (!Type::resolve_package_in_place(nctx, vd->type,tmp)) false;
 				}else if (auto fd = dynamic_cast<FunctionDeclaration*>(sd->members[i].get())) {
 					CompileContext nctx = ctx;
 					nctx.parent_struct = fd->parent_struct();
 					nctx.parent_namespace = fd->parent_pack;
+					bool tmp;
 
-					Type::resolve_package_in_place(fd->type, nctx);
+					if (!Type::resolve_package_in_place(nctx, fd->type, tmp)) return false;
 				}
 			}
 
@@ -84,10 +87,9 @@ namespace Corrosive {
 			
 			auto ret = sd.get();
  			generated[ctx.template_ctx] = std::move(sd);
-			return ret;
-			
+			into = ret;
+			return true;
 		}
-
 	}
 
 
@@ -234,25 +236,29 @@ namespace Corrosive {
 	bool StructDeclaration::is_generic() { return false; }
 	bool GenericStructDeclaration::is_generic() { return true; }
 
-	const Type* TypedefDeclaration::resolve_type() {
+	bool TypedefDeclaration::resolve_type(const Type*& into) {
 		if (resolve_progress == 0) {
 			resolve_progress = 1;
 			CompileContext nctx;
 			nctx.parent_namespace = parent_pack;
 			nctx.parent_struct = parent_struct();
 			nctx.template_ctx = nullptr;
-
-			Type::resolve_package_in_place(type, nctx);
+			bool tmp;
+			if (!Type::resolve_package_in_place(nctx, type,tmp)) return false;
 			resolve_progress = 2;
-			return type;
+			into = type;
+			return true;
 		}
 		else if (resolve_progress == 2) {
-			return type;
+			into = type;
+			return true;
 		}
 		else {
 			throw_specific_error(name, "This typedef caused a build cycle");
+			return false;
 		}
 
-		return nullptr;
+		into = nullptr;
+		return true;
 	}
 }

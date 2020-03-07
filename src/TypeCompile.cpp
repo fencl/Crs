@@ -15,26 +15,28 @@ namespace Corrosive {
 	 *
 	 */
 
-	void Type::pre_compile(CompileContext& ctx) const {
-		if (iltype != nullptr) return;
+	bool Type::pre_compile(CompileContext& ctx) const {
+		return true;
 	}
 
-	void ArrayType::pre_compile(CompileContext& ctx) const {
-		if (iltype != nullptr) return;
+	bool ArrayType::pre_compile(CompileContext& ctx) const {
+		if (iltype != nullptr) return true;
 
 		ArrayType* self = (ArrayType*)this;
-		base->pre_compile(ctx);
+		if (!base->pre_compile(ctx)) return false;
 		self->is_heavy = true;
 		self->iltype = ctx.module->t_i32;//REAPIR!
+
+		return true;
 	}
 
 
-	void FunctionType::pre_compile(CompileContext& ctx) const {
-		if (iltype != nullptr) return;
+	bool FunctionType::pre_compile(CompileContext& ctx) const {
+		if (iltype != nullptr) return true;
 		FunctionType* self = (FunctionType*)this;
 
 		
-		returns->pre_compile(ctx);
+		if (!returns->pre_compile(ctx)) return false;
 
 		for (auto it = arguments->begin(); it != arguments->end(); it++) {
 			(*it)->pre_compile(ctx);
@@ -42,40 +44,43 @@ namespace Corrosive {
 
 		self->is_heavy = true;
 		self->iltype = ctx.module->t_ptr; // maybe we can create special function type, as far as ir code is concerned we don't need to care. LLVM on the other hand...
+		return true;
 	}
 
-	void InterfaceType::pre_compile(CompileContext& ctx) const {
-		if (iltype != nullptr) return;
+	bool InterfaceType::pre_compile(CompileContext& ctx) const {
+		if (iltype != nullptr) return true;
 
 		InterfaceType* self = (InterfaceType*)this;
 		for (auto it = types->begin(); it != types->end(); it++) {
-			(*it)->pre_compile(ctx);
+			if (!(*it)->pre_compile(ctx)) return false;
 		}
 
 		self->iltype = ctx.module->t_i32;//REAPIR!
+		return true;
 	}
 
 
-	void TupleType::pre_compile(CompileContext& ctx) const {
-		if (iltype != nullptr) return;
+	bool TupleType::pre_compile(CompileContext& ctx) const {
+		if (iltype != nullptr) return true;
 
 		TupleType* self = (TupleType*)this;
 
 		self->iltype = ctx.module->create_struct_type();
 
 		for (auto it = types->begin(); it != types->end(); it++) {
-			(*it)->pre_compile(ctx);
+			if (!(*it)->pre_compile(ctx)) return false;
 			((ILStruct*)self->iltype)->add_member((*it)->iltype);
 		}
 
 		((ILStruct*)iltype)->align_size();
 
 		self->is_heavy = true;
+		return true;
 	}
 
 
-	void PrimitiveType::pre_compile(CompileContext& ctx) const {
-		if (iltype != nullptr) return;
+	bool PrimitiveType::pre_compile(CompileContext& ctx) const {
+		if (iltype != nullptr) return true;
 
 
 		PrimitiveType* self = (PrimitiveType*)this;
@@ -85,25 +90,29 @@ namespace Corrosive {
 		if (package == PredefinedNamespace && name.buffer == "void") {
 			self->iltype = ctx.module->t_void;
 			self->is_heavy = false;
-			return;
+			return true;
 		}
 		else {
 			StructDeclaration* sd = Contents::find_struct(package, nm);
 			if (sd == nullptr) {
 				throw_specific_error(name, "Compiler is searching for structure type, but it was not found (compiler error)");
+				return false;
 			}
 			else {
 
 				if (sd->decl_type == StructDeclarationType::t_array || sd->decl_type == StructDeclarationType::t_tuple) {
 
-					if (templates == nullptr || templates->size() != 1)
+					if (templates == nullptr || templates->size() != 1) {
 						throw_specific_error(name, "Wrong parameters given to predefined type");
+						return false;
+					}
 
 
 					CompileContext nctx = ctx;
 					nctx.template_ctx = templates;
 
-					StructDeclaration* gsd = ((GenericStructDeclaration*)sd)->create_template(nctx);
+					StructDeclaration* gsd;
+					if (!((GenericStructDeclaration*)sd)->create_template(nctx,gsd)) return false;
 					self->structure = gsd;
 
 					if (ref) {
@@ -114,6 +123,8 @@ namespace Corrosive {
 					}
 
 					self->iltype = (*templates)[0]->iltype;
+
+					return true;
 				}
 				else {
 
@@ -123,9 +134,11 @@ namespace Corrosive {
 					if (sd->is_generic()) {
 						if (templates == nullptr) {
 							throw_specific_error(name, "Primitive type points to generic structure and was not given generic arguments");
+							return false;
 						}
 						else {
-							StructDeclaration* gsd = ((GenericStructDeclaration*)sd)->create_template(nctx);
+							StructDeclaration* gsd;
+							if (!((GenericStructDeclaration*)sd)->create_template(nctx,gsd)) return false;
 							sd = gsd;
 						}
 					}
@@ -137,7 +150,7 @@ namespace Corrosive {
 						self->is_heavy = true;
 					}
 
-					sd->pre_compile(nctx);
+					if (!sd->pre_compile(nctx)) return false;
 
 
 					if (ref) {
@@ -146,6 +159,8 @@ namespace Corrosive {
 					else {
 						self->iltype = sd->iltype;
 					}
+
+					return true;
 
 				}
 
@@ -162,64 +177,71 @@ namespace Corrosive {
 	 */
 
 
-	void Type::compile(CompileContext& ctx) const {
-		if (compiled) return;
+	bool Type::compile(CompileContext& ctx) const {
+		return true;
 	}
 
-	void ArrayType::compile(CompileContext& ctx) const {
-		if (compiled) return;
-		pre_compile(ctx);
+	bool ArrayType::compile(CompileContext& ctx) const {
+		if (compiled) return true;
+		if (!pre_compile(ctx)) return false;
 
 		ArrayType* self = (ArrayType*)this;
 
-		base->compile(ctx);
+		if (!base->compile(ctx)) return false;
 
 		self->compiled = true;
+
+		return true;
 	}
 
-	void FunctionType::compile(CompileContext& ctx) const {
-		if (compiled) return;
+	bool FunctionType::compile(CompileContext& ctx) const {
+		if (compiled) return true;
 
-		pre_compile(ctx);
+		if (!pre_compile(ctx)) return false;
 		FunctionType* self = (FunctionType*)this;
 
-		returns->compile(ctx);
+		if (!returns->compile(ctx)) return false;
 
 		for (auto it = arguments->begin(); it != arguments->end(); it++) {
-			(*it)->compile(ctx);
+			if (!(*it)->compile(ctx)) return false;
 		}
 
 		self->compiled = true;
+		return true;
 	}
 
 
-	void InterfaceType::compile(CompileContext& ctx) const {
-		if (compiled) return;
+	bool InterfaceType::compile(CompileContext& ctx) const {
+		if (compiled) return true;
 
-		pre_compile(ctx);
+		if (!pre_compile(ctx)) return false;
 		InterfaceType* self = (InterfaceType*)this;
 		for (auto it = types->begin(); it != types->end(); it++) {
-			(*it)->compile(ctx);
+			if (!(*it)->compile(ctx)) return false;
 		}
 
 		self->compiled = true;
+
+		return true;
 	}
 
-	void TupleType::compile(CompileContext& ctx) const {
-		if (compiled) return;
-		pre_compile(ctx);
+	bool TupleType::compile(CompileContext& ctx) const {
+		if (compiled) return true;
+		if (!pre_compile(ctx)) return false;
 
 		TupleType* self = (TupleType*)this;
 		for (auto it = types->begin(); it != types->end(); it++) {
-			(*it)->compile(ctx);
+			if (!(*it)->compile(ctx)) return false;
 		}
 
 		self->compiled = true;
+
+		return true;
 	}
 
-	void PrimitiveType::compile(CompileContext& ctx) const {
-		if (compiled) return;
-		pre_compile(ctx);
+	bool PrimitiveType::compile(CompileContext& ctx) const {
+		if (compiled) return true;
+		if (!pre_compile(ctx)) return false;
 		PrimitiveType* self = (PrimitiveType*)this;
 
 		if (package == PredefinedNamespace && name.buffer == "void") {
@@ -228,9 +250,10 @@ namespace Corrosive {
 		else {
 			CompileContext nctx = ctx;
 			nctx.template_ctx = templates;
-			structure->compile(nctx);
+			if (!structure->compile(nctx)) return false;
 		}
 
 		self->compiled = true;
+		return true;
 	}
 }

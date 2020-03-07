@@ -12,6 +12,7 @@
 #include "IL/IL.h"
 
 int main() {
+	bool alive = true;
 	auto start = std::chrono::system_clock::now();
 
 	Corrosive::Source src;
@@ -30,8 +31,8 @@ int main() {
 	std::vector<std::unique_ptr<Corrosive::Declaration>> decls;
 	Corrosive::init_predefined_types(decls);
 
-	while (c.tok != Corrosive::RecognizedToken::Eof)
-		Corrosive::Declaration::parse(c, decls, nullptr,nullptr);
+	while (alive && c.tok != Corrosive::RecognizedToken::Eof)
+		alive &= Corrosive::Declaration::parse(c, decls, nullptr,nullptr);
 
 
 	end = std::chrono::system_clock::now();
@@ -40,20 +41,23 @@ int main() {
 	start = end;
 	Corrosive::CompileContext ctx;
 
-	
-	ctx.module = m.get();
-	ctx.parent_namespace = Corrosive::Contents::entry_point->parent_pack;
-	ctx.parent_struct = Corrosive::Contents::entry_point->parent_struct();
-	ctx.template_ctx = nullptr;
 
-	Corrosive::Contents::entry_point->compile(ctx);
-		
+	if (alive) {
+		ctx.module = m.get();
+		ctx.parent_namespace = Corrosive::Contents::entry_point->parent_pack;
+		ctx.parent_struct = Corrosive::Contents::entry_point->parent_struct();
+		ctx.template_ctx = nullptr;
+		alive &= Corrosive::Contents::entry_point->compile(ctx);
 
-	for (auto&& it : Corrosive::Contents::StaticStructures) {
-		ctx.parent_namespace = it->parent_pack;
-		ctx.parent_struct = it;
-		ctx.template_ctx = it->template_ctx;
-		it->compile(ctx);
+		for (auto&& it : Corrosive::Contents::StaticStructures) {
+
+			if (alive) {
+				ctx.parent_namespace = it->parent_pack;
+				ctx.parent_struct = it;
+				ctx.template_ctx = it->template_ctx;
+				alive &= it->compile(ctx);
+			}
+		}
 	}
 
 	end = std::chrono::system_clock::now();
@@ -73,14 +77,20 @@ int main() {
 		}
 	}*/
 
-	std::cout << "\n";
-	for (auto&& f : m->functions) {
-		f->assert_flow();
-		f->dump();
-		std::cout << "\n";
-		std::cout << "\n";
-	}
 
+	if (alive) {
+		std::cout << "\n";
+		for (auto&& f : m->functions) {
+			if (alive) {
+				if (f->assert_flow()) {
+					f->dump();
+					std::cout << "\n";
+					std::cout << "\n";
+				}
+				else alive = false;
+			}
+		}
+	}
 
 
 	if (false) {
@@ -104,7 +114,7 @@ int main() {
 		for (auto&& t : Corrosive::Contents::AllTypes) {
 			t->print_ln();
 		}
-	}	
+	}
 
 	return 0;
 }

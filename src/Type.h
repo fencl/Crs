@@ -24,16 +24,16 @@ namespace Corrosive {
 		virtual int		cmp(const Type& t2) const;
 		virtual size_t	hash() const;
 
-		static bool resolve_package_in_place(const Type*& t, CompileContext& ctx);
+		static bool resolve_package_in_place(CompileContext& ctx, const Type*& t, bool& mod);
 
 		virtual const Type* clone_ref				(bool r) const;
-		virtual const Type* resolve_package			(CompileContext& ctx) const;
-		virtual void		compile					(CompileContext& ctx) const;
-		virtual void		pre_compile				(CompileContext& ctx) const;
+		virtual bool		resolve_package			(CompileContext& ctx, const Type*& into) const;
+		virtual bool		compile					(CompileContext& ctx) const;
+		virtual bool		pre_compile				(CompileContext& ctx) const;
 		virtual bool		can_simple_cast_into	(const Type* into) const;
 
-		static const Type* parse		(Cursor& c, std::vector<Cursor>* argnames = nullptr);
-		static const Type* parse_direct	(CompileContext& ctx, Cursor& c, std::vector<Cursor>* argnames = nullptr);
+		static bool parse			(Cursor& c, const Type*& into,std::vector<Cursor>* argnames = nullptr);
+		static bool parse_direct	(CompileContext& ctx, Cursor& c, const Type*& into, std::vector<Cursor>* argnames = nullptr);
 
 
 		bool ref = false;
@@ -58,9 +58,9 @@ namespace Corrosive {
 		virtual int		cmp		(const Type& t2) const;
 		virtual size_t	hash	() const;
 
-		virtual const Type*		resolve_package			(CompileContext& ctx) const;
-		virtual void			compile					(CompileContext& ctx) const;
-		virtual void			pre_compile				(CompileContext& ctx) const;
+		virtual bool			resolve_package			(CompileContext& ctx, const Type*& into) const;
+		virtual bool			compile					(CompileContext& ctx) const;
+		virtual bool			pre_compile				(CompileContext& ctx) const;
 		virtual bool			can_simple_cast_into	(const Type* into) const;
 		virtual const Type*		clone_ref				(bool r) const;
 
@@ -83,9 +83,9 @@ namespace Corrosive {
 		virtual int		cmp		(const Type& t2) const;
 		virtual size_t	hash	() const;
 
-		virtual const Type*		resolve_package			(CompileContext& ctx) const;
-		virtual void			compile					(CompileContext& ctx) const;
-		virtual void			pre_compile				(CompileContext& ctx) const;
+		virtual bool		resolve_package(CompileContext& ctx, const Type*& into) const;
+		virtual bool			compile					(CompileContext& ctx) const;
+		virtual bool			pre_compile				(CompileContext& ctx) const;
 		virtual bool			can_simple_cast_into	(const Type* into) const;
 		virtual const Type*		clone_ref				(bool r) const;
 
@@ -106,9 +106,9 @@ namespace Corrosive {
 		virtual int		cmp		(const Type& t2) const;
 		virtual size_t	hash	() const;
 
-		virtual const Type*		resolve_package			(CompileContext& ctx) const;
-		virtual void			compile					(CompileContext& ctx) const;
-		virtual void			pre_compile				(CompileContext& ctx) const;
+		virtual bool		resolve_package(CompileContext& ctx, const Type*& into) const;
+		virtual bool			compile					(CompileContext& ctx) const;
+		virtual bool			pre_compile				(CompileContext& ctx) const;
 		virtual bool			can_simple_cast_into	(const Type* into) const;
 		virtual const Type*		clone_ref				(bool r) const;
 
@@ -129,9 +129,9 @@ namespace Corrosive {
 		virtual int		cmp		(const Type& t2) const;
 		virtual size_t	hash		() const;
 
-		virtual const Type*		resolve_package			(CompileContext& ctx) const;
-		virtual void			compile					(CompileContext& ctx) const;
-		virtual void			pre_compile				(CompileContext& ctx) const;
+		virtual bool		resolve_package(CompileContext& ctx, const Type*& into) const;
+		virtual bool			compile					(CompileContext& ctx) const;
+		virtual bool			pre_compile				(CompileContext& ctx) const;
 		virtual bool			can_simple_cast_into	(const Type* into) const;
 		virtual const Type*		clone_ref				(bool r) const;
 
@@ -149,9 +149,9 @@ namespace Corrosive {
 		virtual int		cmp		(const Type& t2) const;
 		virtual size_t	hash	() const;
 
-		virtual const Type*		resolve_package			(CompileContext& ctx) const;
-		virtual void			compile					(CompileContext& ctx) const;
-		virtual void			pre_compile				(CompileContext& ctx) const;
+		virtual bool		resolve_package(CompileContext& ctx, const Type*& into) const;
+		virtual bool			compile					(CompileContext& ctx) const;
+		virtual bool			pre_compile				(CompileContext& ctx) const;
 		virtual bool			can_simple_cast_into	(const Type* into) const;
 		virtual const Type*		clone_ref				(bool r) const;
 

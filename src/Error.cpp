@@ -36,6 +36,5 @@ namespace Corrosive {
 
 	void throw_exit() {
 		std::cerr << std::endl;
-		exit(1);
 	}
 }

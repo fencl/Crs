@@ -10,8 +10,8 @@
 
 namespace Corrosive {
 
-	void StructDeclaration::pre_compile(CompileContext& ctx) {
-		if (iltype != nullptr) return;
+	bool StructDeclaration::pre_compile(CompileContext& ctx) {
+		if (iltype != nullptr) return true;
 
 		Contents::StaticStructures.push_back(this);
 
@@ -66,54 +66,64 @@ namespace Corrosive {
 				CompileContext nctx = ctx;
 				nctx.parent_struct = implements[i].first;
 				nctx.parent_namespace = implements[i].first->parent_pack;
-				Type::resolve_package_in_place(ext, nctx);
+				bool tmp;
+				if (!Type::resolve_package_in_place(ctx, ext,tmp)) return false;
 
 				if (auto exttype = dynamic_cast<const PrimitiveType*>(ext)) {
 					if (exttype->templates == nullptr) {
-						if (exttype->ref)
+						if (exttype->ref) {
 							throw_specific_error(name, "Structure cannot extend references");
+							return false;
+						}
+
 
 						std::pair<std::string_view, std::string_view> key = std::make_pair(exttype->package, exttype->name.buffer);
 
 						if (auto fs = exttype->structure) {
-							fs->pre_compile(ctx);
+							if (!fs->pre_compile(ctx)) return false;
 							implements_structures.push_back(fs);
 						}
 						else {
 							throw_specific_error(name, "Extended structure was not found in any package from the lookup queue");
+							return false;
 						}
 					}
 					else {
 						if (auto fs = exttype->structure) {
 							if (!fs->is_generic()) {
 								throw_specific_error(exttype->name, "Target structure is not generic");
+								return false;
 							}
 							GenericStructDeclaration* gsd = (GenericStructDeclaration*)fs;
 							CompileContext nctx = ctx;
 							nctx.template_ctx = exttype->templates;
 
-							auto gen = gsd->create_template(nctx);
+							StructDeclaration* gen;
+							if (!gsd->create_template(nctx, gen)) return false;
 
-							gen->pre_compile(nctx);
+							if (!gen->pre_compile(nctx)) return false;
 							implements_structures.push_back(gen);
 
 						}
 						else {
 							throw_specific_error(name, "Extended structure was not found in any package from the lookup queue");
+							return false;
 						}
 					}
 
 				}
 				else {
 					throw_specific_error(name, "Structure cannot extend non-structural type");
+					return false;
 				}
 			}
 
 			for (auto it = implements_structures.begin(); it != implements_structures.end(); it++) {
 				if (!(*it)->is_trait) {
 					throw_specific_error(name, "All extended types needs to be classes");
+					return false;
 				}
-				(*it)->pre_compile(ctx);
+				if (!(*it)->pre_compile(ctx)) return false;
 			}
 
 			iltype = ctx.module->create_struct_type();
@@ -148,19 +158,22 @@ namespace Corrosive {
 					CompileContext nctx = ctx;
 					nctx.parent_struct = fdecl->parent_struct();
 					nctx.parent_namespace = fdecl->parent_pack;
-					Type::resolve_package_in_place(fdecl->type, nctx);
+					bool tmp;
+					if (!Type::resolve_package_in_place(nctx, fdecl->type,tmp)) return false;
 
 					Cursor thisc; thisc.buffer = "this";
 					fdecl->argnames.insert(fdecl->argnames.begin(), thisc);
 				}
 
-				decl->pre_compile(ctx);
+				if (!decl->pre_compile(ctx)) return false;
 
 				if (vdecl = dynamic_cast<VariableDeclaration*>(decl.get())) {
 					if (!is_trait)
 						((ILStruct*)iltype)->add_member(vdecl->type->iltype);
-					else
+					else {
 						throw_specific_error(vdecl->name, "variable found in trait type");
+						return false;
+					}
 				}
 				else if (fdecl != nullptr) {
 					if (is_trait)
@@ -170,19 +183,21 @@ namespace Corrosive {
 
 			((ILStruct*)iltype)->align_size();
 
-			build_lookup_table();
-			test_interface_complete();
+			if (!build_lookup_table()) return false;
+			if (!test_interface_complete()) return false;
 		}
+
+		return true;
 	}
 
-	void StructDeclaration::compile(CompileContext& ctx) {
+	bool StructDeclaration::compile(CompileContext& ctx) {
 		if (compile_progress == 0) {
-			pre_compile(ctx);
+			if (!pre_compile(ctx)) return false;
 
 			compile_progress = 1;
 
 			for (auto it = implements_structures.begin(); it != implements_structures.end(); it++) {
-				(*it)->compile(ctx);
+				if (!(*it)->compile(ctx)) return false;
 			}
 
 			for (int i = 0; i < members.size(); i++) {
@@ -190,23 +205,26 @@ namespace Corrosive {
 
 				if (auto vdecl = dynamic_cast<VariableDeclaration*>(decl.get())) {
 					if (!vdecl->type->ref)
-						vdecl->compile(ctx);
+						if (!vdecl->compile(ctx)) return false;
 				}
 			}
 
 			compile_progress = 2;
+
+			return true;
 		}
 		else if (compile_progress == 2) {
-			return;
+			return true;
 		}
 		else {
 			throw_specific_error(name, "This structure caused build cycle");
+			return false;
 		}
 
 	}
 
 
-	void StructDeclaration::test_interface_complete() {
+	bool StructDeclaration::test_interface_complete() {
 		std::map<std::string_view, FunctionDeclaration*> iface_list;
 
 		for (auto it = implements_structures.begin(); it != implements_structures.end(); it++) {
@@ -221,9 +239,11 @@ namespace Corrosive {
 					else {
 						if (!((const FunctionType*)nifc->second->type)->can_simple_cast_into_ignore_this(f->type)) {
 							throw_specific_error(name, "Structure has two interfaces with trait function");
+							return false;
 						}
 						if (nifc->second->is_static != f->is_static) {
 							throw_specific_error(name, "Structure has two interfaces with trait function");
+							return false;
 						}
 					}
 				}
@@ -239,6 +259,7 @@ namespace Corrosive {
 				if (nifc != iface_list.end()) {
 					if (!((const FunctionType*)f->type)->can_simple_cast_into_ignore_this(nifc->second->type)) {
 						throw_specific_error(f->name, "Declaration is not compatible with trait declaration");
+						return false;
 					}
 					iface_list.erase(nifc);
 				}
@@ -246,14 +267,18 @@ namespace Corrosive {
 		}
 
 		for (auto it = iface_list.begin(); it != iface_list.end(); it++) {
-			if (!it->second->has_block)
+			if (!it->second->has_block) {
 				throw_specific_error(name, "Structure lacks some functions from its interfaces");
+				return false;
+			}
 		}
+
+		return true;
 	}
 
 
-	void StructDeclaration::build_lookup_table() {
-		if (has_lookup_table) return;
+	bool StructDeclaration::build_lookup_table() {
+		if (has_lookup_table) return true;
 		has_lookup_table = true;
 
 		unsigned int lookup_id = 0;
@@ -265,6 +290,7 @@ namespace Corrosive {
 				auto i = lookup_table.emplace(f->name.buffer, val);
 				if (!i.second) {
 					throw_specific_error(f->name, "Member with the same name already existed in the structure");
+					return false;
 				}
 			}
 			else if (auto v = dynamic_cast<VariableDeclaration*>(it->get())) {
@@ -273,6 +299,7 @@ namespace Corrosive {
 				auto i = lookup_table.emplace(v->name.buffer, val);
 				if (!i.second) {
 					throw_specific_error(v->name, "Member with the same name already existed in the structure");
+					return false;
 				}
 			}
 		}
@@ -283,6 +310,7 @@ namespace Corrosive {
 			auto look = lookup_table.find(a_fm.buffer);
 			if (look == lookup_table.end()) {
 				throw_specific_error(a_fm, "Member with this name was not declared in this structure");
+				return false;
 			}
 			else {
 				Declaration* alias_var = std::get<0>(look->second);
@@ -295,9 +323,10 @@ namespace Corrosive {
 					}
 					else {
 						throw_specific_error(a_fm, "Alias points to variable with type that cannot be aliased");
+						return false;
 					}
 
-					alias_struct->build_lookup_table();
+					if (!alias_struct->build_lookup_table()) return false;
 
 					if (a_nm.buffer.empty()) {
 						for (auto m_it = alias_struct->lookup_table.begin(); m_it != alias_struct->lookup_table.end(); m_it++) {
@@ -309,37 +338,44 @@ namespace Corrosive {
 						auto m_it = alias_struct->lookup_table.find(a_nm.buffer);
 						if (m_it == alias_struct->lookup_table.end()) {
 							throw_specific_error(a_nm, "Member with this name does not exist in the aliased structure");
+							return false;
 						}
 						else {
 							std::tuple<Declaration*, unsigned int, std::string_view> val = std::make_tuple(alias_struct, std::get<1>(look->second), m_it->first);
 							auto emp = lookup_table.emplace((std::string_view)m_it->first, val);
 							if (!emp.second) {
 								throw_specific_error(a_nm, "Member with the same name already exists in the structure");
+								return false;
 							}
 						}
 					}
 				}
 				else {
 					throw_specific_error(a_fm, "Alias points to function");
+					return false;
 				}
 			}
 		}
+
+		return true;
 	}
 
-	void FunctionDeclaration::pre_compile(CompileContext& ctx) {
-		if (type->iltype!=nullptr) return;
+	bool FunctionDeclaration::pre_compile(CompileContext& ctx) {
+		if (type->iltype!=nullptr) return true;
 
 		CompileContext nctx = ctx;
 		nctx.parent_struct = parent_struct();
 		nctx.parent_namespace = parent_pack;
+		bool tmp;
+		if (!Type::resolve_package_in_place(nctx,type,tmp)) return false;
+		if (!type->pre_compile(nctx)) return false;
 
-		Type::resolve_package_in_place(type, nctx);
-		type->pre_compile(nctx);
+		return true;
 	}
 
-	void FunctionDeclaration::compile(CompileContext& ctx) {
+	bool FunctionDeclaration::compile(CompileContext& ctx) {
 		if (compile_progress == 0) {
-			pre_compile(ctx);
+			if (!pre_compile(ctx)) return false;
 
 			compile_progress = 1;
 
@@ -347,7 +383,7 @@ namespace Corrosive {
 			nctx.parent_struct = parent_struct();
 			nctx.parent_namespace = parent_pack;
 
-			type->compile(nctx);
+			if (!type->compile(nctx)) return false;
 
 
 			std::string f_name = "f.";
@@ -386,35 +422,39 @@ namespace Corrosive {
 			cctx.basic.template_ctx = nullptr;
 			cctx.block = entry;
 
-			Corrosive::CompileValue cv = Expression::parse(c, cctx, Corrosive::CompileType::compile);
-			ILBuilder::build_yield(cctx.block);
-			ILBuilder::build_ret(cctx.block);
+			Corrosive::CompileValue cv;
+			if (!Expression::parse(c, cctx,cv, Corrosive::CompileType::compile)) return false;
+			if (!ILBuilder::build_yield(cctx.block)) return false;
+			if (!ILBuilder::build_ret(cctx.block)) return false;
 
 			StackManager::stack_restore(stack);
 			compile_progress = 2;
-			return;
+			return true;
 		}
 		else if (compile_progress == 2) {
-			return;
+			return true;
 		}
 		else {
 			throw_specific_error(name, "This function caused build cycle");
+			return false;
 		}
 
-		return;
 	}
 
-	void VariableDeclaration::pre_compile(CompileContext& ctx) {
-		if (type->iltype != nullptr) return;
+	bool VariableDeclaration::pre_compile(CompileContext& ctx) {
+		if (type->iltype != nullptr) return true;
 
 		CompileContext nctx = ctx;
 		nctx.parent_struct = parent_struct();
 		nctx.parent_namespace = parent_pack;
-		Type::resolve_package_in_place(type, nctx);
-		type->pre_compile(nctx);
+		bool tmp;
+		if (!Type::resolve_package_in_place(nctx,type,tmp)) return false;
+		if (!type->pre_compile(nctx)) return false;
+
+		return true;
 	}
 
-	void VariableDeclaration::compile(CompileContext& ctx) {
+	bool VariableDeclaration::compile(CompileContext& ctx) {
 		if (compile_progress == 0) {
 			pre_compile(ctx);
 
@@ -423,26 +463,25 @@ namespace Corrosive {
 			CompileContext nctx = ctx;
 			nctx.parent_struct = parent_struct();
 			nctx.parent_namespace = parent_pack;
-			type->compile(nctx);
+			if (!type->compile(nctx)) return false;
 
 			compile_progress = 2;
-			return;
+			return true;
 		}
 		else if (compile_progress == 2) {
-			return;
+			return true;
 		}
 		else {
 			throw_specific_error(name, "This variable caused build cycle");
+			return false;
 		}
-
-		return;
 	}
 
-	void Declaration::pre_compile(CompileContext& ctx) {
-		return;
+	bool Declaration::pre_compile(CompileContext& ctx) {
+		return false;
 	}
-	void Declaration::compile(CompileContext& ctx) {
-		return;
+	bool Declaration::compile(CompileContext& ctx) {
+		return false;
 	}
 
 }

@@ -26,13 +26,13 @@ namespace Corrosive {
 	class Declaration {
 	public:
 		virtual ~Declaration();
-		static void parse(Cursor& c, std::vector<std::unique_ptr<Declaration>>& into, Declaration* parent,NamespaceDeclaration* pack);
+		static bool parse(Cursor& c, std::vector<std::unique_ptr<Declaration>>& into, Declaration* parent,NamespaceDeclaration* pack);
 
 		virtual std::unique_ptr<Declaration> clone();
 
 		virtual void print			(unsigned int offset) const;
-		virtual void compile		(CompileContext& ctx);
-		virtual void pre_compile	(CompileContext& ctx);
+		virtual bool compile		(CompileContext& ctx);
+		virtual bool pre_compile	(CompileContext& ctx);
 
 		Cursor					name;
 		std::string_view		package				= "g";
@@ -52,8 +52,8 @@ namespace Corrosive {
 		virtual std::unique_ptr<Declaration> clone();
 
 		virtual void print			(unsigned int offset) const;
-		virtual void compile		(CompileContext& ctx);
-		virtual void pre_compile	(CompileContext& ctx);
+		virtual bool compile		(CompileContext& ctx);
+		virtual bool pre_compile	(CompileContext& ctx);
 	};
 
 
@@ -61,7 +61,7 @@ namespace Corrosive {
 
 	class TypedefDeclaration : public Declaration {
 	public:
-		const Corrosive::Type* resolve_type();
+		bool resolve_type(const Type*& into);
 
 		virtual void print(unsigned int offset) const;
 
@@ -77,8 +77,8 @@ namespace Corrosive {
 
 		virtual std::unique_ptr<Declaration> clone();
 
-		virtual void compile		(CompileContext& ctx);
-		virtual void pre_compile	(CompileContext& ctx);
+		virtual bool compile		(CompileContext& ctx);
+		virtual bool pre_compile	(CompileContext& ctx);
 		virtual void print			(unsigned int offset) const;
 
 		ILFunction* function = nullptr;
@@ -103,11 +103,11 @@ namespace Corrosive {
 	class StructDeclaration : public Declaration {
 	public:
 		virtual void print			(unsigned int offset) const;
-		virtual void compile		(CompileContext& ctx);
-		virtual void pre_compile	(CompileContext& ctx);
+		virtual bool compile		(CompileContext& ctx);
+		virtual bool pre_compile	(CompileContext& ctx);
 
-		void test_interface_complete();
-		void build_lookup_table();
+		bool test_interface_complete();
+		bool build_lookup_table();
 
 		Declaration* FindDeclarationOfMember(std::string_view name);
 
@@ -135,7 +135,7 @@ namespace Corrosive {
 
 	class GenericStructDeclaration : public StructDeclaration {
 	public:
-		StructDeclaration* create_template(CompileContext& ctx);
+		bool create_template(CompileContext& ctx, StructDeclaration*& into);
 		virtual void print(unsigned int offset) const;
 		virtual bool is_generic();
 
