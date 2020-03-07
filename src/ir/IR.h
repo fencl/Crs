@@ -5,7 +5,6 @@
 #include <memory>
 #include <set>
 #include <list>
-
 namespace Corrosive {
 
 	void throw_ir_wrong_data_flow_error();
@@ -42,12 +41,24 @@ namespace Corrosive {
 		IRFunction* parent;
 		std::list<std::unique_ptr<IRBlockData>> data_pool;
 		std::set<IRBlock*> predecessors;
-		//std::set<IRBlock*> ancestors;
-		std::vector<IRDataType> stack;
+		std::vector<std::pair<bool,IRDataType>> stack;
 
 		void write_instruction(IRInstruction instruction);
 		void write_value(size_t size,unsigned char* value);
 		void write_const_type(IRDataType type);
+
+		template<typename T> inline T pop() {
+			IRBlockData* bd = data_pool.back().get();
+			if (bd->size == 0) {
+				if (data_pool.size() > 1) {
+					data_pool.pop_back();
+					bd = data_pool.back().get();
+				}
+			}
+			T res = *(T*)&bd->data[bd->size - sizeof(T)];
+			bd->size -= sizeof(T);
+			return res;
+		}
 
 		void dump();
 		static void dump_data_type(IRDataType dt);
@@ -66,8 +77,6 @@ namespace Corrosive {
 		IRDataType rvalue;
 		unsigned int size_in_bytes = 0;
 		unsigned int alignment_in_bytes = 0;
-
-		
 	};
 
 	class IRStruct : public IRType {

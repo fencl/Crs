@@ -361,4 +361,5 @@ namespace Corrosive {
 			t_ptr = create_primitive_type(IRDataType::ptr, 8, 8);
 		}
 	}
+
 }
