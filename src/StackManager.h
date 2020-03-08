@@ -20,6 +20,8 @@ namespace Corrosive {
 		static void stack_restore(unsigned long state);
 		static StackItem& stack_push(std::string_view name, CompileValue value, unsigned int ir_local);
 		static StackItem* stack_find(std::string_view name);
+		static std::pair<std::unordered_map<std::string_view, unsigned long>, std::vector<StackItem>> move_stack_out();
+		static void move_stack_in(std::pair<std::unordered_map<std::string_view, unsigned long>, std::vector<StackItem>> s);
 
 	private:
 		static void stack_pop();

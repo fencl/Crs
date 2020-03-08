@@ -8,72 +8,41 @@
 #include <llvm/Target.h>
 
 namespace Corrosive {
-	bool Expression::rvalue(CompileContextExt& ctx,CompileValue& value,CompileType cpt) {
+	bool Expression::rvalue(CompileContext& ctx,CompileValue& value,CompileType cpt) {
 		if (value.lvalue) {
 			if (cpt == CompileType::compile) {
 				value.lvalue = false;
-				if (!ILBuilder::build_load(ctx.block, value.t->iltype->rvalue)) return false;
+				if (!ILBuilder::build_load(ctx.block, value.t.type->rvalue)) return false;
 			}
 			else if (cpt == CompileType::eval) {
-				
+				value.lvalue = false;
+				if (!ILBuilder::eval_load(ctx.eval, value.t.type->rvalue)) return false;
 			}
 		}
 
 		return true;
 	}
 
-	void Expression::arith_promote(CompileValue& value,int from, int to) {
+	void Expression::arith_promote(CompileContext& ctx,CompileValue& value,int from, int to) {
 		switch (to) {
-			case 0: value.t = t_bool; break;
-			case 1: value.t = t_u8; break;
-			case 2: value.t = t_i8; break;
-			case 3: value.t = t_u16; break;
-			case 4: value.t = t_i16; break;
-			case 5: value.t = t_u32; break;
-			case 6: value.t = t_i32; break;
-			case 7: value.t = t_u64; break;
-			case 8: value.t = t_i64; break;
-			case 9: value.t = t_f32; break;
-			case 10: value.t = t_f64; break;
+			case 0: value.t = ctx.default_types->t_bool; break;
+			case 1: value.t = ctx.default_types->t_u8; break;
+			case 2: value.t = ctx.default_types->t_i8; break;
+			case 3: value.t = ctx.default_types->t_u16; break;
+			case 4: value.t = ctx.default_types->t_i16; break;
+			case 5: value.t = ctx.default_types->t_u32; break;
+			case 6: value.t = ctx.default_types->t_i32; break;
+			case 7: value.t = ctx.default_types->t_u64; break;
+			case 8: value.t = ctx.default_types->t_i64; break;
+			case 9: value.t = ctx.default_types->t_f32; break;
+			case 10: value.t = ctx.default_types->t_f64; break;
 		}
 	}
 
 
-	bool Expression::arith_value(CompileContextExt& ctx, const PrimitiveType* pt, int& res) {
-		if (!pt->compile(ctx.basic)) return false;
-		StructDeclarationType sdt = pt->structure->decl_type;
 
-		switch (sdt)
-		{
-		case Corrosive::StructDeclarationType::t_bool:
-			res = 0; return true;
-		case Corrosive::StructDeclarationType::t_u8:
-			res = 1; return true;
-		case Corrosive::StructDeclarationType::t_u16:
-			res = 3; return true;
-		case Corrosive::StructDeclarationType::t_u32:
-			res = 5; return true;
-		case Corrosive::StructDeclarationType::t_u64:
-			res = 7; return true;
-		case Corrosive::StructDeclarationType::t_i8:
-			res = 2; return true;
-		case Corrosive::StructDeclarationType::t_i16:
-			res = 4; return true;
-		case Corrosive::StructDeclarationType::t_i32:
-			res = 6; return true;
-		case Corrosive::StructDeclarationType::t_i64:
-			res = 8; return true;
-		case Corrosive::StructDeclarationType::t_f32:
-			res = 9; return true;
-		case Corrosive::StructDeclarationType::t_f64:
-			res = 10; return true;
-		default:
-			res = 11; return true;
-		}
-	}
-
-	bool Expression::arith_cast(CompileContextExt& ctx, CompileValue& left, CompileValue& right, bool& isfloat,bool& issigned,bool& res) {
-		auto ltp = dynamic_cast<const PrimitiveType*>(left.t);
+	bool Expression::arith_cast(CompileContext& ctx, CompileValue& left, CompileValue& right, bool& isfloat,bool& issigned,bool& res) {
+		/*auto ltp = dynamic_cast<const PrimitiveType*>(left.t);
 		auto rtp = dynamic_cast<const PrimitiveType*>(right.t);
 
 		if (ltp == nullptr || rtp == nullptr) {
@@ -104,10 +73,11 @@ namespace Corrosive {
 
 			res= true;
 			return true;
-		}
+		}*/
+		return true;
 	}
 
-	bool Expression::emit(Cursor& c, CompileContextExt& ctx, CompileValue& res, int l, int op, CompileValue left, CompileValue right,CompileType cpt,int next_l,int next_op) {
+	bool Expression::emit(Cursor& c, CompileContext& ctx, CompileValue& res, int l, int op, CompileValue left, CompileValue right,CompileType cpt,int next_l,int next_op) {
 		bool isf = false;
 		bool sig = false;
 
@@ -123,7 +93,7 @@ namespace Corrosive {
 
 		ret.lvalue = false;
 		if (l == 1 || l == 2)
-			ret.t = t_bool;
+			ret.t = ctx.default_types->t_bool;
 
 		if(cpt == CompileType::compile) {
 			switch (l) {
@@ -262,12 +232,12 @@ namespace Corrosive {
 		return true;
 	}
 
-	bool Expression::parse(Cursor& c, CompileContextExt& ctx,CompileValue& res, CompileType cpt) {
+	bool Expression::parse(Cursor& c, CompileContext& ctx,CompileValue& res, CompileType cpt) {
 		if (!parse_or(c, ctx, res, cpt)) return false;
 		return true;
 	}
 
-	bool Expression::parse_and(Cursor& c, CompileContextExt& ctx, CompileValue& res, CompileType cpt) {
+	bool Expression::parse_and(Cursor& c, CompileContext& ctx, CompileValue& res, CompileType cpt) {
 
 		ILBlock* fallback = nullptr;
 		CompileValue value;
@@ -275,7 +245,7 @@ namespace Corrosive {
 		
 
 		while (c.tok == RecognizedToken::DoubleAnd) {
-			if (value.t != t_bool) {
+			if (value.t != ctx.default_types->t_bool) {
 				throw_specific_error(c, "Operation requires left operand to be boolean");
 				return false;
 			}
@@ -321,7 +291,7 @@ namespace Corrosive {
 		}
 
 		if (fallback != nullptr && cpt == CompileType::compile) {
-			if (value.t != t_bool) {
+			if (value.t != ctx.default_types->t_bool) {
 				throw_specific_error(c, "Operation requires right operand to be boolean");
 				return false;
 			}
@@ -335,7 +305,7 @@ namespace Corrosive {
 			fallback = nullptr;
 
 			if (!ILBuilder::build_accept(ctx.block)) return false;
-			value.t = t_bool;
+			value.t = ctx.default_types->t_bool;
 			value.lvalue = false;
 		}
 
@@ -345,7 +315,7 @@ namespace Corrosive {
 
 
 
-	bool Expression::parse_or(Cursor& c, CompileContextExt& ctx, CompileValue& res, CompileType cpt) {
+	bool Expression::parse_or(Cursor& c, CompileContext& ctx, CompileValue& res, CompileType cpt) {
 
 		ILBlock* fallback = nullptr;
 
@@ -353,7 +323,7 @@ namespace Corrosive {
 		if (!Expression::parse_and(c, ctx, value, cpt)) return false;
 
 		while (c.tok == RecognizedToken::DoubleOr) {
-			if (value.t != t_bool) {
+			if (value.t != ctx.default_types->t_bool) {
 				throw_specific_error(c, "Operation requires left operand to be boolean");
 				return false;
 			}
@@ -399,7 +369,7 @@ namespace Corrosive {
 		}
 
 		if (fallback != nullptr && cpt == CompileType::compile) {
-			if (value.t != t_bool) {
+			if (value.t != ctx.default_types->t_bool) {
 				throw_specific_error(c, "Operation requires right operand to be boolean");
 				return false;
 			}
@@ -415,7 +385,7 @@ namespace Corrosive {
 
 			if (!ILBuilder::build_accept(ctx.block)) return false;
 
-			value.t = t_bool;
+			value.t = ctx.default_types->t_bool;
 			value.lvalue = false;
 		}
 
@@ -423,7 +393,7 @@ namespace Corrosive {
 		return true;
 	}
 
-	bool Expression::parse_operators(Cursor& c, CompileContextExt& ctx, CompileValue& res, CompileType cpt) {
+	bool Expression::parse_operators(Cursor& c, CompileContext& ctx, CompileValue& res, CompileType cpt) {
 
 		int op_type[5] = { -1 };
 		CompileValue layer[5];
@@ -502,12 +472,12 @@ namespace Corrosive {
 			
 			for (int i = current_layer; i >= std::max(op_v, 0); i--) {
 
-				if (i>=0 && layer[i].t != nullptr) {
+				if (i>=0 && layer[i].t.type != nullptr) {
 					CompileValue& left = layer[i];
 					CompileValue& right = value;
 
 					if (!emit(c, ctx, value, i, op_type[i], left, right, cpt, op_v, op_t)) return false;
-					layer[i].t = nullptr;
+					layer[i].t.type = nullptr;
 				}
 			}
 			

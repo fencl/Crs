@@ -5,6 +5,8 @@
 #include <memory>
 #include <set>
 #include <list>
+#include <string_view>
+
 namespace Corrosive {
 
 	void throw_il_wrong_data_flow_error();
@@ -16,12 +18,17 @@ namespace Corrosive {
 	class ILFunction;
 	class ILModule;
 	
+	struct ILCtype {
+		void* type;
+		uint32_t ptr;
+	};
+
 	enum class ILInstruction : unsigned char {
-		value, add, sub, div, mul, rem, o_and, o_or, o_xor, load, store, accept, discard, yield, ret, jmp, jmpz, eq, ne, gt, ge, lt, le, local, member
+		value, add, sub, div, mul, rem, o_and, o_or, o_xor, load, store, accept, discard, yield, ret, jmp, jmpz, eq, ne, gt, ge, lt, le, local, member, yield_type
 	};
 
 	enum class ILDataType : unsigned char {
-		ibool,u8,i8,u16,i16,u32,i32,u64,i64,f32,f64,ptr,none,undefined
+		ibool,u8,i8,u16,i16,u32,i32,u64,i64,f32,f64,ptr,none,undefined,ctype
 	};
 
 	enum class ILArchitecture {
@@ -169,6 +176,8 @@ namespace Corrosive {
 		ILType* t_ptr;
 		ILType* t_void;
 
+		ILType* t_type;
+
 		void build_default_types();
 	};
 
@@ -187,6 +196,8 @@ namespace Corrosive {
 		static bool eval_const_f32   (ILEvaluator* eval_ctx, float    value);
 		static bool eval_const_f64   (ILEvaluator* eval_ctx, double   value);
 
+		static bool eval_const_ctype(ILEvaluator* eval_ctx, ILCtype value);
+
 		static bool build_const_ibool (ILBlock* block, int8_t   value);
 		static bool build_const_i8	  (ILBlock* block, int8_t   value);
 		static bool build_const_i16	  (ILBlock* block, int16_t  value);
@@ -199,6 +210,7 @@ namespace Corrosive {
 		static bool build_const_f32	  (ILBlock* block, float    value);
 		static bool build_const_f64	  (ILBlock* block, double   value);
 
+		static bool build_const_ctype(ILBlock* block, ILCtype value);
 
 		static bool eval_add(ILEvaluator* eval_ctx);
 		static bool eval_load(ILEvaluator* eval_ctx, ILDataType type);
@@ -247,6 +259,7 @@ namespace Corrosive {
 		static bool build_accept(ILBlock* block);
 		static bool build_discard(ILBlock* block);
 		static bool build_yield(ILBlock* block);
+		static bool build_yield_type(ILBlock* block,std::string_view name);
 		static bool build_ret(ILBlock* block);
 		static bool build_jmp(ILBlock* block,ILBlock* address);
 		static bool build_jmpz(ILBlock* block,ILBlock* ifz, ILBlock* ifnz);

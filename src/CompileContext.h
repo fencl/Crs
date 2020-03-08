@@ -4,39 +4,31 @@
 #include <variant>
 #include <vector>
 #include "IL/IL.h"
+#include "Type.h"
 
 namespace Corrosive {
-	class Declaration;
-	class StructDeclaration;
-	class NamespaceDeclaration;
-	class Type;
 
 	enum class CompileType {
 		compile, eval, short_circuit
 	};
 
-	using TemplateContext = std::vector<const Type*>;
-
+	class Namespace;
+	class DefaultTypes;
 	struct CompileContext {
-		StructDeclaration*		parent_struct;
-		NamespaceDeclaration*	parent_namespace = nullptr;
-		const TemplateContext*	template_ctx = nullptr;
-		ILModule*				module = nullptr;
-	};
-
-	struct CompileContextExt {
-		CompileContext					basic;
-		ILFunction*						function = nullptr;
-		ILBlock*						block = nullptr;
-		ILEvaluator*					eval = nullptr;
-		Declaration*					unit = nullptr;
+		DefaultTypes*	default_types = nullptr;
+		Namespace*		inside = nullptr;
+		Namespace*		global = nullptr;
+		ILModule*		module = nullptr;
+		ILEvaluator*	eval = nullptr;
+		ILFunction*		function = nullptr;
+		ILBlock*		block = nullptr;
 	};
 
 	struct CompileValue {
-		const Type*		t = nullptr;
-		bool			lvalue;
+		Type t;
+		bool lvalue;
 	};
 }
-
-
+#include "PredefinedTypes.h"
+#include "Declaration.h"
 #endif

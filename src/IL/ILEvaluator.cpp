@@ -24,6 +24,10 @@ namespace Corrosive {
 	bool ILBuilder::eval_const_f64   (ILEvaluator* eval_ctx, double   value) { eval_ctx->write_register_type(ILDataType::f64);   eval_ctx->write_register_value(sizeof(double),   (unsigned char*)&value); return true; }
 
 
+	bool ILBuilder::eval_const_ctype(ILEvaluator* eval_ctx, ILCtype value) {
+		eval_ctx->write_register_type(ILDataType::ctype);   eval_ctx->write_register_value(sizeof(ILCtype), (unsigned char*)&value); return true;
+	}
+
 	template<typename T> inline T _il_evaluator_value_pop_into(ILEvaluator* eval_ctx, ILDataType t) {
 		switch (t)
 		{
@@ -49,14 +53,8 @@ namespace Corrosive {
 			return (T)eval_ctx->pop_register_value<float>();
 		case Corrosive::ILDataType::f64:
 			return (T)eval_ctx->pop_register_value<double>();
-		case Corrosive::ILDataType::ptr:
-			return (T)eval_ctx->pop_register_value<int64_t>();
-		case Corrosive::ILDataType::none:
-			return 0;
-		case Corrosive::ILDataType::undefined:
-			break;
 		default:
-			break;
+			return 0;
 		}
 
 		return 0;
@@ -256,6 +254,8 @@ namespace Corrosive {
 					case ILArchitecture::x86_64:
 						return 8;
 				}
+			case Corrosive::ILDataType::ctype:
+				return sizeof(ILCtype);
 			case Corrosive::ILDataType::none:
 				return 0;
 			case Corrosive::ILDataType::undefined:
@@ -309,7 +309,6 @@ namespace Corrosive {
 		eval_ctx->pop_register_value(eval_ctx->register_size(ILDataType::ptr), (unsigned char*)&ptr);
 		unsigned char* mem = eval_ctx->map_pointer(ptr);
 
-		ILEvaluator::register_value value;
 		ILDataType value_type = eval_ctx->pop_register_type();
 		eval_ctx->pop_register_value(eval_ctx->register_size(value_type), mem);
 

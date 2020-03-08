@@ -10,10 +10,16 @@
 namespace Corrosive {
 
 
-	bool Operand::parse(Cursor& c, CompileContextExt& ctx, CompileValue& res, CompileType cpt) {
+	bool Operand::parse(Cursor& c, CompileContext& ctx, CompileValue& res, CompileType cpt) {
 		CompileValue ret;
 		ret.lvalue = false;
-		ret.t = nullptr;
+		ret.t = Type::null;
+
+		unsigned int type_ref_count = 0;
+		while (c.tok == RecognizedToken::Star) {
+			type_ref_count++;
+			c.move();
+		}
 
 		switch (c.tok) {
 			case RecognizedToken::OpenParenthesis: {
@@ -21,7 +27,7 @@ namespace Corrosive {
 				}break;
 
 			case RecognizedToken::Symbol: {
-					if (!parse_symbol(ret, c, ctx, cpt)) return false;
+					if (!parse_symbol(ret, c, ctx, cpt, type_ref_count)) return false;
 				}break;
 
 			case RecognizedToken::Number:
@@ -47,6 +53,9 @@ namespace Corrosive {
 
 		while (true) {
 			switch (c.tok) {
+				case RecognizedToken::OpenParenthesis: {
+						if (!parse_call_operator(ret, c, ctx, cpt)) return false;
+					}break;
 				case RecognizedToken::OpenBracket: {
 						if (!parse_array_operator(ret, c, ctx, cpt)) return false;
 					}break;
@@ -71,7 +80,7 @@ namespace Corrosive {
 
 
 
-	bool Operand::parse_expression(CompileValue& ret, Cursor& c, CompileContextExt& ctx, CompileType cpt) {
+	bool Operand::parse_expression(CompileValue& ret, Cursor& c, CompileContext& ctx, CompileType cpt) {
 		c.move();
 		if (!Expression::parse(c, ctx, ret, cpt)) return false;
 		if (c.tok != RecognizedToken::CloseParenthesis) {
@@ -85,11 +94,11 @@ namespace Corrosive {
 
 
 
-	bool Operand::parse_symbol(CompileValue& ret, Cursor& c, CompileContextExt& ctx, CompileType cpt) {
+	bool Operand::parse_symbol(CompileValue& ret, Cursor& c, CompileContext& ctx, CompileType cpt, unsigned int type_ref_count) {
 		if (c.buffer == "true") {
 			c.move();
 			ret.lvalue = false;
-			ret.t = t_bool;
+			ret.t = ctx.default_types->t_bool;
 			if (cpt == CompileType::compile) {
 				if (!ILBuilder::build_const_ibool(ctx.block, true)) return false;
 			}
@@ -100,7 +109,7 @@ namespace Corrosive {
 		else if (c.buffer == "false") {
 			c.move();
 			ret.lvalue = false;
-			ret.t = t_bool;
+			ret.t = ctx.default_types->t_bool;
 			if (cpt == CompileType::compile) {
 				if (!ILBuilder::build_const_ibool(ctx.block, false)) return false;
 			}
@@ -108,38 +117,90 @@ namespace Corrosive {
 				if (!ILBuilder::eval_const_ibool(ctx.eval, false)) return false;
 			}
 		}
-		else {
-			Cursor pack;
-			Cursor name = c;
+		else if (c.buffer == "type") {
 			c.move();
-			if (c.tok == RecognizedToken::DoubleColon) {
-				c.move();
-				if (c.tok != RecognizedToken::Symbol) {
-					throw_not_a_name_error(c);
-					return false;
-				}
-				pack = name;
-				name = c;
+			ret.lvalue = false;
+			ret.t = ctx.default_types->t_type;
+			ILCtype ct = { ctx.default_types->t_type.type,0 };
+
+			if (cpt == CompileType::compile) {
+				if (!ILBuilder::build_const_ctype(ctx.block, ct)) return false;
+			}
+			else if (cpt == CompileType::eval) {
+				if (!ILBuilder::eval_const_ctype(ctx.eval, ct)) return false;
+			}
+		}
+		else {
+			
+			
+			if (auto sitm = StackManager::stack_find(c.buffer)) {
+
+				ILBuilder::build_local(ctx.block, sitm->ir_local);
+				ret = sitm->value;
+
 				c.move();
 			}
+			else {
+				Namespace* inst = ctx.inside->find_name(c.buffer);
 
-			if (pack.buffer.empty()) {
-				if (cpt == CompileType::compile) {
-					if (auto sitm = StackManager::stack_find(name.buffer)) {
+				if (inst == nullptr) {
+					throw_specific_error(c, "Path start point not found");
+					return false;
+				}
 
-						ILBuilder::build_local(ctx.block, sitm->ir_local);
-						ret = sitm->value;
-					}
-					else {
-						throw_variable_not_found_error(name);
+				c.move();
+				while (c.tok == RecognizedToken::DoubleColon) {
+					c.move();
+					if (c.tok != RecognizedToken::Symbol)
+					{
+						throw_not_a_name_error(c);
 						return false;
 					}
+					auto f = inst->subnamespaces.find(c.buffer);
+					if (f != inst->subnamespaces.end()) {
+						inst = f->second.get();
+					}
+					else {
+						throw_specific_error(c, "Namespace path is not valid");
+						return false;
+					}
+					c.move();
+				}
+
+				if (auto struct_inst = dynamic_cast<Structure*>(inst)) {
+					if (type_ref_count == 0) {
+						if (!struct_inst->compile(ctx)) return false;
+					}
+					
+					if (struct_inst->singe_instance == nullptr) {
+						ILCtype ct = { (void*)struct_inst->type.get(),(uint32_t)type_ref_count };
+						if (cpt == CompileType::eval) {
+							if (!ILBuilder::eval_const_ctype(ctx.eval, ct)) return false;
+						}
+						else if (cpt == CompileType::compile) {
+							if (!ILBuilder::build_const_ctype(ctx.block, ct)) return false;
+						}
+					}
+					else {
+						ILCtype ct = { (void*)struct_inst->singe_instance->type.get(),(uint32_t)type_ref_count };
+
+						if (cpt == CompileType::eval) {
+							if (!ILBuilder::eval_const_ctype(ctx.eval, ct)) return false;
+						}
+						else if (cpt == CompileType::compile) {
+							if (!ILBuilder::build_const_ctype(ctx.block, ct)) return false;
+						}
+					}
+
+					ret.lvalue = false;
+					ret.t = ctx.default_types->t_type;
 				}
 				else {
-					throw_variable_not_found_error(name);
+					throw_specific_error(c, "Path is pointing to a namespace");
 					return false;
 				}
 			}
+
 		}
 
 		return true;
@@ -148,7 +209,7 @@ namespace Corrosive {
 
 
 
-	bool Operand::parse_number(CompileValue& ret, Cursor& c, CompileContextExt& ctx, CompileType cpt) {
+	bool Operand::parse_number(CompileValue& ret, Cursor& c, CompileContext& ctx, CompileType cpt) {
 		bool usg = c.tok == RecognizedToken::UnsignedNumber;
 
 		std::string_view ndata;
@@ -174,7 +235,7 @@ namespace Corrosive {
 
 		}
 
-		ret.t = usg ? Corrosive::t_u32 : Corrosive::t_i32;
+		ret.t = usg ? ctx.default_types->t_u32 : ctx.default_types->t_i32;
 		ret.lvalue = false;
 		return true;
 	}
@@ -183,7 +244,7 @@ namespace Corrosive {
 
 
 
-	bool Operand::parse_long_number(CompileValue& ret, Cursor& c, CompileContextExt& ctx, CompileType cpt) {
+	bool Operand::parse_long_number(CompileValue& ret, Cursor& c, CompileContext& ctx, CompileType cpt) {
 		bool usg = c.tok == RecognizedToken::UnsignedLongNumber;
 
 		std::string_view ndata;
@@ -209,7 +270,7 @@ namespace Corrosive {
 
 		}
 
-		ret.t = usg ? Corrosive::t_u64 : Corrosive::t_i64;
+		ret.t = usg ? ctx.default_types->t_u64 : ctx.default_types->t_i64;
 		ret.lvalue = false;
 		return true;
 	}
@@ -218,7 +279,7 @@ namespace Corrosive {
 
 
 
-	bool Operand::parse_float_number(CompileValue& ret, Cursor& c, CompileContextExt& ctx, CompileType cpt) {
+	bool Operand::parse_float_number(CompileValue& ret, Cursor& c, CompileContext& ctx, CompileType cpt) {
 		bool dbl = c.tok == RecognizedToken::DoubleNumber;
 
 		std::string_view ndata;
@@ -244,17 +305,47 @@ namespace Corrosive {
 
 		}
 
-		ret.t = dbl ? Corrosive::t_f64 : Corrosive::t_f32;
+		ret.t = dbl ? ctx.default_types->t_f64 : ctx.default_types->t_f32;
 		ret.lvalue = false;
 		return true;
 	}
 
 
 
+	bool Operand::parse_call_operator(CompileValue& ret, Cursor& c, CompileContext& ctx, CompileType cpt) {
+		if (ret.t == ctx.default_types->t_type) {
+
+			if (cpt == CompileType::eval) {
+				ctx.eval->pop_register_type();
+				ctx.eval->pop_register_type();
+				uint32_t rc = ctx.eval->pop_register_value<uint32_t>();
+				AbstractType* at = ctx.eval->pop_register_value<AbstractType*>();
+
+				Type t = { at,rc };
+
+				if (auto dt = dynamic_cast<DirectType*>(at)) {
+					
+				}
+				else {
+					throw_specific_error(c, "this type is not a generic type");
+					return false;
+				}
+			}
+			else if (cpt == CompileType::compile) {
+				throw_specific_error(c, "types are not alowed in runtime operations");
+				return false;
+			}
+
+		}
+
+		c.move();
+		c.move();
+		return true;
+	}
 
 
-	bool Operand::parse_array_operator(CompileValue& ret, Cursor& c, CompileContextExt& ctx, CompileType cpt) {
-		auto array_type = dynamic_cast<const ArrayType*>(ret.t);
+	bool Operand::parse_array_operator(CompileValue& ret, Cursor& c, CompileContext& ctx, CompileType cpt) {
+		/*auto array_type = dynamic_cast<const ArrayType*>(ret.t);
 		if (array_type == nullptr) {
 			throw_specific_error(c, "Operator requires array type");
 			return false;
@@ -273,7 +364,7 @@ namespace Corrosive {
 		//ret.v = LLVMBuildGEP2(ctx.builder, array_type->base->LLVMType(), ret.v, ind, 1, "");
 
 		ret.t = array_type->base;
-		ret.lvalue = true;
+		ret.lvalue = true;*/
 		return true;
 	}
 
@@ -281,45 +372,17 @@ namespace Corrosive {
 
 
 
-	bool Operand::parse_dot_operator(CompileValue& ret, Cursor& c, CompileContextExt& ctx, CompileType cpt) {
-		auto prim_type = dynamic_cast<const PrimitiveType*>(ret.t);
+	bool Operand::parse_dot_operator(CompileValue& ret, Cursor& c, CompileContext& ctx, CompileType cpt) {
+		/*auto prim_type = dynamic_cast<const PrimitiveType*>(ret.t);
 		if (prim_type == nullptr) {
 			throw_specific_error(c, "Operator requires primitive type");
 			return false;
 		}
 		c.move();
 
-		StructDeclaration* sd = prim_type->structure;
+		StructDeclaration* sd = prim_type->structure;*/
 
-		/*while (true)*/ {
-
-			auto lt = sd->lookup_table.find(c.buffer);
-			if (lt == sd->lookup_table.end()) {
-				throw_specific_error(c, "Member was not found");
-				return false;
-			}
-			Declaration* decl = std::get<0>(lt->second);
-			int mid = std::get<1>(lt->second);
-
-			VariableDeclaration* vdecl = dynamic_cast<VariableDeclaration*>(decl);
-			if (vdecl != nullptr) {
-				if (!ILBuilder::build_member(ctx.block, ((ILStruct*)sd->iltype), mid)) return false;
-				//ret.v = LLVMBuildStructGEP2(ctx.builder, sd->LLVMType(), ret.v, mid, "");
-				ret.t = vdecl->type;
-				ret.lvalue = true;
-			}
-			else {
-				FunctionDeclaration* fdecl = dynamic_cast<FunctionDeclaration*>(decl);
-				if (fdecl != nullptr) {
-					throw_specific_error(c, "functions not implemented yet");
-					return false;
-				}
-				else {
-					throw_specific_error(c, "Aliases not implemented yet");
-					return false;
-				}
-			}
-		}
+		
 
 		c.move();
 		return true;

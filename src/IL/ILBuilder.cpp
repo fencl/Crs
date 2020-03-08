@@ -17,6 +17,10 @@ namespace Corrosive {
 	bool ILBuilder::build_const_f64   (ILBlock* block, double   value) { block->write_instruction(ILInstruction::value); block->write_const_type(ILDataType::f64);    block->write_value(sizeof(double),   (unsigned char*)&value); block->stack.push_back(std::make_pair(true,ILDataType::f64));   return true; }
 
 
+	bool ILBuilder::build_const_ctype(ILBlock* block, ILCtype value) {
+		block->write_instruction(ILInstruction::value); block->write_const_type(ILDataType::ctype);   block->write_value(sizeof(ILCtype), (unsigned char*)&value);  block->stack.push_back(std::make_pair(true, ILDataType::ctype)); return true;
+	}
+
 	template<typename T> inline T _il_block_value_pop_into(ILBlock* block, ILDataType t) {
 		switch (t)
 		{
@@ -275,6 +279,17 @@ namespace Corrosive {
 		return true;
 	}
 
+
+	bool ILBuilder::build_yield_type(ILBlock* block,std::string_view name) {
+		block->write_instruction(ILInstruction::yield_type);
+		if (block->stack.size() < 1) {
+			throw_il_nothing_on_stack_error();
+			return false;
+		}
+		block->stack.pop_back();
+		block->write_value(sizeof(std::string_view), (unsigned char*) & name);
+		return true;
+	}
 
 	bool ILBuilder::build_ret(ILBlock* block) {
 		block->parent->return_blocks.insert(block);

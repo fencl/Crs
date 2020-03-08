@@ -116,6 +116,7 @@ namespace Corrosive {
 			case ILDataType::f64: std::cout << "f64"; break;
 			case ILDataType::ptr:  std::cout << "ptr"; break;
 			case ILDataType::none: std::cout << "none"; break;
+			case ILDataType::ctype: std::cout << "ctype"; break;
 			default: std::cout << "error";
 		}
 	}
@@ -234,6 +235,9 @@ namespace Corrosive {
 			case ILInstruction::yield:
 				std::cout << "   yield\n";
 				break;
+			case ILInstruction::yield_type:
+				std::cout << "   yield_type \"" << *read_data_type(std::string_view)<<"\"\n";
+				break;
 			case ILInstruction::value: {
 				std::cout << "   const [";
 
@@ -255,6 +259,10 @@ namespace Corrosive {
 
 				case ILDataType::f32: std::cout << *read_data_type(float); break;
 				case ILDataType::f64: std::cout << *read_data_type(double); break;
+				case ILDataType::ctype: {
+						ILCtype ct = *read_data_type(ILCtype);
+						std::cout << ct.type << " " << ct.ptr;
+					} break;
 				}
 				std::cout << "\n";
 
@@ -300,7 +308,7 @@ namespace Corrosive {
 	}
 
 	unsigned int _align_up(unsigned int value, unsigned int alignment) {
-		return value + (alignment - (value % alignment));
+		return alignment==0 ? value : ((value % alignment == 0)?value : value + (alignment - (value % alignment)));
 	}
 
 	void ILStruct::add_member(ILType* type) {
@@ -353,6 +361,8 @@ namespace Corrosive {
 
 		t_f32 = create_primitive_type(ILDataType::f32, 4, 4);
 		t_f64 = create_primitive_type(ILDataType::f64, 8, 8);
+
+		t_type = create_primitive_type(ILDataType::ctype, sizeof(ILCtype), sizeof(ILCtype));
 
 		if (architecture == ILArchitecture::i386) {
 			t_i64 = create_primitive_type(ILDataType::i64, 8, 4);

@@ -16,6 +16,15 @@ namespace Corrosive {
 	}
 
 
+	std::pair<std::unordered_map<std::string_view, unsigned long>, std::vector<StackItem>> StackManager::move_stack_out() {
+		return std::move(std::make_pair(std::move(stack_namespace), std::move(stack)));
+	}
+	void StackManager::move_stack_in(std::pair<std::unordered_map<std::string_view, unsigned long>, std::vector<StackItem>> s) {
+		stack_namespace = std::move(s.first);
+		stack = std::move(s.second);
+	}
+
+
 	void StackManager::stack_pop() {
 		StackItem sitm = stack.back();
 		if (sitm.previous == ULONG_MAX) {

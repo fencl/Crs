@@ -7,606 +7,219 @@
 
 
 namespace Corrosive {
-	bool Declaration::parse(Cursor& c, std::vector<std::unique_ptr<Declaration>>& into, Declaration* parent, NamespaceDeclaration* pack) {
-		if (c.buffer == "var") {
-			if (dynamic_cast<StructDeclaration*>(parent) == nullptr) {
-				throw_specific_error(c, "Variable has to be a member of struct or class");
-				return false;
-			}
-
-			c.move();
-
-			std::vector<Cursor> names;
-			while (true) {
-				if (c.tok != RecognizedToken::Symbol) {
-					throw_not_a_name_error(c);
-					return false;
-				}
-				names.push_back(c);
-				c.move();
-
-				if (c.tok != RecognizedToken::Comma) {
-					break;
-				}
-				else c.move();
-			}
 
 
-			if (c.tok != RecognizedToken::Colon) {
-				throw_wrong_token_error(c, "':'");
-				return false;
-			}
-			c.move();
 
-			const Corrosive::Type* tp;
-			if (!Type::parse(c,tp)) return false;
-
-			if (c.tok != RecognizedToken::Semicolon) {
-				throw_wrong_token_error(c, "';'");
-				return false;
-			}
-			c.move();
-
-			for (int i = 0; i < names.size(); i++) {
-				std::unique_ptr<VariableDeclaration> vd = std::make_unique<VariableDeclaration>();
-				vd->name = names[i];
-				vd->type = tp;
-				if (parent != nullptr) {
-					vd->package = parent->package;
-					vd->parent = parent;
-				}
-
-				vd->parent_pack = pack;
-
-				into.push_back(std::move(vd));
-			}
+	bool Namespace::parse(Cursor& c, CompileContext& ctx, std::unique_ptr<Namespace>& into) {
+		std::unique_ptr<Namespace> result = std::make_unique<Namespace>();
+		if (c.tok != RecognizedToken::Symbol)
+		{
+			throw_not_a_name_error(c);
+			return false;
 		}
-		else if (c.buffer == "type") {
-			if (dynamic_cast<StructDeclaration*>(parent) != nullptr) {
-				throw_specific_error(c, "Type cannot be a member of struct or class");
-				return false;
-			}
-
-			c.move();
-
-			std::vector<Cursor> names;
-			while (true) {
-				if (c.tok != RecognizedToken::Symbol) {
-					throw_not_a_name_error(c);
-					return false;
-				}
-				names.push_back(c);
-				c.move();
-
-				if (c.tok != RecognizedToken::Comma) {
-					break;
-				}
-				else c.move();
-			}
-
-			if (c.tok != RecognizedToken::Colon) {
-				throw_wrong_token_error(c, "':'");
-				return false;
-			}
-			c.move();
-
-			const Corrosive::Type* tp;
-			if (!Type::parse(c,tp)) return false;
-
-			if (c.tok != RecognizedToken::Semicolon) {
-				throw_wrong_token_error(c, "';'");
-				return false;
-			}
-			c.move();
-
-			for (int i = 0; i < names.size(); i++) {
-
-				std::unique_ptr<TypedefDeclaration> vd = std::make_unique<TypedefDeclaration>();
-				vd->name = names[i];
-				vd->type = tp;
+		result->name = c;
+		c.move();
 
 
-				if (parent != nullptr) {
-					vd->package = parent->package;
-					vd->parent = parent;
-				}
-				vd->parent_pack = pack;
-
-				if (Contents::find_typedef(vd->package, vd->name.buffer) != nullptr) {
-					throw_specific_error(vd->name, "Typedef with the same name already exist's it this package");
-					return false;
-				}
-				else {
-					Contents::register_typedef(vd->package, vd->name.buffer, vd.get());
-				}
-
-				into.push_back(std::move(vd));
-			}
+		if (c.tok != RecognizedToken::OpenBrace) {
+			throw_wrong_token_error(c, "'{'");
+			return false;
 		}
-		else if (c.buffer == "function") {
-			bool is_static = false;
-			c.move();
+		c.move();
 
-			if (c.tok == RecognizedToken::Symbol && c.buffer == "static") {
-				is_static = true;
+		while (c.tok == RecognizedToken::Symbol) {
+			if (c.buffer == "struct") {
 				c.move();
-			}
+				Cursor nm = c;
 
-			if (c.tok != RecognizedToken::Symbol) {
-				throw_not_a_name_error(c);
-				return false;
-			}
-
-			Cursor name = c;
-			std::vector<std::string_view> gen_names;
-			c.move();
-
-			if (c.tok == RecognizedToken::LessThan) {
-				c.move();
-				while (true) {
-					if (c.tok != RecognizedToken::Symbol) {
-						throw_not_a_name_error(c);
-						return false;
-					}
-
-					gen_names.push_back(c.buffer);
-					c.move();
-					if (c.tok == RecognizedToken::Comma) {
-						c.move();
-					}
-					else break;
-				}
-
-				if (c.tok != RecognizedToken::GreaterThan) {
-					throw_wrong_token_error(c, "',' or '>'");
+				std::unique_ptr<Structure> decl;
+				Structure::parse(c, ctx, decl);
+				decl->parent = result.get();
+				if (result->subnamespaces.find(decl->name.buffer) != result->subnamespaces.end()) {
+					throw_specific_error(nm, "this name already exists in current namespace");
 					return false;
 				}
+
+				result->subnamespaces[decl->name.buffer] = std::move(decl);
+			} else if (c.buffer == "namespace") {
 				c.move();
-			}
+				Cursor nm = c;
 
-			if (c.tok != RecognizedToken::Colon) {
-				throw_wrong_token_error(c, "':'");
-				return false;
-			}
-			c.move();
-
-			std::unique_ptr<FunctionDeclaration> fd;
-			if (gen_names.size() > 0) {
-				std::unique_ptr<GenericFunctionDeclaration> gfd = std::make_unique<GenericFunctionDeclaration>();
-
-				for (auto&& it : gen_names) {
-					unsigned int gs = (unsigned int)gfd->generic_typenames.size();
-					gfd->generic_typenames[it] = gs;
-				}
-
-				fd = std::move(gfd);
-			}
-			else
-				fd = std::make_unique<FunctionDeclaration>();
-
-			const Corrosive::Type* type;
-			if (!Type::parse(c, type,&fd->argnames)) return false;
-
-			fd->name = name;
-			fd->type = type;
-			fd->is_static = is_static;
-			if (name.buffer == "main") {
-				Contents::entry_point = fd.get();
-			}
-
-			if (parent != nullptr) {
-				fd->package = parent->package;
-				fd->parent = parent;
-			}
-
-			fd->parent_pack = pack;
-
-			if (c.tok == RecognizedToken::OpenBrace) {
-				fd->has_block = true;
-				c.move();
-				fd->block = c;
-
-				int level = 1;
-				while (true) {
-					if (c.tok == RecognizedToken::CloseBrace) {
-						level -= 1;
-						if (level == 0) { c.move();  break; }
-					}
-					else if (c.tok == RecognizedToken::OpenBrace) {
-						level += 1;
-					}
-					else if (c.tok == RecognizedToken::Eof) {
-						break;
-					}
-
-					c.move();
-				}
-			}
-			else if (c.tok == RecognizedToken::Semicolon) {
-				StructDeclaration* ps = nullptr;
-				if (parent == nullptr || ((ps = dynamic_cast<StructDeclaration*>(parent)) != nullptr && !ps->is_trait)) {
-					throw_specific_error(name, "Global functions and functions inside structures must have body");
+				std::unique_ptr<Namespace> decl;
+				Namespace::parse(c, ctx, decl);
+				decl->parent = result.get();
+				if (result->subnamespaces.find(decl->name.buffer) != result->subnamespaces.end()) {
+					throw_specific_error(nm, "this name already exists in current namespace");
 					return false;
 				}
-				c.move();
+				result->subnamespaces[decl->name.buffer] = std::move(decl);
 			}
 			else {
-				throw_wrong_token_error(c, "'{' or ';'");
+				throw_specific_error(c, "unexpected keyword found during parsing of namespace");
 				return false;
 			}
-
-			into.push_back(std::move(fd));
 		}
-		else if (c.buffer == "struct" || c.buffer == "trait") {
-			bool is_trait = c.buffer == "trait";
-			bool isext = false;
-			std::string_view overpack = "";
 
-			if (dynamic_cast<StructDeclaration*>(parent) != nullptr) {
-				throw_specific_error(c, "Structures cannot be nested");
+		if (c.tok != RecognizedToken::CloseBrace) {
+			throw_wrong_token_error(c, "'}'");
+			return false;
+		}
+		c.move();
+
+
+		into = std::move(result);
+		return true;
+	}
+
+	bool Structure::parse(Cursor& c, CompileContext& ctx, std::unique_ptr<Structure>& into) {
+		std::unique_ptr<Structure> result = std::make_unique<Structure>();
+		std::unique_ptr<DirectType> result_type = std::make_unique<DirectType>();
+		result_type->rvalue = ILDataType::ptr;
+		result_type->owner = result.get();
+		result->type = std::move(result_type);
+
+		if (c.tok != RecognizedToken::Symbol)
+		{
+			throw_not_a_name_error(c);
+			return false;
+		} 
+		result->name = c;
+		c.move();
+
+
+		if (c.tok == RecognizedToken::Colon) {
+			c.move();
+			if (c.tok != RecognizedToken::OpenParenthesis) {
+				throw_wrong_token_error(c, "'('");
 				return false;
 			}
-
 			c.move();
-			if (c.tok == RecognizedToken::Symbol && c.buffer == "extension") {
-				isext = true;
+			result->is_generic = true;
+			result->generic_types = c;
+			int lvl = 1;
+			while (lvl > 0) {
+				switch (c.tok)
+				{
+					case RecognizedToken::OpenParenthesis: lvl++; break;
+					case RecognizedToken::CloseParenthesis: lvl--; break;
+					case RecognizedToken::Eof:
+						throw_eof_error(c, "parsing generic declaration header");
+						return false;
+				}
 				c.move();
 			}
+		}
 
-			if (c.tok != RecognizedToken::Symbol) {
-				throw_not_a_name_error(c);
-				return false;
-			}
-			Cursor name = c;
-			std::vector<std::string_view> gen_names;
-			c.move();
-			if (c.tok == RecognizedToken::DoubleColon) {
-				overpack = name.buffer;
+		if (c.tok != RecognizedToken::OpenBrace) {
+			throw_wrong_token_error(c, "'{'");
+			return false;
+		}
+		c.move();
+
+		while (c.tok == RecognizedToken::Symbol) {
+			if (c.buffer == "var") {
+				StructureMember member;
 				c.move();
-				name = c;
+				member.name = c;
 				c.move();
-
-
-				if (!isext) {
-					throw_specific_error(name, "Only struct/class extensions can have cross-package identificator");
+				if (c.tok != RecognizedToken::Colon) {
+					throw_wrong_token_error(c, "':'");
 					return false;
 				}
-				else {
-					Contents::register_namespace(overpack);
-				}
-			}
-
-			if (c.tok == RecognizedToken::LessThan) {
 				c.move();
-				while (true) {
-					if (c.tok != RecognizedToken::Symbol) {
-						throw_not_a_name_error(c);
-						return false;
-					}
+				member.type = c;
 
-					gen_names.push_back(c.buffer);
+				while (c.tok != RecognizedToken::Semicolon) {
+					if (c.tok == RecognizedToken::Eof) {
+						throw_eof_error(c, "parsing of structure member type");
+					}
 					c.move();
-					if (c.tok == RecognizedToken::Comma) {
-						c.move();
-					}
-					else break;
-				}
-
-				if (c.tok != RecognizedToken::GreaterThan) {
-					throw_wrong_token_error(c, "',' or '>'");
-					return false;
 				}
 				c.move();
+				result->members.push_back(member);
 			}
-
-			std::string_view pkg = overpack;
-
-			if (parent != nullptr && pkg == "") {
-				pkg = parent->package;
-			}
-
-			std::unique_ptr<StructDeclaration> sd;
-			if (gen_names.size() == 0) {
-				sd = std::make_unique<StructDeclaration>();
-			}
-			else
-			{
-				std::unique_ptr<GenericStructDeclaration> gsd = std::make_unique<GenericStructDeclaration>();
-				for (auto&& it : gen_names) {
-					unsigned int gs = (unsigned int)gsd->generic_typenames.size();
-					gsd->generic_typenames[it] = gs;
-				}
-				sd = std::move(gsd);
-			}
-
-			sd->name = name;
-			sd->is_trait = is_trait;
-			sd->is_extending = isext;
-			sd->package = pkg;
-
-			if (parent != nullptr) {
-				sd->parent = parent;
-			}
-
-			sd->parent_pack = pack;
-
-			if (auto existing = Contents::find_struct(pkg, name.buffer)) {
-				if (!isext && !existing->is_extending) {
-					throw_specific_error(name, "There already exist's class/structure with the same name");
-					return false;
-				}
-
-
-				if (isext) {
-					if (is_trait && !existing->is_trait) {
-						throw_specific_error(name, "Cannot extend structure with class");
-						return false;
-					}
-					if (!is_trait && existing->is_trait) {
-						throw_specific_error(name, "Cannot extend class with structure");
-						return false;
-					}
-				}
-				else {
-					if (is_trait && !existing->is_trait) {
-						throw_specific_error(existing->name, "Cannot extend class with structure");
-						return false;
-					}
-					if (!is_trait && existing->is_trait) {
-						throw_specific_error(existing->name, "Cannot extend structure with class");
-						return false;
-					}
-				}
-
-				if (gen_names.size() == 0) {
-					if (existing->is_generic()) {
-						throw_specific_error(isext ? name : existing->name, "Cannot extend generic struct/class with non-generic struct/class");
-						return false;
-					}
-				}
-				else {
-					GenericStructDeclaration* gsd = (GenericStructDeclaration*)existing;
-					bool gen_nm_ok = true;
-					if (gsd->generic_typenames.size() != gen_names.size()) {
-						gen_nm_ok = false;
-					}
-
-					if (!gen_nm_ok) {
-						throw_specific_error(name, "Generic typenames do not match extended structure/class");
-						return false;
-					}
-				}
-
-
-
-				if (c.tok == RecognizedToken::Colon) {
-					if (is_trait) {
-						throw_specific_error(c, "Classes cannot implement other classes");
-						return false;
-					}
-
-					c.move();
-					while (true) {
-						const Type* tp;
-						if (!Type::parse(c, tp)) return false;
-
-						existing->implements.push_back(std::make_pair(sd.get(), tp));
-
-						if (c.tok == RecognizedToken::Comma) {
-							c.move();
-						}
-						else break;
-					}
-				}
-
-				if (c.tok != RecognizedToken::OpenBrace) {
-					throw_wrong_token_error(c, "'{'");
-					return false;
-				}
+			else if (c.buffer == "struct") {
 				c.move();
-				while (true) {
-					if (c.tok == RecognizedToken::CloseBrace) {
-						c.move();
-						break;
-					}
-					else if (c.tok == RecognizedToken::Eof) {
-						break;
-					}
-					else if (c.tok == RecognizedToken::Symbol && c.buffer == "alias") {
-						c.move();
-						bool specific = false;
-						Cursor alias_from = c;
-						c.move();
+				Cursor nm = c;
 
-						if (c.tok == RecognizedToken::DoubleColon) {
-							c.move();
-
-							while (true) {
-								if (c.tok != RecognizedToken::Symbol) {
-									throw_not_a_name_error(c);
-									return false;
-								}
-								specific = true;
-								existing->aliases.push_back(std::make_pair(c, alias_from));
-								c.move();
-
-								if (c.tok == RecognizedToken::Semicolon) {
-									break;
-								}
-								else if (c.tok != RecognizedToken::Comma) {
-									throw_wrong_token_error(c, "',' or ';'");
-									return false;
-								}
-								else {
-									c.move();
-								}
-							}
-						}
-
-						if (c.tok != RecognizedToken::Semicolon) {
-							throw_wrong_token_error(c, "';'");
-							return false;
-						}
-						c.move();
-
-						if (!specific) {
-							Cursor empty;
-							existing->aliases.push_back(std::make_pair(empty, alias_from));
-						}
-					}
-					else {
-						Declaration::parse(c, existing->members, sd.get(), pack);
-						if (auto varmember = dynamic_cast<VariableDeclaration*>(existing->members.back().get())) {
-							if (existing->decl_type != StructDeclarationType::Declared) {
-								throw_specific_error(varmember->name, "Cannot add new members into this structure");
-								return false;
-							}
-						}
-					}
+				std::unique_ptr<Structure> decl;
+				Structure::parse(c, ctx, decl);
+				decl->parent = result.get();
+				if (result->subnamespaces.find(decl->name.buffer) != result->subnamespaces.end()) {
+					throw_specific_error(nm, "this name already exists in current structure");
+					return false;
 				}
+
+				result->subnamespaces[decl->name.buffer] = std::move(decl);
+			}
+			else if (c.buffer == "namespace") {
+				c.move();
+				Cursor nm = c;
+
+				std::unique_ptr<Namespace> decl;
+				Namespace::parse(c, ctx, decl);
+				decl->parent = result.get();
+				if (result->subnamespaces.find(decl->name.buffer) != result->subnamespaces.end()) {
+					throw_specific_error(nm, "this name already exists in current structure");
+					return false;
+				}
+				result->subnamespaces[decl->name.buffer] = std::move(decl);
 			}
 			else {
+				throw_specific_error(c,"unexpected keyword found during parsing of structure");
+				return false;
+			}
+		}
 
-				// from here is normal, non-extending declaration
+		if (c.tok != RecognizedToken::CloseBrace) {
+			throw_wrong_token_error(c, "'}'");
+			return false;
+		}
+		c.move();
 
-				if (c.tok == RecognizedToken::Colon) {
-					if (is_trait) {
-						throw_specific_error(c, "Classes cannot implement other classes");
-						return false;
-					}
 
-					c.move();
-					while (true) {
-						const Type* tp;
-						if (!Type::parse(c,tp)) return false;
-						sd->implements.push_back(std::make_pair(sd.get(), tp));
+		into = std::move(result);
+		return true;
+	}
+	
 
-						if (c.tok == RecognizedToken::Comma) {
-							c.move();
-						}
-						else break;
-					}
-				}
 
-				Contents::register_struct(sd->package, sd->name.buffer, sd.get());
 
-				if (c.tok != RecognizedToken::OpenBrace) {
-					throw_wrong_token_error(c, "'{'");
+	bool Declaration::parse_global(Cursor &c, CompileContext& ctx, Namespace& global_namespace) {
+		while (c.tok == RecognizedToken::Symbol) {
+			if (c.buffer == "struct") {
+				c.move();
+				Cursor nm = c;
+				std::unique_ptr<Structure> decl;
+				Structure::parse(c, ctx, decl);
+				decl->parent = &global_namespace;
+				if (global_namespace.subnamespaces.find(decl->name.buffer) != global_namespace.subnamespaces.end()) {
+					throw_specific_error(nm, "this name already exists in global namespace");
 					return false;
 				}
-				c.move();
-
-				while (true) {
-					if (c.tok == RecognizedToken::CloseBrace) {
-						c.move();
-						break;
-					}
-					else if (c.tok == RecognizedToken::Eof) {
-						break;
-					}
-					else if (c.tok == RecognizedToken::Symbol && c.buffer == "alias") {
-						c.move();
-						bool specific = false;
-						Cursor alias_from = c;
-						c.move();
-
-						if (c.tok == RecognizedToken::DoubleColon) {
-							c.move();
-
-							while (true) {
-								if (c.tok != RecognizedToken::Symbol) {
-									throw_not_a_name_error(c);
-									return false;
-								}
-								specific = true;
-								sd->aliases.push_back(std::make_pair(c, alias_from));
-								c.move();
-
-								if (c.tok == RecognizedToken::Semicolon) {
-									break;
-								}
-								else if (c.tok != RecognizedToken::Comma) {
-									throw_wrong_token_error(c, "',' or ';'");
-									return false;
-								}
-								else {
-									c.move();
-								}
-							}
-						}
-
-						if (c.tok != RecognizedToken::Semicolon) {
-							throw_wrong_token_error(c, "';'");
-							return false;
-						}
-						c.move();
-
-						if (!specific) {
-							Cursor empty;
-							sd->aliases.push_back(std::make_pair(empty,alias_from));
-						}
-
-					} else {
-						if (!Declaration::parse(c, sd->members, sd.get(), pack)) return false;
-					}
-				}
+				global_namespace.subnamespaces[decl->name.buffer] = std::move(decl);
 			}
+			else if(c.buffer == "namespace") {
+				c.move();
+				Cursor nm = c;
 
-
-			into.push_back(std::move(sd));
-		}
-		else if (c.buffer == "package") {
-			if (dynamic_cast<NamespaceDeclaration*>(parent) != nullptr) {
-				throw_specific_error(c, "Packages cannot be nested");
+				std::unique_ptr<Namespace> decl;
+				Namespace::parse(c, ctx, decl);
+				decl->parent = &global_namespace;
+				if (global_namespace.subnamespaces.find(decl->name.buffer) != global_namespace.subnamespaces.end()) {
+					throw_specific_error(nm, "this name already exists in global namespace");
+					return false;
+				}
+				global_namespace.subnamespaces[decl->name.buffer] = std::move(decl);
+			}
+			else {
+				throw_wrong_token_error(c, "'struct'");
 				return false;
 			}
-			c.move();
-			if (c.tok != RecognizedToken::Symbol) {
-				throw_not_a_name_error(c);
-				return false;
-			}
-			Cursor name = c;
-			c.move();
-			Contents::register_namespace(name.buffer);
-
-
-			std::unique_ptr<NamespaceDeclaration> nd = std::make_unique<NamespaceDeclaration>();
-			if (c.tok == RecognizedToken::Colon) {
-				c.move();
-				while (true) {
-					nd->queue.push_back(c.buffer);
-					c.move();
-					if (c.tok == RecognizedToken::Comma) {
-						c.move();
-					}
-					else break;
-				}
-			}
-
-			nd->package = name.buffer;
-			nd->name = name;
-			nd->parent_pack = nd.get();
-
-			if (c.tok != RecognizedToken::OpenBrace) {
-				throw_wrong_token_error(c, "'{'");
-			}
-			c.move();
-
-			while (true) {
-				if (c.tok == RecognizedToken::CloseBrace) {
-					c.move();
-					break;
-				}
-				else if (c.tok == RecognizedToken::Eof) {
-					break;
-				}
-				if (!Declaration::parse(c, nd->members, nd.get(), nd.get())) return false;
-			}
-
-			into.push_back(std::move(nd));
 		}
-		else {
-			throw_wrong_token_error(c, "'namespace', 'struct', 'class', 'function' or 'var'");
+
+		if (c.tok != RecognizedToken::Eof) {
+			throw_wrong_token_error(c, "end of file");
 			return false;
 		}
 
