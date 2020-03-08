@@ -33,7 +33,6 @@ namespace Corrosive {
 			}
 
 			if (cpt == CompileType::eval) {
-				ctx.eval->pop_register_type();
 				ILCtype t = ctx.eval->pop_register_value<ILCtype>();
 				t.ptr += type_ref_count;
 				ILBuilder::eval_const_ctype(ctx.eval, t);
@@ -341,8 +340,6 @@ namespace Corrosive {
 		if (ret.t == ctx.default_types->t_type) {
 
 			if (cpt == CompileType::eval) {
-				ctx.eval->pop_register_type();
-				ctx.eval->pop_register_type();
 				uint32_t rc = ctx.eval->pop_register_value<uint32_t>();
 				AbstractType* at = ctx.eval->pop_register_value<AbstractType*>();
 

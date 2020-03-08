@@ -44,8 +44,6 @@ namespace Corrosive {
 						return false;
 					}
 
-
-					nctx.eval->pop_register_type();
 					ILCtype ctype = nctx.eval->pop_register_value<ILCtype>();
 					Type t = { (AbstractType*)ctype.type,ctype.ptr };
 					if (t.ref_count == 0) {
@@ -121,7 +119,6 @@ namespace Corrosive {
 						return false;
 					}
 
-					ctx.eval->pop_register_type();
 					ILCtype ctype = ctx.eval->pop_register_value<ILCtype>();
 
 					singe_instance->members[m.name.buffer] = { (AbstractType*)ctype.type,ctype.ptr };

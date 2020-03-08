@@ -23,73 +23,63 @@ namespace Corrosive {
 		return true;
 	}
 
-	void Expression::arith_promote(CompileContext& ctx,CompileValue& value,int from, int to) {
-		switch (to) {
-			case 0: value.t = ctx.default_types->t_bool; break;
-			case 1: value.t = ctx.default_types->t_u8; break;
-			case 2: value.t = ctx.default_types->t_i8; break;
-			case 3: value.t = ctx.default_types->t_u16; break;
-			case 4: value.t = ctx.default_types->t_i16; break;
-			case 5: value.t = ctx.default_types->t_u32; break;
-			case 6: value.t = ctx.default_types->t_i32; break;
-			case 7: value.t = ctx.default_types->t_u64; break;
-			case 8: value.t = ctx.default_types->t_i64; break;
-			case 9: value.t = ctx.default_types->t_f32; break;
-			case 10: value.t = ctx.default_types->t_f64; break;
+	unsigned int _crs_expr_arith_val(CompileValue v) {
+		if (v.t.ref_count > 0) return 0;
+
+		switch (v.t.type->rvalue)
+		{
+			case ILDataType::ibool: return 1;
+			case ILDataType::u8: return 2;
+			case ILDataType::i8: return 3;
+			case ILDataType::u16: return 4;
+			case ILDataType::i16: return 5;
+			case ILDataType::u32: return 6;
+			case ILDataType::i32: return 7;
+			case ILDataType::u64: return 8;
+			case ILDataType::i64: return 9;
+			case ILDataType::f32: return 10;
+			case ILDataType::f64: return 11;
+			default:
+				return 0;
 		}
 	}
+	bool _crs_expr_arith_res(CompileContext& ctx,CompileValue left, CompileValue right, CompileValue& ret) {
+		unsigned int lv = _crs_expr_arith_val(left);
+		unsigned int rv = _crs_expr_arith_val(right);
+		if (lv == 0 || rv == 0) return false;
 
-
-
-	bool Expression::arith_cast(CompileContext& ctx, CompileValue& left, CompileValue& right, bool& isfloat,bool& issigned,bool& res) {
-		/*auto ltp = dynamic_cast<const PrimitiveType*>(left.t);
-		auto rtp = dynamic_cast<const PrimitiveType*>(right.t);
-
-		if (ltp == nullptr || rtp == nullptr) {
-			res= false;
-			return true;
+		unsigned int rsv = std::max(lv, rv); 
+		ret.lvalue = false;
+		switch (rsv)
+		{
+			case 1: ret.t = ctx.default_types->t_bool;
+			case 2: ret.t = ctx.default_types->t_u8;
+			case 3: ret.t = ctx.default_types->t_i8;
+			case 4: ret.t = ctx.default_types->t_u16;
+			case 5: ret.t = ctx.default_types->t_i16;
+			case 6: ret.t = ctx.default_types->t_u32;
+			case 7: ret.t = ctx.default_types->t_i32;
+			case 8: ret.t = ctx.default_types->t_u64;
+			case 9: ret.t = ctx.default_types->t_i64;
+			case 10: ret.t = ctx.default_types->t_f32;
+			case 11: ret.t = ctx.default_types->t_f64;
+			default:
+				break;
 		}
-		else {
-			int arith_value_left;
-			if (!arith_value(ctx, ltp, arith_value_left)) return false;
-			int arith_value_right;
-			if (!arith_value(ctx, rtp, arith_value_right)) return false;
 
-			int arith_value_res = std::max(arith_value_left, arith_value_right);
-			if (arith_value_res == 11) { res = false;  return true; }
-
-			if (arith_value_left == arith_value_right) {
-
-			}
-			else if (arith_value_left > arith_value_right) {
-				arith_promote(right, arith_value_right, arith_value_left);
-			}
-			else {
-				arith_promote(left, arith_value_left, arith_value_right);
-			}
-
-			issigned = (arith_value_res % 2 == 0);
-			isfloat = (arith_value_res >= 9);
-
-			res= true;
-			return true;
-		}*/
 		return true;
 	}
+
+	
 
 	bool Expression::emit(Cursor& c, CompileContext& ctx, CompileValue& res, int l, int op, CompileValue left, CompileValue right,CompileType cpt,int next_l,int next_op) {
 		bool isf = false;
 		bool sig = false;
 
-		bool ccast;
-		if (!arith_cast(ctx, left, right, isf, sig,ccast)) return false;
-
-		if (!ccast) {
-			throw_specific_error(c, "Types of operands cannot be used in this operation");
-			return false;
+		CompileValue ret;
+		if (!_crs_expr_arith_res(ctx,left, right,ret)) {
+			throw_specific_error(c, "Operation is not specified on top of specified types");
 		}
-
-		CompileValue ret = left;
 
 		ret.lvalue = false;
 		if (l == 1 || l == 2)
@@ -100,62 +90,62 @@ namespace Corrosive {
 				case 0: {
 						switch (op) {
 							case 0: {
-									if (!ILBuilder::build_and(ctx.block)) return false;
+									if (!ILBuilder::build_and(ctx.block, left.t.type->rvalue, right.t.type->rvalue)) return false;
 								}break;
 							case 1: {
-									if (!ILBuilder::build_or(ctx.block)) return false;
+									if (!ILBuilder::build_or(ctx.block, left.t.type->rvalue, right.t.type->rvalue)) return false;
 								}break;
 							case 2: {
-									if (!ILBuilder::build_xor(ctx.block)) return false;
+									if (!ILBuilder::build_xor(ctx.block, left.t.type->rvalue, right.t.type->rvalue)) return false;
 								}break;
 						}
 					}break;
 				case 1: {
 						switch (op) {
 							case 0: {
-									if (!ILBuilder::build_eq(ctx.block)) return false;
+									if (!ILBuilder::build_eq(ctx.block, left.t.type->rvalue, right.t.type->rvalue)) return false;
 								}break;
 							case 1: {
-									if (!ILBuilder::build_ne(ctx.block)) return false;
+									if (!ILBuilder::build_ne(ctx.block, left.t.type->rvalue, right.t.type->rvalue)) return false;
 								}break;
 						}
 					}break;
 				case 2: {
 						switch (op) {
 							case 0: {
-									if (!ILBuilder::build_gt(ctx.block)) return false;
+									if (!ILBuilder::build_gt(ctx.block, left.t.type->rvalue, right.t.type->rvalue)) return false;
 								}break;
 							case 1: {
-									if (!ILBuilder::build_lt(ctx.block)) return false;
+									if (!ILBuilder::build_lt(ctx.block, left.t.type->rvalue, right.t.type->rvalue)) return false;
 								} break;
 							case 2: {
-									if (!ILBuilder::build_ge(ctx.block)) return false;
+									if (!ILBuilder::build_ge(ctx.block, left.t.type->rvalue, right.t.type->rvalue)) return false;
 								}break;
 							case 3: {
-									if (!ILBuilder::build_le(ctx.block)) return false;
+									if (!ILBuilder::build_le(ctx.block, left.t.type->rvalue, right.t.type->rvalue)) return false;
 								}break;
 						}
 					}break;
 				case 3: {
 						switch (op) {
 							case 0: {
-									if (!ILBuilder::build_add(ctx.block)) return false;
+									if (!ILBuilder::build_add(ctx.block, left.t.type->rvalue, right.t.type->rvalue)) return false;
 								}break;
 							case 1: {
-									if (!ILBuilder::build_sub(ctx.block)) return false;
+									if (!ILBuilder::build_sub(ctx.block, left.t.type->rvalue, right.t.type->rvalue)) return false;
 								}break;
 						}
 					}break;
 				case 4: {
 						switch (op) {
 							case 0: {
-									if (!ILBuilder::build_mul(ctx.block)) return false;
+									if (!ILBuilder::build_mul(ctx.block, left.t.type->rvalue, right.t.type->rvalue)) return false;
 								}break;
 							case 1: {
-									if (!ILBuilder::build_div(ctx.block)) return false;
+									if (!ILBuilder::build_div(ctx.block, left.t.type->rvalue, right.t.type->rvalue)) return false;
 								} break;
 							case 2: {
-									if (!ILBuilder::build_rem(ctx.block)) return false;
+									if (!ILBuilder::build_rem(ctx.block, left.t.type->rvalue, right.t.type->rvalue)) return false;
 								}break;
 						}
 					}break;
@@ -166,62 +156,62 @@ namespace Corrosive {
 				case 0: {
 						switch (op) {
 							case 0: {
-									if (!ILBuilder::eval_and(ctx.eval)) return false;
+									if (!ILBuilder::eval_and(ctx.eval,left.t.type->rvalue, right.t.type->rvalue)) return false;
 								}break;
 							case 1: {
-									if (!ILBuilder::eval_or(ctx.eval)) return false;
+									if (!ILBuilder::eval_or(ctx.eval, left.t.type->rvalue, right.t.type->rvalue)) return false;
 								}break;
 							case 2: {
-									if (!ILBuilder::eval_xor(ctx.eval)) return false;
+									if (!ILBuilder::eval_xor(ctx.eval, left.t.type->rvalue, right.t.type->rvalue)) return false;
 								}break;
 						}
 					}break;
 				case 1: {
 						switch (op) {
 							case 0: {
-									if (!ILBuilder::eval_eq(ctx.eval)) return false;
+									if (!ILBuilder::eval_eq(ctx.eval, left.t.type->rvalue, right.t.type->rvalue)) return false;
 								}break;
 							case 1: {
-									if (!ILBuilder::eval_ne(ctx.eval)) return false;
+									if (!ILBuilder::eval_ne(ctx.eval, left.t.type->rvalue, right.t.type->rvalue)) return false;
 								}break;
 						}
 					}break;
 				case 2: {
 						switch (op) {
 							case 0: {
-									if (!ILBuilder::eval_gt(ctx.eval)) return false;
+									if (!ILBuilder::eval_gt(ctx.eval, left.t.type->rvalue, right.t.type->rvalue)) return false;
 								}break;
 							case 1: {
-									if (!ILBuilder::eval_lt(ctx.eval)) return false;
+									if (!ILBuilder::eval_lt(ctx.eval, left.t.type->rvalue, right.t.type->rvalue)) return false;
 								} break;
 							case 2: {
-									if (!ILBuilder::eval_ge(ctx.eval)) return false;
+									if (!ILBuilder::eval_ge(ctx.eval, left.t.type->rvalue, right.t.type->rvalue)) return false;
 								}break;
 							case 3: {
-									if (!ILBuilder::eval_le(ctx.eval)) return false;
+									if (!ILBuilder::eval_le(ctx.eval, left.t.type->rvalue, right.t.type->rvalue)) return false;
 								}break;
 						}
 					}break;
 				case 3: {
 						switch (op) {
 							case 0: {
-									if (!ILBuilder::eval_add(ctx.eval)) return false;
+									if (!ILBuilder::eval_add(ctx.eval, left.t.type->rvalue, right.t.type->rvalue)) return false;
 								}break;
 							case 1: {
-									if (!ILBuilder::eval_sub(ctx.eval)) return false;
+									if (!ILBuilder::eval_sub(ctx.eval, left.t.type->rvalue, right.t.type->rvalue)) return false;
 								}break;
 						}
 					}break;
 				case 4: {
 						switch (op) {
 							case 0: {
-									if (!ILBuilder::eval_mul(ctx.eval)) return false;
+									if (!ILBuilder::eval_mul(ctx.eval, left.t.type->rvalue, right.t.type->rvalue)) return false;
 								}break;
 							case 1: {
-									if (!ILBuilder::eval_div(ctx.eval)) return false;
+									if (!ILBuilder::eval_div(ctx.eval, left.t.type->rvalue, right.t.type->rvalue)) return false;
 								} break;
 							case 2: {
-									if (!ILBuilder::eval_rem(ctx.eval)) return false;
+									if (!ILBuilder::eval_rem(ctx.eval, left.t.type->rvalue, right.t.type->rvalue)) return false;
 								}break;
 						}
 					}break;
@@ -281,7 +271,8 @@ namespace Corrosive {
 					if (!ILBuilder::build_discard(positive_block)) return false;
 
 					ILBuilder::build_const_ibool(ctx.block, false);
-					if (!ILBuilder::build_yield(ctx.block)) return false;
+					if (!ILBuilder::build_yield(ctx.block,ILDataType::ibool)) return false;
+
 					if (!ILBuilder::build_jmpz(ctx.block, fallback, positive_block)) return false;
 					ctx.block = positive_block;
 
@@ -297,7 +288,7 @@ namespace Corrosive {
 			}
 
 			if (!rvalue(ctx, value, cpt)) return false;
-			if (!ILBuilder::build_yield(ctx.block)) return false;
+			if (!ILBuilder::build_yield(ctx.block,ILDataType::ibool)) return false;
 			if (!ILBuilder::build_jmp(ctx.block, fallback)) return false;
 			ctx.function->append_block(fallback);
 
@@ -358,7 +349,7 @@ namespace Corrosive {
 					ctx.function->append_block(positive_block);
 
 					ILBuilder::build_const_ibool(ctx.block, true);
-					if (!ILBuilder::build_yield(ctx.block)) return false;
+					if (!ILBuilder::build_yield(ctx.block,ILDataType::ibool)) return false;
 
 					if (!ILBuilder::build_jmpz(ctx.block, positive_block, fallback)) return false;
 					ctx.block = positive_block;
@@ -376,7 +367,7 @@ namespace Corrosive {
 
 			if (!rvalue(ctx, value, cpt)) return false;
 
-			if (!ILBuilder::build_yield(ctx.block)) return false;
+			if (!ILBuilder::build_yield(ctx.block,ILDataType::ibool)) return false;
 			if (!ILBuilder::build_jmp(ctx.block, fallback)) return false;
 			ctx.function->append_block(fallback);
 

@@ -42,13 +42,17 @@ namespace Corrosive {
 
 	class ILBlock {
 	public:
+		std::vector<bool> is_const;
+		void push_const(bool c);
+		bool test_const();
+		void pop_const();
+
 		unsigned int id;
 		ILDataType yields = ILDataType::none;
 		ILDataType accepts = ILDataType::none;
 		ILFunction* parent;
 		std::list<std::unique_ptr<ILBlockData>> data_pool;
 		std::set<ILBlock*> predecessors;
-		std::vector<std::pair<bool,ILDataType>> stack;
 
 		void write_instruction(ILInstruction instruction);
 		void write_value(size_t size,unsigned char* value);
@@ -123,11 +127,9 @@ namespace Corrosive {
 		unsigned char* map_pointer(register_value ptr);
 
 		unsigned char register_stack[256];
-		ILDataType register_type_stack[64];
 
 		unsigned char* memory_stack_pointer = memory_stack;
 		unsigned char* register_stack_pointer = register_stack;
-		ILDataType* register_type_stack_pointer = register_type_stack;
 
 		register_value yield;
 		ILDataType yield_type;
@@ -136,9 +138,6 @@ namespace Corrosive {
 
 		void write_register_value(size_t size, unsigned char* value);
 		void pop_register_value(size_t size, unsigned char* into);
-		ILDataType pop_register_type();
-		void write_register_type(ILDataType t);
-
 
 		size_t register_size(ILDataType t);
 
@@ -212,53 +211,50 @@ namespace Corrosive {
 
 		static bool build_const_ctype(ILBlock* block, ILCtype value);
 
-		static bool eval_add(ILEvaluator* eval_ctx);
+		static bool eval_add(ILEvaluator* eval_ctx,ILDataType tl,ILDataType tr);
 		static bool eval_load(ILEvaluator* eval_ctx, ILDataType type);
-		static bool eval_store(ILEvaluator* eval_ctx);
+		static bool eval_store(ILEvaluator* eval_ctx, ILDataType type);
 		static bool eval_local(ILEvaluator* eval_ctx, unsigned int id);
 		static bool eval_member(ILEvaluator* eval_ctx, ILStruct* type, unsigned int id);
-		static bool eval_and(ILEvaluator* eval_ctx);
-		static bool eval_or(ILEvaluator* eval_ctx);
-		static bool eval_xor(ILEvaluator* eval_ctx);
-		static bool eval_eq(ILEvaluator* eval_ctx);
-		static bool eval_ne(ILEvaluator* eval_ctx);
-		static bool eval_gt(ILEvaluator* eval_ctx);
-		static bool eval_lt(ILEvaluator* eval_ctx);
-		static bool eval_ge(ILEvaluator* eval_ctx);
-		static bool eval_le(ILEvaluator* eval_ctx);
-		static bool eval_sub(ILEvaluator* eval_ctx);
-		static bool eval_div(ILEvaluator* eval_ctx);
-		static bool eval_rem(ILEvaluator* eval_ctx);
-		static bool eval_mul(ILEvaluator* eval_ctx);
+		static bool eval_and(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
+		static bool eval_or(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
+		static bool eval_xor(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
+		static bool eval_eq(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
+		static bool eval_ne(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
+		static bool eval_gt(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
+		static bool eval_lt(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
+		static bool eval_ge(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
+		static bool eval_le(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
+		static bool eval_sub(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
+		static bool eval_div(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
+		static bool eval_rem(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
+		static bool eval_mul(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
 		static bool eval_accept(ILEvaluator* eval_ctx);
 		static bool eval_discard(ILEvaluator* eval_ctx);
-		static bool eval_yield(ILEvaluator* eval_ctx);
-		//static bool eval_ret(ILEvaluator* eval_ctx);
-		//static bool eval_jmp(ILEvaluator* eval_ctx, ILBlock* address);
-		//static bool eval_jmpz(ILEvaluator* eval_ctx, ILBlock* ifz, ILBlock* ifnz);
+		static bool eval_yield(ILEvaluator* eval_ctx, ILDataType yt);
 
 		static ILDataType arith_result(ILDataType l,ILDataType r);
-		static bool build_add(ILBlock* block);
+		static bool build_add(ILBlock* block, ILDataType tl, ILDataType tr);
 		static bool build_load(ILBlock* block, ILDataType type);
-		static bool build_store(ILBlock* block);
+		static bool build_store(ILBlock* block, ILDataType type);
 		static bool build_local(ILBlock* block,unsigned int id);
 		static bool build_member(ILBlock* block,ILStruct* type,unsigned int id);
-		static bool build_and(ILBlock* block);
-		static bool build_or(ILBlock* block);
-		static bool build_xor(ILBlock* block);
-		static bool build_eq(ILBlock* block);
-		static bool build_ne(ILBlock* block);
-		static bool build_gt(ILBlock* block);
-		static bool build_lt(ILBlock* block);
-		static bool build_ge(ILBlock* block);
-		static bool build_le(ILBlock* block);
-		static bool build_sub(ILBlock* block);
-		static bool build_div(ILBlock* block);
-		static bool build_rem(ILBlock* block);
-		static bool build_mul(ILBlock* block);
+		static bool build_and(ILBlock* block, ILDataType tl, ILDataType tr);
+		static bool build_or(ILBlock* block, ILDataType tl, ILDataType tr);
+		static bool build_xor(ILBlock* block, ILDataType tl, ILDataType tr);
+		static bool build_eq(ILBlock* block, ILDataType tl, ILDataType tr);
+		static bool build_ne(ILBlock* block, ILDataType tl, ILDataType tr);
+		static bool build_gt(ILBlock* block, ILDataType tl, ILDataType tr);
+		static bool build_lt(ILBlock* block, ILDataType tl, ILDataType tr);
+		static bool build_ge(ILBlock* block, ILDataType tl, ILDataType tr);
+		static bool build_le(ILBlock* block, ILDataType tl, ILDataType tr);
+		static bool build_sub(ILBlock* block, ILDataType tl, ILDataType tr);
+		static bool build_div(ILBlock* block, ILDataType tl, ILDataType tr);
+		static bool build_rem(ILBlock* block, ILDataType tl, ILDataType tr);
+		static bool build_mul(ILBlock* block, ILDataType tl, ILDataType tr);
 		static bool build_accept(ILBlock* block);
 		static bool build_discard(ILBlock* block);
-		static bool build_yield(ILBlock* block);
+		static bool build_yield(ILBlock* block, ILDataType type);
 		static bool build_yield_type(ILBlock* block,std::string_view name);
 		static bool build_ret(ILBlock* block);
 		static bool build_jmp(ILBlock* block,ILBlock* address);

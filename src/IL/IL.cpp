@@ -128,6 +128,21 @@ namespace Corrosive {
 		return r;
 	}
 
+
+	void ILBlock::push_const(bool c) {
+		is_const.push_back(c);
+	}
+
+	bool ILBlock::test_const() {
+		if (is_const.size() < 2)
+			return false;
+		return is_const[is_const.size()-1] && is_const[is_const.size()-1];
+	}
+
+	void ILBlock::pop_const() {
+		is_const.pop_back();
+	}
+
 #define read_data_type(T) ((T*)read_data(sizeof(T),mempool,memoff))
 
 	void ILBlock::dump() {
@@ -148,49 +163,64 @@ namespace Corrosive {
 				std::cout << "   ret\n";
 				break;
 			case ILInstruction::sub:
-				std::cout << "   sub\n";
+				std::cout << "   sub [";
+				dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 				break;
 			case ILInstruction::div:
-				std::cout << "   div\n";
+				std::cout << "   div [";
+				dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 				break;
 			case ILInstruction::rem:
-				std::cout << "   rem\n";
+				std::cout << "   rem [";
+				dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 				break;
 			case ILInstruction::mul:
-				std::cout << "   mul\n";
+				std::cout << "   mul [";
+				dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 				break;
 			case ILInstruction::add:
-				std::cout << "   add\n";
+				std::cout << "   add [";
+				dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 				break;
 			case ILInstruction::o_and:
-				std::cout << "   and\n";
+				std::cout << "   and [";
+				dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 				break;
 			case ILInstruction::o_or:
-				std::cout << "   or\n";
+				std::cout << "   or [";
+				dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 				break;
 			case ILInstruction::o_xor:
-				std::cout << "   xor\n";
+				std::cout << "   xor [";
+				dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 				break;
 			case ILInstruction::eq:
-				std::cout << "   eq\n";
+				std::cout << "   eq [";
+				dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 				break;
 			case ILInstruction::ne:
-				std::cout << "   ne\n";
+				std::cout << "   ne [";
+				dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 				break;
 			case ILInstruction::gt:
-				std::cout << "   gt\n";
+				std::cout << "   gt [";
+				dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 				break;
 			case ILInstruction::lt:
-				std::cout << "   lt\n";
+				std::cout << "   lt [";
+				dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 				break;
 			case ILInstruction::ge:
-				std::cout << "   ge\n";
+				std::cout << "   ge [";
+				dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 				break;
 			case ILInstruction::le:
-				std::cout << "   le\n";
+				std::cout << "   le [";
+				dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 				break;
 			case ILInstruction::store:
-				std::cout << "   store\n";
+				std::cout << "   store [";
+				dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 				break;
 			case ILInstruction::accept:
 				std::cout << "   accept\n";
