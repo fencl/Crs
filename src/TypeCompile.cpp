@@ -15,12 +15,12 @@ namespace Corrosive {
 	}
 
 	bool InstanceType::compile(CompileContext& ctx) {
-		owner->compile(ctx);
+		if (!owner->compile(ctx)) return false;
 		return true;
 	}
 
 	bool DirectType::compile(CompileContext& ctx) {
-		owner->compile(ctx);
+		if (!owner->compile(ctx)) return false;
 		return true;
 	}
 }

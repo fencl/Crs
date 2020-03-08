@@ -16,9 +16,36 @@ namespace Corrosive {
 		ret.t = Type::null;
 
 		unsigned int type_ref_count = 0;
-		while (c.tok == RecognizedToken::Star) {
+		while (c.tok == RecognizedToken::And || c.tok == RecognizedToken::DoubleAnd) {
 			type_ref_count++;
+			if (c.tok == RecognizedToken::DoubleAnd)
+				type_ref_count++;
 			c.move();
+		}
+
+		if (type_ref_count > 0) {
+			Cursor err = c;
+			CompileValue value;
+			if (!Operand::parse(c, ctx, value, cpt)) return false;
+			if (value.t != ctx.default_types->t_type) {
+				throw_specific_error(err, "operator expected to recieve type");
+				return false;
+			}
+
+			if (cpt == CompileType::eval) {
+				ctx.eval->pop_register_type();
+				ILCtype t = ctx.eval->pop_register_value<ILCtype>();
+				t.ptr += type_ref_count;
+				ILBuilder::eval_const_ctype(ctx.eval, t);
+			}
+			else if (cpt == CompileType::compile) {
+				throw_specific_error(err, "Operator cannot be used in compile context");
+				return true;
+			}
+
+			res.t = ctx.default_types->t_type;
+			res.lvalue = false;
+			return true;
 		}
 
 		switch (c.tok) {
@@ -27,7 +54,7 @@ namespace Corrosive {
 				}break;
 
 			case RecognizedToken::Symbol: {
-					if (!parse_symbol(ret, c, ctx, cpt, type_ref_count)) return false;
+					if (!parse_symbol(ret, c, ctx, cpt)) return false;
 				}break;
 
 			case RecognizedToken::Number:
@@ -94,7 +121,7 @@ namespace Corrosive {
 
 
 
-	bool Operand::parse_symbol(CompileValue& ret, Cursor& c, CompileContext& ctx, CompileType cpt, unsigned int type_ref_count) {
+	bool Operand::parse_symbol(CompileValue& ret, Cursor& c, CompileContext& ctx, CompileType cpt) {
 		if (c.buffer == "true") {
 			c.move();
 			ret.lvalue = false;
@@ -168,12 +195,10 @@ namespace Corrosive {
 				}
 
 				if (auto struct_inst = dynamic_cast<Structure*>(inst)) {
-					if (type_ref_count == 0) {
-						if (!struct_inst->compile(ctx)) return false;
-					}
-					
-					if (struct_inst->singe_instance == nullptr) {
-						ILCtype ct = { (void*)struct_inst->type.get(),(uint32_t)type_ref_count };
+					if (!struct_inst->compile(ctx)) return false;
+
+					if (struct_inst->is_generic) {
+						ILCtype ct = { (void*)struct_inst->type.get(),0 };
 						if (cpt == CompileType::eval) {
 							if (!ILBuilder::eval_const_ctype(ctx.eval, ct)) return false;
 						}
@@ -182,7 +207,7 @@ namespace Corrosive {
 						}
 					}
 					else {
-						ILCtype ct = { (void*)struct_inst->singe_instance->type.get(),(uint32_t)type_ref_count };
+						ILCtype ct = { (void*)struct_inst->singe_instance->type.get(),0 };
 
 						if (cpt == CompileType::eval) {
 							if (!ILBuilder::eval_const_ctype(ctx.eval, ct)) return false;

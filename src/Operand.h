@@ -13,7 +13,7 @@ namespace Corrosive {
 
 	private:
 		static bool parse_expression(CompileValue& ret, Cursor& c, CompileContext& ctx, CompileType copm_type);
-		static bool parse_symbol(CompileValue& ret, Cursor& c, CompileContext& ctx, CompileType copm_type, unsigned int type_ref_count);
+		static bool parse_symbol(CompileValue& ret, Cursor& c, CompileContext& ctx, CompileType copm_type);
 		static bool parse_number(CompileValue& ret, Cursor& c, CompileContext& ctx, CompileType copm_type);
 		static bool parse_long_number(CompileValue& ret, Cursor& c, CompileContext& ctx, CompileType copm_type);
 		static bool parse_float_number(CompileValue& ret, Cursor& c, CompileContext& ctx, CompileType copm_type);

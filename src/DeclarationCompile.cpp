@@ -45,15 +45,14 @@ namespace Corrosive {
 					}
 
 
-					ctx.eval->pop_register_type();
-					ILCtype ctype = ctx.eval->pop_register_value<ILCtype>();
+					nctx.eval->pop_register_type();
+					ILCtype ctype = nctx.eval->pop_register_value<ILCtype>();
 					Type t = { (AbstractType*)ctype.type,ctype.ptr };
-
-					if (auto it = dynamic_cast<InstanceType*>(t.type)) {
-						it->compile(ctx);
+					if (t.ref_count == 0) {
+						if (!t.type->compile(nctx)) return false;
 					}
 					
-					generate_heap_size += t.size(ctx);
+					generate_heap_size += t.size(nctx);
 
 					value.lvalue = true;
 					value.t = t;
@@ -108,8 +107,9 @@ namespace Corrosive {
 				singe_instance->type = std::make_unique<InstanceType>();
 				singe_instance->type->owner = singe_instance.get();
 				singe_instance->generator = this;
-
 				singe_instance->type->rvalue = ILDataType::ptr;
+
+				compile_state = 2;
 
 				for (auto&& m : members) {
 					Cursor c = m.type;
