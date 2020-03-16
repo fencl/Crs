@@ -6,7 +6,7 @@
 
 namespace Corrosive {
 	void throw_error_header(const Cursor& c) {
-		std::cerr << "Error (" << (c.top+1) << "):\n\t";
+		std::cerr << "\n | Error (" << (c.top+1) << "):\n | \t";
 
 		Cursor cc = c;
 		Source* src = (Source*)cc.src;
@@ -21,16 +21,30 @@ namespace Corrosive {
 		while (to < data.size()-1 && data[to] != '\n' && (to - cc.offset) < 20) {
 			to++;
 		}
+		int req_offset = 4;
+		std::string_view line = data.substr(from + 1, to - from - 2);
+		std::cerr << "... ";
+		for (int i = 0; i < line.length(); i++) {
+			if (line[i] == '\t') {
+				std::cerr << "    ";
+				if (i < cc.offset - from -1)
+					req_offset += 4;
+			}
+			else {
+				std::cerr << line[i];
+				if (i < cc.offset - from -1)
+					req_offset += 1;
+			}
+		}
+		std::cerr << " ...\n | \t";
 
-		std::cerr <<"... "<< data.substr(from+1, to - from-2) << " ...\n\t";
-
-		for (int i = 0; i < cc.offset - from+3; i++)
+		for (int i = 0; i < req_offset; i++)
 			std::cerr << " ";
 
 		for (int i = 0; i < cc.buffer.length(); i++)
 			std::cerr << "^";
 
-		std::cerr << "\n\t";
+		std::cerr << "\n | \t";
 	}
 
 	void throw_specific_error(const Cursor& c, std::string_view text) {

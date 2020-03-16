@@ -113,7 +113,8 @@ namespace Corrosive {
 
 					ILCtype ctype = ctx.eval->pop_register_value<ILCtype>();
 
-					singe_instance->member_vars[m.name.buffer] = { (AbstractType*)ctype.type,ctype.ptr };
+					Type m_t = { (AbstractType*)ctype.type,ctype.ptr };
+					singe_instance->member_vars[m.name.buffer] = std::make_pair(m.name, m_t);
 				}
 
 				for (auto&& m : member_funcs) {
@@ -193,8 +194,8 @@ namespace Corrosive {
 				}
 
 				ILCtype ctype = ctx.eval->pop_register_value<ILCtype>();
-
-				inst->member_vars[m.name.buffer] = { (AbstractType*)ctype.type,ctype.ptr };
+				Type m_t = { (AbstractType*)ctype.type,ctype.ptr };
+				inst->member_vars[m.name.buffer] = std::make_pair(m.name, m_t);
 			}
 
 			for (auto&& m : member_funcs) {
@@ -252,15 +253,18 @@ namespace Corrosive {
 			iltype = ctx.module->create_struct_type();
 
 			for (auto&& m : member_vars) {
-				if (m.second.ref_count == 0) {
-					if (!m.second.type->compile(ctx)) return false;
+				if (m.second.second.ref_count == 0) {
+					if (!m.second.second.type->compile(ctx)) return false;
 				}
 
-				if (auto it = dynamic_cast<InstanceType*>(m.second.type)) {
+				if (auto it = dynamic_cast<InstanceType*>(m.second.second.type)) {
 					((ILStruct*)iltype)->add_member(it->owner->iltype);
 				}
 				else {
-					throw_specific_error(generator->name, "member is not instantiable type");
+					throw_specific_error(m.second.first, "Specified type is not an instance type");
+					std::cerr << " | \tType was '";
+					m.second.second.type->print(std::cerr);
+					std::cerr << "'\n";
 					return false;
 				}
 			}

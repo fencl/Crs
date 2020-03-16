@@ -42,7 +42,7 @@ namespace Corrosive {
 	class Structure;
 	class StructureInstance {
 	public:
-		std::map<std::string_view,Type> member_vars;
+		std::map<std::string_view,std::pair<Cursor,Type>> member_vars;
 		std::map<std::string_view,std::pair<ILFunction*,Type>> member_funcs;
 		Structure* generator;
 		ILType* iltype = nullptr;
