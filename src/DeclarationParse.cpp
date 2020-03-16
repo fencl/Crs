@@ -87,12 +87,7 @@ namespace Corrosive {
 		c.move();
 
 
-		if (c.tok == RecognizedToken::Colon) {
-			c.move();
-			if (c.tok != RecognizedToken::OpenParenthesis) {
-				throw_wrong_token_error(c, "'('");
-				return false;
-			}
+		if (c.tok == RecognizedToken::OpenParenthesis) {
 			c.move();
 			result->is_generic = true;
 			result->generic_types = c;
@@ -118,7 +113,7 @@ namespace Corrosive {
 
 		while (c.tok == RecognizedToken::Symbol) {
 			if (c.buffer == "var") {
-				StructureMember member;
+				StructureMemberVar member;
 				c.move();
 				member.name = c;
 				c.move();
@@ -132,11 +127,49 @@ namespace Corrosive {
 				while (c.tok != RecognizedToken::Semicolon) {
 					if (c.tok == RecognizedToken::Eof) {
 						throw_eof_error(c, "parsing of structure member type");
+						return false;
 					}
 					c.move();
 				}
 				c.move();
-				result->members.push_back(member);
+				result->member_vars.push_back(member);
+			}
+			else if (c.buffer == "function") {
+				StructureMemberFunc member;
+				c.move();
+				member.name = c;
+				c.move();
+				if (c.tok != RecognizedToken::Colon) {
+					throw_wrong_token_error(c, "':'");
+					return false;
+				}
+				c.move();
+				member.type = c;
+
+				while (c.tok != RecognizedToken::OpenBrace) {
+					if (c.tok == RecognizedToken::Eof) {
+						throw_eof_error(c, "parsing of structure member type");
+						return false;
+					}
+					c.move();
+				}
+				c.move();
+				member.block = c;
+				int lvl = 1;
+				while (lvl > 0) {
+					switch (c.tok)
+					{
+						case RecognizedToken::OpenBrace: lvl++; c.move(); break;
+						case RecognizedToken::CloseBrace: lvl--; c.move(); break;
+						case RecognizedToken::Eof: {
+								throw_eof_error(c, "parsing of function block");
+								return false;
+							}
+						default: c.move(); break;
+					}
+				}
+
+				result->member_funcs.push_back(member);
 			}
 			else if (c.buffer == "struct") {
 				c.move();

@@ -21,6 +21,9 @@ namespace Corrosive {
 		ILDataType rvalue;
 
 		virtual bool compile(CompileContext& ctx);
+		virtual int compare(void* p1, void* p2);
+		virtual void move(CompileContext& ctx, void* src, void* dst);
+		virtual bool rvalue_stacked();
 	};
 
 	class Structure;
@@ -28,6 +31,9 @@ namespace Corrosive {
 	public:
 		Structure* owner;
 		virtual bool compile(CompileContext& ctx);
+		virtual int compare(void* p1, void* p2);
+		virtual void move(CompileContext& ctx, void* src, void* dst);
+		virtual bool rvalue_stacked();
 	};
 
 	class StructureInstance;
@@ -35,6 +41,9 @@ namespace Corrosive {
 	public:
 		StructureInstance* owner;
 		virtual bool compile(CompileContext& ctx);
+		virtual int compare(void* p1, void* p2);
+		virtual void move(CompileContext& ctx, void* src, void* dst);
+		virtual bool rvalue_stacked();
 	};
 
 	class Type {
@@ -44,6 +53,10 @@ namespace Corrosive {
 
 		static Type null;
 		size_t size(CompileContext& ctx);
+		bool compile(CompileContext& ctx);
+		int compare(size_t s, void* p1, void* p2);
+		void move(CompileContext& ctx, void* src, void* dst);
+		bool rvalue_stacked();
 	};
 
 

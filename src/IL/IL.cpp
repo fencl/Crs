@@ -343,11 +343,53 @@ namespace Corrosive {
 
 	void ILStruct::add_member(ILType* type) {
 		unsigned int n_size = _align_up(size_in_bytes, type->alignment_in_bytes);
-		members.push_back(std::make_pair(n_size, type));
+		member_vars.push_back(std::make_pair(n_size, type));
 		size_in_bytes = n_size + type->size_in_bytes;
 		alignment_in_bytes = std::max(alignment_in_bytes, type->alignment_in_bytes);
 	}
 
+	void ILType::auto_move(void* src, void* dst) {
+		memcpy(dst, src, size_in_bytes);
+	}
+
+	void ILStruct::auto_move(void* src, void* dst) {
+		for (auto&& m : member_vars) {
+			void* src_o = (char*)src + m.first;
+			void* dst_o = (char*)dst + m.first;
+			m.second->auto_move(src_o, dst_o);
+		}
+	}
+
+	int ILType::auto_compare(void* p1, void* p2) {
+		return memcmp(p1, p2, size_in_bytes);
+	}
+
+	int ILStruct::auto_compare(void* p1, void* p2) {
+		for (auto&& m : member_vars) {
+			void* p1_o = (char*)p1 + m.first;
+			void* p2_o = (char*)p2 + m.first;
+			int r = m.second->auto_compare(p1_o, p2_o);
+			if (r == 0)
+				continue;
+			else if (r > 0)
+				return 1;
+			else if (r < 0)
+				return -1;
+		}
+
+		return 0;
+	}
+
+
+
+	void* ILEvaluator::read_last_register_value_pointer(ILDataType rs) {
+		return register_stack_pointer - register_size(rs);
+	}
+
+
+	void ILEvaluator::pop_register_value(ILDataType rs) {
+		register_stack_pointer -= register_size(rs);
+	}
 
 	void ILStruct::align_size() {
 		size_in_bytes = _align_up(size_in_bytes, alignment_in_bytes);

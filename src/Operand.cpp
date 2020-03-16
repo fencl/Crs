@@ -27,6 +27,8 @@ namespace Corrosive {
 			Cursor err = c;
 			CompileValue value;
 			if (!Operand::parse(c, ctx, value, cpt)) return false;
+			Expression::rvalue(ctx, value, cpt);
+
 			if (value.t != ctx.default_types->t_type) {
 				throw_specific_error(err, "operator expected to recieve type");
 				return false;
@@ -158,13 +160,31 @@ namespace Corrosive {
 		}
 		else {
 			
-			
-			if (auto sitm = StackManager::stack_find(c.buffer)) {
+			auto sitm = StackManager::stack_find<0>(c.buffer);
 
-				ILBuilder::build_local(ctx.block, sitm->ir_local);
-				ret = sitm->value;
+			if (cpt != CompileType::eval) {
+
+
+				if (cpt == CompileType::compile) {
+					//TODO local
+					
+					//ILBuilder::build_param(ctx.block, sitm->ir_local);
+					ret = sitm->value;
+				}
 
 				c.move();
+			}
+			else if (sitm = StackManager::stack_find<1>(c.buffer)) {
+				if (cpt == CompileType::eval) {
+					ILBuilder::eval_local(ctx.eval, sitm->ir_local);
+					ret = sitm->value;
+					ret.lvalue = true;
+					c.move();
+				}
+				else {
+					throw_specific_error(c, "???");
+					return false;
+				}
 			}
 			else {
 				Namespace* inst = ctx.inside->find_name(c.buffer);
@@ -202,6 +222,11 @@ namespace Corrosive {
 							if (!ILBuilder::eval_const_ctype(ctx.eval, ct)) return false;
 						}
 						else if (cpt == CompileType::compile) {
+							if (!ctx.function->is_const) {
+								throw_specific_error(c, "Use of type in runtime context");
+								return false;
+							}
+
 							if (!ILBuilder::build_const_ctype(ctx.block, ct)) return false;
 						}
 					}
@@ -212,6 +237,10 @@ namespace Corrosive {
 							if (!ILBuilder::eval_const_ctype(ctx.eval, ct)) return false;
 						}
 						else if (cpt == CompileType::compile) {
+							if (!ctx.function->is_const) {
+								throw_specific_error(c, "Use of type in runtime context");
+								return false;
+							}
 							if (!ILBuilder::build_const_ctype(ctx.block, ct)) return false;
 						}
 					}
@@ -339,14 +368,72 @@ namespace Corrosive {
 	bool Operand::parse_call_operator(CompileValue& ret, Cursor& c, CompileContext& ctx, CompileType cpt) {
 		if (ret.t == ctx.default_types->t_type) {
 
+			Expression::rvalue(ctx, ret, cpt);
+
 			if (cpt == CompileType::eval) {
-				uint32_t rc = ctx.eval->pop_register_value<uint32_t>();
-				AbstractType* at = ctx.eval->pop_register_value<AbstractType*>();
+				ILCtype ct = ctx.eval->pop_register_value<ILCtype>();
 
-				Type t = { at,rc };
+				Type t = { (AbstractType*)ct.type,ct.ptr };
 
-				if (auto dt = dynamic_cast<DirectType*>(at)) {
-					
+				if (auto dt = dynamic_cast<DirectType*>(t.type)) {
+					c.move();
+
+					std::vector<CompileValue> results;
+					if (c.tok != RecognizedToken::CloseParenthesis) {
+						while (true) {
+							CompileValue res;
+							Expression::parse(c, ctx, res, CompileType::eval);
+							results.push_back(res);
+
+							if (c.tok == RecognizedToken::Comma) {
+								c.move();
+							}
+							else if (c.tok == RecognizedToken::CloseParenthesis) {
+								break;
+							}
+							else {
+								throw_wrong_token_error(c, "')' or ','");
+								return false;
+							}
+						}
+					}
+
+					c.move();
+
+
+					auto ss = std::move(StackManager::move_stack_out<1>());
+					auto sp = ctx.eval->stack_push();
+
+					unsigned int local_i = 0;
+					for (size_t arg_i = results.size() - 1; arg_i >= 0 && arg_i<results.size(); arg_i--) {
+						CompileValue res = results[arg_i];
+						unsigned char* data_place = ctx.eval->stack_reserve(res.t.size(ctx));
+
+						bool stacked = res.t.rvalue_stacked();
+						if (stacked) {
+							res.t.move(ctx, ctx.eval->map_pointer(ctx.eval->read_last_register_value_pointer(ILDataType::ptr)), data_place);
+							ctx.eval->pop_register_value(ILDataType::ptr);
+						}
+						else {
+							res.t.move(ctx, ctx.eval->read_last_register_value_pointer(res.t.type->rvalue), data_place);
+							ctx.eval->pop_register_value(res.t.type->rvalue);
+						}
+
+						StackManager::stack_push<1>(std::get<0>(dt->owner->generic_layout[arg_i]).buffer, res, local_i);
+						local_i++;
+					}
+
+					StructureInstance* inst = nullptr;
+					if (!dt->owner->generate(ctx, sp, inst)) return false;
+
+					ILCtype ct = { inst->type.get(),0 };
+					ILBuilder::eval_const_ctype(ctx.eval, ct);
+					ret.lvalue = false;
+					ret.t = ctx.default_types->t_type;
+
+
+					ctx.eval->stack_pop(sp);
+					StackManager::move_stack_in<1>(std::move(ss));
 				}
 				else {
 					throw_specific_error(c, "this type is not a generic type");
@@ -359,9 +446,11 @@ namespace Corrosive {
 			}
 
 		}
+		else {
+			throw_specific_error(c, "not implemented yet");
+			return false;
+		}
 
-		c.move();
-		c.move();
 		return true;
 	}
 

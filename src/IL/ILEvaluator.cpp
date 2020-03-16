@@ -24,6 +24,31 @@ namespace Corrosive {
 	bool ILBuilder::eval_const_f64   (ILEvaluator* eval_ctx, double   value) { eval_ctx->write_register_value(sizeof(double),   (unsigned char*)&value); return true; }
 
 
+	bool ILBuilder::eval_const_ptr(ILEvaluator* eval_ctx, void* value) {
+		switch (eval_ctx->parent->architecture)
+		{
+			case ILArchitecture::i386: {
+					uint32_t ptr = (uint32_t)((unsigned char*)value- eval_ctx->memory_stack);
+					if (ptr > ILEvaluator::stack_size) {
+						ptr = (uint32_t)((unsigned char*)value - eval_ctx->memory_heap) + ILEvaluator::stack_size;
+					}
+					eval_ctx->write_register_value(sizeof(int32_t), (unsigned char*)&ptr);
+					return true;
+				}
+			case ILArchitecture::x86_64: {
+					uint64_t ptr = (uint64_t)((unsigned char*)value- eval_ctx->memory_stack);
+					if (ptr > ILEvaluator::stack_size) {
+						ptr = (uint64_t)((unsigned char*)value - eval_ctx->memory_heap) + ILEvaluator::stack_size;
+					}
+					eval_ctx->write_register_value(sizeof(uint64_t), (unsigned char*)&ptr);
+					return true;
+				}
+			default:
+				return false;
+		}
+	}
+
+
 	bool ILBuilder::eval_const_ctype(ILEvaluator* eval_ctx, ILCtype value) {
 		eval_ctx->write_register_value(sizeof(ILCtype), (unsigned char*)&value); return true;
 	}
@@ -270,40 +295,82 @@ namespace Corrosive {
 	}*/
 
 
-	unsigned char* ILEvaluator::map_pointer(ILEvaluator::register_value ptr) {
-		if (ptr < 1024 * 4) {
-			return &memory_stack[ptr];
+	unsigned char* ILEvaluator::map_pointer(void* ptr) {
+		switch (parent->architecture)
+		{
+			case ILArchitecture::i386: {
+					uint32_t ptr_d = *(uint32_t*)ptr;
+					if (ptr_d < ILEvaluator::stack_size) {
+						return &memory_stack[ptr_d];
+					}
+					else if (ptr_d < ILEvaluator::stack_size + ILEvaluator::heap_size){
+						return &memory_heap[(ptr_d - ILEvaluator::stack_size)];
+					}
+					else {
+						exit(0);
+					}
+				}
+			case ILArchitecture::x86_64: {
+					uint64_t ptr_d = *(uint64_t*)ptr;
+					if (ptr_d < ILEvaluator::stack_size) {
+						return &memory_stack[ptr_d];
+					}
+					else if (ptr_d < ILEvaluator::stack_size + ILEvaluator::heap_size) {
+						return &memory_heap[(ptr_d - ILEvaluator::stack_size)];
+					}
+					else {
+						exit(0);
+					}
+				}
 		}
-		else {
-			return &memory_heap[(ptr - 1024*4)];
-		}
+		return nullptr;
 	}
 
+
 	bool ILBuilder::eval_load(ILEvaluator* eval_ctx, ILDataType type) {		
-		ILEvaluator::register_value ptr;
-		eval_ctx->pop_register_value(eval_ctx->register_size(ILDataType::ptr),(unsigned char*)&ptr);
-		unsigned char* mem = eval_ctx->map_pointer(ptr);
+		unsigned char* mem = eval_ctx->map_pointer(eval_ctx->read_last_register_value_pointer(ILDataType::ptr));
+		eval_ctx->pop_register_value(ILDataType::ptr);
+
 		eval_ctx->write_register_value(eval_ctx->register_size(type), mem);
 		return true;
 	}
 
 	bool ILBuilder::eval_store(ILEvaluator* eval_ctx, ILDataType type) {
-		ILEvaluator::register_value ptr;
-		eval_ctx->pop_register_value(eval_ctx->register_size(ILDataType::ptr), (unsigned char*)&ptr);
-		unsigned char* mem = eval_ctx->map_pointer(ptr);
-
-
+		unsigned char* mem = eval_ctx->map_pointer(eval_ctx->read_last_register_value_pointer(ILDataType::ptr));
+		eval_ctx->pop_register_value(ILDataType::ptr);
 		eval_ctx->pop_register_value(eval_ctx->register_size(type), mem);
-
 		return true;
 	}
 
+
+	unsigned char* ILEvaluator::stack_push() {
+		std::vector<void*>tmp;
+		on_stack.push_back(std::move(tmp));
+		return memory_stack_pointer;
+	}
+	void ILEvaluator::stack_pop(unsigned char* stack_pointer) {
+		on_stack.pop_back();
+		memory_stack_pointer = stack_pointer;
+	}
 
 	bool ILBuilder::eval_local(ILEvaluator* eval_ctx, unsigned int id) {
-		//! TODO
+		eval_const_ptr(eval_ctx, eval_ctx->on_stack.back()[id]);
 		return true;
 	}
 
+
+	void ILEvaluator::stack_write(size_t size, void* from) {
+		on_stack.back().push_back(memory_stack_pointer);
+		memcpy(memory_stack_pointer, from, size);
+		memory_stack_pointer += size;
+	}
+
+	unsigned char* ILEvaluator::stack_reserve(size_t size) {
+		on_stack.back().push_back(memory_stack_pointer);
+		unsigned char* res = memory_stack_pointer;
+		memory_stack_pointer += size;
+		return res;
+	}
 
 	bool ILBuilder::eval_member(ILEvaluator* eval_ctx, ILStruct* type, unsigned int id) {
 		//! TODO

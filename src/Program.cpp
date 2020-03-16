@@ -13,6 +13,8 @@
 
 namespace Corrosive {
 	int crs_main() {
+		std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
 		bool alive = true;
 		auto start = std::chrono::system_clock::now();
 
@@ -39,6 +41,11 @@ namespace Corrosive {
 		Declaration::parse_global(c,ctx, *gn.get());
 
 		((Structure*)gn->subnamespaces["B"].get())->compile(ctx);
+
+		std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+
+
+		std::cout << "\nelapsed: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
 
 		return 0;
 	}

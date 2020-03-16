@@ -23,4 +23,13 @@ namespace Corrosive {
 		if (!owner->compile(ctx)) return false;
 		return true;
 	}
+
+
+	bool Type::compile(CompileContext& ctx) {
+		if (ref_count == 0) {
+			if (!type->compile(ctx)) return false;
+		}
+
+		return true;
+	}
 }

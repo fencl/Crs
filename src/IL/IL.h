@@ -88,14 +88,19 @@ namespace Corrosive {
 		ILDataType rvalue;
 		unsigned int size_in_bytes = 0;
 		unsigned int alignment_in_bytes = 0;
+
+		virtual int auto_compare(void* p1, void* p2);
+		virtual void auto_move(void* src, void* dst);
 	};
 
 	class ILStruct : public ILType {
 	public:
 		ILStruct();
-		std::vector<std::pair<unsigned int, ILType*>> members;
+		std::vector<std::pair<unsigned int, ILType*>> member_vars;
 		void add_member(ILType* type);
 		void align_size();
+		virtual int auto_compare(void* p1, void* p2);
+		virtual void auto_move(void* src, void* dst);
 	};
 
 	class ILFunction {
@@ -104,6 +109,7 @@ namespace Corrosive {
 		unsigned int id;
 		ILModule* parent;
 		ILType* returns = nullptr;
+		bool is_const = false;
 
 		std::vector<ILType*> locals;
 		std::vector<ILBlock*> blocks;
@@ -120,16 +126,20 @@ namespace Corrosive {
 	class ILEvaluator {
 	public:
 		using register_value = uint64_t;
+		static const inline size_t stack_size = 1024*4;
+		static const inline size_t heap_size = 1024*1024;
 
-		unsigned char memory_stack[1024 * 4];
-		unsigned char memory_heap[1024 * 1024];
+		unsigned char memory_stack[stack_size];
+		unsigned char memory_heap[heap_size];
 
-		unsigned char* map_pointer(register_value ptr);
+		unsigned char* map_pointer(void* ptr);
 
 		unsigned char register_stack[256];
 
 		unsigned char* memory_stack_pointer = memory_stack;
 		unsigned char* register_stack_pointer = register_stack;
+
+		std::vector<unsigned char*> local_ids;
 
 		register_value yield;
 		ILDataType yield_type;
@@ -141,6 +151,14 @@ namespace Corrosive {
 
 		size_t register_size(ILDataType t);
 
+		void* read_last_register_value_pointer(ILDataType rs);
+		void pop_register_value(ILDataType rs);
+		
+		std::vector<std::vector<void*>> on_stack;
+		unsigned char* stack_push();
+		void stack_pop(unsigned char* stack_pointer);
+		void stack_write(size_t size, void* from);
+		unsigned char* stack_reserve(size_t size);
 
 		template<typename T> inline T read_last_register_value() {
 			return *(((T*)register_stack_pointer)-1);
@@ -194,6 +212,7 @@ namespace Corrosive {
 		static bool eval_const_u64   (ILEvaluator* eval_ctx, uint64_t value);
 		static bool eval_const_f32   (ILEvaluator* eval_ctx, float    value);
 		static bool eval_const_f64   (ILEvaluator* eval_ctx, double   value);
+		static bool eval_const_ptr   (ILEvaluator* eval_ctx, void*    value);
 
 		static bool eval_const_ctype(ILEvaluator* eval_ctx, ILCtype value);
 

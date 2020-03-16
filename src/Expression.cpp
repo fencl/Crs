@@ -52,17 +52,17 @@ namespace Corrosive {
 		ret.lvalue = false;
 		switch (rsv)
 		{
-			case 1: ret.t = ctx.default_types->t_bool;
-			case 2: ret.t = ctx.default_types->t_u8;
-			case 3: ret.t = ctx.default_types->t_i8;
-			case 4: ret.t = ctx.default_types->t_u16;
-			case 5: ret.t = ctx.default_types->t_i16;
-			case 6: ret.t = ctx.default_types->t_u32;
-			case 7: ret.t = ctx.default_types->t_i32;
-			case 8: ret.t = ctx.default_types->t_u64;
-			case 9: ret.t = ctx.default_types->t_i64;
-			case 10: ret.t = ctx.default_types->t_f32;
-			case 11: ret.t = ctx.default_types->t_f64;
+			case 1: ret.t = ctx.default_types->t_bool; break;
+			case 2: ret.t = ctx.default_types->t_u8; break;
+			case 3: ret.t = ctx.default_types->t_i8; break;
+			case 4: ret.t = ctx.default_types->t_u16; break;
+			case 5: ret.t = ctx.default_types->t_i16; break;
+			case 6: ret.t = ctx.default_types->t_u32; break;
+			case 7: ret.t = ctx.default_types->t_i32; break;
+			case 8: ret.t = ctx.default_types->t_u64; break;
+			case 9: ret.t = ctx.default_types->t_i64; break;
+			case 10: ret.t = ctx.default_types->t_f32; break;
+			case 11: ret.t = ctx.default_types->t_f64; break;
 			default:
 				break;
 		}

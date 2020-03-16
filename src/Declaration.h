@@ -28,17 +28,27 @@ namespace Corrosive {
 		Namespace* find_name(std::string_view name);
 	};
 
-	struct StructureMember {
+	struct StructureMemberVar {
 		Cursor name;
 		Cursor type;
+	};
+
+	struct StructureMemberFunc {
+		Cursor name;
+		Cursor type;
+		Cursor block;
 	};
 
 	class Structure;
 	class StructureInstance {
 	public:
-		std::map<std::string_view,Type> members;
+		std::map<std::string_view,Type> member_vars;
+		std::map<std::string_view,std::pair<ILFunction*,Type>> member_funcs;
 		Structure* generator;
 		ILType* iltype = nullptr;
+
+		int compare(void* p1, void* p2);
+		void move(CompileContext& ctx, void* src, void* dst);
 
 		std::unique_ptr<InstanceType> type;
 		bool compile(CompileContext& ctx);
@@ -48,6 +58,7 @@ namespace Corrosive {
 
 	class Structure : public Namespace {
 	public:
+		virtual ~Structure();
 		Cursor generic_types;
 		std::unique_ptr<DirectType> type;
 
@@ -55,10 +66,11 @@ namespace Corrosive {
 
 		size_t generate_heap_size = 0;
 
-		ILFunction* generator;
 		bool is_generic = false;
-		std::vector<StructureMember> members;
-		std::map<std::unique_ptr<unsigned char[]>, std::unique_ptr<StructureInstance>> instances;
+		std::vector<StructureMemberVar> member_vars;
+		std::vector<StructureMemberFunc> member_funcs;
+
+		bool generate(CompileContext& ctx, void* argdata, StructureInstance*& out);
 
 		bool compile(CompileContext& ctx);
 		unsigned int type_compare_heap_size = 0;
@@ -66,6 +78,17 @@ namespace Corrosive {
 		static bool parse(Cursor &c, CompileContext& ctx, std::unique_ptr<Structure>& into);
 
 		unsigned int compile_state = 0;
+		std::vector<std::tuple<Cursor,size_t,Type>> generic_layout;
+		bool rvalue_stacked = true;
+
+	private:
+		struct GenericTemplateCompare {
+			Structure* parent;
+			bool operator()(const std::pair<unsigned int, void*>& a, const std::pair<unsigned int, void*>& b) const;
+		};
+		GenericTemplateCompare gen_template_cmp;
+	public:
+		std::unique_ptr<std::map<std::pair<unsigned int, void*>, std::unique_ptr<StructureInstance>, GenericTemplateCompare>> instances = nullptr;
 	};
 
 	class Declaration {
