@@ -16,8 +16,6 @@ namespace Corrosive {
 	AbstractType::AbstractType(ILDataType rv) : rvalue(rv) {}
 
 
-
-
 	int AbstractType::compare(void* p1, void* p2) {
 		exit(0);
 		return -1;
@@ -67,6 +65,17 @@ namespace Corrosive {
 		}
 	}
 
+	void Type::print(std::ostream& os) {
+		for (unsigned int i = 0; i < ref_count; i++)
+			os << "&";
+		type->print(os);
+	}
+
+
+
+	void AbstractType::print(std::ostream& os) { os << "<error>"; }
+	void DirectType::print(std::ostream& os) { os << owner->name.buffer; }
+	void InstanceType::print(std::ostream& os) { os << owner->generator->name.buffer; if (owner->generator->is_generic) { std::cout << "(...)"; } }
 
 	bool Type::rvalue_stacked() {
 		if (ref_count > 0)

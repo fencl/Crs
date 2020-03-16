@@ -9,6 +9,7 @@
 #include <variant>
 #include <unordered_set>
 #include "IL/IL.h"
+#include <ostream>
 
 namespace Corrosive {
 	struct CompileContext;
@@ -24,6 +25,7 @@ namespace Corrosive {
 		virtual int compare(void* p1, void* p2);
 		virtual void move(CompileContext& ctx, void* src, void* dst);
 		virtual bool rvalue_stacked();
+		virtual void print(std::ostream& os);
 	};
 
 	class Structure;
@@ -34,6 +36,7 @@ namespace Corrosive {
 		virtual int compare(void* p1, void* p2);
 		virtual void move(CompileContext& ctx, void* src, void* dst);
 		virtual bool rvalue_stacked();
+		virtual void print(std::ostream& os);
 	};
 
 	class StructureInstance;
@@ -44,6 +47,7 @@ namespace Corrosive {
 		virtual int compare(void* p1, void* p2);
 		virtual void move(CompileContext& ctx, void* src, void* dst);
 		virtual bool rvalue_stacked();
+		virtual void print(std::ostream& os);
 	};
 
 	class Type {
@@ -57,6 +61,7 @@ namespace Corrosive {
 		int compare(size_t s, void* p1, void* p2);
 		void move(CompileContext& ctx, void* src, void* dst);
 		bool rvalue_stacked();
+		void print(std::ostream& os);
 	};
 
 

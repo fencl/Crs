@@ -9,6 +9,15 @@
 
 namespace Corrosive {
 
+	bool Operand::cast(Cursor& err, CompileContext& ctx, CompileValue& res,Type to, CompileType copm_type) {
+
+		if (res.t != to) {
+			throw_cannot_cast_error(err, res.t, to);
+			return false;
+		}
+
+		return true;
+	}
 
 	bool Operand::parse(Cursor& c, CompileContext& ctx, CompileValue& res, CompileType cpt) {
 		CompileValue ret;
@@ -377,13 +386,21 @@ namespace Corrosive {
 
 				if (auto dt = dynamic_cast<DirectType*>(t.type)) {
 					c.move();
-
+					auto layout = dt->owner->generic_layout.begin();
 					std::vector<CompileValue> results;
 					if (c.tok != RecognizedToken::CloseParenthesis) {
 						while (true) {
 							CompileValue res;
+							Cursor err = c;
 							Expression::parse(c, ctx, res, CompileType::eval);
 							results.push_back(res);
+
+							
+							if (!Operand::cast(err, ctx, res, std::get<2>(*layout), cpt)) return false;
+							
+
+
+							layout++;
 
 							if (c.tok == RecognizedToken::Comma) {
 								c.move();

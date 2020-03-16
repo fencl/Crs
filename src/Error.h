@@ -2,6 +2,8 @@
 #ifndef _error_crs_h
 #define _error_crs_h
 #include "Cursor.h"
+#include "Type.h"
+
 namespace Corrosive {
 	void throw_error_header(const Cursor& c);
 	void throw_eof_error(const Cursor& c, std::string_view during);
@@ -9,6 +11,7 @@ namespace Corrosive {
 	void throw_not_a_name_error(const Cursor& c);
 	void throw_variable_not_found_error(const Cursor& c);
 	void throw_wrong_token_error(const Cursor& c, std::string_view expected);
+	void throw_cannot_cast_error(const Cursor& c, Type from,Type to);
 	void throw_exit();
 
 	void throw_il_wrong_data_flow_error();
