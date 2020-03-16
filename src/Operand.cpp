@@ -169,30 +169,26 @@ namespace Corrosive {
 		}
 		else {
 			
-			auto sitm = StackManager::stack_find<0>(c.buffer);
+			StackItem* sitm;
 
-			if (cpt != CompileType::eval) {
+			if (cpt != CompileType::eval && (sitm = StackManager::stack_find<0>(c.buffer))) {
 
 
 				if (cpt == CompileType::compile) {
-					//TODO local
-					
-					//ILBuilder::build_param(ctx.block, sitm->ir_local);
-					ret = sitm->value;
-				}
-
-				c.move();
-			}
-			else if (sitm = StackManager::stack_find<1>(c.buffer)) {
-				if (cpt == CompileType::eval) {
 					ILBuilder::eval_local(ctx.eval, sitm->ir_local);
 					ret = sitm->value;
 					ret.lvalue = true;
 					c.move();
 				}
-				else {
-					throw_specific_error(c, "???");
-					return false;
+
+				c.move();
+			}
+			else if (cpt != CompileType::compile && (sitm = StackManager::stack_find<1>(c.buffer))) {
+				if (cpt == CompileType::eval) {
+					ILBuilder::eval_local(ctx.eval, sitm->ir_local);
+					ret = sitm->value;
+					ret.lvalue = true;
+					c.move();
 				}
 			}
 			else {
@@ -392,14 +388,11 @@ namespace Corrosive {
 						while (true) {
 							CompileValue res;
 							Cursor err = c;
-							Expression::parse(c, ctx, res, CompileType::eval);
+							if (!Expression::parse(c, ctx, res, CompileType::eval)) return false;
 							results.push_back(res);
 
-							
 							if (!Operand::cast(err, ctx, res, std::get<2>(*layout), cpt)) return false;
 							
-
-
 							layout++;
 
 							if (c.tok == RecognizedToken::Comma) {
@@ -448,6 +441,7 @@ namespace Corrosive {
 					ret.lvalue = false;
 					ret.t = ctx.default_types->t_type;
 
+					//DESTRUCTOR: there are values on the stack, they need to be potentionaly released if they hold memory
 
 					ctx.eval->stack_pop(sp);
 					StackManager::move_stack_in<1>(std::move(ss));

@@ -78,7 +78,8 @@ namespace Corrosive {
 
 		CompileValue ret;
 		if (!_crs_expr_arith_res(ctx,left, right,ret)) {
-			throw_specific_error(c, "Operation is not specified on top of specified types");
+			throw_specific_error(c, "Operation is not defined on top of specified types");
+			return false;
 		}
 
 		ret.lvalue = false;
@@ -387,6 +388,7 @@ namespace Corrosive {
 	bool Expression::parse_operators(Cursor& c, CompileContext& ctx, CompileValue& res, CompileType cpt) {
 
 		int op_type[5] = { -1 };
+		Cursor op_cursors[5];
 		CompileValue layer[5];
 		memset(layer, 0, sizeof(layer));
 
@@ -397,6 +399,8 @@ namespace Corrosive {
 			if (!Operand::parse(c, ctx, value, cpt)) return false;
 			int op_v = -1;
 			int op_t = -1;
+
+			Cursor opc = c;
 
 			switch (c.tok)
 			{
@@ -467,7 +471,7 @@ namespace Corrosive {
 					CompileValue& left = layer[i];
 					CompileValue& right = value;
 
-					if (!emit(c, ctx, value, i, op_type[i], left, right, cpt, op_v, op_t)) return false;
+					if (!emit(op_cursors[i], ctx, value, i, op_type[i], left, right, cpt, op_v, op_t)) return false;
 					layer[i].t.type = nullptr;
 				}
 			}
@@ -478,6 +482,7 @@ namespace Corrosive {
 
 				layer[op_v] = value;
 				op_type[op_v] = op_t;
+				op_cursors[op_v] = opc;
 				current_layer = op_v;
 
 				c.move();
