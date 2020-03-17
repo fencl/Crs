@@ -251,8 +251,16 @@ namespace Corrosive {
 				if (cpt == CompileType::eval) {
 					uint8_t v = ctx.eval->read_last_register_value<uint8_t>();
 					if (v) {
+						ctx.eval->pop_register_value<uint8_t>();
 						CompileValue right;
 						if (!Expression::parse_operators(c, ctx, right, cpt)) return false;
+
+						if (right.t != ctx.default_types->t_bool) {
+							throw_specific_error(c, "Operation requires right operand to be boolean");
+							return false;
+						}
+						uint8_t rv = ctx.eval->pop_register_value<uint8_t>();
+						ILBuilder::eval_const_ibool(ctx.eval, v & rv);
 					}
 					else {
 						CompileValue tmp;
@@ -331,8 +339,16 @@ namespace Corrosive {
 				if (cpt == CompileType::eval) {
 					uint8_t v = ctx.eval->read_last_register_value<uint8_t>();
 					if (!v) {
+						ctx.eval->pop_register_value<uint8_t>();
 						CompileValue right;
 						if (!Expression::parse_and(c, ctx, right, cpt)) return false;
+
+						if (right.t != ctx.default_types->t_bool) {
+							throw_specific_error(c, "Operation requires right operand to be boolean");
+							return false;
+						}
+						uint8_t rv = ctx.eval->pop_register_value<uint8_t>();
+						ILBuilder::eval_const_ibool(ctx.eval, v | rv);
 					}
 					else {
 						CompileValue tmp;
