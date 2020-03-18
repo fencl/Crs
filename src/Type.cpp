@@ -7,58 +7,54 @@
 #include "Utilities.h"
 
 namespace Corrosive {
-	AbstractType::~AbstractType() {
 
+
+	int TypeInstance::compare(ILEvaluator* eval, void* p1, void* p2) {
+		switch (type)
+		{
+			case Corrosive::TypeInstanceType::StructureInstance:
+				return ((StructureInstance*)owner_ptr)->compare(eval, p1, p2);
+			default:
+				exit(1);
+				return 0;
+		}
 	}
 
-
-	AbstractType::AbstractType() : rvalue(ILDataType::undefined) {}
-	AbstractType::AbstractType(ILDataType rv) : rvalue(rv) {}
-
-
-	int AbstractType::compare(void* p1, void* p2) {
-		exit(0);
-		return -1;
+	void TypeInstance::move(CompileContext& ctx, void* src, void* dst) {
+		switch (type)
+		{
+			case Corrosive::TypeInstanceType::StructureInstance:
+				((StructureInstance*)owner_ptr)->move(ctx, src, dst);
+				break;
+			default:
+				exit(1);
+		}
 	}
 
-	int DirectType::compare(void* p1, void* p2) {
-		exit(0);
-		return -1; // not shure what this should mean, maybe it will be some feature later
-	}
-
-	int InstanceType::compare(void* p1, void* p2) {
-		return owner->compare(p1, p2);
-	}
-
-	void AbstractType::move(CompileContext& ctx, void* src, void* dst) {
-		exit(0);
-	}
-
-	void DirectType::move(CompileContext& ctx, void* src, void* dst) {
-		exit(0);
-	}
-
-	void InstanceType::move(CompileContext& ctx, void* src, void* dst) {
-		owner->move(ctx, src, dst);
-	}
-
-	int Type::compare(size_t s, void* p1, void* p2) {
+	int Type::compare(ILEvaluator* eval, void* p1, void* p2) {
 		if (ref_count > 0) {
-			return memcmp(p1, p2, s);
+			return memcmp(p1, p2, compile_time_size(eval));
 		}
 		else {
-			return type->compare(p1, p2);
+			return type->compare(eval,p1, p2);
 		}
 	}
 
 
-	bool AbstractType::rvalue_stacked() { return false; }
-	bool DirectType::rvalue_stacked() { return false; }
-	bool InstanceType::rvalue_stacked() { return owner->generator->rvalue_stacked; }
+	bool TypeInstance::rvalue_stacked() { 
+		switch (type)
+		{
+			case Corrosive::TypeInstanceType::StructureInstance:
+				return ((StructureInstance*)owner_ptr)->generator->rvalue_stacked;
+			default:
+				exit(1);
+				return 0;
+		}
+	}
 
 	void Type::move(CompileContext& ctx, void* src, void* dst) {
 		if (ref_count > 0) {
-			memcpy(dst, src, ctx.eval->register_size(ILDataType::ptr));
+			memcpy(dst, src, ctx.eval->compile_time_register_size(ILDataType::ptr));
 		}
 		else {
 			type->move(ctx, src, dst);
@@ -72,10 +68,31 @@ namespace Corrosive {
 	}
 
 
+	void TypeInstance::print(std::ostream& os) {
+		switch (type)
+		{
+			case Corrosive::TypeInstanceType::StructureInstance:
+				os << ((StructureInstance*)owner_ptr)->generator->name.buffer;
+				break;
+			case Corrosive::TypeInstanceType::Structure:
+				os << ((Structure*)owner_ptr)->name.buffer;
+				os << "(inst)";
+				break;
+			default:
+				exit(1);
+		}
+	}
 
-	void AbstractType::print(std::ostream& os) { os << "<error>"; }
-	void DirectType::print(std::ostream& os) { os << owner->name.buffer; }
-	void InstanceType::print(std::ostream& os) { os << owner->generator->name.buffer; if (owner->generator->is_generic) { std::cout << "(...)"; } }
+	size_t TypeInstance::compile_time_size(ILEvaluator* eval) {
+		switch (type)
+		{
+			case Corrosive::TypeInstanceType::StructureInstance:
+				return ((StructureInstance*)owner_ptr)->iltype->size_in_bytes;
+				break;
+			default:
+				exit(1);
+		}
+	}
 
 	bool Type::rvalue_stacked() {
 		if (ref_count > 0)
@@ -84,19 +101,14 @@ namespace Corrosive {
 			return type->rvalue_stacked();
 	}
 
-	size_t Type::size(CompileContext& ctx) {
+	size_t Type::compile_time_size(ILEvaluator* eval) {
 		if (ref_count > 0) {
-			return ctx.eval->register_size(ILDataType::ptr);
+			return eval->compile_time_register_size(ILDataType::ptr);
 		}
 		else {
-			if (auto it = dynamic_cast<InstanceType*>(type)) {
-				return it->owner->iltype->size_in_bytes;
-			}
-			else {
-				return 0;
-			}
+			return type->compile_time_size(eval);
 		}
 	}
 
-	Type Type::null = {nullptr,0};
+	Type Type::null = { nullptr,0 };
 }

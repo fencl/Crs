@@ -10,20 +10,22 @@
 namespace Corrosive {
 
 
-	bool AbstractType::compile(CompileContext& ctx) {
+	
+	bool TypeInstance::compile(CompileContext& ctx) {
+		switch (type)
+		{
+			case Corrosive::TypeInstanceType::StructureInstance:
+				if (!((StructureInstance*)owner_ptr)->compile(ctx)) return false;
+				break;
+			case Corrosive::TypeInstanceType::Structure:
+				if (!((Structure*)owner_ptr)->compile(ctx)) return false;
+				break;
+			default:
+				exit(1);
+		}
+
 		return true;
 	}
-
-	bool InstanceType::compile(CompileContext& ctx) {
-		if (!owner->compile(ctx)) return false;
-		return true;
-	}
-
-	bool DirectType::compile(CompileContext& ctx) {
-		if (!owner->compile(ctx)) return false;
-		return true;
-	}
-
 
 	bool Type::compile(CompileContext& ctx) {
 		if (ref_count == 0) {

@@ -28,7 +28,7 @@ namespace Corrosive {
 	};
 
 	enum class ILDataType : unsigned char {
-		ibool,u8,i8,u16,i16,u32,i32,u64,i64,f32,f64,ptr,none,undefined,ctype
+		ibool, u8, i8, u16, i16, u32, i32, u64, i64, f32, f64, ptr, none, undefined, ctype
 	};
 
 	enum class ILArchitecture {
@@ -84,10 +84,12 @@ namespace Corrosive {
 	public:
 		~ILType();
 		ILType();
-		ILType(ILDataType rv,unsigned int sz, unsigned int alg);
+		ILType(ILDataType rv,unsigned int sz, unsigned int ct, unsigned int alg);
 		ILDataType rvalue;
 		unsigned int size_in_bytes = 0;
 		unsigned int alignment_in_bytes = 0;
+
+		unsigned int compile_time_size_in_bytes = 0;
 
 		virtual int auto_compare(void* p1, void* p2);
 		virtual void auto_move(void* src, void* dst);
@@ -96,7 +98,7 @@ namespace Corrosive {
 	class ILStruct : public ILType {
 	public:
 		ILStruct();
-		std::vector<std::pair<unsigned int, ILType*>> member_vars;
+		std::vector<std::tuple<unsigned int, unsigned int, ILType*>> member_vars;
 		void add_member(ILType* type);
 		void align_size();
 		virtual int auto_compare(void* p1, void* p2);
@@ -126,13 +128,10 @@ namespace Corrosive {
 	class ILEvaluator {
 	public:
 		using register_value = uint64_t;
+
 		static const inline size_t stack_size = 1024*4;
-		static const inline size_t heap_size = 1024*1024;
 
 		unsigned char memory_stack[stack_size];
-		unsigned char memory_heap[heap_size];
-
-		unsigned char* map_pointer(void* ptr);
 
 		unsigned char register_stack[256];
 
@@ -146,13 +145,13 @@ namespace Corrosive {
 
 		ILModule* parent;
 
-		void write_register_value(size_t size, unsigned char* value);
-		void pop_register_value(size_t size, unsigned char* into);
+		void write_register_value_indirect(size_t size, void* value);
+		void pop_register_value_indirect(size_t size, void* into);
 
-		size_t register_size(ILDataType t);
+		size_t compile_time_register_size(ILDataType t);
 
 		void* read_last_register_value_pointer(ILDataType rs);
-		void pop_register_value(ILDataType rs);
+		void discard_register_by_type(ILDataType rs);
 		
 		std::vector<std::vector<void*>> on_stack;
 		unsigned char* stack_push();
@@ -168,6 +167,11 @@ namespace Corrosive {
 			register_stack_pointer -= sizeof(T);
 			return *((T*)register_stack_pointer);
 		}
+
+		template<typename T> inline void write_register_value(T v) {
+			*((T*)register_stack_pointer) = v;
+			register_stack_pointer += sizeof(T);
+		}
 	};
 
 	class ILModule {
@@ -176,7 +180,7 @@ namespace Corrosive {
 		std::vector<std::unique_ptr<ILType>> types;
 		ILArchitecture architecture = ILArchitecture::x86_64;
 		ILFunction* create_function(ILType* returns);
-		ILType* create_primitive_type(ILDataType rv, unsigned int sz, unsigned int alg);
+		ILType* create_primitive_type(ILDataType rv, unsigned int sz, unsigned int cs, unsigned int alg);
 		ILStruct* create_struct_type();
 
 		ILType* t_i8;

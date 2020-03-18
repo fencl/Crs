@@ -14,6 +14,7 @@ namespace Corrosive {
 
 	class Namespace;
 	class DefaultTypes;
+
 	struct CompileContext {
 		DefaultTypes*	default_types = nullptr;
 		Namespace*		inside = nullptr;
@@ -31,4 +32,6 @@ namespace Corrosive {
 }
 #include "PredefinedTypes.h"
 #include "Declaration.h"
+#include "Type.h"
+
 #endif

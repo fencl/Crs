@@ -73,9 +73,10 @@ namespace Corrosive {
 
 	bool Structure::parse(Cursor& c, CompileContext& ctx, std::unique_ptr<Structure>& into) {
 		std::unique_ptr<Structure> result = std::make_unique<Structure>();
-		std::unique_ptr<DirectType> result_type = std::make_unique<DirectType>();
+		std::unique_ptr<TypeInstance> result_type = std::make_unique<TypeInstance>();
 		result_type->rvalue = ILDataType::ptr;
-		result_type->owner = result.get();
+		result_type->type = TypeInstanceType::Structure;
+		result_type->owner_ptr = (void*)result.get();
 		result->type = std::move(result_type);
 
 		if (c.tok != RecognizedToken::Symbol)

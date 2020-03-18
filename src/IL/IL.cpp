@@ -343,8 +343,10 @@ namespace Corrosive {
 
 	void ILStruct::add_member(ILType* type) {
 		unsigned int n_size = _align_up(size_in_bytes, type->alignment_in_bytes);
-		member_vars.push_back(std::make_pair(n_size, type));
+		member_vars.push_back(std::make_tuple(n_size,compile_time_size_in_bytes, type));
 		size_in_bytes = n_size + type->size_in_bytes;
+		compile_time_size_in_bytes += type->compile_time_size_in_bytes;
+
 		alignment_in_bytes = std::max(alignment_in_bytes, type->alignment_in_bytes);
 	}
 
@@ -354,9 +356,9 @@ namespace Corrosive {
 
 	void ILStruct::auto_move(void* src, void* dst) {
 		for (auto&& m : member_vars) {
-			void* src_o = (char*)src + m.first;
-			void* dst_o = (char*)dst + m.first;
-			m.second->auto_move(src_o, dst_o);
+			void* src_o = (char*)src + std::get<1>(m);
+			void* dst_o = (char*)dst + std::get<1>(m);
+			std::get<2>(m)->auto_move(src_o, dst_o);
 		}
 	}
 
@@ -366,9 +368,9 @@ namespace Corrosive {
 
 	int ILStruct::auto_compare(void* p1, void* p2) {
 		for (auto&& m : member_vars) {
-			void* p1_o = (char*)p1 + m.first;
-			void* p2_o = (char*)p2 + m.first;
-			int r = m.second->auto_compare(p1_o, p2_o);
+			void* p1_o = (char*)p1 + std::get<1>(m);
+			void* p2_o = (char*)p2 + std::get<1>(m);
+			int r = std::get<2>(m)->auto_compare(p1_o, p2_o);
 			if (r == 0)
 				continue;
 			else if (r > 0)
@@ -383,12 +385,12 @@ namespace Corrosive {
 
 
 	void* ILEvaluator::read_last_register_value_pointer(ILDataType rs) {
-		return register_stack_pointer - register_size(rs);
+		return register_stack_pointer - compile_time_register_size(rs);
 	}
 
 
-	void ILEvaluator::pop_register_value(ILDataType rs) {
-		register_stack_pointer -= register_size(rs);
+	void ILEvaluator::discard_register_by_type(ILDataType rs) {
+		register_stack_pointer -= compile_time_register_size(rs);
 	}
 
 	void ILStruct::align_size() {
@@ -398,13 +400,13 @@ namespace Corrosive {
 
 	ILType::~ILType() {}
 	ILType::ILType() : rvalue(ILDataType::undefined), size_in_bytes(0), alignment_in_bytes(0){}
-	ILType::ILType(ILDataType rv, unsigned int sz, unsigned int alg) : rvalue(rv), size_in_bytes(sz), alignment_in_bytes(alg) {}
+	ILType::ILType(ILDataType rv, unsigned int sz, unsigned int ct, unsigned int alg) : rvalue(rv), size_in_bytes(sz), compile_time_size_in_bytes(ct), alignment_in_bytes(alg) {}
 
-	ILStruct::ILStruct() : ILType(ILDataType::ptr,0,0) {}
+	ILStruct::ILStruct() : ILType(ILDataType::ptr,0,0,0) {}
 
 
-	ILType* ILModule::create_primitive_type(ILDataType rv, unsigned int sz, unsigned int alg) {
-		std::unique_ptr<ILType> t = std::make_unique<ILType>(rv, sz, alg);
+	ILType* ILModule::create_primitive_type(ILDataType rv, unsigned int sz, unsigned int cs, unsigned int alg) {
+		std::unique_ptr<ILType> t = std::make_unique<ILType>(rv, sz,cs, alg);
 		ILType* rt = t.get();
 		types.push_back(std::move(t));
 		return rt;
@@ -419,32 +421,32 @@ namespace Corrosive {
 
 	void ILModule::build_default_types() {
 
-		t_void = create_primitive_type(ILDataType::none, 0, 0);
+		t_void = create_primitive_type(ILDataType::none, 0, 0,0);
 
-		t_i8 = create_primitive_type(ILDataType::i8, 1, 1);
-		t_u8 = create_primitive_type(ILDataType::u8, 1, 1);
-		t_bool = create_primitive_type(ILDataType::ibool, 1, 1);
+		t_i8 = create_primitive_type(ILDataType::i8, 1,1, 1);
+		t_u8 = create_primitive_type(ILDataType::u8, 1,1, 1);
+		t_bool = create_primitive_type(ILDataType::ibool, 1,1, 1);
 
-		t_i16 = create_primitive_type(ILDataType::i16, 2, 2);
-		t_u16 = create_primitive_type(ILDataType::u16, 2, 2);
+		t_i16 = create_primitive_type(ILDataType::i16, 2,2, 2);
+		t_u16 = create_primitive_type(ILDataType::u16, 2,2, 2);
 
-		t_i32 = create_primitive_type(ILDataType::i32, 4, 4);
-		t_u32 = create_primitive_type(ILDataType::u32, 4, 4);
+		t_i32 = create_primitive_type(ILDataType::i32, 4,4, 4);
+		t_u32 = create_primitive_type(ILDataType::u32, 4,4, 4);
 
-		t_f32 = create_primitive_type(ILDataType::f32, 4, 4);
-		t_f64 = create_primitive_type(ILDataType::f64, 8, 8);
+		t_f32 = create_primitive_type(ILDataType::f32, 4,sizeof(float), 4);
+		t_f64 = create_primitive_type(ILDataType::f64, 8,sizeof(double), 8);
 
-		t_type = create_primitive_type(ILDataType::ctype, sizeof(ILCtype), sizeof(ILCtype));
+		t_type = create_primitive_type(ILDataType::ctype,sizeof(ILCtype), sizeof(ILCtype), sizeof(ILCtype));
 
 		if (architecture == ILArchitecture::i386) {
-			t_i64 = create_primitive_type(ILDataType::i64, 8, 4);
-			t_u64 = create_primitive_type(ILDataType::u64, 8, 4);
-			t_ptr = create_primitive_type(ILDataType::ptr, 4, 4);
+			t_i64 = create_primitive_type(ILDataType::i64, 8,8, 4);
+			t_u64 = create_primitive_type(ILDataType::u64, 8,8, 4);
+			t_ptr = create_primitive_type(ILDataType::ptr, 4,sizeof(void*), 4);
 		}
 		else if (architecture == ILArchitecture::x86_64) {
-			t_i64 = create_primitive_type(ILDataType::i64, 8, 8);
-			t_u64 = create_primitive_type(ILDataType::u64, 8, 8);
-			t_ptr = create_primitive_type(ILDataType::ptr, 8, 8);
+			t_i64 = create_primitive_type(ILDataType::i64, 8,8, 8);
+			t_u64 = create_primitive_type(ILDataType::u64, 8,8, 8);
+			t_ptr = create_primitive_type(ILDataType::ptr, 8,sizeof(void*), 8);
 		}
 	}
 

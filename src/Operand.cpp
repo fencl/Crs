@@ -10,12 +10,10 @@
 namespace Corrosive {
 
 	bool Operand::cast(Cursor& err, CompileContext& ctx, CompileValue& res,Type to, CompileType copm_type) {
-
 		if (res.t != to) {
 			throw_cannot_cast_error(err, res.t, to);
 			return false;
 		}
-
 		return true;
 	}
 
@@ -381,13 +379,14 @@ namespace Corrosive {
 			Expression::rvalue(ctx, ret, cpt);
 
 			if (cpt != CompileType::compile) {
-				DirectType* dt = nullptr;
+				TypeInstance* dt = nullptr;
 
 				if (cpt != CompileType::short_circuit) {
 					ILCtype ct = ctx.eval->pop_register_value<ILCtype>();
-					Type t = { (AbstractType*)ct.type,ct.ptr };
-					dt = dynamic_cast<DirectType*>(t.type);
-					if (dt == nullptr) {
+					Type t = { (TypeInstance*)ct.type,ct.ptr };
+
+					dt = t.type;
+					if (dt->type != TypeInstanceType::Structure) {
 						throw_specific_error(c, "this type is not a generic type");
 						return false;
 					}
@@ -395,10 +394,10 @@ namespace Corrosive {
 
 				c.move();
 				
-				std::vector<std::tuple<Cursor, size_t, Type>>::iterator layout;
+				std::vector<std::tuple<Cursor, Type>>::iterator layout;
 				
 				if (cpt != CompileType::short_circuit)
-					layout = dt->owner->generic_layout.begin();
+					layout = ((Structure*)dt->owner_ptr)->generic_layout.begin();
 
 				std::vector<CompileValue> results;
 				if (c.tok != RecognizedToken::CloseParenthesis) {
@@ -410,7 +409,7 @@ namespace Corrosive {
 
 
 						if (cpt != CompileType::short_circuit) {
-							if (!Operand::cast(err, ctx, res, std::get<2>(*layout), cpt)) return false;
+							if (!Operand::cast(err, ctx, res, std::get<1>(*layout), cpt)) return false;
 							layout++;
 						}
 
@@ -437,24 +436,23 @@ namespace Corrosive {
 					unsigned int local_i = 0;
 					for (size_t arg_i = results.size() - 1; arg_i >= 0 && arg_i < results.size(); arg_i--) {
 						CompileValue res = results[arg_i];
-						unsigned char* data_place = ctx.eval->stack_reserve(res.t.size(ctx));
+						unsigned char* data_place = ctx.eval->stack_reserve(res.t.compile_time_size(ctx.eval));
 
 						bool stacked = res.t.rvalue_stacked();
 						if (stacked) {
-							res.t.move(ctx, ctx.eval->map_pointer(ctx.eval->read_last_register_value_pointer(ILDataType::ptr)), data_place);
-							ctx.eval->pop_register_value(ILDataType::ptr);
+							res.t.move(ctx, ctx.eval->pop_register_value<void*>(), data_place);
 						}
 						else {
 							res.t.move(ctx, ctx.eval->read_last_register_value_pointer(res.t.type->rvalue), data_place);
-							ctx.eval->pop_register_value(res.t.type->rvalue);
+							ctx.eval->discard_register_by_type(res.t.type->rvalue);
 						}
 
-						StackManager::stack_push<1>(std::get<0>(dt->owner->generic_layout[arg_i]).buffer, res, local_i);
+						StackManager::stack_push<1>(std::get<0>(((Structure*)dt->owner_ptr)->generic_layout[arg_i]).buffer, res, local_i);
 						local_i++;
 					}
 
 					StructureInstance* inst = nullptr;
-					if (!dt->owner->generate(ctx, sp, inst)) return false;
+					if (!((Structure*)dt->owner_ptr)->generate(ctx, sp, inst)) return false;
 
 					ILCtype ct = { inst->type.get(),0 };
 					ILBuilder::eval_const_ctype(ctx.eval, ct);

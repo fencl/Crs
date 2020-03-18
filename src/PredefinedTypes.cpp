@@ -17,8 +17,9 @@ namespace Corrosive {
 		s->singe_instance->iltype = t;
 		s->singe_instance->generator = s.get();
 		s->singe_instance->compile_state = 2;
-		s->singe_instance->type = std::make_unique<InstanceType>();
-		s->singe_instance->type->owner = s->singe_instance.get();
+		s->singe_instance->type = std::make_unique<TypeInstance>();
+		s->singe_instance->type->type = TypeInstanceType::StructureInstance;
+		s->singe_instance->type->owner_ptr = (void*)s->singe_instance.get();
 		s->singe_instance->type->rvalue = ildt;
 
 		into.type = s->singe_instance->type.get();
@@ -39,7 +40,7 @@ namespace Corrosive {
 		setup_type(ctx, "u64", t_u64, ctx.module->t_u64, ILDataType::u64);
 		setup_type(ctx, "f32", t_f32, ctx.module->t_f32, ILDataType::f32);
 		setup_type(ctx, "f64", t_f64, ctx.module->t_f64, ILDataType::f64);
-
+		setup_type(ctx, "ptr", t_ptr,ctx.module->t_ptr,ILDataType::ptr);
 		setup_type(ctx, "type", t_type,ctx.module->t_type,ILDataType::ctype);
 	}
 

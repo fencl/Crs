@@ -47,10 +47,10 @@ namespace Corrosive {
 		Structure* generator;
 		ILType* iltype = nullptr;
 
-		int compare(void* p1, void* p2);
+		int compare(ILEvaluator* eval, void* p1, void* p2);
 		void move(CompileContext& ctx, void* src, void* dst);
 
-		std::unique_ptr<InstanceType> type;
+		std::unique_ptr<TypeInstance> type;
 		bool compile(CompileContext& ctx);
 
 		unsigned int compile_state = 0;
@@ -60,7 +60,7 @@ namespace Corrosive {
 	public:
 		virtual ~Structure();
 		Cursor generic_types;
-		std::unique_ptr<DirectType> type;
+		std::unique_ptr<TypeInstance> type;
 
 		std::unique_ptr<StructureInstance> singe_instance = nullptr;
 
@@ -78,12 +78,13 @@ namespace Corrosive {
 		static bool parse(Cursor &c, CompileContext& ctx, std::unique_ptr<Structure>& into);
 
 		unsigned int compile_state = 0;
-		std::vector<std::tuple<Cursor,size_t,Type>> generic_layout;
+		std::vector<std::tuple<Cursor,Type>> generic_layout;
 		bool rvalue_stacked = true;
 
 	private:
 		struct GenericTemplateCompare {
 			Structure* parent;
+			ILEvaluator* eval;
 			bool operator()(const std::pair<unsigned int, void*>& a, const std::pair<unsigned int, void*>& b) const;
 		};
 		GenericTemplateCompare gen_template_cmp;

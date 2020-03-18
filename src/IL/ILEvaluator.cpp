@@ -6,51 +6,27 @@
 namespace Corrosive {
 
 
-	void ILEvaluator::write_register_value(size_t size, unsigned char* value) {
+	void ILEvaluator::write_register_value_indirect(size_t size, void* value) {
 		memcpy(register_stack_pointer, value, size);
 		register_stack_pointer += size;
 	}
 
-	bool ILBuilder::eval_const_ibool (ILEvaluator* eval_ctx, int8_t   value) { eval_ctx->write_register_value(sizeof(int8_t),   (unsigned char*)&value); return true; }
-	bool ILBuilder::eval_const_i8    (ILEvaluator* eval_ctx, int8_t   value) { eval_ctx->write_register_value(sizeof(int8_t),   (unsigned char*)&value); return true; }
-	bool ILBuilder::eval_const_i16   (ILEvaluator* eval_ctx, int16_t  value) { eval_ctx->write_register_value(sizeof(int16_t),  (unsigned char*)&value); return true; }
-	bool ILBuilder::eval_const_i32   (ILEvaluator* eval_ctx, int32_t  value) { eval_ctx->write_register_value(sizeof(int32_t),  (unsigned char*)&value); return true; }
-	bool ILBuilder::eval_const_i64   (ILEvaluator* eval_ctx, int64_t  value) { eval_ctx->write_register_value(sizeof(int64_t),  (unsigned char*)&value); return true; }
-	bool ILBuilder::eval_const_u8    (ILEvaluator* eval_ctx, uint8_t  value) { eval_ctx->write_register_value(sizeof(uint8_t),  (unsigned char*)&value); return true; }
-	bool ILBuilder::eval_const_u16   (ILEvaluator* eval_ctx, uint16_t value) { eval_ctx->write_register_value(sizeof(uint16_t), (unsigned char*)&value); return true; }
-	bool ILBuilder::eval_const_u32   (ILEvaluator* eval_ctx, uint32_t value) { eval_ctx->write_register_value(sizeof(uint32_t), (unsigned char*)&value); return true; }
-	bool ILBuilder::eval_const_u64   (ILEvaluator* eval_ctx, uint64_t value) { eval_ctx->write_register_value(sizeof(uint64_t), (unsigned char*)&value); return true; }
-	bool ILBuilder::eval_const_f32   (ILEvaluator* eval_ctx, float    value) { eval_ctx->write_register_value(sizeof(float),    (unsigned char*)&value); return true; }
-	bool ILBuilder::eval_const_f64   (ILEvaluator* eval_ctx, double   value) { eval_ctx->write_register_value(sizeof(double),   (unsigned char*)&value); return true; }
-
-
-	bool ILBuilder::eval_const_ptr(ILEvaluator* eval_ctx, void* value) {
-		switch (eval_ctx->parent->architecture)
-		{
-			case ILArchitecture::i386: {
-					uint32_t ptr = (uint32_t)((unsigned char*)value- eval_ctx->memory_stack);
-					if (ptr > ILEvaluator::stack_size) {
-						ptr = (uint32_t)((unsigned char*)value - eval_ctx->memory_heap) + ILEvaluator::stack_size;
-					}
-					eval_ctx->write_register_value(sizeof(int32_t), (unsigned char*)&ptr);
-					return true;
-				}
-			case ILArchitecture::x86_64: {
-					uint64_t ptr = (uint64_t)((unsigned char*)value- eval_ctx->memory_stack);
-					if (ptr > ILEvaluator::stack_size) {
-						ptr = (uint64_t)((unsigned char*)value - eval_ctx->memory_heap) + ILEvaluator::stack_size;
-					}
-					eval_ctx->write_register_value(sizeof(uint64_t), (unsigned char*)&ptr);
-					return true;
-				}
-			default:
-				return false;
-		}
-	}
+	bool ILBuilder::eval_const_ibool (ILEvaluator* eval_ctx, int8_t   value) { eval_ctx->write_register_value_indirect(sizeof(int8_t),   (unsigned char*)&value); return true; }
+	bool ILBuilder::eval_const_i8    (ILEvaluator* eval_ctx, int8_t   value) { eval_ctx->write_register_value_indirect(sizeof(int8_t),   (unsigned char*)&value); return true; }
+	bool ILBuilder::eval_const_i16   (ILEvaluator* eval_ctx, int16_t  value) { eval_ctx->write_register_value_indirect(sizeof(int16_t),  (unsigned char*)&value); return true; }
+	bool ILBuilder::eval_const_i32   (ILEvaluator* eval_ctx, int32_t  value) { eval_ctx->write_register_value_indirect(sizeof(int32_t),  (unsigned char*)&value); return true; }
+	bool ILBuilder::eval_const_i64   (ILEvaluator* eval_ctx, int64_t  value) { eval_ctx->write_register_value_indirect(sizeof(int64_t),  (unsigned char*)&value); return true; }
+	bool ILBuilder::eval_const_u8    (ILEvaluator* eval_ctx, uint8_t  value) { eval_ctx->write_register_value_indirect(sizeof(uint8_t),  (unsigned char*)&value); return true; }
+	bool ILBuilder::eval_const_u16   (ILEvaluator* eval_ctx, uint16_t value) { eval_ctx->write_register_value_indirect(sizeof(uint16_t), (unsigned char*)&value); return true; }
+	bool ILBuilder::eval_const_u32   (ILEvaluator* eval_ctx, uint32_t value) { eval_ctx->write_register_value_indirect(sizeof(uint32_t), (unsigned char*)&value); return true; }
+	bool ILBuilder::eval_const_u64   (ILEvaluator* eval_ctx, uint64_t value) { eval_ctx->write_register_value_indirect(sizeof(uint64_t), (unsigned char*)&value); return true; }
+	bool ILBuilder::eval_const_f32   (ILEvaluator* eval_ctx, float    value) { eval_ctx->write_register_value_indirect(sizeof(float),    (unsigned char*)&value); return true; }
+	bool ILBuilder::eval_const_f64   (ILEvaluator* eval_ctx, double   value) { eval_ctx->write_register_value_indirect(sizeof(double),   (unsigned char*)&value); return true; }
+	bool ILBuilder::eval_const_ptr   (ILEvaluator* eval_ctx, void*    value) { eval_ctx->write_register_value_indirect(sizeof(void*),    (unsigned char*)&value); return true; }
 
 
 	bool ILBuilder::eval_const_ctype(ILEvaluator* eval_ctx, ILCtype value) {
-		eval_ctx->write_register_value(sizeof(ILCtype), (unsigned char*)&value); return true;
+		eval_ctx->write_register_value_indirect(sizeof(ILCtype), (unsigned char*)&value); return true;
 	}
 
 	template<typename T> inline T _il_evaluator_value_pop_into(ILEvaluator* eval_ctx, ILDataType t) {
@@ -142,11 +118,86 @@ namespace Corrosive {
 					op<uint64_t> o;
 					if (!ILBuilder::eval_const_u64(eval_ctx, o(lval, rval))) return false;
 				}break;
+			case ILDataType::f32: {
+					float rval = _il_evaluator_value_pop_into<float>(eval_ctx, r);
+					float lval = _il_evaluator_value_pop_into<float>(eval_ctx, l);
+					op<float> o;
+					if (!ILBuilder::eval_const_f32(eval_ctx, o(lval, rval))) return false;
+				}break;
+			case ILDataType::f64: {
+					double rval = _il_evaluator_value_pop_into<double>(eval_ctx, r);
+					double lval = _il_evaluator_value_pop_into<double>(eval_ctx, l);
+					op<double> o;
+					if (!ILBuilder::eval_const_f64(eval_ctx, o(lval, rval))) return false;
+				}break;
+				
 		}
 
 		return true;
 	}
 
+	template< template<typename Ty> class op> bool _il_evaluator_const_op_binary(ILEvaluator* eval_ctx, ILDataType l, ILDataType r) {
+		ILDataType res_t = ILBuilder::arith_result(l, r);
+		switch (res_t) {
+			case ILDataType::i8: {
+					int8_t rval = _il_evaluator_value_pop_into<int8_t>(eval_ctx, r);
+					int8_t lval = _il_evaluator_value_pop_into<int8_t>(eval_ctx, l);
+					op<int8_t> o;
+					if (!ILBuilder::eval_const_i8(eval_ctx, o(lval, rval))) return false;
+				}break;
+			case ILDataType::u8: {
+					uint8_t rval = _il_evaluator_value_pop_into<uint8_t>(eval_ctx, r);
+					uint8_t lval = _il_evaluator_value_pop_into<uint8_t>(eval_ctx, l);
+					op<uint8_t> o;
+					if (!ILBuilder::eval_const_u8(eval_ctx, o(lval, rval))) return false;
+				}break;
+			case ILDataType::ibool: {
+					uint8_t rval = _il_evaluator_value_pop_into<uint8_t>(eval_ctx, r);
+					uint8_t lval = _il_evaluator_value_pop_into<uint8_t>(eval_ctx, l);
+					op<uint8_t> o;
+					if (!ILBuilder::eval_const_ibool(eval_ctx, o(lval, rval))) return false;
+				}break;
+			case ILDataType::i16: {
+					int16_t rval = _il_evaluator_value_pop_into<int16_t>(eval_ctx, r);
+					int16_t lval = _il_evaluator_value_pop_into<int16_t>(eval_ctx, l);
+					op<int16_t> o;
+					if (!ILBuilder::eval_const_i16(eval_ctx, o(lval, rval))) return false;
+				}break;
+			case ILDataType::u16: {
+					uint16_t rval = _il_evaluator_value_pop_into<uint16_t>(eval_ctx, r);
+					uint16_t lval = _il_evaluator_value_pop_into<uint16_t>(eval_ctx, l);
+					op<uint16_t> o;
+					if (!ILBuilder::eval_const_u16(eval_ctx, o(lval, rval))) return false;
+				}break;
+			case ILDataType::i32: {
+					int32_t rval = _il_evaluator_value_pop_into<int32_t>(eval_ctx, r);
+					int32_t lval = _il_evaluator_value_pop_into<int32_t>(eval_ctx, l);
+					op<int32_t> o;
+					if (!ILBuilder::eval_const_i32(eval_ctx, o(lval, rval))) return false;
+				}break;
+			case ILDataType::u32: {
+					uint32_t rval = _il_evaluator_value_pop_into<uint32_t>(eval_ctx, r);
+					uint32_t lval = _il_evaluator_value_pop_into<uint32_t>(eval_ctx, l);
+					op<uint32_t> o;
+					if (!ILBuilder::eval_const_u32(eval_ctx, o(lval, rval))) return false;
+				}break;
+			case ILDataType::i64: {
+					int64_t rval = _il_evaluator_value_pop_into<int64_t>(eval_ctx, r);
+					int64_t lval = _il_evaluator_value_pop_into<int64_t>(eval_ctx, l);
+					op<int64_t> o;
+					if (!ILBuilder::eval_const_i64(eval_ctx, o(lval, rval))) return false;
+				}break;
+			case ILDataType::u64: {
+					uint64_t rval = _il_evaluator_value_pop_into<uint64_t>(eval_ctx, r);
+					uint64_t lval = _il_evaluator_value_pop_into<uint64_t>(eval_ctx, l);
+					op<uint64_t> o;
+					if (!ILBuilder::eval_const_u64(eval_ctx, o(lval, rval))) return false;
+				}break;
+
+		}
+
+		return true;
+	}
 
 	template< template<typename Ty> class op> bool _il_evaluator_const_op_bool(ILEvaluator* eval_ctx, ILDataType l, ILDataType r) {
 		ILDataType res_t = ILBuilder::arith_result(l, r);
@@ -212,13 +263,13 @@ namespace Corrosive {
 
 
 
-	void ILEvaluator::pop_register_value(size_t size, unsigned char* into) {
+	void ILEvaluator::pop_register_value_indirect(size_t size, void* into) {
 		register_stack_pointer -= size;
 		memcpy(into, register_stack_pointer, size);
 	}
 
 	bool ILBuilder::eval_accept(ILEvaluator* eval_ctx) {
-		eval_ctx->write_register_value(eval_ctx->register_size(eval_ctx->yield_type), (unsigned char*)&eval_ctx->yield);
+		eval_ctx->write_register_value_indirect(eval_ctx->compile_time_register_size(eval_ctx->yield_type), (unsigned char*)&eval_ctx->yield);
 		return true;
 	}
 
@@ -227,13 +278,13 @@ namespace Corrosive {
 	}
 
 	bool ILBuilder::eval_yield(ILEvaluator* eval_ctx, ILDataType yt) {
-		eval_ctx->pop_register_value(eval_ctx->register_size(yt), (unsigned char*)&eval_ctx->yield);
+		eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(yt), (unsigned char*)&eval_ctx->yield);
 		eval_ctx->yield_type = yt;
 		return true;
 	}
 
 
-	size_t ILEvaluator :: register_size(ILDataType t) {
+	size_t ILEvaluator :: compile_time_register_size(ILDataType t) {
 		switch (t)
 		{
 			case Corrosive::ILDataType::ibool:
@@ -255,17 +306,11 @@ namespace Corrosive {
 			case Corrosive::ILDataType::i64:
 				return 8;
 			case Corrosive::ILDataType::f32:
-				return 4;
+				return sizeof(float);
 			case Corrosive::ILDataType::f64:
-				return 8;
+				return sizeof(double);
 			case Corrosive::ILDataType::ptr:
-				switch (parent->architecture)
-				{
-					case ILArchitecture::i386:
-						return 4;
-					case ILArchitecture::x86_64:
-						return 8;
-				}
+				return sizeof(void*);
 			case Corrosive::ILDataType::ctype:
 				return sizeof(ILCtype);
 			case Corrosive::ILDataType::none:
@@ -277,68 +322,17 @@ namespace Corrosive {
 		}
 	}
 
-	/*bool ILBuilder::eval_ret(ILEvaluator* eval_ctx) {
-		// yield return value, sync with call (i will have call return pointer on the memory_stack)
-		return true;
-	}
-
-	bool ILBuilder::eval_jmp(ILEvaluator* eval_ctx) {
-		
-
-		return true;
-	}
-
-	bool ILBuilder::build_jmpz(ILBlock* block, ILBlock* ifz, ILBlock* ifnz) {
-		
-
-		return true;
-	}*/
 
 
-	unsigned char* ILEvaluator::map_pointer(void* ptr) {
-		switch (parent->architecture)
-		{
-			case ILArchitecture::i386: {
-					uint32_t ptr_d = *(uint32_t*)ptr;
-					if (ptr_d < ILEvaluator::stack_size) {
-						return &memory_stack[ptr_d];
-					}
-					else if (ptr_d < ILEvaluator::stack_size + ILEvaluator::heap_size){
-						return &memory_heap[(ptr_d - ILEvaluator::stack_size)];
-					}
-					else {
-						exit(0);
-					}
-				}
-			case ILArchitecture::x86_64: {
-					uint64_t ptr_d = *(uint64_t*)ptr;
-					if (ptr_d < ILEvaluator::stack_size) {
-						return &memory_stack[ptr_d];
-					}
-					else if (ptr_d < ILEvaluator::stack_size + ILEvaluator::heap_size) {
-						return &memory_heap[(ptr_d - ILEvaluator::stack_size)];
-					}
-					else {
-						exit(0);
-					}
-				}
-		}
-		return nullptr;
-	}
-
-
-	bool ILBuilder::eval_load(ILEvaluator* eval_ctx, ILDataType type) {		
-		unsigned char* mem = eval_ctx->map_pointer(eval_ctx->read_last_register_value_pointer(ILDataType::ptr));
-		eval_ctx->pop_register_value(ILDataType::ptr);
-
-		eval_ctx->write_register_value(eval_ctx->register_size(type), mem);
+	bool ILBuilder::eval_load(ILEvaluator* eval_ctx, ILDataType type) {
+		void* mem = eval_ctx->pop_register_value<void*>();
+		eval_ctx->write_register_value_indirect(eval_ctx->compile_time_register_size(type), mem);
 		return true;
 	}
 
 	bool ILBuilder::eval_store(ILEvaluator* eval_ctx, ILDataType type) {
-		unsigned char* mem = eval_ctx->map_pointer(eval_ctx->read_last_register_value_pointer(ILDataType::ptr));
-		eval_ctx->pop_register_value(ILDataType::ptr);
-		eval_ctx->pop_register_value(eval_ctx->register_size(type), mem);
+		void* mem = eval_ctx->pop_register_value<void*>();
+		eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(type), mem);
 		return true;
 	}
 
@@ -404,7 +398,7 @@ namespace Corrosive {
 
 	bool ILBuilder::eval_rem(ILEvaluator* eval_ctx, ILDataType t_l, ILDataType t_r) {
 
-		if (!_il_evaluator_const_op<std::modulus>(eval_ctx, t_l, t_r)) return false;
+		if (!_il_evaluator_const_op_binary<std::modulus>(eval_ctx, t_l, t_r)) return false;
 
 		return true;
 	}
@@ -413,7 +407,7 @@ namespace Corrosive {
 	bool ILBuilder::eval_and(ILEvaluator* eval_ctx, ILDataType t_l, ILDataType t_r) {
 
 
-		if (!_il_evaluator_const_op<std::bit_and>(eval_ctx, t_l, t_r)) return false;
+		if (!_il_evaluator_const_op_binary<std::bit_and>(eval_ctx, t_l, t_r)) return false;
 
 		return true;
 	}
@@ -422,7 +416,7 @@ namespace Corrosive {
 	bool ILBuilder::eval_or(ILEvaluator* eval_ctx, ILDataType t_l, ILDataType t_r) {
 
 
-		if (!_il_evaluator_const_op<std::bit_or>(eval_ctx, t_l, t_r)) return false;
+		if (!_il_evaluator_const_op_binary<std::bit_or>(eval_ctx, t_l, t_r)) return false;
 
 		return true;
 	}
@@ -430,7 +424,7 @@ namespace Corrosive {
 
 	bool ILBuilder::eval_xor(ILEvaluator* eval_ctx, ILDataType t_l, ILDataType t_r) {
 
-		if (!_il_evaluator_const_op<std::bit_xor>(eval_ctx, t_l, t_r)) return false;
+		if (!_il_evaluator_const_op_binary<std::bit_xor>(eval_ctx, t_l, t_r)) return false;
 
 		return true;
 	}

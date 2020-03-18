@@ -6,6 +6,7 @@
 #include "PredefinedTypes.h"
 #include "Expression.h"
 #include "StackManager.h"
+#include "Type.h"
 
 namespace Corrosive {
 
@@ -36,19 +37,17 @@ namespace Corrosive {
 					}
 
 					ILCtype ctype = ctx.eval->pop_register_value<ILCtype>();
-					Type t = { (AbstractType*)ctype.type,ctype.ptr };
+					Type t = { (TypeInstance*)ctype.type,ctype.ptr };
 
-					if (!dynamic_cast<InstanceType*>(t.type)) {
+					if (t.type->type != TypeInstanceType::StructureInstance) {
 						throw_specific_error(err, "Type does not point to instance");
 						return false;
 					}
 
 					if (!t.compile(ctx)) return false;
 					
-					generate_heap_size += t.size(ctx);
-					generic_layout.push_back(std::make_tuple(name,t.size(ctx),t));
-
-					
+					generate_heap_size += t.compile_time_size(ctx.eval);
+					generic_layout.push_back(std::make_tuple(name,t));
 
 
 					if (c.tok == RecognizedToken::Comma) {
@@ -83,16 +82,17 @@ namespace Corrosive {
 				}*/
 
 				gen_template_cmp.parent = this;
+				gen_template_cmp.eval = ctx.eval;
 				instances = std::make_unique<std::map<std::pair<unsigned int,void*>, std::unique_ptr<StructureInstance>, GenericTemplateCompare>>(gen_template_cmp);
 				
-
 				ctx.inside = i_push;
 
 			}
 			else {
 				singe_instance = std::make_unique<StructureInstance>();
-				singe_instance->type = std::make_unique<InstanceType>();
-				singe_instance->type->owner = singe_instance.get();
+				singe_instance->type = std::make_unique<TypeInstance>();
+				singe_instance->type->type = TypeInstanceType::StructureInstance;
+				singe_instance->type->owner_ptr = (void*)singe_instance.get();
 				singe_instance->generator = this;
 				singe_instance->type->rvalue = ILDataType::ptr;
 
@@ -113,7 +113,11 @@ namespace Corrosive {
 
 					ILCtype ctype = ctx.eval->pop_register_value<ILCtype>();
 
-					Type m_t = { (AbstractType*)ctype.type,ctype.ptr };
+					Type m_t = { (TypeInstance*)ctype.type,ctype.ptr };
+					if (m_t.type == nullptr) {
+						return false;
+					}
+
 					singe_instance->member_vars[m.name.buffer] = std::make_pair(m.name, m_t);
 				}
 
@@ -143,7 +147,7 @@ namespace Corrosive {
 
 					func->dump();
 
-					singe_instance->member_funcs[m.name.buffer] = std::make_pair<ILFunction*,Type>(nullptr,{ (AbstractType*)ctype.type,ctype.ptr });
+					singe_instance->member_funcs[m.name.buffer] = std::make_pair<ILFunction*,Type>(nullptr,{ (TypeInstance*)ctype.type,ctype.ptr });
 				}
 			}
 
@@ -175,8 +179,9 @@ namespace Corrosive {
 		if (f == instances->end()) {
 			std::unique_ptr<StructureInstance> inst = std::make_unique<StructureInstance>();
 
-			inst->type = std::make_unique<InstanceType>();
-			inst->type->owner = inst.get();
+			inst->type = std::make_unique<TypeInstance>();
+			inst->type->type = TypeInstanceType::StructureInstance;
+			inst->type->owner_ptr = (void*)inst.get();
 			inst->generator = this;
 			inst->type->rvalue = ILDataType::ptr;
 
@@ -194,7 +199,7 @@ namespace Corrosive {
 				}
 
 				ILCtype ctype = ctx.eval->pop_register_value<ILCtype>();
-				Type m_t = { (AbstractType*)ctype.type,ctype.ptr };
+				Type m_t = { (TypeInstance*)ctype.type,ctype.ptr };
 				inst->member_vars[m.name.buffer] = std::make_pair(m.name, m_t);
 			}
 
@@ -224,7 +229,7 @@ namespace Corrosive {
 
 				func->dump();
 
-				inst->member_funcs[m.name.buffer] = std::make_pair<ILFunction*, Type>(nullptr, { (AbstractType*)ctype.type,ctype.ptr });
+				inst->member_funcs[m.name.buffer] = std::make_pair<ILFunction*, Type>(nullptr, { (TypeInstance*)ctype.type,ctype.ptr });
 			}
 
 
@@ -257,8 +262,8 @@ namespace Corrosive {
 					if (!m.second.second.type->compile(ctx)) return false;
 				}
 
-				if (auto it = dynamic_cast<InstanceType*>(m.second.second.type)) {
-					((ILStruct*)iltype)->add_member(it->owner->iltype);
+				if (m.second.second.type->type == TypeInstanceType::StructureInstance) {
+					((ILStruct*)iltype)->add_member(((StructureInstance*)m.second.second.type->owner_ptr)->iltype);
 				}
 				else {
 					throw_specific_error(m.second.first, "Specified type is not an instance type");

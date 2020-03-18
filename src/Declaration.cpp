@@ -25,7 +25,7 @@ namespace Corrosive {
 		}
 	}
 
-	int StructureInstance::compare(void* p1, void* p2) {
+	int StructureInstance::compare(ILEvaluator* eval, void* p1, void* p2) {
 		//TODO test for specific compare function
 		return iltype->auto_compare(p1, p2);
 	}
@@ -52,10 +52,10 @@ namespace Corrosive {
 		if (a.first > b.first) return false;
 		size_t offset = 0;
 		for (auto&& l : parent->generic_layout) {
-			int r = std::get<2>(l).compare(std::get<1>(l),&((unsigned char*)a.second)[offset], &((unsigned char*)b.second)[offset]);
+			int r = std::get<1>(l).compare(eval, &((unsigned char*)a.second)[offset], &((unsigned char*)b.second)[offset]);
 			if (r < 0) return true;
 			if (r > 0) return false;
-			offset += std::get<1>(l);
+			offset += std::get<1>(l).compile_time_size(eval);
 		}
 
 		return false;
