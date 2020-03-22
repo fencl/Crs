@@ -18,7 +18,7 @@ namespace Corrosive {
 	
 	class StructureInstance;
 	enum class TypeInstanceType {
-		Structure,StructureInstance,Array
+		type_template,type_instance,type_array
 	};
 
 	class TypeInstance {

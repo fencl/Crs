@@ -97,6 +97,9 @@ namespace Corrosive {
 				case RecognizedToken::Dot: {
 						if (!parse_dot_operator(ret, c, ctx, cpt)) return false;
 					}break;
+				case RecognizedToken::DoubleColon: {
+						if (!parse_double_colon_operator(ret, c, ctx, cpt)) return false;
+					}break;
 				default: goto break_while;
 			}
 
@@ -152,19 +155,6 @@ namespace Corrosive {
 				if (!ILBuilder::eval_const_ibool(ctx.eval, false)) return false;
 			}
 		}
-		else if (c.buffer == "type") {
-			c.move();
-			ret.lvalue = false;
-			ret.t = ctx.default_types->t_type;
-			ILCtype ct = { ctx.default_types->t_type.type,0 };
-
-			if (cpt == CompileType::compile) {
-				if (!ILBuilder::build_const_ctype(ctx.block, ct)) return false;
-			}
-			else if (cpt == CompileType::eval) {
-				if (!ILBuilder::eval_const_ctype(ctx.eval, ct)) return false;
-			}
-		}
 		else {
 			
 			StackItem* sitm;
@@ -186,41 +176,53 @@ namespace Corrosive {
 				c.move();
 			}
 			else {
-				Namespace* inst = nullptr;
+				Namespace* namespace_inst = nullptr;
+				StructureTemplate* struct_inst = nullptr;
 				
 				if (cpt != CompileType::short_circuit) {
-					inst = ctx.inside->find_name(c.buffer);
+					ctx.inside->find_name(c.buffer, namespace_inst, struct_inst);
 
-					if (inst == nullptr) {
+					if (namespace_inst == nullptr && struct_inst == nullptr) {
 						throw_specific_error(c, "Path start point not found");
 						return false;
 					}
 				}
 
+				Cursor nm_err = c;
 				c.move();
-				while (c.tok == RecognizedToken::DoubleColon) {
+				while (c.tok == RecognizedToken::DoubleColon && namespace_inst!=nullptr) {
 					c.move();
 					if (c.tok != RecognizedToken::Symbol)
 					{
 						throw_not_a_name_error(c);
 						return false;
 					}
+					nm_err = c;
 
 					if (cpt != CompileType::short_circuit) {
-						auto f = inst->subnamespaces.find(c.buffer);
-						if (f != inst->subnamespaces.end()) {
-							inst = f->second.get();
+						auto f = namespace_inst->subnamespaces.find(c.buffer);
+						if (f != namespace_inst->subnamespaces.end()) {
+							namespace_inst = f->second.get();
 						}
 						else {
-							throw_specific_error(c, "Namespace path is not valid");
-							return false;
+							auto f2 = namespace_inst->subtemplates.find(c.buffer);
+							if (f2 != namespace_inst->subtemplates.end()) {
+								struct_inst = f2->second.get();
+								namespace_inst = nullptr;
+							}
+							else {
+
+								throw_specific_error(c, "Namespace path is not valid");
+								return false;
+							}
 						}
 					}
 					c.move();
 				}
 
+
 				if (cpt != CompileType::short_circuit) {
-					if (auto struct_inst = dynamic_cast<Structure*>(inst)) {
+					if (struct_inst) {
 						if (!struct_inst->compile(ctx)) return false;
 
 						if (struct_inst->is_generic) {
@@ -238,7 +240,9 @@ namespace Corrosive {
 							}
 						}
 						else {
-							ILCtype ct = { (void*)struct_inst->singe_instance->type.get(),0 };
+							StructureInstance* inst;
+							struct_inst->generate(ctx, nullptr, inst);
+							ILCtype ct = { (void*)inst->type.get(),0 };
 
 							if (cpt == CompileType::eval) {
 								if (!ILBuilder::eval_const_ctype(ctx.eval, ct)) return false;
@@ -386,7 +390,7 @@ namespace Corrosive {
 					Type t = { (TypeInstance*)ct.type,ct.ptr };
 
 					dt = t.type;
-					if (dt->type != TypeInstanceType::Structure) {
+					if (dt->type != TypeInstanceType::type_template) {
 						throw_specific_error(c, "this type is not a generic type");
 						return false;
 					}
@@ -397,7 +401,7 @@ namespace Corrosive {
 				std::vector<std::tuple<Cursor, Type>>::iterator layout;
 				
 				if (cpt != CompileType::short_circuit)
-					layout = ((Structure*)dt->owner_ptr)->generic_layout.begin();
+					layout = ((StructureTemplate*)dt->owner_ptr)->generic_layout.begin();
 
 				std::vector<CompileValue> results;
 				if (c.tok != RecognizedToken::CloseParenthesis) {
@@ -432,8 +436,25 @@ namespace Corrosive {
 				if (cpt != CompileType::short_circuit) {
 					auto ss = std::move(StackManager::move_stack_out<1>());
 					auto sp = ctx.eval->stack_push();
+					StructureTemplate* generating = ((StructureTemplate*)dt->owner_ptr);
+					
+					
 
-					unsigned int local_i = 0;
+					if (generating->template_parent != nullptr) {
+						unsigned char* key_ptr = (unsigned char*)generating->template_parent->key;
+						for (auto key_l = generating->template_parent->generator->generic_layout.rbegin(); key_l != generating->template_parent->generator->generic_layout.rend(); key_l++) {
+							ctx.eval->stack_push_pointer(key_ptr);
+							key_ptr += std::get<1>(*key_l).compile_time_size(ctx.eval);
+							CompileValue argval;
+							argval.lvalue = true;
+							argval.t = std::get<1>(*key_l);
+
+							StackManager::stack_push<1>(std::get<0>(*key_l).buffer, argval, (unsigned int)StackManager::stack_state<1>());
+						}
+					}
+
+					auto act_layout = generating->generic_layout.rbegin();
+
 					for (size_t arg_i = results.size() - 1; arg_i >= 0 && arg_i < results.size(); arg_i--) {
 						CompileValue res = results[arg_i];
 						unsigned char* data_place = ctx.eval->stack_reserve(res.t.compile_time_size(ctx.eval));
@@ -443,16 +464,16 @@ namespace Corrosive {
 							res.t.move(ctx, ctx.eval->pop_register_value<void*>(), data_place);
 						}
 						else {
-							res.t.move(ctx, ctx.eval->read_last_register_value_pointer(res.t.type->rvalue), data_place);
-							ctx.eval->discard_register_by_type(res.t.type->rvalue);
+							res.t.move(ctx, ctx.eval->read_last_register_value_indirect(res.t.type->rvalue), data_place);
+							ctx.eval->discard_last_register_type(res.t.type->rvalue);
 						}
 
-						StackManager::stack_push<1>(std::get<0>(((Structure*)dt->owner_ptr)->generic_layout[arg_i]).buffer, res, local_i);
-						local_i++;
+						StackManager::stack_push<1>(std::get<0>(*act_layout).buffer, res, (unsigned int)StackManager::stack_state<1>());
+						act_layout++;
 					}
 
 					StructureInstance* inst = nullptr;
-					if (!((Structure*)dt->owner_ptr)->generate(ctx, sp, inst)) return false;
+					if (!generating->generate(ctx, sp, inst)) return false;
 
 					ILCtype ct = { inst->type.get(),0 };
 					ILBuilder::eval_const_ctype(ctx.eval, ct);
@@ -508,7 +529,77 @@ namespace Corrosive {
 	}
 
 
+	bool Operand::parse_double_colon_operator(CompileValue& ret, Cursor& c, CompileContext& ctx, CompileType cpt) {
+		c.move();
 
+		if (cpt == CompileType::compile) {
+			throw_specific_error(c, "Operation :: is not supported in runtime context");
+			return false;
+		}
+
+		if (ret.t != ctx.default_types->t_type) {
+			throw_specific_error(c, "left operator is not a type instance");
+			return false;
+		}
+
+		Expression::rvalue(ctx, ret, cpt);
+		if (cpt == CompileType::eval) {
+			ILCtype ctype = ctx.eval->pop_register_value<ILCtype>();
+			TypeInstance* ti = (TypeInstance*)ctype.type;
+			if (ti->type != TypeInstanceType::type_instance) {
+				throw_specific_error(c, "Type is not structure instance");
+				return false;
+			}
+
+			StructureInstance* struct_inst = (StructureInstance*)ti->owner_ptr;
+
+			auto f = struct_inst->subtemplates.find(c.buffer);
+			if (f != struct_inst->subtemplates.end()) {
+				StructureTemplate* tplt = f->second.get();
+				if (!tplt->compile(ctx)) return false;
+
+				ret.lvalue = false;
+				if (tplt->is_generic) {
+					ILCtype ct = { tplt->type.get(),0 };
+					ILBuilder::eval_const_ctype(ctx.eval, ct);
+				}
+				else {
+					StructureInstance* inst = nullptr;
+
+					if (tplt->template_parent!=nullptr) {
+						auto ss = std::move(StackManager::move_stack_out<1>());
+						auto sp = ctx.eval->stack_push();
+
+						tplt->template_parent->insert_key_on_stack(ctx);
+
+						if (!tplt->generate(ctx, sp, inst)) return false;
+						ILCtype ct = { inst->type.get(),0 };
+						ILBuilder::eval_const_ctype(ctx.eval, ct);
+
+						//DO NOT COLLECT STACK THERE, ALL THE VARIABLES ARE ALREADY REGISTERED KEY
+
+						ctx.eval->stack_pop(sp);
+						StackManager::move_stack_in<1>(std::move(ss));
+					}
+					else {
+						if (!tplt->generate(ctx, nullptr, inst)) return false;
+						ILCtype ct = { inst->type.get(),0 };
+						ILBuilder::eval_const_ctype(ctx.eval, ct);
+					}
+
+
+				}
+			}
+			else {
+				throw_specific_error(c, "Structure instance does not contain a structure with this name");
+				return false;
+			}
+		}
+
+		c.move();
+
+		return true;
+	}
 
 
 	bool Operand::parse_dot_operator(CompileValue& ret, Cursor& c, CompileContext& ctx, CompileType cpt) {

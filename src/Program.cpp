@@ -28,8 +28,6 @@ namespace Corrosive {
 
 		m->architecture = ILArchitecture::x86_64;
 		m->build_default_types();
-		e->parent = m.get();
-
 
 		Cursor c = src.read_first();
 		CompileContext ctx;
@@ -40,9 +38,9 @@ namespace Corrosive {
 
 		ctx.default_types->setup(ctx);
 
-		Declaration::parse_global(c,ctx, *gn.get());
-
-		((Structure*)gn->subnamespaces["B"].get())->compile(ctx);
+		if (Declaration::parse_global(c, ctx, *gn.get())) {
+			((StructureTemplate*)gn->subtemplates["B"].get())->compile(ctx);
+		}
 
 		std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 

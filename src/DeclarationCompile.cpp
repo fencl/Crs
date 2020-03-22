@@ -10,17 +10,17 @@
 
 namespace Corrosive {
 
-	bool Structure::compile(CompileContext& ctx) {
+	bool StructureTemplate::compile(CompileContext& ctx) {
 		if (compile_state == 0) {
 			compile_state = 1;
 
 			if (is_generic) {
-				Namespace* i_push = ctx.inside;
-				ctx.inside = this;
+				Cursor c = annotation;
 
-				Cursor c = generic_types;
-				unsigned int arg_i = 0;
 				while (true) {
+					CompileContext nctx = ctx;
+					nctx.inside = parent;
+
 					Cursor name = c;
 					c.move();
 					if (c.tok != RecognizedToken::Colon) {
@@ -30,7 +30,7 @@ namespace Corrosive {
 					c.move();
 					Cursor err = c;
 					CompileValue value;
-					if (!Expression::parse(c, ctx, value, CompileType::eval)) return false;
+					if (!Expression::parse(c, nctx, value, CompileType::eval)) return false;
 					if (value.t != ctx.default_types->t_type) {
 						throw_specific_error(err, "Expected type value");
 						return false;
@@ -39,7 +39,7 @@ namespace Corrosive {
 					ILCtype ctype = ctx.eval->pop_register_value<ILCtype>();
 					Type t = { (TypeInstance*)ctype.type,ctype.ptr };
 
-					if (t.type->type != TypeInstanceType::StructureInstance) {
+					if (t.type->type != TypeInstanceType::type_instance) {
 						throw_specific_error(err, "Type does not point to instance");
 						return false;
 					}
@@ -63,92 +63,9 @@ namespace Corrosive {
 				}
 
 
-				/*for (auto&& m : members) {
-
-					CompileValue value;
-					Cursor m_type = m.type;
-					if (!Expression::parse(m_type, nctx, value, CompileType::compile)) return false;
-					
-					if (value.t != ctx.default_types->t_type) {
-						throw_specific_error(m.type, "Expected type value");
-						return false;
-					}
-
-					if (value.lvalue) {
-						ILBuilder::build_load(nctx.block, ILDataType::ctype);
-					}
-					ILBuilder::build_yield_type(nctx.block, m.name.buffer);
-
-				}*/
-
 				gen_template_cmp.parent = this;
 				gen_template_cmp.eval = ctx.eval;
 				instances = std::make_unique<std::map<std::pair<unsigned int,void*>, std::unique_ptr<StructureInstance>, GenericTemplateCompare>>(gen_template_cmp);
-				
-				ctx.inside = i_push;
-
-			}
-			else {
-				singe_instance = std::make_unique<StructureInstance>();
-				singe_instance->type = std::make_unique<TypeInstance>();
-				singe_instance->type->type = TypeInstanceType::StructureInstance;
-				singe_instance->type->owner_ptr = (void*)singe_instance.get();
-				singe_instance->generator = this;
-				singe_instance->type->rvalue = ILDataType::ptr;
-
-				compile_state = 2;
-
-				for (auto&& m : member_vars) {
-					Cursor c = m.type;
-
-					CompileValue value;
-
-					CompileContext nctx = ctx;
-					nctx.inside = this;
-					if (!Expression::parse(c, nctx, value, CompileType::eval)) return false;
-					if (value.t != ctx.default_types->t_type) {
-						throw_specific_error(m.type, "Expected type value");
-						return false;
-					}
-
-					ILCtype ctype = ctx.eval->pop_register_value<ILCtype>();
-
-					Type m_t = { (TypeInstance*)ctype.type,ctype.ptr };
-					if (m_t.type == nullptr) {
-						return false;
-					}
-
-					singe_instance->member_vars[m.name.buffer] = std::make_pair(m.name, m_t);
-				}
-
-				for (auto&& m : member_funcs) {
-					Cursor c = m.type;
-
-					CompileValue value;
-					if (!Expression::parse(c, ctx, value, CompileType::eval)) return false;
-					if (value.t != ctx.default_types->t_type) {
-						throw_specific_error(m.type, "Expected type value");
-						return false;
-					}
-
-					ILCtype ctype = ctx.eval->pop_register_value<ILCtype>();
-
-					ILFunction* func = ctx.module->create_function(ctx.module->t_void);
-					ILBlock* block = func->create_block(ILDataType::none);
-					func->append_block(block);
-					
-					CompileContext nctx = ctx;
-					nctx.block = block;
-					nctx.function = func;
-					nctx.inside = this;
-					CompileValue res;
-					c = m.block;
-					Expression::parse(c, nctx, res, CompileType::compile);
-
-					func->dump();
-
-					singe_instance->member_funcs[m.name.buffer] = std::make_pair<ILFunction*,Type>(nullptr,{ (TypeInstance*)ctype.type,ctype.ptr });
-				}
 			}
 
 			compile_state = 2;
@@ -167,23 +84,59 @@ namespace Corrosive {
 
 
 
-	bool Structure::generate(CompileContext& ctx,void* argdata, StructureInstance*& out) {
+	bool StructureTemplate::generate(CompileContext& ctx,void* argdata, StructureInstance*& out) {
+		StructureInstance* new_inst = nullptr;
+		void* new_key = nullptr;
+
 		if (!is_generic) {
-			return false;
+			if (singe_instance == nullptr) {
+				singe_instance = std::make_unique<StructureInstance>();
+				new_inst = singe_instance.get();
+			}
+			out = singe_instance.get();
+		}
+		else {
+			std::pair<unsigned int, void*> key = std::make_pair((unsigned int)generate_heap_size, argdata);
+
+
+			auto f = instances->find(key);
+			if (f == instances->end()) {
+				std::unique_ptr<StructureInstance> inst = std::make_unique<StructureInstance>();
+
+				
+
+				new_inst = inst.get();
+				out = inst.get();
+				key.second = new unsigned char[generate_heap_size];
+				memcpy(key.second, argdata, generate_heap_size);
+				new_key = key.second;
+
+				instances->emplace(key, std::move(inst));
+
+			}
+			else {
+				out = f->second.get();
+			}
 		}
 
-		std::pair<unsigned int, void*> key = std::make_pair((unsigned int)generate_heap_size, argdata);
 
+		if (new_inst != nullptr) {
+			new_inst->type = std::make_unique<TypeInstance>();
+			new_inst->type->type = TypeInstanceType::type_instance;
+			new_inst->type->owner_ptr = (void*)new_inst;
+			new_inst->generator = this;
+			new_inst->parent = parent;
+			new_inst->name = name;
+			new_inst->type->rvalue = ILDataType::ptr;
+			new_inst->namespace_type = NamespaceType::t_struct_instance;
+			new_inst->key = new_key;
 
-		auto f = instances->find(key);
-		if (f == instances->end()) {
-			std::unique_ptr<StructureInstance> inst = std::make_unique<StructureInstance>();
-
-			inst->type = std::make_unique<TypeInstance>();
-			inst->type->type = TypeInstanceType::StructureInstance;
-			inst->type->owner_ptr = (void*)inst.get();
-			inst->generator = this;
-			inst->type->rvalue = ILDataType::ptr;
+			for (auto&& t : member_templates) {
+				Cursor tc = t.cursor;
+				std::unique_ptr<StructureTemplate> decl;
+				if (!StructureTemplate::parse(tc, ctx, new_inst, decl)) return false;
+				new_inst->subtemplates[decl->name.buffer] = std::move(decl);
+			}
 
 			for (auto&& m : member_vars) {
 				Cursor c = m.type;
@@ -191,7 +144,7 @@ namespace Corrosive {
 				CompileValue value;
 
 				CompileContext nctx = ctx;
-				nctx.inside = this;
+				nctx.inside = parent;
 				if (!Expression::parse(c, nctx, value, CompileType::eval)) return false;
 				if (value.t != ctx.default_types->t_type) {
 					throw_specific_error(m.type, "Expected type value");
@@ -200,14 +153,18 @@ namespace Corrosive {
 
 				ILCtype ctype = ctx.eval->pop_register_value<ILCtype>();
 				Type m_t = { (TypeInstance*)ctype.type,ctype.ptr };
-				inst->member_vars[m.name.buffer] = std::make_pair(m.name, m_t);
+				new_inst->member_vars[m.name.buffer] = std::make_pair(m.name, m_t);
 			}
 
 			for (auto&& m : member_funcs) {
 				Cursor c = m.type;
 
 				CompileValue value;
-				if (!Expression::parse(c, ctx, value, CompileType::eval)) return false;
+
+				CompileContext nctx = ctx;
+				nctx.inside = parent;
+
+				if (!Expression::parse(c, nctx, value, CompileType::eval)) return false;
 				if (value.t != ctx.default_types->t_type) {
 					throw_specific_error(m.type, "Expected type value");
 					return false;
@@ -219,32 +176,18 @@ namespace Corrosive {
 				ILBlock* block = func->create_block(ILDataType::none);
 				func->append_block(block);
 
-				CompileContext nctx = ctx;
-				nctx.block = block;
-				nctx.function = func;
-				nctx.inside = this;
+				CompileContext bctx = ctx;
+				bctx.block = block;
+				bctx.function = func;
+				bctx.inside = new_inst;
 				CompileValue res;
 				c = m.block;
-				Expression::parse(c, nctx, res, CompileType::compile);
+				Expression::parse(c, bctx, res, CompileType::compile);
 
 				func->dump();
 
-				inst->member_funcs[m.name.buffer] = std::make_pair<ILFunction*, Type>(nullptr, { (TypeInstance*)ctype.type,ctype.ptr });
+				new_inst->member_funcs[m.name.buffer] = std::make_pair<ILFunction*, Type>(nullptr, { (TypeInstance*)ctype.type,ctype.ptr });
 			}
-
-
-			out = inst.get();
-			key.second = new unsigned char[generate_heap_size];
-			memcpy(key.second, argdata, generate_heap_size);
-
-			instances->emplace(key,std::move(inst));
-
-
-			//ctx.eval->stack_pop();
-			//StackManager::move_stack_in<1>(std::move(ss));
-		}
-		else {
-			out = f->second.get();
 		}
 
 		return true;
@@ -262,7 +205,7 @@ namespace Corrosive {
 					if (!m.second.second.type->compile(ctx)) return false;
 				}
 
-				if (m.second.second.type->type == TypeInstanceType::StructureInstance) {
+				if (m.second.second.type->type == TypeInstanceType::type_instance) {
 					((ILStruct*)iltype)->add_member(((StructureInstance*)m.second.second.type->owner_ptr)->iltype);
 				}
 				else {
@@ -287,5 +230,25 @@ namespace Corrosive {
 		}
 
 		return true;
+	}
+
+
+
+
+	void StructureInstance::insert_key_on_stack(CompileContext& ctx) {
+		if (generator->template_parent != nullptr) {
+			generator->template_parent->insert_key_on_stack(ctx);
+		}
+
+		unsigned char* key_ptr = (unsigned char*)key;
+		for (auto key_l = generator->generic_layout.rbegin(); key_l != generator->generic_layout.rend(); key_l++) {
+			ctx.eval->stack_push_pointer(key_ptr);
+			key_ptr += std::get<1>(*key_l).compile_time_size(ctx.eval);
+			CompileValue argval;
+			argval.lvalue = true;
+			argval.t = std::get<1>(*key_l);
+			StackManager::stack_push<1>(std::get<0>(*key_l).buffer, argval, (unsigned int)StackManager::stack_state<1>());
+		}
+
 	}
 }

@@ -21,6 +21,7 @@ namespace Corrosive {
 		static bool parse_call_operator(CompileValue& ret, Cursor& c, CompileContext& ctx, CompileType copm_type);
 		static bool parse_array_operator(CompileValue& ret, Cursor& c, CompileContext& ctx, CompileType copm_type);
 		static bool parse_dot_operator(CompileValue& ret, Cursor& c, CompileContext& ctx, CompileType copm_type);
+		static bool parse_double_colon_operator(CompileValue& ret, Cursor& c, CompileContext& ctx, CompileType copm_type);
 	};
 }
 

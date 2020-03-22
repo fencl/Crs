@@ -249,7 +249,7 @@ namespace Corrosive {
 			}
 			else {
 				if (cpt == CompileType::eval) {
-					uint8_t v = ctx.eval->read_last_register_value<uint8_t>();
+					uint8_t v = ctx.eval->read_register_value<uint8_t>();
 					if (v) {
 						ctx.eval->pop_register_value<uint8_t>();
 						CompileValue right;
@@ -337,7 +337,7 @@ namespace Corrosive {
 			else {
 				
 				if (cpt == CompileType::eval) {
-					uint8_t v = ctx.eval->read_last_register_value<uint8_t>();
+					uint8_t v = ctx.eval->read_register_value<uint8_t>();
 					if (!v) {
 						ctx.eval->pop_register_value<uint8_t>();
 						CompileValue right;

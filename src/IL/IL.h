@@ -98,30 +98,32 @@ namespace Corrosive {
 	class ILStruct : public ILType {
 	public:
 		ILStruct();
-		std::vector<std::tuple<unsigned int, unsigned int, ILType*>> member_vars;
-		void add_member(ILType* type);
-		void align_size();
-		virtual int auto_compare(void* p1, void* p2);
-		virtual void auto_move(void* src, void* dst);
+		std::vector<std::tuple<unsigned int /*runtime_offset*/, unsigned int /*compile_time_offset*/, ILType*>> member_vars;
+
+		void			add_member(ILType* type);
+		void			align_size();
+
+		virtual int		compile_time_compare(void* p1, void* p2);
+		virtual void	compile_time_move(void* src, void* dst);
 	};
 
 	class ILFunction {
 	public:
 		~ILFunction();
-		unsigned int id;
-		ILModule* parent;
-		ILType* returns = nullptr;
-		bool is_const = false;
+		unsigned int	id;
+		ILModule*		parent;
+		ILType*			returns = nullptr;
+		bool			is_const = false;
 
-		std::vector<ILType*> locals;
-		std::vector<ILBlock*> blocks;
-		std::vector<std::unique_ptr<ILBlock>> blocks_memory;
-		std::set<ILBlock*> return_blocks;
+		std::vector<ILType*>					locals;
+		std::vector<ILBlock*>					blocks;
+		std::vector<std::unique_ptr<ILBlock>>	blocks_memory;
+		std::set<ILBlock*>						return_blocks;
 
-		ILBlock* create_block(ILDataType accepts);
-		void append_block(ILBlock* block);
-		void dump();
-		bool assert_flow();
+		ILBlock*	 create_block(ILDataType accepts);
+		void		 append_block(ILBlock* block);
+		void		 dump();
+		bool		 assert_flow();
 		unsigned int register_local(ILType* type);
 	};
 
@@ -130,11 +132,8 @@ namespace Corrosive {
 		using register_value = uint64_t;
 
 		static const inline size_t stack_size = 1024*4;
-
 		unsigned char memory_stack[stack_size];
-
-		unsigned char register_stack[256];
-
+		unsigned char register_stack[stack_size];
 		unsigned char* memory_stack_pointer = memory_stack;
 		unsigned char* register_stack_pointer = register_stack;
 
@@ -143,23 +142,21 @@ namespace Corrosive {
 		register_value yield;
 		ILDataType yield_type;
 
-		ILModule* parent;
+		void	write_register_value_indirect(size_t size, void* value);
+		void	pop_register_value_indirect(size_t size, void* into);
+		void*	read_last_register_value_indirect(ILDataType rs);
 
-		void write_register_value_indirect(size_t size, void* value);
-		void pop_register_value_indirect(size_t size, void* into);
-
-		size_t compile_time_register_size(ILDataType t);
-
-		void* read_last_register_value_pointer(ILDataType rs);
-		void discard_register_by_type(ILDataType rs);
+		size_t	compile_time_register_size(ILDataType t);
+		void	discard_last_register_type(ILDataType rs);
 		
 		std::vector<std::vector<void*>> on_stack;
-		unsigned char* stack_push();
-		void stack_pop(unsigned char* stack_pointer);
-		void stack_write(size_t size, void* from);
-		unsigned char* stack_reserve(size_t size);
+		unsigned char*	stack_push();
+		void			stack_pop(unsigned char* stack_pointer);
+		void			stack_write(size_t size, void* from);
+		unsigned char*	stack_reserve(size_t size);
+		void			stack_push_pointer(void* ptr);
 
-		template<typename T> inline T read_last_register_value() {
+		template<typename T> inline T read_register_value() {
 			return *(((T*)register_stack_pointer)-1);
 		}
 
@@ -217,8 +214,7 @@ namespace Corrosive {
 		static bool eval_const_f32   (ILEvaluator* eval_ctx, float    value);
 		static bool eval_const_f64   (ILEvaluator* eval_ctx, double   value);
 		static bool eval_const_ptr   (ILEvaluator* eval_ctx, void*    value);
-
-		static bool eval_const_ctype(ILEvaluator* eval_ctx, ILCtype value);
+		static bool eval_const_ctype (ILEvaluator* eval_ctx, ILCtype value);
 
 		static bool build_const_ibool (ILBlock* block, int8_t   value);
 		static bool build_const_i8	  (ILBlock* block, int8_t   value);
@@ -231,8 +227,7 @@ namespace Corrosive {
 		static bool build_const_u64	  (ILBlock* block, uint64_t value);
 		static bool build_const_f32	  (ILBlock* block, float    value);
 		static bool build_const_f64	  (ILBlock* block, double   value);
-
-		static bool build_const_ctype(ILBlock* block, ILCtype value);
+		static bool build_const_ctype (ILBlock* block, ILCtype value);
 
 		static bool eval_add(ILEvaluator* eval_ctx,ILDataType tl,ILDataType tr);
 		static bool eval_load(ILEvaluator* eval_ctx, ILDataType type);

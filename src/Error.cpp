@@ -9,40 +9,42 @@ namespace Corrosive {
 		std::cerr << "\n | Error (" << (c.top+1) << "):\n | \t";
 
 		Cursor cc = c;
-		Source* src = (Source*)cc.src;
-		std::string_view data = src->data();
-		size_t from = cc.offset;
-		size_t to = cc.offset;
+		if (cc.tok != RecognizedToken::Eof) {
+			Source* src = (Source*)cc.src;
+			std::string_view data = src->data();
+			size_t from = std::min(cc.offset, data.size() - 1);
+			size_t to = std::min(cc.offset, data.size() - 1);
 
-		while (from > 0 && data[from] != '\n' && (cc.offset-from)<20) {
-			from--;
-		}
-
-		while (to < data.size()-1 && data[to] != '\n' && (to - cc.offset) < 20) {
-			to++;
-		}
-		int req_offset = 4;
-		std::string_view line = data.substr(from + 1, to - from - 2);
-		std::cerr << "... ";
-		for (int i = 0; i < line.length(); i++) {
-			if (line[i] == '\t') {
-				std::cerr << "    ";
-				if (i < cc.offset - from -1)
-					req_offset += 4;
+			while (from > 0 && (from == 1 || data[from - 1] != '\n') && (cc.offset - from) < 20) {
+				from--;
 			}
-			else {
-				std::cerr << line[i];
-				if (i < cc.offset - from -1)
-					req_offset += 1;
+
+			while (to < data.size() - 1 && (to == data.size() - 2 || data[to + 1] != '\n') && (to - cc.offset) < 20) {
+				to++;
 			}
+			int req_offset = 4;
+			std::string_view line = data.substr(from, to - from);
+			std::cerr << "... ";
+			for (int i = 0; i < line.length(); i++) {
+				if (line[i] == '\t') {
+					std::cerr << "    ";
+					if (i < cc.offset - from)
+						req_offset += 4;
+				}
+				else {
+					std::cerr << line[i];
+					if (i < cc.offset - from)
+						req_offset += 1;
+				}
+			}
+			std::cerr << " ...\n | \t";
+
+			for (int i = 0; i < req_offset; i++)
+				std::cerr << " ";
+
+			for (int i = 0; i < cc.buffer.length(); i++)
+				std::cerr << "^";
 		}
-		std::cerr << " ...\n | \t";
-
-		for (int i = 0; i < req_offset; i++)
-			std::cerr << " ";
-
-		for (int i = 0; i < cc.buffer.length(); i++)
-			std::cerr << "^";
 
 		std::cerr << "\n | \t";
 	}

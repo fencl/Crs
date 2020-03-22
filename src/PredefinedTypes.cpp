@@ -6,26 +6,34 @@ namespace Corrosive {
 	const char* PredefinedNamespace = "corrosive";
 
 	void DefaultTypes::setup_type(CompileContext& ctx,std::string_view name,Type& into,ILType* t,ILDataType ildt) {
-		std::unique_ptr<Structure> s = std::make_unique<Structure>();
+		std::unique_ptr<StructureTemplate> s = std::make_unique<StructureTemplate>();
 		Cursor c;
 		c.buffer = name;
-		s->rvalue_stacked = false;
-		s->name = c;
+		//s->namespace_type = NamespaceType::t_struct_template;
+
 		s->parent = ctx.global;
+		s->template_parent = nullptr;
+		s->rvalue_stacked = false;
+		//s->name = c;
+		//s->parent = ctx.global;
 		s->compile_state = 2;
 		s->singe_instance = std::make_unique<StructureInstance>();
+		s->singe_instance->parent = ctx.global;
+		s->singe_instance->name = c;
+		s->singe_instance->namespace_type = NamespaceType::t_struct_instance;
 		s->singe_instance->iltype = t;
 		s->singe_instance->generator = s.get();
+		s->singe_instance->key = nullptr;
 		s->singe_instance->compile_state = 2;
 		s->singe_instance->type = std::make_unique<TypeInstance>();
-		s->singe_instance->type->type = TypeInstanceType::StructureInstance;
+		s->singe_instance->type->type = TypeInstanceType::type_instance;
 		s->singe_instance->type->owner_ptr = (void*)s->singe_instance.get();
 		s->singe_instance->type->rvalue = ildt;
 
 		into.type = s->singe_instance->type.get();
 		into.ref_count = 0;
 
-		ctx.global->subnamespaces[c.buffer] = std::move(s);
+		ctx.global->subtemplates[c.buffer] = std::move(s);
 	}
 
 	void DefaultTypes::setup(CompileContext& ctx) {

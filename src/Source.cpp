@@ -274,9 +274,10 @@ namespace Corrosive {
 		else {
 			out.tok = (RecognizedToken::Eof);
 			out.src = this;
-			out.offset = offset;
-			out.left = left;
+			out.offset = offset+1;
+			out.left = left+1;
 			out.top = top;
+			out.buffer = "<eof>";
 		}
 
 	}

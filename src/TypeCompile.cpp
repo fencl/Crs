@@ -14,11 +14,11 @@ namespace Corrosive {
 	bool TypeInstance::compile(CompileContext& ctx) {
 		switch (type)
 		{
-			case Corrosive::TypeInstanceType::StructureInstance:
+			case Corrosive::TypeInstanceType::type_instance:
 				if (!((StructureInstance*)owner_ptr)->compile(ctx)) return false;
 				break;
-			case Corrosive::TypeInstanceType::Structure:
-				if (!((Structure*)owner_ptr)->compile(ctx)) return false;
+			case Corrosive::TypeInstanceType::type_template:
+				if (!((StructureTemplate*)owner_ptr)->compile(ctx)) return false;
 				break;
 			default:
 				exit(1);

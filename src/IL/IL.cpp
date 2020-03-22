@@ -354,7 +354,7 @@ namespace Corrosive {
 		memcpy(dst, src, size_in_bytes);
 	}
 
-	void ILStruct::auto_move(void* src, void* dst) {
+	void ILStruct::compile_time_move(void* src, void* dst) {
 		for (auto&& m : member_vars) {
 			void* src_o = (char*)src + std::get<1>(m);
 			void* dst_o = (char*)dst + std::get<1>(m);
@@ -366,7 +366,7 @@ namespace Corrosive {
 		return memcmp(p1, p2, size_in_bytes);
 	}
 
-	int ILStruct::auto_compare(void* p1, void* p2) {
+	int ILStruct::compile_time_compare(void* p1, void* p2) {
 		for (auto&& m : member_vars) {
 			void* p1_o = (char*)p1 + std::get<1>(m);
 			void* p2_o = (char*)p2 + std::get<1>(m);
@@ -384,12 +384,12 @@ namespace Corrosive {
 
 
 
-	void* ILEvaluator::read_last_register_value_pointer(ILDataType rs) {
+	void* ILEvaluator::read_last_register_value_indirect(ILDataType rs) {
 		return register_stack_pointer - compile_time_register_size(rs);
 	}
 
 
-	void ILEvaluator::discard_register_by_type(ILDataType rs) {
+	void ILEvaluator::discard_last_register_type(ILDataType rs) {
 		register_stack_pointer -= compile_time_register_size(rs);
 	}
 

@@ -359,6 +359,11 @@ namespace Corrosive {
 		memory_stack_pointer += size;
 	}
 
+
+	void ILEvaluator::stack_push_pointer(void* ptr) {
+		on_stack.back().push_back(ptr);
+	}
+
 	unsigned char* ILEvaluator::stack_reserve(size_t size) {
 		on_stack.back().push_back(memory_stack_pointer);
 		unsigned char* res = memory_stack_pointer;

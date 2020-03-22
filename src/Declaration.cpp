@@ -12,16 +12,27 @@ namespace Corrosive {
 	}
 
 
-	Namespace* Namespace::find_name(std::string_view name) {
+	void Namespace::find_name(std::string_view name, Namespace*& subnamespace, StructureTemplate*& subtemplate) {
 		auto res = subnamespaces.find(name);
 		if (res != subnamespaces.end()) {
-			return res->second.get();
-		}
-		else if (parent!=nullptr){
-			return parent->find_name(name);
+			subnamespace= res->second.get();
+			subtemplate = nullptr;
 		}
 		else {
-			return nullptr;
+			auto res2 = subtemplates.find(name);
+			if (res2 != subtemplates.end()) {
+				subtemplate = res2->second.get();
+				subnamespace = nullptr;
+			}
+			else {
+				if (parent != nullptr) {
+					parent->find_name(name, subnamespace, subtemplate);
+				}
+				else {
+					subtemplate = nullptr;
+					subnamespace = nullptr;
+				}
+			}
 		}
 	}
 
@@ -38,7 +49,7 @@ namespace Corrosive {
 	}
 
 
-	Structure::~Structure() {
+	StructureTemplate::~StructureTemplate() {
 		if (instances != nullptr) {
 			for (auto&& i : *instances) {
 				delete i.first.second;
@@ -46,7 +57,7 @@ namespace Corrosive {
 		}
 	}
 
-	bool Structure::GenericTemplateCompare::operator()(const std::pair<unsigned int, void*>& a, const std::pair<unsigned int, void*>& b) const
+	bool StructureTemplate::GenericTemplateCompare::operator()(const std::pair<unsigned int, void*>& a, const std::pair<unsigned int, void*>& b) const
 	{
 		if (a.first < b.first) return true;
 		if (a.first > b.first) return false;

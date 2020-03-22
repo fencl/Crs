@@ -12,7 +12,7 @@ namespace Corrosive {
 	int TypeInstance::compare(ILEvaluator* eval, void* p1, void* p2) {
 		switch (type)
 		{
-			case Corrosive::TypeInstanceType::StructureInstance:
+			case Corrosive::TypeInstanceType::type_instance:
 				return ((StructureInstance*)owner_ptr)->compare(eval, p1, p2);
 			default:
 				exit(1);
@@ -23,7 +23,7 @@ namespace Corrosive {
 	void TypeInstance::move(CompileContext& ctx, void* src, void* dst) {
 		switch (type)
 		{
-			case Corrosive::TypeInstanceType::StructureInstance:
+			case Corrosive::TypeInstanceType::type_instance:
 				((StructureInstance*)owner_ptr)->move(ctx, src, dst);
 				break;
 			default:
@@ -44,7 +44,7 @@ namespace Corrosive {
 	bool TypeInstance::rvalue_stacked() { 
 		switch (type)
 		{
-			case Corrosive::TypeInstanceType::StructureInstance:
+			case Corrosive::TypeInstanceType::type_instance:
 				return ((StructureInstance*)owner_ptr)->generator->rvalue_stacked;
 			default:
 				exit(1);
@@ -71,11 +71,11 @@ namespace Corrosive {
 	void TypeInstance::print(std::ostream& os) {
 		switch (type)
 		{
-			case Corrosive::TypeInstanceType::StructureInstance:
+			case Corrosive::TypeInstanceType::type_instance:
 				os << ((StructureInstance*)owner_ptr)->generator->name.buffer;
 				break;
-			case Corrosive::TypeInstanceType::Structure:
-				os << ((Structure*)owner_ptr)->name.buffer;
+			case Corrosive::TypeInstanceType::type_template:
+				os << ((StructureTemplate*)owner_ptr)->name.buffer;
 				os << "(inst)";
 				break;
 			default:
@@ -86,7 +86,7 @@ namespace Corrosive {
 	size_t TypeInstance::compile_time_size(ILEvaluator* eval) {
 		switch (type)
 		{
-			case Corrosive::TypeInstanceType::StructureInstance:
+			case Corrosive::TypeInstanceType::type_instance:
 				return ((StructureInstance*)owner_ptr)->iltype->size_in_bytes;
 				break;
 			default:
