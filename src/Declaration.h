@@ -40,15 +40,22 @@ namespace Corrosive {
 	class StructureTemplate;
 	class StructureInstance : public Namespace {
 	public:
-		std::map<std::string_view,std::pair<Cursor,Type>> member_vars;
-		std::map<std::string_view,std::pair<ILFunction*,Type>> member_funcs;
+
+		void add_member(CompileContext& ctx, Type* t);
+
+		std::vector<std::pair<Cursor,Type*>> member_vars;
+		std::vector<std::pair<ILFunction*, Type*>> member_funcs;
 
 		StructureTemplate* generator;
-		ILType* iltype = nullptr;
+
+		size_t compile_time_size_in_bytes;
+		unsigned int runtime_size;
+		unsigned int runtime_alignment;
+
 		void* key = nullptr;
 
 		int compare(ILEvaluator* eval, void* p1, void* p2);
-		void move(CompileContext& ctx, void* src, void* dst);
+		void move(ILEvaluator* eval, void* src, void* dst);
 
 		void insert_key_on_stack(CompileContext& ctx);
 
@@ -83,7 +90,7 @@ namespace Corrosive {
 		Cursor annotation;
 		StructureInstance* template_parent = nullptr;
 
-		std::unique_ptr<TypeInstance> type;
+		std::unique_ptr<TypeStructure> type;
 
 		std::unique_ptr<StructureInstance> singe_instance = nullptr;
 
@@ -102,7 +109,7 @@ namespace Corrosive {
 		static bool parse(Cursor &c, CompileContext& ctx, Namespace* parent, std::unique_ptr<StructureTemplate>& into);
 
 		unsigned int compile_state = 0;
-		std::vector<std::tuple<Cursor,Type>> generic_layout;
+		std::vector<std::tuple<Cursor,Type*>> generic_layout;
 		bool rvalue_stacked = true;
 
 	private:

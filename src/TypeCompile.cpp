@@ -9,29 +9,19 @@
 
 namespace Corrosive {
 
-
-	
-	bool TypeInstance::compile(CompileContext& ctx) {
-		switch (type)
-		{
-			case Corrosive::TypeInstanceType::type_instance:
-				if (!((StructureInstance*)owner_ptr)->compile(ctx)) return false;
-				break;
-			case Corrosive::TypeInstanceType::type_template:
-				if (!((StructureTemplate*)owner_ptr)->compile(ctx)) return false;
-				break;
-			default:
-				exit(1);
-		}
-
+	bool Type::compile(CompileContext& ctx) {
 		return true;
 	}
 
-	bool Type::compile(CompileContext& ctx) {
-		if (ref_count == 0) {
-			if (!type->compile(ctx)) return false;
-		}
+	bool TypeInstance::compile(CompileContext& ctx) {
+		return owner->compile(ctx);
+	}
 
-		return true;
+	bool TypeStructure::compile(CompileContext& ctx) {
+		return owner->compile(ctx);
+	}
+
+	bool TypeArray::compile(CompileContext& ctx) {
+		return owner->compile(ctx);
 	}
 }

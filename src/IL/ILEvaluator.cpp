@@ -25,10 +25,6 @@ namespace Corrosive {
 	bool ILBuilder::eval_const_ptr   (ILEvaluator* eval_ctx, void*    value) { eval_ctx->write_register_value_indirect(sizeof(void*),    (unsigned char*)&value); return true; }
 
 
-	bool ILBuilder::eval_const_ctype(ILEvaluator* eval_ctx, ILCtype value) {
-		eval_ctx->write_register_value_indirect(sizeof(ILCtype), (unsigned char*)&value); return true;
-	}
-
 	template<typename T> inline T _il_evaluator_value_pop_into(ILEvaluator* eval_ctx, ILDataType t) {
 		switch (t)
 		{
@@ -311,8 +307,6 @@ namespace Corrosive {
 				return sizeof(double);
 			case Corrosive::ILDataType::ptr:
 				return sizeof(void*);
-			case Corrosive::ILDataType::ctype:
-				return sizeof(ILCtype);
 			case Corrosive::ILDataType::none:
 				return 0;
 			case Corrosive::ILDataType::undefined:
@@ -370,12 +364,6 @@ namespace Corrosive {
 		memory_stack_pointer += size;
 		return res;
 	}
-
-	bool ILBuilder::eval_member(ILEvaluator* eval_ctx, ILStruct* type, unsigned int id) {
-		//! TODO
-		return true;
-	}
-
 
 	bool ILBuilder::eval_add(ILEvaluator* eval_ctx,ILDataType t_l,ILDataType t_r) {
 		if (!_il_evaluator_const_op<std::plus>(eval_ctx,t_l,t_r)) return false;

@@ -3,6 +3,7 @@
 #include "Type.h"
 #include "Source.h"
 #include <algorithm>
+#include <cctype>
 
 namespace Corrosive {
 	void throw_error_header(const Cursor& c) {
@@ -25,7 +26,16 @@ namespace Corrosive {
 			int req_offset = 4;
 			std::string_view line = data.substr(from, to - from);
 			std::cerr << "... ";
+			bool remove_whitespace = true;
 			for (int i = 0; i < line.length(); i++) {
+
+				if (remove_whitespace) {
+					if (isspace(line[i]))
+						continue;
+					else
+						remove_whitespace = false;
+				}
+
 				if (line[i] == '\t') {
 					std::cerr << "    ";
 					if (i < cc.offset - from)
@@ -56,12 +66,12 @@ namespace Corrosive {
 	}
 
 
-	void throw_cannot_cast_error(const Cursor& c, Type from, Type to) {
+	void throw_cannot_cast_error(const Cursor& c, Type* from, Type* to) {
 		throw_error_header(c);
 		std::cerr << "Cannot cast from '";
-		from.print(std::cerr);
+		from->print(std::cerr);
 		std::cerr << "' to '";
-		to.print(std::cerr);
+		to->print(std::cerr);
 		std::cerr << "'";
 
 		throw_exit();

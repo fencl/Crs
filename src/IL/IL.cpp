@@ -27,12 +27,12 @@ namespace Corrosive {
 
 	ILFunction::~ILFunction() {}
 
-	ILFunction* ILModule::create_function(ILType* returns) {
+	ILFunction* ILModule::create_function(unsigned int return_size) {
 		std::unique_ptr<ILFunction> function = std::make_unique<ILFunction>();
 		ILFunction* function_ptr = function.get();
 		function_ptr->id = (unsigned int)functions.size();
 		function_ptr->parent = this;
-		function_ptr->returns = returns;
+		function_ptr->returns = return_size;
 		functions.push_back(std::move(function));
 		return function_ptr;
 	}
@@ -84,9 +84,7 @@ namespace Corrosive {
 
 
 	void ILFunction::dump() {
-		std::cout << "function " << id << " -> ";
-		ILBlock::dump_data_type(returns->rvalue);
-		std::cout << "\n";
+		std::cout << "function " << id << " -> ["<<returns<<"B]\n";
 
 		for (auto b = blocks.begin(); b != blocks.end(); b++) {
 			(*b)->dump();
@@ -116,7 +114,6 @@ namespace Corrosive {
 			case ILDataType::f64: std::cout << "f64"; break;
 			case ILDataType::ptr:  std::cout << "ptr"; break;
 			case ILDataType::none: std::cout << "none"; break;
-			case ILDataType::ctype: std::cout << "ctype"; break;
 			default: std::cout << "error";
 		}
 	}
@@ -276,23 +273,20 @@ namespace Corrosive {
 				std::cout << "] ";
 
 				switch (*type) {
-				case ILDataType::ibool:  std::cout << ((*read_data_type(uint8_t))?"true":"false"); break;
-				case ILDataType::u8:  std::cout << *read_data_type(uint8_t); break;
-				case ILDataType::u16: std::cout << *read_data_type(uint16_t); break;
-				case ILDataType::u32: std::cout << *read_data_type(uint32_t); break;
-				case ILDataType::u64: std::cout << *read_data_type(uint64_t); break;
+					case ILDataType::ibool:  std::cout << ((*read_data_type(uint8_t))?"true":"false"); break;
+					case ILDataType::u8:  std::cout << *read_data_type(uint8_t); break;
+					case ILDataType::u16: std::cout << *read_data_type(uint16_t); break;
+					case ILDataType::u32: std::cout << *read_data_type(uint32_t); break;
+					case ILDataType::u64: std::cout << *read_data_type(uint64_t); break;
 
-				case ILDataType::i8:  std::cout << *read_data_type(int8_t); break;
-				case ILDataType::i16: std::cout << *read_data_type(int16_t); break;
-				case ILDataType::i32: std::cout << *read_data_type(int32_t); break;
-				case ILDataType::i64: std::cout << *read_data_type(int64_t); break;
+					case ILDataType::i8:  std::cout << *read_data_type(int8_t); break;
+					case ILDataType::i16: std::cout << *read_data_type(int16_t); break;
+					case ILDataType::i32: std::cout << *read_data_type(int32_t); break;
+					case ILDataType::i64: std::cout << *read_data_type(int64_t); break;
 
-				case ILDataType::f32: std::cout << *read_data_type(float); break;
-				case ILDataType::f64: std::cout << *read_data_type(double); break;
-				case ILDataType::ctype: {
-						ILCtype ct = *read_data_type(ILCtype);
-						std::cout << ct.type << " " << ct.ptr;
-					} break;
+					case ILDataType::f32: std::cout << *read_data_type(float); break;
+					case ILDataType::f64: std::cout << *read_data_type(double); break;
+				
 				}
 				std::cout << "\n";
 
@@ -310,7 +304,7 @@ namespace Corrosive {
 		}
 
 		for (auto b = return_blocks.begin(); b != return_blocks.end(); b++) {
-			if ((*b)->yields != returns->rvalue) {
+			if ((*b)->yields != ILDataType::ptr) {
 				throw_il_wrong_data_flow_error();
 				return false;
 			}
@@ -331,46 +325,66 @@ namespace Corrosive {
 	}
 
 
-	unsigned int ILFunction::register_local(ILType* type) {
-		unsigned int r = (unsigned int)locals.size();
-		locals.push_back(type);
+	unsigned int ILFunction::register_local(unsigned int type_size) {
+		unsigned int r = (unsigned int)local_allocas.size();
+		local_allocas.push_back(type_size);
 		return r;
 	}
 
-	unsigned int _align_up(unsigned int value, unsigned int alignment) {
-		return alignment==0 ? value : ((value % alignment == 0)?value : value + (alignment - (value % alignment)));
-	}
+	/*
+	unsigned int ILType::runtime_size() { return 0; }
+	unsigned int ILType::runtime_alignment() { return 0; }
 
 	void ILStruct::add_member(ILType* type) {
-		unsigned int n_size = _align_up(size_in_bytes, type->alignment_in_bytes);
+		unsigned int n_size = _align_up(size_in_bytes, type->runtime_alignment());
 		member_vars.push_back(std::make_tuple(n_size,compile_time_size_in_bytes, type));
-		size_in_bytes = n_size + type->size_in_bytes;
-		compile_time_size_in_bytes += type->compile_time_size_in_bytes;
+		size_in_bytes = n_size + type->runtime_size();
+		compile_time_size_in_bytes += type->compile_time_size();
 
-		alignment_in_bytes = std::max(alignment_in_bytes, type->alignment_in_bytes);
+		alignment_in_bytes = std::max(alignment_in_bytes, type->runtime_alignment());
 	}
 
-	void ILType::auto_move(void* src, void* dst) {
-		memcpy(dst, src, size_in_bytes);
+	void ILType::compile_time_move(void* src, void* dst) {
+		
 	}
 
 	void ILStruct::compile_time_move(void* src, void* dst) {
 		for (auto&& m : member_vars) {
 			void* src_o = (char*)src + std::get<1>(m);
 			void* dst_o = (char*)dst + std::get<1>(m);
-			std::get<2>(m)->auto_move(src_o, dst_o);
+			std::get<2>(m)->compile_time_move(src_o, dst_o);
 		}
 	}
 
-	int ILType::auto_compare(void* p1, void* p2) {
-		return memcmp(p1, p2, size_in_bytes);
+	size_t ILType::compile_time_size() {
+		return 0;
+	}
+
+	size_t ILStruct::compile_time_size() {
+		return compile_time_size_in_bytes;
+	}
+
+	unsigned int ILStruct::runtime_size() { return size_in_bytes; }
+	unsigned int ILStruct::runtime_alignment() { return alignment_in_bytes; }
+
+
+	unsigned int ILArray::runtime_size() { return base->runtime_size()*count; }
+	unsigned int ILArray::runtime_alignment() { return base->runtime_alignment(); }
+
+
+	size_t ILArray::compile_time_size() {
+		return base->compile_time_size()*count;
+	}
+
+	int ILType::compile_time_compare(void* p1, void* p2) {
+		return memcmp(p1, p2, compile_time_size());
 	}
 
 	int ILStruct::compile_time_compare(void* p1, void* p2) {
 		for (auto&& m : member_vars) {
 			void* p1_o = (char*)p1 + std::get<1>(m);
 			void* p2_o = (char*)p2 + std::get<1>(m);
-			int r = std::get<2>(m)->auto_compare(p1_o, p2_o);
+			int r = std::get<2>(m)->compile_time_compare(p1_o, p2_o);
 			if (r == 0)
 				continue;
 			else if (r > 0)
@@ -382,7 +396,32 @@ namespace Corrosive {
 		return 0;
 	}
 
+	int ILArray::compile_time_compare(void* p1, void* p2) {
+		size_t es = base->compile_time_size();
+		unsigned char* pd1 = (unsigned char*)p1;
+		unsigned char* pd2 = (unsigned char*)p2;
 
+		for (int i = 0; i < count; i++) {
+			int c = base->compile_time_compare(pd1, pd2);
+			if (c != 0) return c;
+			pd1 += es;
+			pd2 += es;
+		}
+
+		return 0;
+	}
+
+	void ILArray::compile_time_move(void* p1, void* p2) {
+		size_t es = base->compile_time_size();
+		unsigned char* pd1 = (unsigned char*)p1;
+		unsigned char* pd2 = (unsigned char*)p2;
+
+		for (int i = 0; i < count; i++) {
+			base->compile_time_move(pd1, pd2);
+			pd1 += es;
+			pd2 += es;
+		}
+	}*/
 
 	void* ILEvaluator::read_last_register_value_indirect(ILDataType rs) {
 		return register_stack_pointer - compile_time_register_size(rs);
@@ -393,21 +432,31 @@ namespace Corrosive {
 		register_stack_pointer -= compile_time_register_size(rs);
 	}
 
+	/*
 	void ILStruct::align_size() {
 		size_in_bytes = _align_up(size_in_bytes, alignment_in_bytes);
 	}
 
 
 	ILType::~ILType() {}
-	ILType::ILType() : rvalue(ILDataType::undefined), size_in_bytes(0), alignment_in_bytes(0){}
-	ILType::ILType(ILDataType rv, unsigned int sz, unsigned int ct, unsigned int alg) : rvalue(rv), size_in_bytes(sz), compile_time_size_in_bytes(ct), alignment_in_bytes(alg) {}
+	ILType::ILType() : rvalue(ILDataType::undefined) {}
+	ILType::ILType(ILDataType rv) : rvalue(rv) {}
 
-	ILStruct::ILStruct() : ILType(ILDataType::ptr,0,0,0) {}
+	ILStruct::ILStruct() : ILType(ILDataType::ptr) {}
+	ILStruct::ILStruct(ILDataType rv, unsigned int sz, unsigned int ct, unsigned int alg) : ILType(rv), size_in_bytes(sz),alignment_in_bytes(alg),compile_time_size_in_bytes(ct) {}
 
 
 	ILType* ILModule::create_primitive_type(ILDataType rv, unsigned int sz, unsigned int cs, unsigned int alg) {
-		std::unique_ptr<ILType> t = std::make_unique<ILType>(rv, sz,cs, alg);
+		std::unique_ptr<ILType> t = std::make_unique<ILStruct>(rv, sz,cs, alg);
 		ILType* rt = t.get();
+		types.push_back(std::move(t));
+		return rt;
+	}
+
+
+	ILArray* ILModule::create_array_type() {
+		std::unique_ptr<ILArray> t = std::make_unique<ILArray>();
+		ILArray* rt = t.get();
 		types.push_back(std::move(t));
 		return rt;
 	}
@@ -418,7 +467,7 @@ namespace Corrosive {
 		types.push_back(std::move(t));
 		return rt;
 	}
-
+	
 	void ILModule::build_default_types() {
 
 		t_void = create_primitive_type(ILDataType::none, 0, 0,0);
@@ -436,7 +485,7 @@ namespace Corrosive {
 		t_f32 = create_primitive_type(ILDataType::f32, 4,sizeof(float), 4);
 		t_f64 = create_primitive_type(ILDataType::f64, 8,sizeof(double), 8);
 
-		t_type = create_primitive_type(ILDataType::ctype,sizeof(ILCtype), sizeof(ILCtype), sizeof(ILCtype));
+		t_type = create_primitive_type(ILDataType::ptr,sizeof(void*), sizeof(void*), sizeof(void*));
 
 		if (architecture == ILArchitecture::i386) {
 			t_i64 = create_primitive_type(ILDataType::i64, 8,8, 4);
@@ -448,6 +497,6 @@ namespace Corrosive {
 			t_u64 = create_primitive_type(ILDataType::u64, 8,8, 8);
 			t_ptr = create_primitive_type(ILDataType::ptr, 8,sizeof(void*), 8);
 		}
-	}
+	}*/
 
 }

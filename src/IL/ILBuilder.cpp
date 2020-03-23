@@ -15,11 +15,8 @@ namespace Corrosive {
 	bool ILBuilder::build_const_u64   (ILBlock* block, uint64_t value) { block->write_instruction(ILInstruction::value); block->write_const_type(ILDataType::u64);    block->write_value(sizeof(uint64_t), (unsigned char*)&value); block->push_const(true); return true; }
 	bool ILBuilder::build_const_f32   (ILBlock* block, float    value) { block->write_instruction(ILInstruction::value); block->write_const_type(ILDataType::f32);    block->write_value(sizeof(float),    (unsigned char*)&value); block->push_const(true); return true; }
 	bool ILBuilder::build_const_f64   (ILBlock* block, double   value) { block->write_instruction(ILInstruction::value); block->write_const_type(ILDataType::f64);    block->write_value(sizeof(double),   (unsigned char*)&value); block->push_const(true); return true; }
+	bool ILBuilder::build_const_ptr   (ILBlock* block, void*    value) { block->write_instruction(ILInstruction::value); block->write_const_type(ILDataType::ptr);    block->write_value(sizeof(void*),    (unsigned char*)&value); block->push_const(true); return true; }
 
-
-	bool ILBuilder::build_const_ctype(ILBlock* block, ILCtype value) {
-		block->write_instruction(ILInstruction::value); block->write_const_type(ILDataType::ctype);   block->write_value(sizeof(ILCtype), (unsigned char*)&value); block->push_const(true); return true;
-	}
 
 	template<typename T> inline T _il_block_value_pop_into(ILBlock* block, ILDataType t) {
 		switch (t)
@@ -467,18 +464,6 @@ namespace Corrosive {
 		block->write_instruction(ILInstruction::local);
 		block->write_value(sizeof(unsigned int), (unsigned char*)&id);
 		block->push_const(false);
-		return true;
-	}
-
-
-	bool ILBuilder::build_member(ILBlock* block, ILStruct* type, unsigned int id) {
-
-		block->write_instruction(ILInstruction::member);
-		block->write_value(sizeof(ILType*), (unsigned char*)&type);
-		block->write_value(sizeof(unsigned int), (unsigned char*)&id);
-		block->pop_const();
-		block->push_const(false);
-
 		return true;
 	}
 

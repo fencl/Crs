@@ -10,7 +10,7 @@ namespace Corrosive {
 	class Operand {
 	public:
 		static bool parse(Cursor& c, CompileContext& ctx, CompileValue& res, CompileType copm_type);
-		static bool cast(Cursor& err, CompileContext& ctx, CompileValue& from, Type to, CompileType copm_type);
+		static bool cast(Cursor& err, CompileContext& ctx, CompileValue& from, Type*& to, CompileType copm_type);
 
 	private:
 		static bool parse_expression(CompileValue& ret, Cursor& c, CompileContext& ctx, CompileType copm_type);

@@ -7,6 +7,7 @@
 #include "Expression.h"
 #include "StackManager.h"
 #include "Type.h"
+#include <algorithm>
 
 namespace Corrosive {
 
@@ -36,17 +37,16 @@ namespace Corrosive {
 						return false;
 					}
 
-					ILCtype ctype = ctx.eval->pop_register_value<ILCtype>();
-					Type t = { (TypeInstance*)ctype.type,ctype.ptr };
+					Type* t = ctx.eval->pop_register_value<Type*>();
 
-					if (t.type->type != TypeInstanceType::type_instance) {
+					if (t->type() != TypeInstanceType::type_instance) {
 						throw_specific_error(err, "Type does not point to instance");
 						return false;
 					}
 
-					if (!t.compile(ctx)) return false;
+					if (!t->compile(ctx)) return false;
 					
-					generate_heap_size += t.compile_time_size(ctx.eval);
+					generate_heap_size += t->compile_time_size(ctx.eval);
 					generic_layout.push_back(std::make_tuple(name,t));
 
 
@@ -122,8 +122,7 @@ namespace Corrosive {
 
 		if (new_inst != nullptr) {
 			new_inst->type = std::make_unique<TypeInstance>();
-			new_inst->type->type = TypeInstanceType::type_instance;
-			new_inst->type->owner_ptr = (void*)new_inst;
+			new_inst->type->owner = new_inst;
 			new_inst->generator = this;
 			new_inst->parent = parent;
 			new_inst->name = name;
@@ -148,12 +147,15 @@ namespace Corrosive {
 				if (!Expression::parse(c, nctx, value, CompileType::eval)) return false;
 				if (value.t != ctx.default_types->t_type) {
 					throw_specific_error(m.type, "Expected type value");
+					std::cerr << " | \tType was '";
+					value.t->print(std::cerr);
+					std::cerr << "'\n";
 					return false;
 				}
 
-				ILCtype ctype = ctx.eval->pop_register_value<ILCtype>();
-				Type m_t = { (TypeInstance*)ctype.type,ctype.ptr };
-				new_inst->member_vars[m.name.buffer] = std::make_pair(m.name, m_t);
+				Type* m_t = ctx.eval->pop_register_value<Type*>();
+
+				new_inst->member_vars.push_back(std::make_pair(m.name, m_t));
 			}
 
 			for (auto&& m : member_funcs) {
@@ -167,12 +169,15 @@ namespace Corrosive {
 				if (!Expression::parse(c, nctx, value, CompileType::eval)) return false;
 				if (value.t != ctx.default_types->t_type) {
 					throw_specific_error(m.type, "Expected type value");
+					std::cerr << " | \tType was '";
+					value.t->print(std::cerr);
+					std::cerr << "'\n";
 					return false;
 				}
 
-				ILCtype ctype = ctx.eval->pop_register_value<ILCtype>();
+				Type* t = ctx.eval->pop_register_value<Type*>();
 
-				ILFunction* func = ctx.module->create_function(ctx.module->t_void);
+				ILFunction* func = ctx.module->create_function(0);
 				ILBlock* block = func->create_block(ILDataType::none);
 				func->append_block(block);
 
@@ -186,38 +191,49 @@ namespace Corrosive {
 
 				func->dump();
 
-				new_inst->member_funcs[m.name.buffer] = std::make_pair<ILFunction*, Type>(nullptr, { (TypeInstance*)ctype.type,ctype.ptr });
+				new_inst->member_funcs.push_back(std::make_pair<ILFunction*, Type*>((ILFunction*)nullptr, (Type*)t));
 			}
 		}
 
 		return true;
 	}
 
+	unsigned int _align_up(unsigned int value, unsigned int alignment) {
+		return alignment == 0 ? value : ((value % alignment == 0) ? value : value + (alignment - (value % alignment)));
+	}
 
+
+	void StructureInstance::add_member(CompileContext& ctx,Type* t) {
+		runtime_size = _align_up(runtime_size,t->runtime_alignment(ctx));
+		runtime_size += t->runtime_size(ctx);
+		compile_time_size_in_bytes += t->compile_time_size(ctx.eval);
+	}
 
 	bool StructureInstance::compile(CompileContext& ctx) {
 		if (compile_state == 0) {
 			compile_state = 1;
-			iltype = ctx.module->create_struct_type();
+
+			compile_time_size_in_bytes = 0;
+			runtime_alignment = 0;
+			runtime_size = 0;
 
 			for (auto&& m : member_vars) {
-				if (m.second.second.ref_count == 0) {
-					if (!m.second.second.type->compile(ctx)) return false;
-				}
+				if (!m.second->compile(ctx)) return false;
+				
 
-				if (m.second.second.type->type == TypeInstanceType::type_instance) {
-					((ILStruct*)iltype)->add_member(((StructureInstance*)m.second.second.type->owner_ptr)->iltype);
+				if (m.second->compile_time_size(ctx.eval) > 0) {
+					add_member(ctx,m.second);
 				}
 				else {
-					throw_specific_error(m.second.first, "Specified type is not an instance type");
+					throw_specific_error(m.first, "Specified type is not an instantiable type");
 					std::cerr << " | \tType was '";
-					m.second.second.type->print(std::cerr);
+					m.second->print(std::cerr);
 					std::cerr << "'\n";
 					return false;
 				}
 			}
 
-			((ILStruct*)iltype)->align_size();
+			runtime_size = _align_up(runtime_size, runtime_alignment);
 
 			compile_state = 2;
 		}
@@ -243,7 +259,7 @@ namespace Corrosive {
 		unsigned char* key_ptr = (unsigned char*)key;
 		for (auto key_l = generator->generic_layout.rbegin(); key_l != generator->generic_layout.rend(); key_l++) {
 			ctx.eval->stack_push_pointer(key_ptr);
-			key_ptr += std::get<1>(*key_l).compile_time_size(ctx.eval);
+			key_ptr += std::get<1>(*key_l)->compile_time_size(ctx.eval);
 			CompileValue argval;
 			argval.lvalue = true;
 			argval.t = std::get<1>(*key_l);

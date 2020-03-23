@@ -26,7 +26,7 @@ namespace Corrosive {
 	};
 
 	struct CompileValue {
-		Type t;
+		Type* t;
 		bool lvalue;
 	};
 }

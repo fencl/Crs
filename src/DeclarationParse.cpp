@@ -78,11 +78,10 @@ namespace Corrosive {
 	bool StructureTemplate::parse(Cursor& c, CompileContext& ctx, Namespace* parent, std::unique_ptr<StructureTemplate>& into) {
 		std::unique_ptr<StructureTemplate> result = std::make_unique<StructureTemplate>();
 
-		std::unique_ptr<TypeInstance> result_type = std::make_unique<TypeInstance>();
-		result_type->rvalue = ILDataType::ptr;
-		result_type->type = TypeInstanceType::type_template;
-		result_type->owner_ptr = (void*)result.get();
-		result->type = std::move(result_type);
+		result->type = std::make_unique<TypeStructure>();
+		result->type->rvalue = ILDataType::ptr;
+		result->type->owner = result.get();
+
 		result->parent = parent;
 		result->template_parent = dynamic_cast<StructureInstance*>(parent);
 

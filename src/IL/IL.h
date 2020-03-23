@@ -17,18 +17,13 @@ namespace Corrosive {
 
 	class ILFunction;
 	class ILModule;
-	
-	struct ILCtype {
-		void* type;
-		uint32_t ptr;
-	};
 
 	enum class ILInstruction : unsigned char {
 		value, add, sub, div, mul, rem, o_and, o_or, o_xor, load, store, accept, discard, yield, ret, jmp, jmpz, eq, ne, gt, ge, lt, le, local, member, yield_type
 	};
 
 	enum class ILDataType : unsigned char {
-		ibool, u8, i8, u16, i16, u32, i32, u64, i64, f32, f64, ptr, none, undefined, ctype
+		ibool, u8, i8, u16, i16, u32, i32, u64, i64, f32, f64, ptr, none, undefined
 	};
 
 	enum class ILArchitecture {
@@ -80,42 +75,63 @@ namespace Corrosive {
 		unsigned char* read_data(size_t, std::list<std::unique_ptr<ILBlockData>>::iterator& pool, size_t& memoff);
 	};
 
+	/*
 	class ILType {
 	public:
 		~ILType();
 		ILType();
-		ILType(ILDataType rv,unsigned int sz, unsigned int ct, unsigned int alg);
+		ILType(ILDataType rv);
 		ILDataType rvalue;
-		unsigned int size_in_bytes = 0;
-		unsigned int alignment_in_bytes = 0;
 
-		unsigned int compile_time_size_in_bytes = 0;
-
-		virtual int auto_compare(void* p1, void* p2);
-		virtual void auto_move(void* src, void* dst);
+		virtual int compile_time_compare(void* p1, void* p2);
+		virtual void compile_time_move(void* src, void* dst);
+		virtual size_t compile_time_size();
+		virtual unsigned int runtime_size();
+		virtual unsigned int runtime_alignment();
 	};
 
 	class ILStruct : public ILType {
 	public:
 		ILStruct();
-		std::vector<std::tuple<unsigned int /*runtime_offset*/, unsigned int /*compile_time_offset*/, ILType*>> member_vars;
+		ILStruct(ILDataType rv, unsigned int sz, unsigned int ct, unsigned int alg);
+
+		std::vector<std::tuple<unsigned int, size_t, ILType*>> member_vars;
+
+		unsigned int size_in_bytes = 0;
+		unsigned int alignment_in_bytes = 0;
+		size_t		 compile_time_size_in_bytes = 0;
 
 		void			add_member(ILType* type);
 		void			align_size();
 
 		virtual int		compile_time_compare(void* p1, void* p2);
 		virtual void	compile_time_move(void* src, void* dst);
+		virtual size_t  compile_time_size();
+		virtual unsigned int runtime_size();
+		virtual unsigned int runtime_alignment();
 	};
+
+	class ILArray : public ILType {
+	public:
+		ILType* base;
+		unsigned int count;
+
+		virtual int		compile_time_compare(void* p1, void* p2);
+		virtual void	compile_time_move(void* src, void* dst);
+		virtual size_t  compile_time_size();
+		virtual unsigned int runtime_size();
+		virtual unsigned int runtime_alignment();
+	};*/
 
 	class ILFunction {
 	public:
 		~ILFunction();
 		unsigned int	id;
 		ILModule*		parent;
-		ILType*			returns = nullptr;
+		unsigned int	returns = 0;
 		bool			is_const = false;
 
-		std::vector<ILType*>					locals;
+		std::vector<unsigned int>						local_allocas;
 		std::vector<ILBlock*>					blocks;
 		std::vector<std::unique_ptr<ILBlock>>	blocks_memory;
 		std::set<ILBlock*>						return_blocks;
@@ -124,7 +140,7 @@ namespace Corrosive {
 		void		 append_block(ILBlock* block);
 		void		 dump();
 		bool		 assert_flow();
-		unsigned int register_local(ILType* type);
+		unsigned int register_local(unsigned int type_size);
 	};
 
 	class ILEvaluator {
@@ -174,29 +190,9 @@ namespace Corrosive {
 	class ILModule {
 	public:
 		std::vector<std::unique_ptr<ILFunction>> functions;
-		std::vector<std::unique_ptr<ILType>> types;
+
 		ILArchitecture architecture = ILArchitecture::x86_64;
-		ILFunction* create_function(ILType* returns);
-		ILType* create_primitive_type(ILDataType rv, unsigned int sz, unsigned int cs, unsigned int alg);
-		ILStruct* create_struct_type();
-
-		ILType* t_i8;
-		ILType* t_u8;
-		ILType* t_i16;
-		ILType* t_u16;
-		ILType* t_i32;
-		ILType* t_u32;
-		ILType* t_i64;
-		ILType* t_u64;
-		ILType* t_f32;
-		ILType* t_f64;
-		ILType* t_bool;
-		ILType* t_ptr;
-		ILType* t_void;
-
-		ILType* t_type;
-
-		void build_default_types();
+		ILFunction* create_function(unsigned int return_size);
 	};
 
 	class ILBuilder {
@@ -214,7 +210,6 @@ namespace Corrosive {
 		static bool eval_const_f32   (ILEvaluator* eval_ctx, float    value);
 		static bool eval_const_f64   (ILEvaluator* eval_ctx, double   value);
 		static bool eval_const_ptr   (ILEvaluator* eval_ctx, void*    value);
-		static bool eval_const_ctype (ILEvaluator* eval_ctx, ILCtype value);
 
 		static bool build_const_ibool (ILBlock* block, int8_t   value);
 		static bool build_const_i8	  (ILBlock* block, int8_t   value);
@@ -227,13 +222,13 @@ namespace Corrosive {
 		static bool build_const_u64	  (ILBlock* block, uint64_t value);
 		static bool build_const_f32	  (ILBlock* block, float    value);
 		static bool build_const_f64	  (ILBlock* block, double   value);
-		static bool build_const_ctype (ILBlock* block, ILCtype value);
+		static bool build_const_ptr   (ILBlock* block, void*    value);
 
 		static bool eval_add(ILEvaluator* eval_ctx,ILDataType tl,ILDataType tr);
 		static bool eval_load(ILEvaluator* eval_ctx, ILDataType type);
 		static bool eval_store(ILEvaluator* eval_ctx, ILDataType type);
 		static bool eval_local(ILEvaluator* eval_ctx, unsigned int id);
-		static bool eval_member(ILEvaluator* eval_ctx, ILStruct* type, unsigned int id);
+
 		static bool eval_and(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
 		static bool eval_or(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
 		static bool eval_xor(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
@@ -256,7 +251,7 @@ namespace Corrosive {
 		static bool build_load(ILBlock* block, ILDataType type);
 		static bool build_store(ILBlock* block, ILDataType type);
 		static bool build_local(ILBlock* block,unsigned int id);
-		static bool build_member(ILBlock* block,ILStruct* type,unsigned int id);
+
 		static bool build_and(ILBlock* block, ILDataType tl, ILDataType tr);
 		static bool build_or(ILBlock* block, ILDataType tl, ILDataType tr);
 		static bool build_xor(ILBlock* block, ILDataType tl, ILDataType tr);

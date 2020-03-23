@@ -14,49 +14,98 @@
 
 namespace Corrosive {
 	struct CompileContext;
-
-	
 	class StructureInstance;
+	class StructureTemplate;
+	class Type;
+
 	enum class TypeInstanceType {
-		type_template,type_instance,type_array
+		type_template,type_instance,type_array,type_reference,type_undefined
 	};
-
-	class TypeInstance {
-	public:
-
-		ILDataType rvalue;
-		TypeInstanceType type;
-		void* owner_ptr;
-
-		bool compile(CompileContext& ctx);
-		int compare(ILEvaluator* ctx, void* p1, void* p2);
-		void move(CompileContext& ctx, void* src, void* dst);
-		bool rvalue_stacked();
-		void print(std::ostream& os);
-		size_t compile_time_size(ILEvaluator* eval);
-	};
-
+	class TypeArray;
+	class TypeReference;
 
 	class Type {
 	public:
-		TypeInstance* type;
-		uint32_t ref_count = 0;
+		inline virtual ~Type() {}
+		ILDataType rvalue;
+		inline virtual TypeInstanceType type() { return TypeInstanceType::type_undefined; }
 
-		static Type null;
-		size_t compile_time_size(ILEvaluator* eval);
-		bool compile(CompileContext& ctx);
-		int compare(ILEvaluator* ctx, void* p1, void* p2);
-		void move(CompileContext& ctx, void* src, void* dst);
-		bool rvalue_stacked();
-		void print(std::ostream& os);
+		virtual bool compile(CompileContext& ctx);
+
+		virtual int compile_time_compare(ILEvaluator* eval, void* p1, void* p2);
+		virtual void compile_time_move(ILEvaluator* eval, void* src, void* dst);
+		virtual size_t compile_time_size(ILEvaluator* eval);
+
+		virtual unsigned int runtime_size(CompileContext& ctx);
+		virtual unsigned int runtime_alignment(CompileContext& ctx);
+
+		virtual bool rvalue_stacked();
+		virtual void print(std::ostream& os);
+
+		TypeArray* generate_array(uint32_t count);
+		TypeReference* generate_reference();
+
+		std::map<uint64_t, std::unique_ptr<TypeArray>> arrays;
+		std::unique_ptr<TypeReference> reference = nullptr;
 	};
 
-	inline bool operator == (const Type& t1, const Type& t2) {
-		return t1.type == t2.type && t1.ref_count == t2.ref_count;
-	}
-	inline bool operator != (const Type& t1, const Type& t2) {
-		return !(t1 == t2);
-	}
+	class TypeInstance : public Type {
+	public:
+		StructureInstance* owner;
+
+		inline virtual TypeInstanceType type() { return TypeInstanceType::type_instance; }
+
+		virtual bool compile(CompileContext& ctx);
+		virtual int compile_time_compare(ILEvaluator* eval, void* p1, void* p2);
+		virtual void compile_time_move(ILEvaluator* eval, void* src, void* dst);
+		virtual size_t compile_time_size(ILEvaluator* eval);
+
+		virtual unsigned int runtime_size(CompileContext& ctx);
+		virtual unsigned int runtime_alignment(CompileContext& ctx);
+
+		virtual bool rvalue_stacked();
+		virtual void print(std::ostream& os);
+	};
+
+	class TypeStructure : public Type {
+	public:
+		inline virtual TypeInstanceType type() { return TypeInstanceType::type_template; }
+
+		StructureTemplate* owner;
+
+		virtual bool compile(CompileContext& ctx);
+		virtual void print(std::ostream& os);
+	};
+
+	class TypeArray : public Type {
+	public:
+		inline virtual TypeInstanceType type() { return TypeInstanceType::type_array; }
+
+		Type* owner;
+		uint32_t count;
+
+		virtual bool compile(CompileContext& ctx);
+		virtual int compile_time_compare(ILEvaluator* eval, void* p1, void* p2);
+		virtual void compile_time_move(ILEvaluator* eval, void* src, void* dst);
+		virtual size_t compile_time_size(ILEvaluator* eval);
+		virtual unsigned int runtime_size(CompileContext& ctx);
+		virtual unsigned int runtime_alignment(CompileContext& ctx);
+		virtual void print(std::ostream& os);
+	};
+	
+	class TypeReference : public Type {
+	public:
+		inline virtual TypeInstanceType type() { return TypeInstanceType::type_reference; }
+
+		Type* owner;
+		virtual int compile_time_compare(ILEvaluator* eval, void* p1, void* p2);
+		virtual void compile_time_move(ILEvaluator* eval, void* src, void* dst);
+		virtual size_t compile_time_size(ILEvaluator* eval);
+		virtual unsigned int runtime_size(CompileContext& ctx);
+		virtual unsigned int runtime_alignment(CompileContext& ctx);
+		virtual void print(std::ostream& os);
+	};
+
 }
 
 #include "CompileContext.h"

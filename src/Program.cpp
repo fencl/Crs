@@ -25,9 +25,7 @@ namespace Corrosive {
 		std::unique_ptr<DefaultTypes> dt = std::make_unique<DefaultTypes>();
 		std::unique_ptr<Namespace> gn = std::make_unique<Namespace>();
 		std::unique_ptr<ILEvaluator> e = std::make_unique<ILEvaluator>();
-
 		m->architecture = ILArchitecture::x86_64;
-		m->build_default_types();
 
 		Cursor c = src.read_first();
 		CompileContext ctx;

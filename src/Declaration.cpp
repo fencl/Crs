@@ -38,14 +38,47 @@ namespace Corrosive {
 
 	int StructureInstance::compare(ILEvaluator* eval, void* p1, void* p2) {
 		//TODO test for specific compare function
-		return iltype->auto_compare(p1, p2);
+
+		if (member_vars.size() == 0) {
+			return memcmp(p1, p2, compile_time_size_in_bytes);
+		}
+		else {
+			unsigned char* pd1 = (unsigned char*)p1;
+			unsigned char* pd2 = (unsigned char*)p2;
+
+			for (auto&& m : member_vars) {
+				int c = m.second->compile_time_compare(eval, pd1, pd2);
+				if (c != 0) return c;
+				size_t ms = m.second->compile_time_size(eval);
+				pd1 += ms;
+				pd2 += ms;
+			}
+
+			return 0;
+		}
 	}
 
 
 
-	void StructureInstance::move(CompileContext& ctx, void* src, void* dst) {
+	void StructureInstance::move(ILEvaluator* eval, void* src, void* dst) {
 		//TODO test for specific move function
-		iltype->auto_move(src, dst);
+		
+
+		if (member_vars.size() == 0) {
+			memcpy(dst, src, compile_time_size_in_bytes);
+		}
+		else {
+			unsigned char* srcd = (unsigned char*)src;
+			unsigned char* dstd = (unsigned char*)dst;
+
+			for (auto&& m : member_vars) {
+				m.second->compile_time_move(eval, srcd, dstd);
+
+				size_t ms = m.second->compile_time_size(eval);
+				srcd += ms;
+				dstd += ms;
+			}
+		}
 	}
 
 
@@ -63,10 +96,10 @@ namespace Corrosive {
 		if (a.first > b.first) return false;
 		size_t offset = 0;
 		for (auto&& l : parent->generic_layout) {
-			int r = std::get<1>(l).compare(eval, &((unsigned char*)a.second)[offset], &((unsigned char*)b.second)[offset]);
+			int r = std::get<1>(l)->compile_time_compare(eval, &((unsigned char*)a.second)[offset], &((unsigned char*)b.second)[offset]);
 			if (r < 0) return true;
 			if (r > 0) return false;
-			offset += std::get<1>(l).compile_time_size(eval);
+			offset += std::get<1>(l)->compile_time_size(eval);
 		}
 
 		return false;
