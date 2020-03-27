@@ -23,6 +23,9 @@ namespace Corrosive {
 	};
 
 	class StructureTemplate;
+	class FunctionTemplate;
+	class FunctionInstance;
+
 	class Namespace {
 	public:
 		virtual ~Namespace();
@@ -32,30 +35,35 @@ namespace Corrosive {
 		Namespace* parent = nullptr;
 		std::map<std::string_view, std::unique_ptr<Namespace>> subnamespaces;
 		std::map<std::string_view, std::unique_ptr<StructureTemplate>> subtemplates;
+		std::map<std::string_view, std::unique_ptr<FunctionTemplate>> subfunctions;
 
 		static bool parse(Cursor& c, CompileContext& ctx, std::unique_ptr<Namespace>& into);
 		void find_name(std::string_view name, Namespace*& subnamespace, StructureTemplate*& subtemplate);
 	};
 
-	class StructureTemplate;
+	struct StructureInstanceMemberRecord {
+		Cursor definition;
+		Type* type;
+
+		uint32_t offset;
+	};
+
 	class StructureInstance : public Namespace {
 	public:
 
-		void add_member(CompileContext& ctx, Type* t);
+		std::map<std::string_view, size_t> member_table;
 
-		std::vector<std::pair<Cursor,Type*>> member_vars;
-		std::vector<std::pair<ILFunction*, Type*>> member_funcs;
+		std::vector<StructureInstanceMemberRecord> member_vars;
 
 		StructureTemplate* generator;
 
-		size_t compile_time_size_in_bytes;
-		unsigned int runtime_size;
-		unsigned int runtime_alignment;
+		uint32_t size;
+		uint32_t alignment;
 
 		void* key = nullptr;
 
-		int compare(ILEvaluator* eval, void* p1, void* p2);
-		void move(ILEvaluator* eval, void* src, void* dst);
+		int compare(CompileContext& ctx, void* p1, void* p2);
+		void move(CompileContext& ctx, void* src, void* dst);
 
 		void insert_key_on_stack(CompileContext& ctx);
 
@@ -72,6 +80,7 @@ namespace Corrosive {
 
 	struct StructureTemplateMemberFunc {
 		Cursor name;
+		Cursor annotation;
 		Cursor type;
 		Cursor block;
 	};
@@ -104,7 +113,6 @@ namespace Corrosive {
 		bool generate(CompileContext& ctx, void* argdata, StructureInstance*& out);
 
 		bool compile(CompileContext& ctx);
-		unsigned int type_compare_heap_size = 0;
 
 		static bool parse(Cursor &c, CompileContext& ctx, Namespace* parent, std::unique_ptr<StructureTemplate>& into);
 
@@ -115,12 +123,62 @@ namespace Corrosive {
 	private:
 		struct GenericTemplateCompare {
 			StructureTemplate* parent;
-			ILEvaluator* eval;
+			CompileContext ctx;
 			bool operator()(const std::pair<unsigned int, void*>& a, const std::pair<unsigned int, void*>& b) const;
 		};
 		GenericTemplateCompare gen_template_cmp;
 	public:
 		std::unique_ptr<std::map<std::pair<unsigned int, void*>, std::unique_ptr<StructureInstance>, GenericTemplateCompare>> instances = nullptr;
+	};
+
+	class FunctionInstance {
+	public:
+		ILFunction* func = nullptr;
+		FunctionTemplate* generator;
+
+		Cursor block;
+
+		std::vector<std::pair<Cursor,Type*>> arguments;
+		Type* returns;
+
+		void* key = nullptr;
+
+		bool compile(CompileContext& ctx);
+
+		unsigned int compile_state = 0;
+
+	};
+
+	class FunctionTemplate {
+	public:
+		inline virtual ~FunctionTemplate() {}
+
+		Namespace* parent = nullptr;
+		Cursor name;
+		Cursor annotation;
+		Cursor type;
+		Cursor block;
+
+		StructureInstance* template_parent = nullptr;
+		std::unique_ptr<FunctionInstance> singe_instance = nullptr;
+
+		size_t generate_heap_size = 0;
+
+		bool is_generic = false;
+		bool generate(CompileContext& ctx, void* argdata, FunctionInstance*& out);
+		bool compile(CompileContext& ctx);
+
+		unsigned int compile_state = 0;
+		std::vector<std::tuple<Cursor, Type*>> generic_layout;
+	private:
+		struct GenericTemplateCompare {
+			FunctionTemplate* parent;
+			CompileContext ctx;
+			bool operator()(const std::pair<unsigned int, void*>& a, const std::pair<unsigned int, void*>& b) const;
+		};
+		GenericTemplateCompare gen_template_cmp;
+	public:
+		std::unique_ptr<std::map<std::pair<unsigned int, void*>, std::unique_ptr<FunctionInstance>, GenericTemplateCompare>> instances = nullptr;
 	};
 
 	class Declaration {

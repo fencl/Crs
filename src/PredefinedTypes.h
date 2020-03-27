@@ -23,9 +23,10 @@ namespace Corrosive {
 		Type* t_bool;
 		Type* t_ptr;
 		Type* t_type;
+		Type* t_void;
 		void setup(CompileContext& ctx);
 	private:
-		void setup_type(CompileContext& ctx, std::string_view name, Type*& into, size_t compile_time_size, unsigned int runtime_size, unsigned int runtime_alignment, ILDataType ildt);
+		void setup_type(CompileContext& ctx, std::string_view name, Type*& into, unsigned int runtime_size, unsigned int runtime_alignment, ILDataType ildt);
 	};
 }
 

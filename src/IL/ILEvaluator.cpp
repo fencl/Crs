@@ -22,7 +22,8 @@ namespace Corrosive {
 	bool ILBuilder::eval_const_u64   (ILEvaluator* eval_ctx, uint64_t value) { eval_ctx->write_register_value_indirect(sizeof(uint64_t), (unsigned char*)&value); return true; }
 	bool ILBuilder::eval_const_f32   (ILEvaluator* eval_ctx, float    value) { eval_ctx->write_register_value_indirect(sizeof(float),    (unsigned char*)&value); return true; }
 	bool ILBuilder::eval_const_f64   (ILEvaluator* eval_ctx, double   value) { eval_ctx->write_register_value_indirect(sizeof(double),   (unsigned char*)&value); return true; }
-	bool ILBuilder::eval_const_ptr   (ILEvaluator* eval_ctx, void*    value) { eval_ctx->write_register_value_indirect(sizeof(void*),    (unsigned char*)&value); return true; }
+	bool ILBuilder::eval_const_type  (ILEvaluator* eval_ctx, void*    value) { eval_ctx->write_register_value_indirect(sizeof(void*),    (unsigned char*)&value); return true; }
+	bool ILBuilder::eval_const_ptr   (ILEvaluator* eval_ctx, ILPtr    value) { eval_ctx->write_register_value_ilptr(value); return true; }
 
 
 	template<typename T> inline T _il_evaluator_value_pop_into(ILEvaluator* eval_ctx, ILDataType t) {
@@ -305,8 +306,18 @@ namespace Corrosive {
 				return sizeof(float);
 			case Corrosive::ILDataType::f64:
 				return sizeof(double);
-			case Corrosive::ILDataType::ptr:
+			case Corrosive::ILDataType::type:
 				return sizeof(void*);
+			case Corrosive::ILDataType::ptr: {
+					switch (parent->architecture)
+					{
+						case ILArchitecture::i386:
+							return 4;
+						case ILArchitecture::x86_64:
+							return 8;
+					}
+					return 0;
+				}
 			case Corrosive::ILDataType::none:
 				return 0;
 			case Corrosive::ILDataType::undefined:
@@ -318,27 +329,180 @@ namespace Corrosive {
 
 
 
+	void ILEvaluator::setup_allocator() {
+		uint16_t* heap_start = (uint16_t*)memory_heap;
+		heap_start[0] = 0;
+		heap_start[1] = 0;
+		heap_start[2] = UINT16_MAX;
+		heap_start[3] = 0;
+	}
+
+
+	uint16_t* ILEvaluator::read_header(void* ptr) {
+		return ((uint16_t*)ptr) - 4;
+	}
+
+	void* ILEvaluator::malloc(size_t size) {
+		unsigned char* from_mem = (unsigned char*)memory_heap;
+
+		uint16_t from = sizeof(uint16_t)*4;
+
+		while (from != 0) {
+			uint16_t* hdr = read_header(&from_mem[from]);
+			if (hdr[3] == 0 && hdr[2] >= size) {
+				hdr[3] = 1;
+				uint16_t hdr_size = hdr[2];
+
+				if (hdr_size- (uint16_t)size > sizeof(uint16_t) * 4) {
+					hdr[2] = (uint16_t)size;
+
+					uint16_t nfrom = from + (uint16_t)size + sizeof(uint16_t) * 4;
+					uint16_t* nhdr = read_header(&from_mem[nfrom]);
+					nhdr[0] = from;
+					nhdr[1] = hdr[1];
+					hdr[1] = nfrom;
+					nhdr[2] = hdr_size - (uint16_t)size - sizeof(uint16_t) * 4;
+					nhdr[3] = 0;
+					return &from_mem[from];
+				}
+			}
+			else {
+				from = hdr[1];
+			}
+		}
+
+		return nullptr;
+	}
+
+	void ILEvaluator::free(void*) {
+		
+	}
+
+
 	bool ILBuilder::eval_load(ILEvaluator* eval_ctx, ILDataType type) {
-		void* mem = eval_ctx->pop_register_value<void*>();
+		ILPtr ptr = eval_ctx->pop_register_value_ilptr();
+		void* mem = eval_ctx->map(ptr);
 		eval_ctx->write_register_value_indirect(eval_ctx->compile_time_register_size(type), mem);
 		return true;
 	}
 
+	bool ILBuilder::eval_member(ILEvaluator* eval_ctx, uint32_t offset) {
+		if (offset > 0) {
+			ILPtr mem = eval_ctx->pop_register_value_ilptr();
+			mem += offset;
+			eval_ctx->write_register_value_ilptr(mem);
+		}
+		return true;
+	}
+
+
+	void* ILEvaluator::map(ILPtr ptr) {
+		if (ptr < heap_size) {
+			return (memory_heap)+ ptr;
+		}
+		else if (ptr < heap_size + stack_size) {
+			return memory_stack + (ptr - heap_size);
+		}
+		else {
+			return nullptr;
+		}
+	}
+
 	bool ILBuilder::eval_store(ILEvaluator* eval_ctx, ILDataType type) {
-		void* mem = eval_ctx->pop_register_value<void*>();
+		void* mem = eval_ctx->map(eval_ctx->pop_register_value_ilptr());
 		eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(type), mem);
 		return true;
 	}
 
 
 	unsigned char* ILEvaluator::stack_push() {
-		std::vector<void*>tmp;
+		std::vector<ILPtr>tmp;
 		on_stack.push_back(std::move(tmp));
 		return memory_stack_pointer;
 	}
 	void ILEvaluator::stack_pop(unsigned char* stack_pointer) {
 		on_stack.pop_back();
 		memory_stack_pointer = stack_pointer;
+	}
+
+
+	ILPtr ILEvaluator::read_register_value_ilptr() {
+		switch (parent->architecture)
+		{
+			case ILArchitecture::i386:
+				return read_register_value<uint32_t>();
+			case ILArchitecture::x86_64:
+				return read_register_value<uint64_t>();
+		}
+		return 0;
+	}
+
+	ILPtr ILEvaluator::pop_register_value_ilptr() {
+		switch (parent->architecture)
+		{
+			case ILArchitecture::i386:
+				return pop_register_value<uint32_t>();
+			case ILArchitecture::x86_64:
+				return pop_register_value<uint64_t>();
+		}
+		return 0;
+	}
+
+	void ILEvaluator::write_register_value_ilptr(ILPtr ptr) {
+		switch (parent->architecture)
+		{
+			case ILArchitecture::i386:
+				write_register_value<uint32_t>((uint32_t)ptr);
+				break;
+			case ILArchitecture::x86_64:
+				write_register_value<uint64_t>((uint64_t)ptr);
+				break;
+		}
+	}
+
+
+	ILPtr ILEvaluator::load_ilptr(void* from) {
+		switch (parent->architecture)
+		{
+			case ILArchitecture::i386:
+				return *((uint32_t*)from);
+			case ILArchitecture::x86_64:
+				return *((uint64_t*)from);
+		}
+		return 0;
+	}
+
+	void ILEvaluator::store_ilptr(ILPtr ptr, void* to) {
+		switch (parent->architecture)
+		{
+			case ILArchitecture::i386:
+				*((uint32_t*)to) = (uint32_t)ptr;
+			case ILArchitecture::x86_64:
+				*((uint64_t*)to) = (uint64_t)ptr;
+		}
+	}
+
+	ILPtr ILEvaluator::map_back(void* from) {
+		if ((unsigned char*)from - memory_heap < heap_size) {
+			switch (parent->architecture)
+			{
+				case ILArchitecture::i386:
+					return (uint32_t)((unsigned char*)from - memory_heap);
+				case ILArchitecture::x86_64:
+					return (uint64_t)((unsigned char*)from - memory_heap);
+			}
+		}
+		else if ((unsigned char*)from - memory_stack < stack_size) {
+			switch (parent->architecture)
+			{
+				case ILArchitecture::i386:
+					return (uint32_t)((unsigned char*)from - memory_stack + heap_size);
+				case ILArchitecture::x86_64:
+					return (uint64_t)((unsigned char*)from - memory_stack + heap_size);
+			}
+		}
+		
+		return 0;
 	}
 
 	bool ILBuilder::eval_local(ILEvaluator* eval_ctx, unsigned int id) {
@@ -348,18 +512,18 @@ namespace Corrosive {
 
 
 	void ILEvaluator::stack_write(size_t size, void* from) {
-		on_stack.back().push_back(memory_stack_pointer);
+		on_stack.back().push_back(map_back(memory_stack_pointer));
 		memcpy(memory_stack_pointer, from, size);
 		memory_stack_pointer += size;
 	}
 
 
 	void ILEvaluator::stack_push_pointer(void* ptr) {
-		on_stack.back().push_back(ptr);
+		on_stack.back().push_back(map_back(ptr));
 	}
 
 	unsigned char* ILEvaluator::stack_reserve(size_t size) {
-		on_stack.back().push_back(memory_stack_pointer);
+		on_stack.back().push_back(map_back(memory_stack_pointer));
 		unsigned char* res = memory_stack_pointer;
 		memory_stack_pointer += size;
 		return res;

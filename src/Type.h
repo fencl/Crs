@@ -32,17 +32,15 @@ namespace Corrosive {
 
 		virtual bool compile(CompileContext& ctx);
 
-		virtual int compile_time_compare(ILEvaluator* eval, void* p1, void* p2);
-		virtual void compile_time_move(ILEvaluator* eval, void* src, void* dst);
-		virtual size_t compile_time_size(ILEvaluator* eval);
-
-		virtual unsigned int runtime_size(CompileContext& ctx);
-		virtual unsigned int runtime_alignment(CompileContext& ctx);
+		virtual int compare(CompileContext& ctx, void* p1, void* p2);
+		virtual void move(CompileContext& ctx, void* src, void* dst);
+		virtual unsigned int size(CompileContext& ctx);
+		virtual unsigned int alignment(CompileContext& ctx);
 
 		virtual bool rvalue_stacked();
 		virtual void print(std::ostream& os);
 
-		TypeArray* generate_array(uint32_t count);
+		TypeArray* generate_array(unsigned int count);
 		TypeReference* generate_reference();
 
 		std::map<uint64_t, std::unique_ptr<TypeArray>> arrays;
@@ -56,12 +54,10 @@ namespace Corrosive {
 		inline virtual TypeInstanceType type() { return TypeInstanceType::type_instance; }
 
 		virtual bool compile(CompileContext& ctx);
-		virtual int compile_time_compare(ILEvaluator* eval, void* p1, void* p2);
-		virtual void compile_time_move(ILEvaluator* eval, void* src, void* dst);
-		virtual size_t compile_time_size(ILEvaluator* eval);
-
-		virtual unsigned int runtime_size(CompileContext& ctx);
-		virtual unsigned int runtime_alignment(CompileContext& ctx);
+		virtual int compare(CompileContext& ctx, void* p1, void* p2);
+		virtual void move(CompileContext& ctx, void* src, void* dst);
+		virtual unsigned int size(CompileContext& ctx);
+		virtual unsigned int alignment(CompileContext& ctx);
 
 		virtual bool rvalue_stacked();
 		virtual void print(std::ostream& os);
@@ -85,11 +81,10 @@ namespace Corrosive {
 		uint32_t count;
 
 		virtual bool compile(CompileContext& ctx);
-		virtual int compile_time_compare(ILEvaluator* eval, void* p1, void* p2);
-		virtual void compile_time_move(ILEvaluator* eval, void* src, void* dst);
-		virtual size_t compile_time_size(ILEvaluator* eval);
-		virtual unsigned int runtime_size(CompileContext& ctx);
-		virtual unsigned int runtime_alignment(CompileContext& ctx);
+		virtual int compare(CompileContext& ctx, void* p1, void* p2);
+		virtual void move(CompileContext& ctx, void* src, void* dst);
+		virtual unsigned int size(CompileContext& ctx);
+		virtual unsigned int alignment(CompileContext& ctx);
 		virtual void print(std::ostream& os);
 	};
 	
@@ -98,11 +93,10 @@ namespace Corrosive {
 		inline virtual TypeInstanceType type() { return TypeInstanceType::type_reference; }
 
 		Type* owner;
-		virtual int compile_time_compare(ILEvaluator* eval, void* p1, void* p2);
-		virtual void compile_time_move(ILEvaluator* eval, void* src, void* dst);
-		virtual size_t compile_time_size(ILEvaluator* eval);
-		virtual unsigned int runtime_size(CompileContext& ctx);
-		virtual unsigned int runtime_alignment(CompileContext& ctx);
+		virtual int compare(CompileContext& ctx, void* p1, void* p2);
+		virtual void move(CompileContext& ctx, void* src, void* dst);
+		virtual unsigned int size(CompileContext& ctx);
+		virtual unsigned int alignment(CompileContext& ctx);
 		virtual void print(std::ostream& os);
 	};
 

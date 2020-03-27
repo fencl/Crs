@@ -113,6 +113,7 @@ namespace Corrosive {
 			case ILDataType::f32: std::cout << "f32"; break;
 			case ILDataType::f64: std::cout << "f64"; break;
 			case ILDataType::ptr:  std::cout << "ptr"; break;
+			case ILDataType::type:  std::cout << "type"; break;
 			case ILDataType::none: std::cout << "none"; break;
 			default: std::cout << "error";
 		}
@@ -238,10 +239,9 @@ namespace Corrosive {
 				break;
 			}
 			case ILInstruction::member: {
-				std::cout << "   member ";
-				auto type = read_data_type(ILDataType*);
-				auto address = read_data_type(unsigned int);
-				std::cout << *address << "\n";
+				std::cout << "   member +";
+				auto offset = read_data_type(uint32_t);
+				std::cout << *offset << "\n";
 				break;
 			}
 			case ILInstruction::load: {
@@ -286,6 +286,8 @@ namespace Corrosive {
 
 					case ILDataType::f32: std::cout << *read_data_type(float); break;
 					case ILDataType::f64: std::cout << *read_data_type(double); break;
+
+					case ILDataType::type: std::cout << *read_data_type(void*); break;
 				
 				}
 				std::cout << "\n";

@@ -151,6 +151,28 @@ namespace Corrosive {
 
 				member.name = c;
 				c.move();
+
+				if (c.tok == RecognizedToken::OpenParenthesis) {
+					c.move();
+					member.annotation = c;
+					int lvl = 1;
+					while (lvl > 0) {
+						switch (c.tok)
+						{
+							case RecognizedToken::OpenParenthesis: lvl++; c.move(); break;
+							case RecognizedToken::CloseParenthesis: lvl--; c.move(); break;
+							case RecognizedToken::Eof: {
+									throw_eof_error(c, "parsing of function generic annotation");
+									return false;
+								}
+							default: c.move(); break;
+						}
+					}
+				}
+				else {
+					member.annotation.tok = RecognizedToken::Eof;
+				}
+
 				if (c.tok != RecognizedToken::Colon) {
 					throw_wrong_token_error(c, "':'");
 					return false;

@@ -11,6 +11,78 @@
 
 namespace Corrosive {
 
+	bool FunctionTemplate::compile(CompileContext& ctx) {
+		if (compile_state == 0) {
+			compile_state = 1;
+
+			if (is_generic) {
+				Cursor c = annotation;
+
+				while (true) {
+					CompileContext nctx = ctx;
+					nctx.inside = parent;
+
+					Cursor name = c;
+					c.move();
+					if (c.tok != RecognizedToken::Colon) {
+						throw_wrong_token_error(c, "':'");
+						return false;
+					}
+					c.move();
+					Cursor err = c;
+					CompileValue value;
+					if (!Expression::parse(c, nctx, value, CompileType::eval)) return false;
+					if (value.t != ctx.default_types->t_type) {
+						throw_specific_error(err, "Expected type value");
+						return false;
+					}
+
+					Type* t = ctx.eval->pop_register_value<Type*>();
+
+					if (t->type() != TypeInstanceType::type_instance) {
+						throw_specific_error(err, "Type does not point to instance");
+						return false;
+					}
+
+					if (!t->compile(ctx)) return false;
+
+					generate_heap_size += t->size(ctx);
+					generic_layout.push_back(std::make_tuple(name, t));
+
+
+					if (c.tok == RecognizedToken::Comma) {
+						c.move();
+					}
+					else if (c.tok == RecognizedToken::CloseParenthesis) {
+						break;
+					}
+					else {
+						throw_wrong_token_error(c, "',' or ')'");
+						return false;
+					}
+				}
+
+
+				gen_template_cmp.parent = this;
+				gen_template_cmp.ctx = ctx;
+				instances = std::make_unique<std::map<std::pair<unsigned int, void*>, std::unique_ptr<FunctionInstance>, GenericTemplateCompare>>(gen_template_cmp);
+			}
+
+			compile_state = 2;
+		}
+		else if (compile_state == 2) {
+			return true;
+		}
+		else {
+			throw_specific_error(name, "compile cycle");
+			return false;
+		}
+
+
+		return true;
+	}
+
+
 	bool StructureTemplate::compile(CompileContext& ctx) {
 		if (compile_state == 0) {
 			compile_state = 1;
@@ -46,7 +118,7 @@ namespace Corrosive {
 
 					if (!t->compile(ctx)) return false;
 					
-					generate_heap_size += t->compile_time_size(ctx.eval);
+					generate_heap_size += t->size(ctx);
 					generic_layout.push_back(std::make_tuple(name,t));
 
 
@@ -64,7 +136,7 @@ namespace Corrosive {
 
 
 				gen_template_cmp.parent = this;
-				gen_template_cmp.eval = ctx.eval;
+				gen_template_cmp.ctx = ctx;
 				instances = std::make_unique<std::map<std::pair<unsigned int,void*>, std::unique_ptr<StructureInstance>, GenericTemplateCompare>>(gen_template_cmp);
 			}
 
@@ -103,11 +175,9 @@ namespace Corrosive {
 			if (f == instances->end()) {
 				std::unique_ptr<StructureInstance> inst = std::make_unique<StructureInstance>();
 
-				
-
 				new_inst = inst.get();
 				out = inst.get();
-				key.second = new unsigned char[generate_heap_size];
+				key.second = ctx.eval->malloc(generate_heap_size);
 				memcpy(key.second, argdata, generate_heap_size);
 				new_key = key.second;
 
@@ -155,85 +225,220 @@ namespace Corrosive {
 
 				Type* m_t = ctx.eval->pop_register_value<Type*>();
 
-				new_inst->member_vars.push_back(std::make_pair(m.name, m_t));
+				new_inst->member_table[m.name.buffer] = new_inst->member_vars.size();
+				StructureInstanceMemberRecord rec;
+				rec.definition = m.name;
+				rec.type = m_t;
+
+				new_inst->member_vars.push_back(rec);
 			}
 
 			for (auto&& m : member_funcs) {
 				Cursor c = m.type;
-
-				CompileValue value;
-
+				
 				CompileContext nctx = ctx;
 				nctx.inside = parent;
 
-				if (!Expression::parse(c, nctx, value, CompileType::eval)) return false;
-				if (value.t != ctx.default_types->t_type) {
-					throw_specific_error(m.type, "Expected type value");
-					std::cerr << " | \tType was '";
-					value.t->print(std::cerr);
-					std::cerr << "'\n";
+				std::unique_ptr<FunctionTemplate> ft = std::make_unique<FunctionTemplate>();
+				ft->name = m.name;
+				ft->annotation = m.annotation;
+				ft->is_generic = m.annotation.tok != RecognizedToken::Eof;
+				ft->parent = new_inst;
+				ft->template_parent = new_inst;
+				ft->type = m.type;
+				ft->block = m.block;
+				if (new_inst->subfunctions.find(m.name.buffer) != new_inst->subfunctions.end()) {
+					throw_specific_error(m.name, "Funtion with the same name already exists in the structure");
 					return false;
 				}
 
-				Type* t = ctx.eval->pop_register_value<Type*>();
-
-				ILFunction* func = ctx.module->create_function(0);
-				ILBlock* block = func->create_block(ILDataType::none);
-				func->append_block(block);
-
-				CompileContext bctx = ctx;
-				bctx.block = block;
-				bctx.function = func;
-				bctx.inside = new_inst;
-				CompileValue res;
-				c = m.block;
-				Expression::parse(c, bctx, res, CompileType::compile);
-
-				func->dump();
-
-				new_inst->member_funcs.push_back(std::make_pair<ILFunction*, Type*>((ILFunction*)nullptr, (Type*)t));
+				new_inst->subfunctions[m.name.buffer] = std::move(ft);
 			}
 		}
 
 		return true;
 	}
 
+
+	bool FunctionTemplate::generate(CompileContext& ctx, void* argdata, FunctionInstance*& out) {
+		FunctionInstance* new_inst = nullptr;
+		void* new_key = nullptr;
+
+		if (!is_generic) {
+			if (singe_instance == nullptr) {
+				singe_instance = std::make_unique<FunctionInstance>();
+				new_inst = singe_instance.get();
+			}
+			out = singe_instance.get();
+		}
+		else {
+			std::pair<unsigned int, void*> key = std::make_pair((unsigned int)generate_heap_size, argdata);
+
+			auto f = instances->find(key);
+			if (f == instances->end()) {
+				std::unique_ptr<FunctionInstance> inst = std::make_unique<FunctionInstance>();
+
+				new_inst = inst.get();
+				out = inst.get();
+				key.second = ctx.eval->malloc(generate_heap_size);
+				memcpy(key.second, argdata, generate_heap_size);
+				new_key = key.second;
+
+				instances->emplace(key, std::move(inst));
+
+			}
+			else {
+				out = f->second.get();
+			}
+		}
+
+
+		if (new_inst != nullptr) {
+			new_inst->generator = this;
+			new_inst->key = new_key;
+
+			CompileContext nctx = ctx;
+			nctx.inside = parent;
+
+			CompileValue cvres;
+
+			Cursor cc = type;
+			cc.move();
+			if (cc.tok != RecognizedToken::CloseParenthesis) {
+				while (true) {
+					Cursor argname = cc;
+					cc.move();
+					if (cc.tok != RecognizedToken::Colon) {
+						throw_wrong_token_error(cc, "':'");
+						return false;
+					}
+					cc.move();
+					Cursor err = cc;
+					if (!Expression::parse(cc, nctx, cvres, CompileType::eval))return false;
+					if (cvres.t != ctx.default_types->t_type) {
+						throw_cannot_cast_error(err, cvres.t, ctx.default_types->t_type);
+						return false;
+					}
+					Type* t = ctx.eval->pop_register_value<Type*>();
+					new_inst->arguments.push_back(std::make_pair(argname, t));
+
+					if (cc.tok == RecognizedToken::Comma) {
+						cc.move();
+					}
+					else if (cc.tok == RecognizedToken::CloseParenthesis) {
+						cc.move();
+						break;
+					}
+					else {
+						throw_wrong_token_error(cc, "',' or ')'");
+						return false;
+					}
+				}
+			}
+			else { cc.move(); }
+
+			if (cc.tok != RecognizedToken::OpenBrace) {
+				Cursor err = cc;
+				if (!Expression::parse(cc, nctx, cvres, CompileType::eval))return false;
+				if (cvres.t != ctx.default_types->t_type) {
+					throw_cannot_cast_error(err, cvres.t, ctx.default_types->t_type);
+					return false;
+				}
+				Type* t = ctx.eval->pop_register_value<Type*>();
+				new_inst->returns = t;
+			}
+			else {
+				new_inst->returns = ctx.default_types->t_void;
+			}
+
+			new_inst->block = block;
+		}
+
+		return true;
+	}
+
+	bool FunctionInstance::compile(CompileContext& ctx) {
+		if (compile_state == 0) {
+			compile_state = 1;
+
+			auto ss = std::move(StackManager::move_stack_out<0>());
+			for (auto&& a : arguments) {
+				CompileValue argval;
+				argval.t = a.second;
+				argval.lvalue = true;
+				StackManager::stack_push<0>(a.first.buffer, argval, StackManager::stack_state<0>());
+			}
+
+			CompileContext nctx = ctx;
+			nctx.inside = generator->parent;
+
+			ILFunction* nf = ctx.module->create_function(returns->size(ctx));
+			ILBlock* b = nf->create_block(ILDataType::none);
+			nf->append_block(b);
+			nctx.block = b;
+			nctx.function = nf;
+
+			Cursor cb = block;
+			CompileValue cvres;
+			if (!Expression::parse(cb, nctx, cvres, CompileType::compile)) return false;
+
+			func = nf;
+			nf->dump();
+
+			StackManager::move_stack_in<0>(std::move(ss));
+
+			compile_state = 2;
+		}
+		else if (compile_state == 2) {
+			return true;
+		}
+		else {
+			throw_specific_error(generator->name, "Build cycle");
+			return false;
+		}
+
+		return true;
+	}
+
+
+
 	unsigned int _align_up(unsigned int value, unsigned int alignment) {
 		return alignment == 0 ? value : ((value % alignment == 0) ? value : value + (alignment - (value % alignment)));
 	}
 
 
-	void StructureInstance::add_member(CompileContext& ctx,Type* t) {
-		runtime_size = _align_up(runtime_size,t->runtime_alignment(ctx));
-		runtime_size += t->runtime_size(ctx);
-		compile_time_size_in_bytes += t->compile_time_size(ctx.eval);
-	}
-
 	bool StructureInstance::compile(CompileContext& ctx) {
 		if (compile_state == 0) {
 			compile_state = 1;
 
-			compile_time_size_in_bytes = 0;
-			runtime_alignment = 0;
-			runtime_size = 0;
+			alignment = 0;
+			size = 0;
 
 			for (auto&& m : member_vars) {
-				if (!m.second->compile(ctx)) return false;
+				if (!m.type->compile(ctx)) return false;
 				
 
-				if (m.second->compile_time_size(ctx.eval) > 0) {
-					add_member(ctx,m.second);
+				if (m.type->size(ctx) > 0) {
+					size = _align_up(size, m.type->alignment(ctx));
+					m.offset = size;
+					size += m.type->size(ctx);
+
+					alignment = std::max(alignment, m.type->alignment(ctx));
 				}
 				else {
-					throw_specific_error(m.first, "Specified type is not an instantiable type");
+					throw_specific_error(m.definition, "Specified type is not an instantiable type");
 					std::cerr << " | \tType was '";
-					m.second->print(std::cerr);
+					m.type->print(std::cerr);
 					std::cerr << "'\n";
 					return false;
 				}
 			}
 
-			runtime_size = _align_up(runtime_size, runtime_alignment);
+			for (auto&& m : subfunctions) {
+				if (!m.second->compile(ctx)) return false;
+			}
+
+			size = _align_up(size, alignment);
 
 			compile_state = 2;
 		}
@@ -259,7 +464,7 @@ namespace Corrosive {
 		unsigned char* key_ptr = (unsigned char*)key;
 		for (auto key_l = generator->generic_layout.rbegin(); key_l != generator->generic_layout.rend(); key_l++) {
 			ctx.eval->stack_push_pointer(key_ptr);
-			key_ptr += std::get<1>(*key_l)->compile_time_size(ctx.eval);
+			key_ptr += std::get<1>(*key_l)->size(ctx);
 			CompileValue argval;
 			argval.lvalue = true;
 			argval.t = std::get<1>(*key_l);

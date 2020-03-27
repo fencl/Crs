@@ -26,6 +26,8 @@ namespace Corrosive {
 		std::unique_ptr<Namespace> gn = std::make_unique<Namespace>();
 		std::unique_ptr<ILEvaluator> e = std::make_unique<ILEvaluator>();
 		m->architecture = ILArchitecture::x86_64;
+		e->parent = m.get();
+		e->setup_allocator();
 
 		Cursor c = src.read_first();
 		CompileContext ctx;
@@ -37,7 +39,16 @@ namespace Corrosive {
 		ctx.default_types->setup(ctx);
 
 		if (Declaration::parse_global(c, ctx, *gn.get())) {
-			((StructureTemplate*)gn->subtemplates["B"].get())->compile(ctx);
+			if (gn->subtemplates["B"]->compile(ctx)) {
+				auto& sfcs = gn->subtemplates["I"]->singe_instance->subfunctions;
+
+				auto f_r = sfcs.find("equals");
+				if (f_r != sfcs.end()) {
+					FunctionInstance* finst;
+					if (f_r->second->generate(ctx, nullptr, finst)) finst->compile(ctx);
+				}
+			
+			}
 		}
 
 		std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();

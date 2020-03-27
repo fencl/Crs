@@ -9,25 +9,25 @@
 namespace Corrosive {
 
 
-	int Type::compile_time_compare(ILEvaluator* eval, void* p1, void* p2) {
+	int Type::compare(CompileContext& ctx, void* p1, void* p2) {
 		std::cerr << "unsupported operation" << std::endl;
 		exit(1);
 
 		return 0;
 	}
 
-	int TypeInstance::compile_time_compare(ILEvaluator* eval, void* p1, void* p2) {
-		owner->compare(eval, p1, p2);
+	int TypeInstance::compare(CompileContext& ctx, void* p1, void* p2) {
+		owner->compare(ctx, p1, p2);
 		return 0;
 	}
 
-	int TypeArray::compile_time_compare(ILEvaluator* eval, void* p1, void* p2) {
+	int TypeArray::compare(CompileContext& ctx, void* p1, void* p2) {
 		unsigned char* pb1 = (unsigned char*)p1;
 		unsigned char* pb2 = (unsigned char*)p2;
-		size_t os = owner->compile_time_size(eval);
+		size_t os = owner->size(ctx);
 
 		for (uint64_t i = 0; i < count; i++) {
-			owner->compile_time_compare(eval, pb1, pb2);
+			owner->compare(ctx, pb1, pb2);
 			
 			pb1 += os;
 			pb2 += os;
@@ -36,24 +36,24 @@ namespace Corrosive {
 	}
 
 
-	int TypeReference::compile_time_compare(ILEvaluator* eval, void* p1, void* p2) {
+	int TypeReference::compare(CompileContext& ctx, void* p1, void* p2) {
 		return memcmp(p1, p2, sizeof(void*));
 	}
 
 
-	void Type::compile_time_move(ILEvaluator* eval, void* src, void* dst) {
+	void Type::move(CompileContext& ctx, void* src, void* dst) {
 		std::cerr << "unsupported operation" << std::endl;
 		exit(1);
 	}
 
 
-	void TypeArray::compile_time_move(ILEvaluator* eval, void* src, void* dst) {
+	void TypeArray::move(CompileContext& ctx, void* src, void* dst) {
 		unsigned char* srcb = (unsigned char*)src;
 		unsigned char* dstb = (unsigned char*)dst;
-		size_t os = owner->compile_time_size(eval);
+		size_t os = owner->size(ctx);
 
 		for (uint64_t i = 0; i < count; i++) {
-			owner->compile_time_move(eval, srcb, dstb);
+			owner->move(ctx, srcb, dstb);
 
 			srcb += os;
 			dstb += os;
@@ -61,11 +61,11 @@ namespace Corrosive {
 	}
 
 
-	void TypeInstance::compile_time_move(ILEvaluator* eval, void* src, void* dst) {
-		owner->move(eval, src, dst);
+	void TypeInstance::move(CompileContext& ctx, void* src, void* dst) {
+		owner->move(ctx, src, dst);
 	}
 
-	void TypeReference::compile_time_move(ILEvaluator* eval, void* src, void* dst) {
+	void TypeReference::move(CompileContext& ctx, void* src, void* dst) {
 		memcpy(dst, src, sizeof(void*));
 	}
 
@@ -86,6 +86,7 @@ namespace Corrosive {
 
 		return reference.get();
 	}
+
 
 	TypeArray* Type::generate_array(unsigned int count) {
 		
@@ -129,48 +130,33 @@ namespace Corrosive {
 		os << "["<<count<<"]";
 	}
 
-	size_t Type::compile_time_size(ILEvaluator* eval) {
+	unsigned int Type::size(CompileContext& ctx) {
 		return 0;
 	}
-
-	unsigned int Type::runtime_size(CompileContext& ctx) {
-		return 0;
-	}
-	unsigned int Type::runtime_alignment(CompileContext& ctx) {
+	unsigned int Type::alignment(CompileContext& ctx) {
 		return 0;
 	}
 
 
-	unsigned int TypeInstance::runtime_size(CompileContext& ctx) {
-		return owner->runtime_size;
+	unsigned int TypeInstance::size(CompileContext& ctx) {
+		return owner->size;
 	}
-	unsigned int TypeInstance::runtime_alignment(CompileContext& ctx) {
-		return owner->runtime_alignment;
-	}
-
-	size_t TypeInstance::compile_time_size(ILEvaluator* eval) {
-		return owner->compile_time_size_in_bytes;
+	unsigned int TypeInstance::alignment(CompileContext& ctx) {
+		return owner->alignment;
 	}
 
-	size_t TypeReference::compile_time_size(ILEvaluator* eval) {
-		return sizeof(void*);
+
+	unsigned int TypeReference::size(CompileContext& ctx) {
+		return ctx.default_types->t_ptr->size(ctx);
+	}
+	unsigned int TypeReference::alignment(CompileContext& ctx) {
+		return ctx.default_types->t_ptr->alignment(ctx);
 	}
 
-	unsigned int TypeReference::runtime_size(CompileContext& ctx) {
-		return ctx.default_types->t_ptr->runtime_size(ctx);
+	unsigned int TypeArray::size(CompileContext& ctx) {
+		return owner->size(ctx)*count;
 	}
-	unsigned int TypeReference::runtime_alignment(CompileContext& ctx) {
-		return ctx.default_types->t_ptr->runtime_alignment(ctx);
-	}
-
-	size_t TypeArray::compile_time_size(ILEvaluator* eval) {
-		return count * owner->compile_time_size(eval);
-	}
-
-	unsigned int TypeArray::runtime_size(CompileContext& ctx) {
-		return owner->runtime_size(ctx)*count;
-	}
-	unsigned int TypeArray::runtime_alignment(CompileContext& ctx) {
-		return owner->runtime_alignment(ctx);
+	unsigned int TypeArray::alignment(CompileContext& ctx) {
+		return owner->alignment(ctx);
 	}
 }
