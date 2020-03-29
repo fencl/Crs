@@ -65,7 +65,7 @@ namespace Corrosive {
 
 				gen_template_cmp.parent = this;
 				gen_template_cmp.ctx = ctx;
-				instances = std::make_unique<std::map<std::pair<unsigned int, void*>, std::unique_ptr<FunctionInstance>, GenericTemplateCompare>>(gen_template_cmp);
+				instances = std::make_unique<std::map<std::pair<unsigned int, ILPtr>, std::unique_ptr<FunctionInstance>, GenericTemplateCompare>>(gen_template_cmp);
 			}
 
 			compile_state = 2;
@@ -137,7 +137,7 @@ namespace Corrosive {
 
 				gen_template_cmp.parent = this;
 				gen_template_cmp.ctx = ctx;
-				instances = std::make_unique<std::map<std::pair<unsigned int,void*>, std::unique_ptr<StructureInstance>, GenericTemplateCompare>>(gen_template_cmp);
+				instances = std::make_unique<std::map<std::pair<unsigned int, ILPtr>, std::unique_ptr<StructureInstance>, GenericTemplateCompare>>(gen_template_cmp);
 			}
 
 			compile_state = 2;
@@ -156,9 +156,9 @@ namespace Corrosive {
 
 
 
-	bool StructureTemplate::generate(CompileContext& ctx,void* argdata, StructureInstance*& out) {
+	bool StructureTemplate::generate(CompileContext& ctx, ILPtr argdata, StructureInstance*& out) {
 		StructureInstance* new_inst = nullptr;
-		void* new_key = nullptr;
+		ILPtr new_key = ilnullptr;
 
 		if (!is_generic) {
 			if (singe_instance == nullptr) {
@@ -168,7 +168,7 @@ namespace Corrosive {
 			out = singe_instance.get();
 		}
 		else {
-			std::pair<unsigned int, void*> key = std::make_pair((unsigned int)generate_heap_size, argdata);
+			std::pair<unsigned int, ILPtr> key = std::make_pair((unsigned int)generate_heap_size, argdata);
 
 
 			auto f = instances->find(key);
@@ -178,7 +178,7 @@ namespace Corrosive {
 				new_inst = inst.get();
 				out = inst.get();
 				key.second = ctx.eval->malloc(generate_heap_size);
-				memcpy(key.second, argdata, generate_heap_size);
+				memcpy(ctx.eval->map(key.second), ctx.eval->map(argdata), generate_heap_size);
 				new_key = key.second;
 
 				instances->emplace(key, std::move(inst));
@@ -260,9 +260,9 @@ namespace Corrosive {
 	}
 
 
-	bool FunctionTemplate::generate(CompileContext& ctx, void* argdata, FunctionInstance*& out) {
+	bool FunctionTemplate::generate(CompileContext& ctx, ILPtr argdata, FunctionInstance*& out) {
 		FunctionInstance* new_inst = nullptr;
-		void* new_key = nullptr;
+		ILPtr new_key = ilnullptr;
 
 		if (!is_generic) {
 			if (singe_instance == nullptr) {
@@ -272,16 +272,17 @@ namespace Corrosive {
 			out = singe_instance.get();
 		}
 		else {
-			std::pair<unsigned int, void*> key = std::make_pair((unsigned int)generate_heap_size, argdata);
+			std::pair<unsigned int, ILPtr> key = std::make_pair((unsigned int)generate_heap_size, argdata);
 
 			auto f = instances->find(key);
+
 			if (f == instances->end()) {
 				std::unique_ptr<FunctionInstance> inst = std::make_unique<FunctionInstance>();
 
 				new_inst = inst.get();
 				out = inst.get();
 				key.second = ctx.eval->malloc(generate_heap_size);
-				memcpy(key.second, argdata, generate_heap_size);
+				memcpy(ctx.eval->map(key.second), ctx.eval->map(argdata), generate_heap_size);
 				new_key = key.second;
 
 				instances->emplace(key, std::move(inst));
@@ -461,7 +462,7 @@ namespace Corrosive {
 			generator->template_parent->insert_key_on_stack(ctx);
 		}
 
-		unsigned char* key_ptr = (unsigned char*)key;
+		ILPtr key_ptr = key;
 		for (auto key_l = generator->generic_layout.rbegin(); key_l != generator->generic_layout.rend(); key_l++) {
 			ctx.eval->stack_push_pointer(key_ptr);
 			key_ptr += std::get<1>(*key_l)->size(ctx);

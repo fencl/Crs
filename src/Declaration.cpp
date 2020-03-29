@@ -36,22 +36,19 @@ namespace Corrosive {
 		}
 	}
 
-	int StructureInstance::compare(CompileContext& ctx, void* p1, void* p2) {
+	int StructureInstance::compare(CompileContext& ctx, ILPtr p1, ILPtr p2) {
 		//TODO test for specific compare function
 
 		if (member_vars.size() == 0) {
-			return memcmp(p1, p2, size);
+			return memcmp(ctx.eval->map(p1), ctx.eval->map(p2), size);
 		}
 		else {
-			unsigned char* pd1 = (unsigned char*)p1;
-			unsigned char* pd2 = (unsigned char*)p2;
-
 			for (auto&& m : member_vars) {
-				int c = m.type->compare(ctx, pd1, pd2);
+				int c = m.type->compare(ctx, p1, p2);
 				if (c != 0) return c;
 				size_t ms = m.type->size(ctx);
-				pd1 += ms;
-				pd2 += ms;
+				p1 += ms;
+				p2 += ms;
 			}
 
 			return 0;
@@ -60,23 +57,20 @@ namespace Corrosive {
 
 
 
-	void StructureInstance::move(CompileContext& ctx, void* src, void* dst) {
+	void StructureInstance::move(CompileContext& ctx, ILPtr src, ILPtr dst) {
 		//TODO test for specific move function
 		
 
 		if (member_vars.size() == 0) {
-			memcpy(dst, src, size);
+			memcpy(ctx.eval->map(dst), ctx.eval->map(src), size);
 		}
 		else {
-			unsigned char* srcd = (unsigned char*)src;
-			unsigned char* dstd = (unsigned char*)dst;
-
 			for (auto&& m : member_vars) {
-				m.type->move(ctx, srcd, dstd);
+				m.type->move(ctx, src, dst);
 
 				size_t ms = m.type->size(ctx);
-				srcd += ms;
-				dstd += ms;
+				src += ms;
+				dst += ms;
 			}
 		}
 	}
@@ -90,31 +84,42 @@ namespace Corrosive {
 		}
 	}
 
-	bool StructureTemplate::GenericTemplateCompare::operator()(const std::pair<unsigned int, void*>& a, const std::pair<unsigned int, void*>& b) const
+	bool StructureTemplate::GenericTemplateCompare::operator()(const std::pair<unsigned int, ILPtr>& a, const std::pair<unsigned int, ILPtr>& b) const
 	{
 		if (a.first < b.first) return true;
 		if (a.first > b.first) return false;
-		size_t offset = 0;
+		ILPtr loff = a.second;
+		ILPtr roff = b.second;
+
 		for (auto&& l : parent->generic_layout) {
-			int r = std::get<1>(l)->compare((CompileContext&)ctx, &((unsigned char*)a.second)[offset], &((unsigned char*)b.second)[offset]);
+
+			int r = std::get<1>(l)->compare((CompileContext&)ctx, loff,roff);
 			if (r < 0) return true;
 			if (r > 0) return false;
-			offset += std::get<1>(l)->size((CompileContext&)ctx);
+			unsigned int off = std::get<1>(l)->size((CompileContext&)ctx);
+			loff += off;
+			roff += off;
 		}
 
 		return false;
 	}
 
-	bool FunctionTemplate::GenericTemplateCompare::operator()(const std::pair<unsigned int, void*>& a, const std::pair<unsigned int, void*>& b) const
+	bool FunctionTemplate::GenericTemplateCompare::operator()(const std::pair<unsigned int, ILPtr>& a, const std::pair<unsigned int, ILPtr>& b) const
 	{
 		if (a.first < b.first) return true;
 		if (a.first > b.first) return false;
-		size_t offset = 0;
+
+		ILPtr loff = a.second;
+		ILPtr roff = b.second;
+
 		for (auto&& l : parent->generic_layout) {
-			int r = std::get<1>(l)->compare((CompileContext&)ctx, &((unsigned char*)a.second)[offset], &((unsigned char*)b.second)[offset]);
+			int r = std::get<1>(l)->compare((CompileContext&)ctx, loff, roff);
 			if (r < 0) return true;
 			if (r > 0) return false;
-			offset += std::get<1>(l)->size((CompileContext&)ctx);
+
+			unsigned int off = std::get<1>(l)->size((CompileContext&)ctx);
+			loff += off;
+			roff += off;
 		}
 
 		return false;

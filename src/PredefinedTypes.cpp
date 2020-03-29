@@ -26,7 +26,7 @@ namespace Corrosive {
 		s->singe_instance->size = runtime_size;
 		s->singe_instance->alignment = runtime_alignment;
 		s->singe_instance->generator = s.get();
-		s->singe_instance->key = nullptr;
+		s->singe_instance->key = 0;
 		s->singe_instance->compile_state = 2;
 		s->singe_instance->type = std::make_unique<TypeInstance>();
 		s->singe_instance->type->owner = s->singe_instance.get();
@@ -50,14 +50,14 @@ namespace Corrosive {
 		setup_type(ctx, "f64", t_f64, 8, 8, ILDataType::f64);
 
 		if (ctx.module->architecture == ILArchitecture::i386) {
-			setup_type(ctx, "i64", t_i64, 8, 4, ILDataType::u64);
-			setup_type(ctx, "u64", t_u64, 8, 4, ILDataType::i64);
+			setup_type(ctx, "i64", t_i64, 8, 4, ILDataType::i64);
+			setup_type(ctx, "u64", t_u64, 8, 4, ILDataType::u64);
 			setup_type(ctx, "ptr", t_ptr, 4, 4, ILDataType::ptr);
 			setup_type(ctx, "type", t_type, sizeof(void*), sizeof(void*), ILDataType::type);
 		}
 		else if (ctx.module->architecture == ILArchitecture::x86_64) {
-			setup_type(ctx, "i64", t_i64, 8, 8, ILDataType::u64);
-			setup_type(ctx, "u64", t_u64, 8, 8, ILDataType::i64);
+			setup_type(ctx, "i64", t_i64, 8, 8, ILDataType::i64);
+			setup_type(ctx, "u64", t_u64, 8, 8, ILDataType::u64);
 			setup_type(ctx, "ptr", t_ptr, 8, 8, ILDataType::ptr);
 			setup_type(ctx, "type", t_type, sizeof(void*), sizeof(void*), ILDataType::type);
 		}

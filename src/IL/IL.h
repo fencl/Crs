@@ -131,7 +131,7 @@ namespace Corrosive {
 		unsigned int	returns = 0;
 		bool			is_const = false;
 
-		std::vector<unsigned int>						local_allocas;
+		std::vector<unsigned int>				local_allocas;
 		std::vector<ILBlock*>					blocks;
 		std::vector<std::unique_ptr<ILBlock>>	blocks_memory;
 		std::set<ILBlock*>						return_blocks;
@@ -144,6 +144,7 @@ namespace Corrosive {
 	};
 
 	using ILPtr = uint64_t;
+	const inline ILPtr ilnullptr = 0;
 
 	class ILEvaluator {
 	public:
@@ -151,16 +152,28 @@ namespace Corrosive {
 
 		ILModule* parent = nullptr;
 
-		static const inline size_t stack_size = UINT16_MAX;
+		static const inline size_t stack_size = 1024*4;
 		unsigned char memory_stack[stack_size];
 
-		static const inline size_t heap_size = 1024 * 1024;
+		static const inline size_t heap_size = UINT16_MAX;
 		unsigned char memory_heap[heap_size];
 
+		struct ILEvalAllocHeader {
+			uint16_t prev;
+			uint16_t next;
+			uint16_t size;
+			bool used;
+		};
+
+
+		unsigned int mem_allocated = 0;
+		unsigned int mem_fragmentation = 0;
+		void dump_memory_statistics(bool print_block);
 		void setup_allocator();
-		void* malloc(size_t size);
-		void free(void*);
-		uint16_t* read_header(void*);
+		ILPtr malloc(size_t size);
+		void free(ILPtr p);
+		ILEvalAllocHeader* read_header(uint16_t wh);
+		uint16_t ilptr_to_heap(ILPtr p);
 
 		unsigned char register_stack[stack_size];
 		unsigned char* memory_stack_pointer = memory_stack;
@@ -179,11 +192,11 @@ namespace Corrosive {
 		void	discard_last_register_type(ILDataType rs);
 		
 		std::vector<std::vector<ILPtr>> on_stack;
-		unsigned char*	stack_push();
-		void			stack_pop(unsigned char* stack_pointer);
+		ILPtr			stack_push();
+		void			stack_pop(ILPtr stack_pointer);
 		void			stack_write(size_t size, void* from);
-		unsigned char*	stack_reserve(size_t size);
-		void			stack_push_pointer(void* ptr);
+		ILPtr			stack_reserve(size_t size);
+		void			stack_push_pointer(ILPtr ptr);
 
 		ILPtr read_register_value_ilptr();
 		ILPtr pop_register_value_ilptr();

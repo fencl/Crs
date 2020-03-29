@@ -2,6 +2,7 @@
 #include "../Error.h"
 #include <algorithm>
 #include <functional>
+#include <iostream>
 
 namespace Corrosive {
 
@@ -330,52 +331,105 @@ namespace Corrosive {
 
 
 	void ILEvaluator::setup_allocator() {
-		uint16_t* heap_start = (uint16_t*)memory_heap;
-		heap_start[0] = 0;
-		heap_start[1] = 0;
-		heap_start[2] = UINT16_MAX;
-		heap_start[3] = 0;
+		ILEvaluator::ILEvalAllocHeader* heap_start = (ILEvaluator::ILEvalAllocHeader*)memory_heap;
+		heap_start->next = 0;
+		heap_start->prev = 0;
+		heap_start->size = UINT16_MAX;
+		heap_start->used = false;
+		mem_allocated = sizeof(ILEvaluator::ILEvalAllocHeader);
+		mem_fragmentation = 0;
 	}
 
 
-	uint16_t* ILEvaluator::read_header(void* ptr) {
-		return ((uint16_t*)ptr) - 4;
+	ILEvaluator::ILEvalAllocHeader* ILEvaluator::read_header(uint16_t ptr) {
+		return (ILEvaluator::ILEvalAllocHeader*)&memory_heap[ptr - sizeof(ILEvaluator::ILEvalAllocHeader)];
 	}
 
-	void* ILEvaluator::malloc(size_t size) {
+	
+
+	ILPtr ILEvaluator::malloc(size_t size) {
+
 		unsigned char* from_mem = (unsigned char*)memory_heap;
 
-		uint16_t from = sizeof(uint16_t)*4;
+		uint16_t from = sizeof(ILEvaluator::ILEvalAllocHeader);
 
 		while (from != 0) {
-			uint16_t* hdr = read_header(&from_mem[from]);
-			if (hdr[3] == 0 && hdr[2] >= size) {
-				hdr[3] = 1;
-				uint16_t hdr_size = hdr[2];
+			ILEvaluator::ILEvalAllocHeader* hdr = read_header(from);
+			if (!hdr->used && hdr->size >= size) {
+				hdr->used = true;
+				uint16_t hdr_size = hdr->size;
 
-				if (hdr_size- (uint16_t)size > sizeof(uint16_t) * 4) {
-					hdr[2] = (uint16_t)size;
+				
 
-					uint16_t nfrom = from + (uint16_t)size + sizeof(uint16_t) * 4;
-					uint16_t* nhdr = read_header(&from_mem[nfrom]);
-					nhdr[0] = from;
-					nhdr[1] = hdr[1];
-					hdr[1] = nfrom;
-					nhdr[2] = hdr_size - (uint16_t)size - sizeof(uint16_t) * 4;
-					nhdr[3] = 0;
-					return &from_mem[from];
+				if (hdr_size- (uint16_t)size > sizeof(ILEvaluator::ILEvalAllocHeader)) {
+					uint16_t nfrom = from + (uint16_t)size + sizeof(ILEvaluator::ILEvalAllocHeader);
+
+
+					hdr->size = (uint16_t)size;
+
+					ILEvaluator::ILEvalAllocHeader* nhdr = read_header(nfrom);
+					nhdr->prev = from;
+					nhdr->next = hdr->next;
+					hdr->next = nfrom;
+					nhdr->size = hdr_size - (uint16_t)size - sizeof(ILEvaluator::ILEvalAllocHeader);
+					nhdr->used = false;
+					mem_allocated += sizeof(ILEvaluator::ILEvalAllocHeader) + hdr->size;
+					return map_back(&from_mem[from]);
 				}
+
 			}
 			else {
-				from = hdr[1];
+				from = hdr->next;
 			}
 		}
 
-		return nullptr;
+		return 0;
 	}
 
-	void ILEvaluator::free(void*) {
-		
+	uint16_t ILEvaluator::ilptr_to_heap(ILPtr p) {
+		return (uint16_t)p;
+	}
+
+
+	void ILEvaluator::dump_memory_statistics(bool print_blocks) {
+		std::cout << "ILEvaluator allocator statistics:\n\tallocated: "<<mem_allocated<<"B\n\tfragmentation: "<<mem_fragmentation<<"\n";
+		if (print_blocks) {
+			uint16_t from = sizeof(ILEvaluator::ILEvalAllocHeader);
+			while (from != 0) {
+				ILEvaluator::ILEvalAllocHeader* hdr = read_header(from);
+				std::cout << "\t\t" << from << "-" << (from + hdr->size) << " (" << hdr->used << "): <- " << hdr->prev << ", -> " << hdr->next << "\n";
+				from = hdr->next;
+			}
+		}
+	}
+
+	void ILEvaluator::free(ILPtr p) {
+		uint16_t ptr = ilptr_to_heap(p);
+		ILEvaluator::ILEvalAllocHeader* hdr = read_header(ptr);
+		hdr->used = false;
+
+
+		mem_allocated -= sizeof(ILEvaluator::ILEvalAllocHeader) + hdr->size;
+		mem_fragmentation += 1;
+
+		if (hdr->next != 0) {
+			ILEvaluator::ILEvalAllocHeader* hdr_next = read_header(hdr->next);
+			if (!hdr_next->used) {
+				hdr->size = hdr->size + hdr_next->size + sizeof(ILEvaluator::ILEvalAllocHeader);
+				hdr->next = hdr_next->next;
+				mem_fragmentation -= 1;
+			}
+		}
+
+		if (hdr->prev != 0) {
+			ILEvaluator::ILEvalAllocHeader* hdr_prev = read_header(hdr->prev);
+			if (!hdr_prev->used) {
+				hdr_prev->size = hdr_prev->size + hdr->size + sizeof(ILEvaluator::ILEvalAllocHeader);
+				hdr_prev->next = hdr->next;
+				mem_fragmentation -= 1;
+			}
+		}
+
 	}
 
 
@@ -415,14 +469,14 @@ namespace Corrosive {
 	}
 
 
-	unsigned char* ILEvaluator::stack_push() {
+	ILPtr ILEvaluator::stack_push() {
 		std::vector<ILPtr>tmp;
 		on_stack.push_back(std::move(tmp));
-		return memory_stack_pointer;
+		return map_back(memory_stack_pointer);
 	}
-	void ILEvaluator::stack_pop(unsigned char* stack_pointer) {
+	void ILEvaluator::stack_pop(ILPtr stack_pointer) {
 		on_stack.pop_back();
-		memory_stack_pointer = stack_pointer;
+		memory_stack_pointer = (unsigned char*)map(stack_pointer);
 	}
 
 
@@ -518,15 +572,15 @@ namespace Corrosive {
 	}
 
 
-	void ILEvaluator::stack_push_pointer(void* ptr) {
-		on_stack.back().push_back(map_back(ptr));
+	void ILEvaluator::stack_push_pointer(ILPtr ptr) {
+		on_stack.back().push_back(ptr);
 	}
 
-	unsigned char* ILEvaluator::stack_reserve(size_t size) {
+	ILPtr ILEvaluator::stack_reserve(size_t size) {
 		on_stack.back().push_back(map_back(memory_stack_pointer));
 		unsigned char* res = memory_stack_pointer;
 		memory_stack_pointer += size;
-		return res;
+		return map_back(res);
 	}
 
 	bool ILBuilder::eval_add(ILEvaluator* eval_ctx,ILDataType t_l,ILDataType t_r) {

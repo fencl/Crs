@@ -45,7 +45,7 @@ namespace Corrosive {
 				auto f_r = sfcs.find("equals");
 				if (f_r != sfcs.end()) {
 					FunctionInstance* finst;
-					if (f_r->second->generate(ctx, nullptr, finst)) finst->compile(ctx);
+					if (f_r->second->generate(ctx, ilnullptr, finst)) finst->compile(ctx);
 				}
 			
 			}
@@ -53,7 +53,9 @@ namespace Corrosive {
 
 		std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 
-		std::cout << "\nelapsed: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
+		std::cout << "\nelapsed: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]\n" << std::endl;
+		e->dump_memory_statistics(false);
+
 		return 0;
 	}
 }

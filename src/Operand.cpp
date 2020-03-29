@@ -296,7 +296,7 @@ namespace Corrosive {
 						}
 						else {
 							StructureInstance* inst;
-							if (!struct_inst->generate(ctx, nullptr, inst)) return false;
+							if (!struct_inst->generate(ctx, 0, inst)) return false;
 
 							if (cpt == CompileType::eval) {
 								if (!ILBuilder::eval_const_type(ctx.eval, inst->type.get())) return false;
@@ -492,7 +492,7 @@ namespace Corrosive {
 					
 					
 					if (generating->template_parent != nullptr) {
-						unsigned char* key_ptr = (unsigned char*)generating->template_parent->key;
+						auto key_ptr = generating->template_parent->key;
 						for (auto key_l = generating->template_parent->generator->generic_layout.rbegin(); key_l != generating->template_parent->generator->generic_layout.rend(); key_l++) {
 							ctx.eval->stack_push_pointer(key_ptr);
 							key_ptr += std::get<1>(*key_l)->size(ctx);
@@ -510,15 +510,15 @@ namespace Corrosive {
 
 						CompileValue res = results[arg_i];
 
-						unsigned char* data_place = ctx.eval->stack_reserve(res.t->size(ctx));
+						ILPtr data_place = ctx.eval->stack_reserve(res.t->size(ctx));
 						StackManager::stack_push<1>(std::get<0>(*act_layout).buffer, res, (unsigned int)StackManager::stack_state<1>());
 
 						bool stacked = res.t->rvalue_stacked();
 						if (stacked) {
-							res.t->move(ctx, ctx.eval->map(ctx.eval->pop_register_value_ilptr()), data_place);
+							res.t->move(ctx, ctx.eval->pop_register_value_ilptr(), data_place);
 						}
 						else {
-							res.t->move(ctx, ctx.eval->read_last_register_value_indirect(res.t->rvalue), data_place);
+							memcpy(ctx.eval->map(data_place), ctx.eval->read_last_register_value_indirect(res.t->rvalue), res.t->size(ctx));
 							ctx.eval->discard_last_register_type(res.t->rvalue);
 						}
 
@@ -643,7 +643,7 @@ namespace Corrosive {
 						StackManager::move_stack_in<1>(std::move(ss));
 					}
 					else {
-						if (!tplt->generate(ctx, nullptr, inst)) return false;
+						if (!tplt->generate(ctx, 0, inst)) return false;
 						ILBuilder::eval_const_type(ctx.eval, inst->type.get());
 					}
 

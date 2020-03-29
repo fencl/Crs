@@ -9,64 +9,54 @@
 namespace Corrosive {
 
 
-	int Type::compare(CompileContext& ctx, void* p1, void* p2) {
-		std::cerr << "unsupported operation" << std::endl;
-		exit(1);
-
+	int Type::compare(CompileContext& ctx, ILPtr p1, ILPtr p2) {
 		return 0;
 	}
 
-	int TypeInstance::compare(CompileContext& ctx, void* p1, void* p2) {
+	int TypeInstance::compare(CompileContext& ctx, ILPtr p1, ILPtr p2) {
 		owner->compare(ctx, p1, p2);
 		return 0;
 	}
 
-	int TypeArray::compare(CompileContext& ctx, void* p1, void* p2) {
-		unsigned char* pb1 = (unsigned char*)p1;
-		unsigned char* pb2 = (unsigned char*)p2;
+	int TypeArray::compare(CompileContext& ctx, ILPtr p1, ILPtr p2) {
 		size_t os = owner->size(ctx);
 
 		for (uint64_t i = 0; i < count; i++) {
-			owner->compare(ctx, pb1, pb2);
+			owner->compare(ctx, p1, p2);
 			
-			pb1 += os;
-			pb2 += os;
+			p1 += os;
+			p2 += os;
 		}
 		return 0;
 	}
 
 
-	int TypeReference::compare(CompileContext& ctx, void* p1, void* p2) {
-		return memcmp(p1, p2, sizeof(void*));
+	int TypeReference::compare(CompileContext& ctx, ILPtr p1, ILPtr p2) {
+		return memcmp(ctx.eval->map(p1), ctx.eval->map(p2), ctx.eval->compile_time_register_size(ILDataType::ptr));
 	}
 
 
-	void Type::move(CompileContext& ctx, void* src, void* dst) {
-		std::cerr << "unsupported operation" << std::endl;
-		exit(1);
-	}
+	void Type::move(CompileContext& ctx, ILPtr src, ILPtr dst) {}
 
 
-	void TypeArray::move(CompileContext& ctx, void* src, void* dst) {
-		unsigned char* srcb = (unsigned char*)src;
-		unsigned char* dstb = (unsigned char*)dst;
+	void TypeArray::move(CompileContext& ctx, ILPtr src, ILPtr dst) {
 		size_t os = owner->size(ctx);
 
 		for (uint64_t i = 0; i < count; i++) {
-			owner->move(ctx, srcb, dstb);
+			owner->move(ctx, src, dst);
 
-			srcb += os;
-			dstb += os;
+			src += os;
+			dst += os;
 		}
 	}
 
 
-	void TypeInstance::move(CompileContext& ctx, void* src, void* dst) {
+	void TypeInstance::move(CompileContext& ctx, ILPtr src, ILPtr dst) {
 		owner->move(ctx, src, dst);
 	}
 
-	void TypeReference::move(CompileContext& ctx, void* src, void* dst) {
-		memcpy(dst, src, sizeof(void*));
+	void TypeReference::move(CompileContext& ctx, ILPtr src, ILPtr dst) {
+		memcpy(ctx.eval->map(dst), ctx.eval->map(src), ctx.eval->compile_time_register_size(ILDataType::ptr));
 	}
 
 	bool Type::rvalue_stacked() {
