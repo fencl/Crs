@@ -233,8 +233,8 @@ namespace Corrosive {
 				break;
 			}
 			case ILInstruction::local: {
-				std::cout << "   local ";
-				auto address = read_data_type(unsigned int);
+				std::cout << "   local +";
+				auto address = read_data_type(uint32_t);
 				std::cout << *address << "\n";
 				break;
 			}

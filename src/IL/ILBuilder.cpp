@@ -469,9 +469,9 @@ namespace Corrosive {
 	}
 
 
-	bool ILBuilder::build_local(ILBlock* block, unsigned int id) {
+	bool ILBuilder::build_local(ILBlock* block, uint32_t offset) {
 		block->write_instruction(ILInstruction::local);
-		block->write_value(sizeof(unsigned int), (unsigned char*)&id);
+		block->write_value(sizeof(uint32_t), (unsigned char*)&offset);
 		block->push_const(false);
 		return true;
 	}

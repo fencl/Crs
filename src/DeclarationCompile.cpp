@@ -137,7 +137,7 @@ namespace Corrosive {
 
 				gen_template_cmp.parent = this;
 				gen_template_cmp.ctx = ctx;
-				instances = std::make_unique<std::map<std::pair<unsigned int, ILPtr>, std::unique_ptr<StructureInstance>, GenericTemplateCompare>>(gen_template_cmp);
+				instances = std::make_unique<std::map<ILPtr, std::unique_ptr<StructureInstance>, GenericTemplateCompare>>(gen_template_cmp);
 			}
 
 			compile_state = 2;
@@ -168,7 +168,7 @@ namespace Corrosive {
 			out = singe_instance.get();
 		}
 		else {
-			std::pair<unsigned int, ILPtr> key = std::make_pair((unsigned int)generate_heap_size, argdata);
+			ILPtr key = argdata;
 
 
 			auto f = instances->find(key);
@@ -177,9 +177,9 @@ namespace Corrosive {
 
 				new_inst = inst.get();
 				out = inst.get();
-				key.second = ctx.eval->malloc(generate_heap_size);
-				memcpy(ctx.eval->map(key.second), ctx.eval->map(argdata), generate_heap_size);
-				new_key = key.second;
+				key = ctx.eval->malloc(generate_heap_size);
+				memcpy(ctx.eval->map(key), ctx.eval->map(argdata), generate_heap_size);
+				new_key = key;
 
 				instances->emplace(key, std::move(inst));
 
@@ -235,6 +235,7 @@ namespace Corrosive {
 
 			for (auto&& m : member_funcs) {
 				Cursor c = m.type;
+				//TODO we could probably skip the catalogue stage and build the functiontemplate directly in the structure template
 				
 				CompileContext nctx = ctx;
 				nctx.inside = parent;
@@ -367,7 +368,7 @@ namespace Corrosive {
 				CompileValue argval;
 				argval.t = a.second;
 				argval.lvalue = true;
-				StackManager::stack_push<0>(a.first.buffer, argval, StackManager::stack_state<0>());
+				StackManager::stack_push<0>(ctx,a.first.buffer, argval);
 			}
 
 			CompileContext nctx = ctx;
@@ -464,12 +465,33 @@ namespace Corrosive {
 
 		ILPtr key_ptr = key;
 		for (auto key_l = generator->generic_layout.rbegin(); key_l != generator->generic_layout.rend(); key_l++) {
-			ctx.eval->stack_push_pointer(key_ptr);
+			
+			/*ctx.eval->stack_push_pointer(key_ptr);
 			key_ptr += std::get<1>(*key_l)->size(ctx);
 			CompileValue argval;
 			argval.lvalue = true;
 			argval.t = std::get<1>(*key_l);
-			StackManager::stack_push<1>(std::get<0>(*key_l).buffer, argval, (unsigned int)StackManager::stack_state<1>());
+			StackManager::stack_push<1>(std::get<0>(*key_l).buffer, argval, (unsigned int)StackManager::stack_state<1>());*/
+
+			CompileValue res;
+			res.lvalue = true;
+			res.t = std::get<1>(*key_l);
+
+			ILPtr data_place = ctx.eval->stack_reserve(res.t->size(ctx));
+			StackManager::stack_push<1>(ctx,std::get<0>(*key_l).buffer, res);
+
+
+			res.t->move(ctx, key_ptr, data_place); // TODO! there will be copy
+
+			/*bool stacked = res.t->rvalue_stacked();
+			if (stacked) {
+				res.t->move(ctx, key_ptr, data_place);
+			}
+			else {
+				memcpy(ctx.eval->map(data_place), ctx.eval->map(key_ptr), res.t->size(ctx));
+			}*/
+
+			key_ptr += res.t->size(ctx);
 		}
 
 	}

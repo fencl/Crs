@@ -176,10 +176,14 @@ namespace Corrosive {
 		uint16_t ilptr_to_heap(ILPtr p);
 
 		unsigned char register_stack[stack_size];
-		unsigned char* memory_stack_pointer = memory_stack;
 		unsigned char* register_stack_pointer = register_stack;
 
-		std::vector<unsigned char*> local_ids;
+
+		ILPtr memory_stack_pointer = 1 + heap_size;
+		ILPtr memory_stack_base_pointer = 1 + heap_size;
+
+
+		//std::vector<unsigned char*> local_ids;
 
 		register_value yield;
 		ILDataType yield_type;
@@ -191,12 +195,9 @@ namespace Corrosive {
 		size_t	compile_time_register_size(ILDataType t);
 		void	discard_last_register_type(ILDataType rs);
 		
-		std::vector<std::vector<ILPtr>> on_stack;
-		ILPtr			stack_push();
-		void			stack_pop(ILPtr stack_pointer);
-		void			stack_write(size_t size, void* from);
-		ILPtr			stack_reserve(size_t size);
-		void			stack_push_pointer(ILPtr ptr);
+		std::pair<ILPtr, ILPtr>			stack_push();
+		void							stack_pop(std::pair<ILPtr, ILPtr> stack_pointer);
+		ILPtr							stack_reserve(size_t size);
 
 		ILPtr read_register_value_ilptr();
 		ILPtr pop_register_value_ilptr();
@@ -263,7 +264,7 @@ namespace Corrosive {
 		static bool eval_add(ILEvaluator* eval_ctx,ILDataType tl,ILDataType tr);
 		static bool eval_load(ILEvaluator* eval_ctx, ILDataType type);
 		static bool eval_store(ILEvaluator* eval_ctx, ILDataType type);
-		static bool eval_local(ILEvaluator* eval_ctx, unsigned int id);
+		static bool eval_local(ILEvaluator* eval_ctx, uint32_t offset);
 		static bool eval_member(ILEvaluator* eval_ctx, uint32_t offset);
 
 		static bool eval_and(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
@@ -287,7 +288,7 @@ namespace Corrosive {
 		static bool build_add(ILBlock* block, ILDataType tl, ILDataType tr);
 		static bool build_load(ILBlock* block, ILDataType type);
 		static bool build_store(ILBlock* block, ILDataType type);
-		static bool build_local(ILBlock* block, unsigned int id);
+		static bool build_local(ILBlock* block, uint32_t offset);
 		static bool build_member(ILBlock* block, uint32_t offset);
 
 		static bool build_and(ILBlock* block, ILDataType tl, ILDataType tr);

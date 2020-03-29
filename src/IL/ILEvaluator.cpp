@@ -451,11 +451,13 @@ namespace Corrosive {
 
 
 	void* ILEvaluator::map(ILPtr ptr) {
-		if (ptr < heap_size) {
-			return (memory_heap)+ ptr;
+		if (ptr == 0) {
+			return nullptr;
+		}else if (ptr <= heap_size) {
+			return (memory_heap)+ (ptr-1);
 		}
-		else if (ptr < heap_size + stack_size) {
-			return memory_stack + (ptr - heap_size);
+		else if (ptr <= heap_size + stack_size) {
+			return memory_stack + (ptr - 1 - heap_size);
 		}
 		else {
 			return nullptr;
@@ -469,14 +471,15 @@ namespace Corrosive {
 	}
 
 
-	ILPtr ILEvaluator::stack_push() {
-		std::vector<ILPtr>tmp;
-		on_stack.push_back(std::move(tmp));
-		return map_back(memory_stack_pointer);
+	std::pair<ILPtr,ILPtr> ILEvaluator::stack_push() {
+		std::pair<ILPtr, ILPtr> res = std::make_pair(memory_stack_base_pointer, memory_stack_pointer);
+		memory_stack_base_pointer = memory_stack_pointer;
+		return res;
 	}
-	void ILEvaluator::stack_pop(ILPtr stack_pointer) {
-		on_stack.pop_back();
-		memory_stack_pointer = (unsigned char*)map(stack_pointer);
+
+	void ILEvaluator::stack_pop(std::pair<ILPtr, ILPtr> stack_state) {
+		memory_stack_base_pointer = stack_state.first;
+		memory_stack_pointer = stack_state.second;
 	}
 
 
@@ -541,46 +544,33 @@ namespace Corrosive {
 			switch (parent->architecture)
 			{
 				case ILArchitecture::i386:
-					return (uint32_t)((unsigned char*)from - memory_heap);
+					return (uint32_t)((unsigned char*)from - memory_heap)+1;
 				case ILArchitecture::x86_64:
-					return (uint64_t)((unsigned char*)from - memory_heap);
+					return (uint64_t)((unsigned char*)from - memory_heap)+1;
 			}
 		}
 		else if ((unsigned char*)from - memory_stack < stack_size) {
 			switch (parent->architecture)
 			{
 				case ILArchitecture::i386:
-					return (uint32_t)((unsigned char*)from - memory_stack + heap_size);
+					return (uint32_t)((unsigned char*)from - memory_stack + heap_size)+1;
 				case ILArchitecture::x86_64:
-					return (uint64_t)((unsigned char*)from - memory_stack + heap_size);
+					return (uint64_t)((unsigned char*)from - memory_stack + heap_size)+1;
 			}
 		}
 		
 		return 0;
 	}
 
-	bool ILBuilder::eval_local(ILEvaluator* eval_ctx, unsigned int id) {
-		eval_const_ptr(eval_ctx, eval_ctx->on_stack.back()[id]);
+	bool ILBuilder::eval_local(ILEvaluator* eval_ctx, uint32_t offset) {
+		eval_const_ptr(eval_ctx, eval_ctx->memory_stack_base_pointer+offset);
 		return true;
 	}
 
-
-	void ILEvaluator::stack_write(size_t size, void* from) {
-		on_stack.back().push_back(map_back(memory_stack_pointer));
-		memcpy(memory_stack_pointer, from, size);
-		memory_stack_pointer += size;
-	}
-
-
-	void ILEvaluator::stack_push_pointer(ILPtr ptr) {
-		on_stack.back().push_back(ptr);
-	}
-
 	ILPtr ILEvaluator::stack_reserve(size_t size) {
-		on_stack.back().push_back(map_back(memory_stack_pointer));
-		unsigned char* res = memory_stack_pointer;
+		ILPtr res = memory_stack_pointer;
 		memory_stack_pointer += size;
-		return map_back(res);
+		return res;
 	}
 
 	bool ILBuilder::eval_add(ILEvaluator* eval_ctx,ILDataType t_l,ILDataType t_r) {

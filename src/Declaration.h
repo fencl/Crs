@@ -38,7 +38,7 @@ namespace Corrosive {
 		std::map<std::string_view, std::unique_ptr<FunctionTemplate>> subfunctions;
 
 		static bool parse(Cursor& c, CompileContext& ctx, std::unique_ptr<Namespace>& into);
-		void find_name(std::string_view name, Namespace*& subnamespace, StructureTemplate*& subtemplate);
+		void find_name(std::string_view name, Namespace*& subnamespace, StructureTemplate*& subtemplate, FunctionTemplate*& subfunction);
 	};
 
 	struct StructureInstanceMemberRecord {
@@ -124,11 +124,11 @@ namespace Corrosive {
 		struct GenericTemplateCompare {
 			StructureTemplate* parent;
 			CompileContext ctx;
-			bool operator()(const std::pair<unsigned int, ILPtr>& a, const std::pair<unsigned int, ILPtr>& b) const;
+			bool operator()(const ILPtr& a, const ILPtr& b) const;
 		};
 		GenericTemplateCompare gen_template_cmp;
 	public:
-		std::unique_ptr<std::map<std::pair<unsigned int, ILPtr>, std::unique_ptr<StructureInstance>, GenericTemplateCompare>> instances = nullptr;
+		std::unique_ptr<std::map<ILPtr, std::unique_ptr<StructureInstance>, GenericTemplateCompare>> instances = nullptr;
 	};
 
 	class FunctionInstance {

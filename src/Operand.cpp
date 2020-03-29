@@ -213,7 +213,7 @@ namespace Corrosive {
 
 			if (cpt == CompileType::compile && (sitm = StackManager::stack_find<0>(c.buffer))) {
 				
-				ILBuilder::build_local(ctx.block, sitm->ir_local);
+				ILBuilder::build_local(ctx.block, sitm->local_offset);
 				ret = sitm->value;
 				ret.lvalue = true;
 				
@@ -221,7 +221,7 @@ namespace Corrosive {
 			}
 			else if (cpt != CompileType::compile && (sitm = StackManager::stack_find<1>(c.buffer))) {
 				if (cpt == CompileType::eval) {
-					ILBuilder::eval_local(ctx.eval, sitm->ir_local);
+					ILBuilder::eval_local(ctx.eval, sitm->local_offset);
 				}
 
 				ret = sitm->value;
@@ -231,13 +231,14 @@ namespace Corrosive {
 			else {
 				Namespace* namespace_inst = nullptr;
 				StructureTemplate* struct_inst = nullptr;
+				FunctionTemplate* func_inst = nullptr;
 				
 
 				Cursor err = c;
 
-				ctx.inside->find_name(c.buffer, namespace_inst, struct_inst);
+				ctx.inside->find_name(c.buffer, namespace_inst, struct_inst, func_inst);
 
-				if (namespace_inst == nullptr && struct_inst == nullptr) {
+				if (namespace_inst == nullptr && struct_inst == nullptr && func_inst == nullptr) {
 					throw_specific_error(c, "Path start point not found");
 					return false;
 				}
@@ -254,24 +255,7 @@ namespace Corrosive {
 					}
 					nm_err = c;
 
-					if (cpt != CompileType::short_circuit) {
-						auto f = namespace_inst->subnamespaces.find(c.buffer);
-						if (f != namespace_inst->subnamespaces.end()) {
-							namespace_inst = f->second.get();
-						}
-						else {
-							auto f2 = namespace_inst->subtemplates.find(c.buffer);
-							if (f2 != namespace_inst->subtemplates.end()) {
-								struct_inst = f2->second.get();
-								namespace_inst = nullptr;
-							}
-							else {
-
-								throw_specific_error(c, "Namespace path is not valid");
-								return false;
-							}
-						}
-					}
+					namespace_inst->find_name(c.buffer, namespace_inst, struct_inst, func_inst);
 					c.move();
 				}
 
@@ -296,7 +280,7 @@ namespace Corrosive {
 						}
 						else {
 							StructureInstance* inst;
-							if (!struct_inst->generate(ctx, 0, inst)) return false;
+							if (!struct_inst->generate(ctx, ilnullptr, inst)) return false;
 
 							if (cpt == CompileType::eval) {
 								if (!ILBuilder::eval_const_type(ctx.eval, inst->type.get())) return false;
@@ -310,14 +294,40 @@ namespace Corrosive {
 							}
 						}
 					}
+
+
+					ret.lvalue = false;
+					ret.t = ctx.default_types->t_type;
+				}
+				else if (func_inst != nullptr) {
+
+					if (cpt != CompileType::short_circuit) {
+						if (!func_inst->compile(ctx)) return false;
+
+						if (!func_inst->is_generic) {
+							FunctionInstance* inst;
+							func_inst->generate(ctx, ilnullptr, inst);
+
+							if (cpt == CompileType::eval) {
+								throw_specific_error(err, "Not yet implemented");
+								return false;
+								//if (!ILBuilder::eval_const_type(ctx.eval, inst->type.get())) return false;
+							}
+							else if (cpt == CompileType::compile) {
+								throw_specific_error(err, "Not yet implemented");
+								return false;
+								//if (!ILBuilder::build_const_type(ctx.block, inst->type.get())) return false;
+							}
+						}
+					}
+
+
 				}
 				else {
 					throw_specific_error(nm_err, "Path is pointing to a namespace");
 					return false;
 				}
 
-				ret.lvalue = false;
-				ret.t = ctx.default_types->t_type;
 			}
 
 		}
@@ -492,26 +502,20 @@ namespace Corrosive {
 					
 					
 					if (generating->template_parent != nullptr) {
-						auto key_ptr = generating->template_parent->key;
-						for (auto key_l = generating->template_parent->generator->generic_layout.rbegin(); key_l != generating->template_parent->generator->generic_layout.rend(); key_l++) {
-							ctx.eval->stack_push_pointer(key_ptr);
-							key_ptr += std::get<1>(*key_l)->size(ctx);
-							CompileValue argval;
-							argval.lvalue = true;
-							argval.t = std::get<1>(*key_l);
-
-							StackManager::stack_push<1>(std::get<0>(*key_l).buffer, argval, (unsigned int)StackManager::stack_state<1>());
-						}
+						generating->template_parent->insert_key_on_stack(ctx);
 					}
+
+					ILPtr key_base = ctx.eval->memory_stack_pointer;
 
 					auto act_layout = generating->generic_layout.rbegin();
 
 					for (size_t arg_i = results.size() - 1; arg_i >= 0 && arg_i < results.size(); arg_i--) {
 
 						CompileValue res = results[arg_i];
+						res.lvalue = true;
 
 						ILPtr data_place = ctx.eval->stack_reserve(res.t->size(ctx));
-						StackManager::stack_push<1>(std::get<0>(*act_layout).buffer, res, (unsigned int)StackManager::stack_state<1>());
+						StackManager::stack_push<1>(ctx,std::get<0>(*act_layout).buffer, res);
 
 						bool stacked = res.t->rvalue_stacked();
 						if (stacked) {
@@ -527,7 +531,7 @@ namespace Corrosive {
 					}
 
 					StructureInstance* inst = nullptr;
-					if (!generating->generate(ctx, sp, inst)) return false;
+					if (!generating->generate(ctx, key_base, inst)) return false;
 
 					ILBuilder::eval_const_type(ctx.eval, inst->type.get());
 					
@@ -634,7 +638,7 @@ namespace Corrosive {
 
 						tplt->template_parent->insert_key_on_stack(ctx);
 
-						if (!tplt->generate(ctx, sp, inst)) return false;
+						if (!tplt->generate(ctx, sp.first, inst)) return false;
 						ILBuilder::eval_const_type(ctx.eval, inst->type.get());
 
 						//DO NOT COLLECT STACK THERE, ALL THE VARIABLES ARE ALREADY REGISTERED KEY

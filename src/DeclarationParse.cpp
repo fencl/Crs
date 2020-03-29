@@ -58,6 +58,88 @@ namespace Corrosive {
 				}
 				result->subnamespaces[decl->name.buffer] = std::move(decl);
 			}
+			else if (c.buffer == "function") {
+				StructureTemplateMemberFunc member;
+				c.move();
+				if (c.tok != RecognizedToken::Symbol) {
+					throw_not_a_name_error(c);
+					return false;
+				}
+
+				member.name = c;
+				c.move();
+
+				if (c.tok == RecognizedToken::OpenParenthesis) {
+					c.move();
+					member.annotation = c;
+					int lvl = 1;
+					while (lvl > 0) {
+						switch (c.tok)
+						{
+							case RecognizedToken::OpenParenthesis: lvl++; c.move(); break;
+							case RecognizedToken::CloseParenthesis: lvl--; c.move(); break;
+							case RecognizedToken::Eof: {
+									throw_eof_error(c, "parsing of function generic annotation");
+									return false;
+								}
+							default: c.move(); break;
+						}
+					}
+				}
+				else {
+					member.annotation.tok = RecognizedToken::Eof;
+				}
+
+				if (c.tok != RecognizedToken::Colon) {
+					throw_wrong_token_error(c, "':'");
+					return false;
+				}
+				c.move();
+				member.type = c;
+
+				while (c.tok != RecognizedToken::OpenBrace) {
+					if (c.tok == RecognizedToken::Eof) {
+						throw_eof_error(c, "parsing of structure member type");
+						return false;
+					}
+					c.move();
+				}
+				c.move();
+				member.block = c;
+				int lvl = 1;
+				while (lvl > 0) {
+					switch (c.tok)
+					{
+						case RecognizedToken::OpenBrace: lvl++; c.move(); break;
+						case RecognizedToken::CloseBrace: lvl--; c.move(); break;
+						case RecognizedToken::Eof: {
+								throw_eof_error(c, "parsing of function block");
+								return false;
+							}
+						default: c.move(); break;
+					}
+				}
+
+				CompileContext nctx = ctx;
+				nctx.inside = result.get();
+
+				std::unique_ptr<FunctionTemplate> ft = std::make_unique<FunctionTemplate>();
+				ft->name = member.name;
+				ft->annotation = member.annotation;
+				ft->is_generic = member.annotation.tok != RecognizedToken::Eof;
+				ft->parent = result.get();
+				ft->template_parent = nullptr;
+				ft->type = member.type;
+				ft->block = member.block;
+
+				if (result->subfunctions.find(member.name.buffer) != result->subfunctions.end()) {
+					throw_specific_error(member.name, "Funtion with the same name already exists in the namespace");
+					return false;
+				}
+
+				result->subfunctions[member.name.buffer] = std::move(ft);
+
+			}
 			else {
 				throw_specific_error(c, "unexpected keyword found during parsing of namespace");
 				return false;
