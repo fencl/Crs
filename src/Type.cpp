@@ -149,4 +149,14 @@ namespace Corrosive {
 	unsigned int TypeArray::alignment(CompileContext& ctx) {
 		return owner->alignment(ctx);
 	}
+
+	void TypeFunction::print(std::ostream& os) {
+		os << "fn(";
+		std::vector<Type*> args = owner->argument_array_storage.get(argument_array_id);
+		for (auto arg = args.begin(); arg != args.end(); arg++) {
+			(*arg)->print(os);
+		}
+		os << ") ";
+		return_type->print(os);
+	}
 }

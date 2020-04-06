@@ -63,4 +63,29 @@ namespace Corrosive {
 		}
 	}
 
+
+
+
+	size_t DefaultTypes::load_or_register_argument_array(std::vector<Type*> arg_array) {
+		return argument_array_storage.register_or_load(std::move(arg_array));
+	}
+
+	TypeFunction* DefaultTypes::load_or_register_function_type(std::vector<Type*> arg_array, Type* return_type) {
+		size_t arg_id = load_or_register_argument_array(std::move(arg_array));
+
+		std::pair<size_t, Type*> key = std::make_pair(arg_id, return_type);
+		auto t_find = function_types_storage.find(key);
+		if (t_find != function_types_storage.end()) {
+			return t_find->second.get();
+		}
+		else {
+			std::unique_ptr<TypeFunction> tf = std::make_unique<TypeFunction>();
+			tf->argument_array_id = arg_id;
+			tf->owner = this;
+			tf->return_type = return_type;
+			TypeFunction* ret = tf.get();
+			function_types_storage[key] = std::move(tf);
+			return ret;
+		}
+	}
 }

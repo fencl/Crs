@@ -47,6 +47,12 @@ namespace Corrosive {
 					FunctionInstance* finst;
 					if (f_r->second->generate(ctx, ilnullptr, finst)) finst->compile(ctx);
 				}
+
+				f_r = sfcs.find("equals2");
+				if (f_r != sfcs.end()) {
+					FunctionInstance* finst;
+					if (f_r->second->generate(ctx, ilnullptr, finst)) finst->compile(ctx);
+				}
 			
 			}
 		}

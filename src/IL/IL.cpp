@@ -134,7 +134,7 @@ namespace Corrosive {
 	bool ILBlock::test_const() {
 		if (is_const.size() < 2)
 			return false;
-		return is_const[is_const.size()-1] && is_const[is_const.size()-1];
+		return is_const[is_const.size()-1] && is_const[is_const.size()-2];
 	}
 
 	void ILBlock::pop_const() {

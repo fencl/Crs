@@ -24,7 +24,7 @@ namespace Corrosive {
 	}
 
 	unsigned int _crs_expr_arith_val(CompileValue v) {
-		if (v.t->type() == TypeInstanceType::type_reference) return 0;
+		if (v.t->type() != TypeInstanceType::type_instance) return 0;
 
 		switch (v.t->rvalue)
 		{
@@ -79,6 +79,12 @@ namespace Corrosive {
 		CompileValue ret;
 		if (!_crs_expr_arith_res(ctx,left, right,ret)) {
 			throw_specific_error(c, "Operation is not defined on top of specified types");
+			std::cerr << " |\tTypes were ";
+			left.t->print(std::cerr);
+			std::cerr << " and ";
+			right.t->print(std::cerr);
+			std::cerr << "\n";
+
 			return false;
 		}
 
@@ -243,51 +249,41 @@ namespace Corrosive {
 
 			c.move();
 
-			if (cpt == CompileType::short_circuit) {
-				CompileValue tmp;
-				if (!parse_operators(c, ctx, tmp, CompileType::short_circuit)) return false;
+			if (cpt == CompileType::eval) {
+				uint8_t v = ctx.eval->read_register_value<uint8_t>();
+				
+				ctx.eval->pop_register_value<uint8_t>();
+				CompileValue right;
+				if (!Expression::parse_operators(c, ctx, right, cpt)) return false;
+
+				if (right.t != ctx.default_types->t_bool) {
+					throw_specific_error(c, "Operation requires right operand to be boolean");
+					return false;
+				}
+				uint8_t rv = ctx.eval->pop_register_value<uint8_t>();
+				ILBuilder::eval_const_ibool(ctx.eval, v & rv);
 			}
 			else {
-				if (cpt == CompileType::eval) {
-					uint8_t v = ctx.eval->read_register_value<uint8_t>();
-					if (v) {
-						ctx.eval->pop_register_value<uint8_t>();
-						CompileValue right;
-						if (!Expression::parse_operators(c, ctx, right, cpt)) return false;
-
-						if (right.t != ctx.default_types->t_bool) {
-							throw_specific_error(c, "Operation requires right operand to be boolean");
-							return false;
-						}
-						uint8_t rv = ctx.eval->pop_register_value<uint8_t>();
-						ILBuilder::eval_const_ibool(ctx.eval, v & rv);
-					}
-					else {
-						CompileValue tmp;
-						if (!parse_operators(c, ctx, tmp, CompileType::short_circuit)) return false;
-					}
+				if (!fallback) {
+					fallback = ctx.function->create_block(ILDataType::ibool);
 				}
-				else {
-					if (!fallback) {
-						fallback = ctx.function->create_block(ILDataType::ibool);
-					}
 
-					if (!rvalue(ctx, value, cpt)) return false;
+				if (!rvalue(ctx, value, cpt)) return false;
 
-					ILBlock* positive_block = ctx.function->create_block(ILDataType::ibool);
-					ctx.function->append_block(positive_block);
+				ILBlock* positive_block = ctx.function->create_block(ILDataType::ibool);
+				ctx.function->append_block(positive_block);
 
-					if (!ILBuilder::build_discard(positive_block)) return false;
+				if (!ILBuilder::build_discard(positive_block)) return false;
 
-					ILBuilder::build_const_ibool(ctx.block, false);
-					if (!ILBuilder::build_yield(ctx.block,ILDataType::ibool)) return false;
+				ILBuilder::build_const_ibool(ctx.block, false);
+				if (!ILBuilder::build_yield(ctx.block,ILDataType::ibool)) return false;
 
-					if (!ILBuilder::build_jmpz(ctx.block, fallback, positive_block)) return false;
-					ctx.block = positive_block;
+				if (!ILBuilder::build_jmpz(ctx.block, fallback, positive_block)) return false;
+				ctx.block = positive_block;
 
-					if (!Expression::parse_operators(c, ctx, value, cpt)) return false;
-				}
+				if (!Expression::parse_operators(c, ctx, value, cpt)) return false;
 			}
+			
 		}
 
 		if (fallback != nullptr && cpt == CompileType::compile) {
@@ -330,50 +326,42 @@ namespace Corrosive {
 
 			c.move();
 
-			if (cpt == CompileType::short_circuit) {
-				CompileValue tmp;
-				if (!parse_and(c, ctx,tmp, CompileType::short_circuit)) return false;
+			
+			if (cpt == CompileType::eval) {
+				uint8_t v = ctx.eval->read_register_value<uint8_t>();
+				
+				ctx.eval->pop_register_value<uint8_t>();
+				CompileValue right;
+				if (!Expression::parse_and(c, ctx, right, cpt)) return false;
+
+				if (right.t != ctx.default_types->t_bool) {
+					throw_specific_error(c, "Operation requires right operand to be boolean");
+					return false;
+				}
+				uint8_t rv = ctx.eval->pop_register_value<uint8_t>();
+				ILBuilder::eval_const_ibool(ctx.eval, v | rv);
 			}
 			else {
-				
-				if (cpt == CompileType::eval) {
-					uint8_t v = ctx.eval->read_register_value<uint8_t>();
-					if (!v) {
-						ctx.eval->pop_register_value<uint8_t>();
-						CompileValue right;
-						if (!Expression::parse_and(c, ctx, right, cpt)) return false;
-
-						if (right.t != ctx.default_types->t_bool) {
-							throw_specific_error(c, "Operation requires right operand to be boolean");
-							return false;
-						}
-						uint8_t rv = ctx.eval->pop_register_value<uint8_t>();
-						ILBuilder::eval_const_ibool(ctx.eval, v | rv);
-					}
-					else {
-						CompileValue tmp;
-						if (!parse_and(c, ctx, tmp, CompileType::short_circuit)) return false;
-					}
+				if (!fallback) {
+					fallback = ctx.function->create_block(ILDataType::ibool);
 				}
-				else {
-					if (!fallback) {
-						fallback = ctx.function->create_block(ILDataType::ibool);
-					}
 
-					if (!rvalue(ctx, value, cpt)) return false;
+				if (!rvalue(ctx, value, cpt)) return false;
 
-					ILBlock* positive_block = ctx.function->create_block(ILDataType::ibool);
-					ctx.function->append_block(positive_block);
+				ILBlock* positive_block = ctx.function->create_block(ILDataType::ibool);
+				ctx.function->append_block(positive_block);
 
-					ILBuilder::build_const_ibool(ctx.block, true);
-					if (!ILBuilder::build_yield(ctx.block,ILDataType::ibool)) return false;
+				if (!ILBuilder::build_discard(positive_block)) return false;
 
-					if (!ILBuilder::build_jmpz(ctx.block, positive_block, fallback)) return false;
-					ctx.block = positive_block;
+				ILBuilder::build_const_ibool(ctx.block, true);
+				if (!ILBuilder::build_yield(ctx.block,ILDataType::ibool)) return false;
 
-					if (!Expression::parse_and(c, ctx,value, cpt)) return false;
-				}
+				if (!ILBuilder::build_jmpz(ctx.block, positive_block, fallback)) return false;
+				ctx.block = positive_block;
+
+				if (!Expression::parse_and(c, ctx,value, cpt)) return false;
 			}
+			
 		}
 
 		if (fallback != nullptr && cpt == CompileType::compile) {

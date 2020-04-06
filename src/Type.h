@@ -17,9 +17,10 @@ namespace Corrosive {
 	class StructureInstance;
 	class StructureTemplate;
 	class Type;
+	class DefaultTypes;
 
 	enum class TypeInstanceType {
-		type_template,type_instance,type_array,type_reference,type_undefined
+		type_template,type_instance,type_array,type_reference,type_function,type_undefined
 	};
 	class TypeArray;
 	class TypeReference;
@@ -100,8 +101,19 @@ namespace Corrosive {
 		virtual void print(std::ostream& os);
 	};
 
+	class TypeFunction : public Type {
+	public:
+		inline virtual TypeInstanceType type() { return TypeInstanceType::type_function; }
+
+		DefaultTypes* owner;
+		size_t argument_array_id;
+		Type* return_type;
+
+		virtual void print(std::ostream& os);
+	};
 }
 
+#include "PredefinedTypes.h"
 #include "CompileContext.h"
 
 #endif

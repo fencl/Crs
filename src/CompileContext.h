@@ -9,7 +9,7 @@
 namespace Corrosive {
 
 	enum class CompileType {
-		compile, eval, short_circuit
+		compile, eval/*, short_circuit*/
 	};
 
 	class Namespace;

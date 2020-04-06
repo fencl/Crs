@@ -58,7 +58,7 @@ namespace Corrosive {
 				}
 				result->subnamespaces[decl->name.buffer] = std::move(decl);
 			}
-			else if (c.buffer == "function") {
+			else if (c.buffer == "fn") {
 				StructureTemplateMemberFunc member;
 				c.move();
 				if (c.tok != RecognizedToken::Symbol) {
@@ -223,7 +223,7 @@ namespace Corrosive {
 				c.move();
 				result->member_vars.push_back(member);
 			}
-			else if (c.buffer == "function") {
+			else if (c.buffer == "fn") {
 				StructureTemplateMemberFunc member;
 				c.move();
 				if (c.tok != RecognizedToken::Symbol) {
