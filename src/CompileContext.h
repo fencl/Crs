@@ -14,15 +14,18 @@ namespace Corrosive {
 
 	class Namespace;
 	class DefaultTypes;
+	class FunctionInstance;
 
 	struct CompileContext {
 		DefaultTypes*	default_types = nullptr;
 		Namespace*		inside = nullptr;
 		Namespace*		global = nullptr;
+		FunctionInstance* function = nullptr;
+
 		ILModule*		module = nullptr;
 		ILEvaluator*	eval = nullptr;
-		ILFunction*		function = nullptr;
-		ILBlock*		block = nullptr;
+		ILBlock*		scope = nullptr;
+		ILBlock*		scope_exit = nullptr;
 	};
 
 	struct CompileValue {

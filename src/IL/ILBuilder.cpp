@@ -417,9 +417,10 @@ namespace Corrosive {
 		return true;
 	}
 
-	bool ILBuilder::build_ret(ILBlock* block) {
+	bool ILBuilder::build_ret(ILBlock* block, ILDataType type) {
 		block->parent->return_blocks.insert(block);
 		block->write_instruction(ILInstruction::ret);
+		block->yields = type;
 		return true;
 	}
 

@@ -57,6 +57,9 @@
     <ClInclude Include="..\src\IL\IL.h">
       <Filter>Header Files\IL</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\Statement.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\Declaration.cpp">
@@ -106,6 +109,9 @@
     </ClCompile>
     <ClCompile Include="..\src\IL\ILEvaluator.cpp">
       <Filter>Source Files\IL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Statement.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

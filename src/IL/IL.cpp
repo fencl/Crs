@@ -5,7 +5,7 @@
 
 namespace Corrosive {
 	void throw_il_wrong_data_flow_error() {
-		std::cerr << "Compiler Error:\n\tWrong data flow inside compiler IL";
+		std::cerr << "Compiler Error:\n\tWrong data flow inside compiler IL" << std::endl;
 	}
 
 	void throw_il_nothing_on_stack_error() {
@@ -27,14 +27,20 @@ namespace Corrosive {
 
 	ILFunction::~ILFunction() {}
 
-	ILFunction* ILModule::create_function(unsigned int return_size) {
+	ILFunction* ILModule::create_function() {
 		std::unique_ptr<ILFunction> function = std::make_unique<ILFunction>();
 		ILFunction* function_ptr = function.get();
 		function_ptr->id = (unsigned int)functions.size();
 		function_ptr->parent = this;
-		function_ptr->returns = return_size;
 		functions.push_back(std::move(function));
 		return function_ptr;
+	}
+
+
+	ILBlock* ILFunction::create_and_append_block(ILDataType accepts) {
+		ILBlock* b = create_block(accepts);
+		append_block(b);
+		return b;
 	}
 
 	ILBlock* ILFunction::create_block(ILDataType accepts) {
@@ -84,7 +90,9 @@ namespace Corrosive {
 
 
 	void ILFunction::dump() {
-		std::cout << "function " << id << " -> ["<<returns<<"B]\n";
+		std::cout << "function " << id << " -> ";
+		ILBlock::dump_data_type((*return_blocks.begin())->yields);
+		std::cout << "\n";
 
 		for (auto b = blocks.begin(); b != blocks.end(); b++) {
 			(*b)->dump();
@@ -148,7 +156,7 @@ namespace Corrosive {
 		dump_data_type(accepts);
 		std::cout << "] -> ";
 		dump_data_type(yields);
-		std::cout << "\n";
+		std::cout << " \"" << alias << "\"\n";
 
 		std::list<std::unique_ptr<ILBlockData>>::iterator mempool = data_pool.begin();
 		size_t memoff = 0;
@@ -229,7 +237,7 @@ namespace Corrosive {
 			case ILInstruction::jmp: {
 				std::cout << "   jmp ";
 				auto address = read_data_type(unsigned int);
-				std::cout << *address << "\n";
+				std::cout << *address << " \"" << parent->blocks[*address]->alias << "\"\n";
 				break;
 			}
 			case ILInstruction::local: {
@@ -254,9 +262,9 @@ namespace Corrosive {
 			case ILInstruction::jmpz: {
 				std::cout << "   jmpz ";
 				auto address = read_data_type(unsigned int);
-				std::cout << *address << " ";
+				std::cout << *address << " \"" << parent->blocks[*address]->alias << "\" : ";
 				address = read_data_type(unsigned int);
-				std::cout << *address << "\n";
+				std::cout << *address << " \"" << parent->blocks[*address]->alias << "\"\n";
 				break;
 			}
 			case ILInstruction::yield:
@@ -301,12 +309,19 @@ namespace Corrosive {
 #undef read_data_type
 
 	bool ILFunction :: assert_flow() {
+		if (return_blocks.size() == 0) {
+			throw_il_wrong_data_flow_error();
+			return false;
+		}
+
 		for (auto b = blocks.begin(); b != blocks.end(); b++) {
 			if (!(*b)->assert_flow()) return false;
 		}
 
+		auto assert_ret_type = (*return_blocks.begin())->yields;
+
 		for (auto b = return_blocks.begin(); b != return_blocks.end(); b++) {
-			if ((*b)->yields != ILDataType::ptr) {
+			if ((*b)->yields != assert_ret_type) {
 				throw_il_wrong_data_flow_error();
 				return false;
 			}

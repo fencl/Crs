@@ -149,7 +149,7 @@ namespace Corrosive {
 			ret.lvalue = false;
 			ret.t = ctx.default_types->t_bool;
 			if (cpt == CompileType::compile) {
-				if (!ILBuilder::build_const_ibool(ctx.block, true)) return false;
+				if (!ILBuilder::build_const_ibool(ctx.scope, true)) return false;
 			}
 			else if (cpt == CompileType::eval) {
 				if (!ILBuilder::eval_const_ibool(ctx.eval, true)) return false;
@@ -160,7 +160,7 @@ namespace Corrosive {
 			ret.lvalue = false;
 			ret.t = ctx.default_types->t_bool;
 			if (cpt == CompileType::compile) {
-				if (!ILBuilder::build_const_ibool(ctx.block, false)) return false;
+				if (!ILBuilder::build_const_ibool(ctx.scope, false)) return false;
 			}
 			else if (cpt == CompileType::eval) {
 				if (!ILBuilder::eval_const_ibool(ctx.eval, false)) return false;
@@ -168,7 +168,7 @@ namespace Corrosive {
 		}
 		else if (c.buffer == "fn") {
 			if (cpt == CompileType::compile) {
-				if (!ctx.function->is_const) {
+				if (!ctx.function->func->is_const) {
 					throw_specific_error(c, "Function type cannot be created in runtime context");
 					return false;
 				}
@@ -231,7 +231,7 @@ namespace Corrosive {
 
 			if (cpt == CompileType::compile && (sitm = StackManager::stack_find<0>(c.buffer))) {
 				
-				ILBuilder::build_local(ctx.block, sitm->local_offset);
+				ILBuilder::build_local(ctx.scope, sitm->local_offset);
 				ret = sitm->value;
 				ret.lvalue = true;
 				
@@ -287,12 +287,12 @@ namespace Corrosive {
 							if (!ILBuilder::eval_const_type(ctx.eval, struct_inst->type.get())) return false;
 						}
 						else if (cpt == CompileType::compile) {
-							if (!ctx.function->is_const) {
+							if (!ctx.function->func->is_const) {
 								throw_specific_error(err, "Use of a type in runtime context");
 								return false;
 							}
 
-							if (!ILBuilder::build_const_type(ctx.block, struct_inst->type.get())) return false;
+							if (!ILBuilder::build_const_type(ctx.scope, struct_inst->type.get())) return false;
 						}
 					}
 					else {
@@ -303,11 +303,11 @@ namespace Corrosive {
 							if (!ILBuilder::eval_const_type(ctx.eval, inst->type.get())) return false;
 						}
 						else if (cpt == CompileType::compile) {
-							if (!ctx.function->is_const) {
+							if (!ctx.function->func->is_const) {
 								throw_specific_error(err, "Use of a type in runtime context");
 								return false;
 							}
-							if (!ILBuilder::build_const_type(ctx.block, inst->type.get())) return false;
+							if (!ILBuilder::build_const_type(ctx.scope, inst->type.get())) return false;
 						}
 					}
 					
@@ -366,9 +366,9 @@ namespace Corrosive {
 
 		if (cpt == CompileType::compile) {
 			if (usg)
-				ILBuilder::build_const_u32(ctx.block, (uint32_t)d);
+				ILBuilder::build_const_u32(ctx.scope, (uint32_t)d);
 			else
-				ILBuilder::build_const_i32(ctx.block, (int32_t)d);
+				ILBuilder::build_const_i32(ctx.scope, (int32_t)d);
 		}
 		else if (cpt == CompileType::eval) {
 			if (usg)
@@ -401,9 +401,9 @@ namespace Corrosive {
 
 		if (cpt == CompileType::compile) {
 			if (usg)
-				ILBuilder::build_const_u64(ctx.block, d);
+				ILBuilder::build_const_u64(ctx.scope, d);
 			else
-				ILBuilder::build_const_i64(ctx.block, d);
+				ILBuilder::build_const_i64(ctx.scope, d);
 		}
 		else if (cpt == CompileType::eval) {
 			if (usg)
@@ -436,9 +436,9 @@ namespace Corrosive {
 
 		if (cpt == CompileType::compile) {
 			if (dbl)
-				ILBuilder::build_const_f64(ctx.block, d);
+				ILBuilder::build_const_f64(ctx.scope, d);
 			else
-				ILBuilder::build_const_f32(ctx.block, (float)d);
+				ILBuilder::build_const_f32(ctx.scope, (float)d);
 		}
 		else if (cpt == CompileType::eval) {
 			if (dbl)
@@ -726,7 +726,7 @@ namespace Corrosive {
 			ret.lvalue = true;
 
 			if (cpt == CompileType::compile) {
-				ILBuilder::build_load(ctx.block, ret.t->rvalue);
+				ILBuilder::build_load(ctx.scope, ret.t->rvalue);
 			}
 			else if (cpt == CompileType::eval) {
 				ILBuilder::eval_load(ctx.eval, ret.t->rvalue);
@@ -752,7 +752,7 @@ namespace Corrosive {
 				size_t id = table_element->second;
 				auto& member = si->member_vars[id];
 				if (cpt == CompileType::compile) {
-					ILBuilder::build_member(ctx.block, member.offset);
+					ILBuilder::build_member(ctx.scope, member.offset);
 				}
 				else if (cpt == CompileType::eval) {
 					ILBuilder::eval_member(ctx.eval, member.offset);

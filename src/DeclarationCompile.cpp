@@ -7,6 +7,7 @@
 #include "StackManager.h"
 #include "Type.h"
 #include <algorithm>
+#include "Statement.h"
 
 namespace Corrosive {
 
@@ -373,18 +374,32 @@ namespace Corrosive {
 			CompileContext nctx = ctx;
 			nctx.inside = generator->parent;
 
-			ILFunction* nf = ctx.module->create_function(returns->size(ctx));
-			ILBlock* b = nf->create_block(ILDataType::none);
-			nf->append_block(b);
-			nctx.block = b;
-			nctx.function = nf;
+			func = ctx.module->create_function();
+			
+
+			ILBlock* b = func->create_and_append_block(ILDataType::none);
+			b->alias = "entry";
+
+			ILBlock* b_exit = func->create_and_append_block(returns->rvalue);
+			b_exit->alias = "entry_exit";
+			ILBuilder::build_accept(b_exit);
+
+
+			nctx.scope = b;
+			nctx.scope_exit = b_exit;
+
+			nctx.function = this;
 
 			Cursor cb = block;
 			CompileValue cvres;
-			if (!Expression::parse(cb, nctx, cvres, CompileType::compile)) return false;
+			if (!Statement::parse(cb, nctx, cvres, CompileType::compile)) return false;
 
-			func = nf;
-			nf->dump();
+			ILBuilder::build_ret(b_exit,returns->rvalue);
+
+
+			func->dump();
+
+			if (!func->assert_flow()) return false;
 
 			StackManager::move_stack_in<0>(std::move(ss));
 

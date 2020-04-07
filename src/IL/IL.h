@@ -5,6 +5,7 @@
 #include <memory>
 #include <set>
 #include <list>
+#include <string>
 #include <string_view>
 
 namespace Corrosive {
@@ -37,6 +38,7 @@ namespace Corrosive {
 
 	class ILBlock {
 	public:
+		std::string alias;
 		std::vector<bool> is_const;
 		void push_const(bool c);
 		bool test_const();
@@ -75,60 +77,12 @@ namespace Corrosive {
 		unsigned char* read_data(size_t, std::list<std::unique_ptr<ILBlockData>>::iterator& pool, size_t& memoff);
 	};
 
-	/*
-	class ILType {
-	public:
-		~ILType();
-		ILType();
-		ILType(ILDataType rv);
-		ILDataType rvalue;
-
-		virtual int compile_time_compare(void* p1, void* p2);
-		virtual void compile_time_move(void* src, void* dst);
-		virtual size_t compile_time_size();
-		virtual unsigned int runtime_size();
-		virtual unsigned int runtime_alignment();
-	};
-
-	class ILStruct : public ILType {
-	public:
-		ILStruct();
-		ILStruct(ILDataType rv, unsigned int sz, unsigned int ct, unsigned int alg);
-
-		std::vector<std::tuple<unsigned int, size_t, ILType*>> member_vars;
-
-		unsigned int size_in_bytes = 0;
-		unsigned int alignment_in_bytes = 0;
-		size_t		 compile_time_size_in_bytes = 0;
-
-		void			add_member(ILType* type);
-		void			align_size();
-
-		virtual int		compile_time_compare(void* p1, void* p2);
-		virtual void	compile_time_move(void* src, void* dst);
-		virtual size_t  compile_time_size();
-		virtual unsigned int runtime_size();
-		virtual unsigned int runtime_alignment();
-	};
-
-	class ILArray : public ILType {
-	public:
-		ILType* base;
-		unsigned int count;
-
-		virtual int		compile_time_compare(void* p1, void* p2);
-		virtual void	compile_time_move(void* src, void* dst);
-		virtual size_t  compile_time_size();
-		virtual unsigned int runtime_size();
-		virtual unsigned int runtime_alignment();
-	};*/
 
 	class ILFunction {
 	public:
 		~ILFunction();
 		unsigned int	id;
 		ILModule*		parent;
-		unsigned int	returns = 0;
 		bool			is_const = false;
 
 		std::vector<unsigned int>				local_allocas;
@@ -137,6 +91,7 @@ namespace Corrosive {
 		std::set<ILBlock*>						return_blocks;
 
 		ILBlock*	 create_block(ILDataType accepts);
+		ILBlock*	 create_and_append_block(ILDataType accepts);
 		void		 append_block(ILBlock* block);
 		void		 dump();
 		bool		 assert_flow();
@@ -228,7 +183,7 @@ namespace Corrosive {
 		std::vector<std::unique_ptr<ILFunction>> functions;
 
 		ILArchitecture architecture = ILArchitecture::x86_64;
-		ILFunction* create_function(unsigned int return_size);
+		ILFunction* create_function();
 	};
 
 	class ILBuilder {
@@ -308,7 +263,7 @@ namespace Corrosive {
 		static bool build_discard(ILBlock* block);
 		static bool build_yield(ILBlock* block, ILDataType type);
 		static bool build_yield_type(ILBlock* block,std::string_view name);
-		static bool build_ret(ILBlock* block);
+		static bool build_ret(ILBlock* block, ILDataType type);
 		static bool build_jmp(ILBlock* block,ILBlock* address);
 		static bool build_jmpz(ILBlock* block,ILBlock* ifz, ILBlock* ifnz);
 	};
