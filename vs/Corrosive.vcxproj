@@ -20,7 +20,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\CompileContext.h" />
-    <ClInclude Include="..\src\Contents.h" />
     <ClInclude Include="..\src\Cursor.h" />
     <ClInclude Include="..\src\Declaration.h" />
     <ClInclude Include="..\src\Error.h" />
@@ -34,7 +33,6 @@
     <ClInclude Include="..\src\Type.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\Contents.cpp" />
     <ClCompile Include="..\src\Declaration.cpp" />
     <ClCompile Include="..\src\DeclarationCompile.cpp" />
     <ClCompile Include="..\src\DeclarationParse.cpp" />
@@ -49,11 +47,7 @@
     <ClCompile Include="..\src\Source.cpp" />
     <ClCompile Include="..\src\StackManager.cpp" />
     <ClCompile Include="..\src\Type.cpp" />
-    <ClCompile Include="..\src\TypeCast.cpp" />
-    <ClCompile Include="..\src\TypeCmp.cpp" />
     <ClCompile Include="..\src\TypeCompile.cpp" />
-    <ClCompile Include="..\src\TypeParse.cpp" />
-    <ClCompile Include="..\src\TypeResolve.cpp" />
     <ClCompile Include="..\src\Utilities.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
