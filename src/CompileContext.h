@@ -25,7 +25,7 @@ namespace Corrosive {
 		ILModule*		module = nullptr;
 		ILEvaluator*	eval = nullptr;
 		ILBlock*		scope = nullptr;
-		ILBlock*		scope_exit = nullptr;
+		//ILBlock*		scope_exit = nullptr;
 	};
 
 	struct CompileValue {

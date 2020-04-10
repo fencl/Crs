@@ -46,6 +46,7 @@ namespace Corrosive {
 		Type* type;
 
 		uint32_t offset;
+		uint32_t compile_offset;
 	};
 
 	class StructureInstance : public Namespace {
@@ -60,10 +61,14 @@ namespace Corrosive {
 		uint32_t size;
 		uint32_t alignment;
 
-		ILPtr key;
 
-		int compare(CompileContext& ctx, ILPtr p1, ILPtr p2);
-		void move(CompileContext& ctx, ILPtr src, ILPtr dst);
+		uint32_t compile_size;
+		uint32_t compile_alignment;
+
+		unsigned char* key;
+
+		int compare(CompileContext& ctx, unsigned char* p1, unsigned char* p2);
+		void move(CompileContext& ctx, unsigned char* src, unsigned char* dst);
 
 		void insert_key_on_stack(CompileContext& ctx);
 
@@ -110,7 +115,7 @@ namespace Corrosive {
 		std::vector<StructureTemplateMemberFunc> member_funcs;
 		std::vector<StructureTemplateSubtemplate> member_templates;
 
-		bool generate(CompileContext& ctx, ILPtr argdata, StructureInstance*& out);
+		bool generate(CompileContext& ctx, unsigned char* argdata, StructureInstance*& out);
 
 		bool compile(CompileContext& ctx);
 
@@ -124,11 +129,11 @@ namespace Corrosive {
 		struct GenericTemplateCompare {
 			StructureTemplate* parent;
 			CompileContext ctx;
-			bool operator()(const ILPtr& a, const ILPtr& b) const;
+			bool operator()(unsigned char* const& a, unsigned char* const& b) const;
 		};
 		GenericTemplateCompare gen_template_cmp;
 	public:
-		std::unique_ptr<std::map<ILPtr, std::unique_ptr<StructureInstance>, GenericTemplateCompare>> instances = nullptr;
+		std::unique_ptr<std::map<unsigned char*, std::unique_ptr<StructureInstance>, GenericTemplateCompare>> instances = nullptr;
 	};
 
 	class FunctionInstance {
@@ -141,7 +146,7 @@ namespace Corrosive {
 		std::vector<std::pair<Cursor,Type*>> arguments;
 		Type* returns;
 
-		ILPtr key;
+		unsigned char* key;
 
 		bool compile(CompileContext& ctx);
 
@@ -165,7 +170,7 @@ namespace Corrosive {
 		size_t generate_heap_size = 0;
 
 		bool is_generic = false;
-		bool generate(CompileContext& ctx, ILPtr argdata, FunctionInstance*& out);
+		bool generate(CompileContext& ctx, unsigned char* argdata, FunctionInstance*& out);
 		bool compile(CompileContext& ctx);
 
 		unsigned int compile_state = 0;
@@ -174,11 +179,11 @@ namespace Corrosive {
 		struct GenericTemplateCompare {
 			FunctionTemplate* parent;
 			CompileContext ctx;
-			bool operator()(const std::pair<unsigned int, ILPtr>& a, const std::pair<unsigned int, ILPtr>& b) const;
+			bool operator()(const std::pair<unsigned int, unsigned char*>& a, const std::pair<unsigned int, unsigned char*>& b) const;
 		};
 		GenericTemplateCompare gen_template_cmp;
 	public:
-		std::unique_ptr<std::map<std::pair<unsigned int, ILPtr>, std::unique_ptr<FunctionInstance>, GenericTemplateCompare>> instances = nullptr;
+		std::unique_ptr<std::map<std::pair<unsigned int, unsigned char*>, std::unique_ptr<FunctionInstance>, GenericTemplateCompare>> instances = nullptr;
 	};
 
 	class Declaration {

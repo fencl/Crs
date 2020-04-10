@@ -393,33 +393,37 @@ namespace Corrosive {
 		return true;
 	}
 
-	bool ILBuilder::build_accept(ILBlock* block) {
+	bool ILBuilder::build_accept(ILBlock* block, ILDataType type) {
 		block->write_instruction(ILInstruction::accept); block->push_const(false);
+		block->write_const_type(type);
+		block->accepts = type;
 		return true;
 	}
 
-	bool ILBuilder::build_discard(ILBlock* block) {
+	bool ILBuilder::build_discard(ILBlock* block, ILDataType type) {
 		block->write_instruction(ILInstruction::discard); block->push_const(false);
+		block->write_const_type(type);
+		block->accepts = type;
 		return true;
 	}
 
 	bool ILBuilder::build_yield(ILBlock* block,ILDataType type) {
 		block->write_instruction(ILInstruction::yield); block->pop_const();
+		block->write_const_type(type);
 		block->yields = type;
 		return true;
 	}
 
-
-	bool ILBuilder::build_yield_type(ILBlock* block,std::string_view name) {
-		block->write_instruction(ILInstruction::yield_type);
-		block->write_value(sizeof(std::string_view), (unsigned char*) & name);
-		block->pop_const();
+	bool ILBuilder::build_forget(ILBlock* block, ILDataType type) {
+		block->write_instruction(ILInstruction::forget); block->pop_const();
+		block->write_const_type(type);
 		return true;
 	}
 
 	bool ILBuilder::build_ret(ILBlock* block, ILDataType type) {
 		block->parent->return_blocks.insert(block);
 		block->write_instruction(ILInstruction::ret);
+		block->write_const_type(type);
 		block->yields = type;
 		return true;
 	}
@@ -470,9 +474,9 @@ namespace Corrosive {
 	}
 
 
-	bool ILBuilder::build_local(ILBlock* block, uint32_t offset) {
+	bool ILBuilder::build_local(ILBlock* block, uint16_t offset) {
 		block->write_instruction(ILInstruction::local);
-		block->write_value(sizeof(uint32_t), (unsigned char*)&offset);
+		block->write_value(sizeof(uint16_t), (unsigned char*)&offset);
 		block->push_const(false);
 		return true;
 	}

@@ -26,7 +26,6 @@ namespace Corrosive {
 		std::unique_ptr<ILEvaluator> e = std::make_unique<ILEvaluator>();
 		m->architecture = ILArchitecture::x86_64;
 		e->parent = m.get();
-		e->setup_allocator();
 
 		Cursor c = src.read_first();
 		CompileContext ctx;
@@ -44,13 +43,13 @@ namespace Corrosive {
 				auto f_r = sfcs.find("equals");
 				if (f_r != sfcs.end()) {
 					FunctionInstance* finst;
-					if (f_r->second->generate(ctx, ilnullptr, finst)) finst->compile(ctx);
+					if (f_r->second->generate(ctx, nullptr, finst)) finst->compile(ctx);
 				}
 
 				f_r = sfcs.find("equals2");
 				if (f_r != sfcs.end()) {
 					FunctionInstance* finst;
-					if (f_r->second->generate(ctx, ilnullptr, finst)) finst->compile(ctx);
+					if (f_r->second->generate(ctx, nullptr, finst)) finst->compile(ctx);
 				}
 			
 			}
@@ -59,7 +58,6 @@ namespace Corrosive {
 		std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 
 		std::cout << "\nelapsed: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]\n" << std::endl;
-		e->dump_memory_statistics(false);
 
 		return 0;
 	}

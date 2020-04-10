@@ -273,7 +273,7 @@ namespace Corrosive {
 				ILBlock* positive_block = ctx.function->func->create_block(ILDataType::ibool);
 				ctx.function->func->append_block(positive_block);
 
-				if (!ILBuilder::build_discard(positive_block)) return false;
+				if (!ILBuilder::build_discard(positive_block,ILDataType::ibool)) return false;
 
 				ILBuilder::build_const_ibool(ctx.scope, false);
 				if (!ILBuilder::build_yield(ctx.scope,ILDataType::ibool)) return false;
@@ -300,7 +300,7 @@ namespace Corrosive {
 			ctx.scope = fallback;
 			fallback = nullptr;
 
-			if (!ILBuilder::build_accept(ctx.scope)) return false;
+			if (!ILBuilder::build_accept(ctx.scope,ILDataType::ibool)) return false;
 			value.t = ctx.default_types->t_bool;
 			value.lvalue = false;
 		}
@@ -351,7 +351,7 @@ namespace Corrosive {
 				ILBlock* positive_block = ctx.function->func->create_block(ILDataType::ibool);
 				ctx.function->func->append_block(positive_block);
 
-				if (!ILBuilder::build_discard(positive_block)) return false;
+				if (!ILBuilder::build_discard(positive_block, ILDataType::ibool)) return false;
 
 				ILBuilder::build_const_ibool(ctx.scope, true);
 				if (!ILBuilder::build_yield(ctx.scope,ILDataType::ibool)) return false;
@@ -379,7 +379,7 @@ namespace Corrosive {
 			ctx.scope = fallback;
 			fallback = nullptr;
 
-			if (!ILBuilder::build_accept(ctx.scope)) return false;
+			if (!ILBuilder::build_accept(ctx.scope, ILDataType::ibool)) return false;
 
 			value.t = ctx.default_types->t_bool;
 			value.lvalue = false;

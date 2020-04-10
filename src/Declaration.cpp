@@ -46,11 +46,11 @@ namespace Corrosive {
 		}
 	}
 
-	int StructureInstance::compare(CompileContext& ctx, ILPtr p1, ILPtr p2) {
+	int StructureInstance::compare(CompileContext& ctx, unsigned char* p1, unsigned char* p2) {
 		//TODO test for specific compare function
 
 		if (member_vars.size() == 0) {
-			return memcmp(ctx.eval->map(p1), ctx.eval->map(p2), size);
+			return memcmp(p1, p2, size);
 		}
 		else {
 			for (auto&& m : member_vars) {
@@ -67,12 +67,12 @@ namespace Corrosive {
 
 
 
-	void StructureInstance::move(CompileContext& ctx, ILPtr src, ILPtr dst) {
+	void StructureInstance::move(CompileContext& ctx, unsigned char* src, unsigned char* dst) {
 		//TODO test for specific move function
 		
 
 		if (member_vars.size() == 0) {
-			memcpy(ctx.eval->map(dst), ctx.eval->map(src), size);
+			memcpy(dst, src, size);
 		}
 		else {
 			for (auto&& m : member_vars) {
@@ -94,10 +94,10 @@ namespace Corrosive {
 		}
 	}
 
-	bool StructureTemplate::GenericTemplateCompare::operator()(const ILPtr& a, const ILPtr& b) const
+	bool StructureTemplate::GenericTemplateCompare::operator()(unsigned char* const& a, unsigned char* const& b) const
 	{
-		ILPtr loff = a;
-		ILPtr roff = b;
+		unsigned char* loff = a;
+		unsigned char* roff = b;
 
 		for (auto&& l : parent->generic_layout) {
 
@@ -112,13 +112,13 @@ namespace Corrosive {
 		return false;
 	}
 
-	bool FunctionTemplate::GenericTemplateCompare::operator()(const std::pair<unsigned int, ILPtr>& a, const std::pair<unsigned int, ILPtr>& b) const
+	bool FunctionTemplate::GenericTemplateCompare::operator()(const std::pair<unsigned int, unsigned char*>& a, const std::pair<unsigned int, unsigned char*>& b) const
 	{
 		if (a.first < b.first) return true;
 		if (a.first > b.first) return false;
 
-		ILPtr loff = a.second;
-		ILPtr roff = b.second;
+		unsigned char* loff = a.second;
+		unsigned char* roff = b.second;
 
 		for (auto&& l : parent->generic_layout) {
 			int r = std::get<1>(l)->compare((CompileContext&)ctx, loff, roff);

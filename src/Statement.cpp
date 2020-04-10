@@ -6,8 +6,23 @@
 namespace Corrosive {
 
 
+	bool Statement::parse_inner_block(Cursor& c, CompileContext& ctx, CompileValue& res, CompileType cmp, bool& terminated) {
+		res.t = ctx.default_types->t_void;
+		res.lvalue = false;
 
-	bool Statement::parse(Cursor& c, CompileContext& ctx, CompileValue& res, CompileType cmp) {
+		terminated = false;
+		while (c.tok != RecognizedToken::CloseBrace) {
+			if (!parse(c, ctx, res, cmp,terminated)) return false;
+			if (terminated && c.tok != RecognizedToken::CloseBrace) {
+				throw_specific_error(c, "Instruction after the current branch has been terminated");
+				return false;
+			}
+		}
+		c.move();
+		return true;
+	}
+
+	bool Statement::parse(Cursor& c, CompileContext& ctx, CompileValue& res, CompileType cmp, bool& terminated) {
 		if (cmp == CompileType::eval) {
 			throw_specific_error(c, "Statement is used in compiletime context. Compiler should not allow it.");
 			return false;
@@ -16,19 +31,33 @@ namespace Corrosive {
 			case RecognizedToken::Symbol:
 			{
 				if (c.buffer == "return") {
+					terminated = true;
 					return parse_return(c, ctx, res, cmp);
 				}
-				else {
-					throw_specific_error(c,"Not implemented yet");
-					return false;
-				}
 			}break;
-			default:
-			{
-				throw_specific_error(c, "Expected statement");
-				return false;
-			}
+			case RecognizedToken::OpenBrace: {
+				c.move();
+				return parse_inner_block(c, ctx, res, cmp, terminated);
+			}break;
 		}
+
+		//fallthrough if every other check fails, statement is plain expression
+
+		CompileValue ret_val;
+		if (!Expression::parse(c, ctx, ret_val, cmp)) return false;
+		if (cmp == CompileType::compile) {
+			ILBuilder::build_forget(ctx.scope, ret_val.t->rvalue);
+		}
+		else {
+			ILBuilder::eval_forget(ctx.eval, ret_val.t->rvalue);
+		}
+		if (c.tok != RecognizedToken::Semicolon) {
+			throw_wrong_token_error(c, "';'");
+			return false;
+		}
+		c.move();
+
+		return true;
 
 	}
 
@@ -40,10 +69,15 @@ namespace Corrosive {
 		if (!Expression::parse(c, ctx, ret_val, cmp)) return false;
 		if (!Operand::cast(err, ctx, ret_val, ctx.function->returns, cmp)) return false;
 
-		ILBuilder::build_yield(ctx.scope, ret_val.t->rvalue);
-		ILBuilder::build_jmp(ctx.scope, ctx.scope_exit);
 		res.lvalue = false;
 		res.t = ctx.default_types->t_void;
+		if (c.tok != RecognizedToken::Semicolon) {
+			throw_wrong_token_error(c, "';'");
+			return false;
+		}
+		c.move();
+
+		res = ret_val;
 		return true;
 	}
 }

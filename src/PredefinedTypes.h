@@ -76,7 +76,7 @@ namespace Corrosive {
 
 		void setup(CompileContext& ctx);
 	private:
-		void setup_type(CompileContext& ctx, std::string_view name, Type*& into, unsigned int runtime_size, unsigned int runtime_alignment, ILDataType ildt);
+		void setup_type(CompileContext& ctx, std::string_view name, Type*& into, uint32_t runtime_size, uint32_t runtime_alignment, uint32_t compile_size, uint32_t compile_alignment, ILDataType ildt);
 	};
 }
 

@@ -165,9 +165,13 @@ namespace Corrosive {
 			auto inst = read_data_type(ILInstruction);
 
 			switch (*inst) {
-			case ILInstruction::ret:
-				std::cout << "   ret\n";
-				break;
+			case ILInstruction::ret: {
+				std::cout << "   ret [";
+				auto type = read_data_type(ILDataType);
+				dump_data_type(*type);
+				std::cout << "]\n";
+			}
+								   break;
 			case ILInstruction::sub:
 				std::cout << "   sub [";
 				dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
@@ -228,11 +232,19 @@ namespace Corrosive {
 				std::cout << "   store [";
 				dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 				break;
-			case ILInstruction::accept:
-				std::cout << "   accept\n";
+			case ILInstruction::accept: {
+				std::cout << "   accept [";
+				auto type = read_data_type(ILDataType);
+				dump_data_type(*type);
+				std::cout << "]\n";
+			}
 				break;
-			case ILInstruction::discard:
-				std::cout << "   discard\n";
+			case ILInstruction::discard: {
+				std::cout << "   discard [";
+				auto type = read_data_type(ILDataType);
+				dump_data_type(*type);
+				std::cout << "]\n";
+			}
 				break;
 			case ILInstruction::jmp: {
 				std::cout << "   jmp ";
@@ -242,8 +254,9 @@ namespace Corrosive {
 			}
 			case ILInstruction::local: {
 				std::cout << "   local +";
-				auto address = read_data_type(uint32_t);
-				std::cout << *address << "\n";
+				auto id = *read_data_type(uint16_t);
+				auto address = parent->local_offsets[id];
+				std::cout << address.second << " (+" << address.first<<")\n";
 				break;
 			}
 			case ILInstruction::member: {
@@ -259,6 +272,13 @@ namespace Corrosive {
 				std::cout << "]\n";
 				break;
 			}
+			case ILInstruction::forget: {
+				std::cout << "   forget [";
+				auto type = read_data_type(ILDataType);
+				dump_data_type(*type);
+				std::cout << "]\n";
+				break;
+			}
 			case ILInstruction::jmpz: {
 				std::cout << "   jmpz ";
 				auto address = read_data_type(unsigned int);
@@ -267,11 +287,12 @@ namespace Corrosive {
 				std::cout << *address << " \"" << parent->blocks[*address]->alias << "\"\n";
 				break;
 			}
-			case ILInstruction::yield:
-				std::cout << "   yield\n";
-				break;
-			case ILInstruction::yield_type:
-				std::cout << "   yield_type \"" << *read_data_type(std::string_view)<<"\"\n";
+			case ILInstruction::yield: {
+				std::cout << "   yield [";
+				auto type = read_data_type(ILDataType);
+				dump_data_type(*type);
+				std::cout << "]\n";
+			}
 				break;
 			case ILInstruction::value: {
 				std::cout << "   const [";
@@ -342,10 +363,11 @@ namespace Corrosive {
 	}
 
 
-	unsigned int ILFunction::register_local(unsigned int type_size) {
-		unsigned int r = (unsigned int)local_allocas.size();
-		local_allocas.push_back(type_size);
-		return r;
+	uint16_t ILFunction::register_local(uint32_t type_compile_size, uint32_t type_runtime_size) {
+		local_offsets.push_back(std::make_pair(compile_stack_size,runtime_stack_size));
+		compile_stack_size += type_compile_size;
+		runtime_stack_size += type_runtime_size;
+		return (uint16_t)(local_offsets.size()-1);
 	}
 
 	/*

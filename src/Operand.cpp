@@ -231,7 +231,7 @@ namespace Corrosive {
 
 			if (cpt == CompileType::compile && (sitm = StackManager::stack_find<0>(c.buffer))) {
 				
-				ILBuilder::build_local(ctx.scope, sitm->local_offset);
+				ILBuilder::build_local(ctx.scope, sitm->local_id);
 				ret = sitm->value;
 				ret.lvalue = true;
 				
@@ -239,7 +239,7 @@ namespace Corrosive {
 			}
 			else if (cpt != CompileType::compile && (sitm = StackManager::stack_find<1>(c.buffer))) {
 				if (cpt == CompileType::eval) {
-					ILBuilder::eval_local(ctx.eval, sitm->local_offset);
+					ILBuilder::eval_local_direct(ctx.eval, sitm->local_offset);
 				}
 
 				ret = sitm->value;
@@ -297,7 +297,7 @@ namespace Corrosive {
 					}
 					else {
 						StructureInstance* inst;
-						if (!struct_inst->generate(ctx, ilnullptr, inst)) return false;
+						if (!struct_inst->generate(ctx, nullptr, inst)) return false;
 
 						if (cpt == CompileType::eval) {
 							if (!ILBuilder::eval_const_type(ctx.eval, inst->type.get())) return false;
@@ -322,7 +322,7 @@ namespace Corrosive {
 
 					if (!func_inst->is_generic) {
 						FunctionInstance* inst;
-						func_inst->generate(ctx, ilnullptr, inst);
+						func_inst->generate(ctx, nullptr, inst);
 
 						if (cpt == CompileType::eval) {
 							throw_specific_error(err, "Not yet implemented");
@@ -515,7 +515,7 @@ namespace Corrosive {
 					generating->template_parent->insert_key_on_stack(ctx);
 				}
 
-				ILPtr key_base = ctx.eval->memory_stack_pointer;
+				unsigned char* key_base = ctx.eval->memory_stack_pointer;
 
 				auto act_layout = generating->generic_layout.rbegin();
 
@@ -524,15 +524,15 @@ namespace Corrosive {
 					CompileValue res = results[arg_i];
 					res.lvalue = true;
 
-					ILPtr data_place = ctx.eval->stack_reserve(res.t->size(ctx));
-					StackManager::stack_push<1>(ctx,std::get<0>(*act_layout).buffer, res);
+					unsigned char* data_place = ctx.eval->stack_reserve(res.t->size(ctx));
+					StackManager::stack_push<1>(ctx,std::get<0>(*act_layout).buffer, res,0);
 
 					bool stacked = res.t->rvalue_stacked();
 					if (stacked) {
-						res.t->move(ctx, ctx.eval->pop_register_value_ilptr(), data_place);
+						res.t->move(ctx, ctx.eval->pop_register_value<unsigned char*>(), data_place);
 					}
 					else {
-						memcpy(ctx.eval->map(data_place), ctx.eval->read_last_register_value_indirect(res.t->rvalue), res.t->size(ctx));
+						memcpy(data_place, ctx.eval->read_last_register_value_indirect(res.t->rvalue), res.t->size(ctx));
 						ctx.eval->discard_last_register_type(res.t->rvalue);
 					}
 

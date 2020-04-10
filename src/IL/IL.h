@@ -20,7 +20,7 @@ namespace Corrosive {
 	class ILModule;
 
 	enum class ILInstruction : unsigned char {
-		value, add, sub, div, mul, rem, o_and, o_or, o_xor, load, store, accept, discard, yield, ret, jmp, jmpz, eq, ne, gt, ge, lt, le, local, member, yield_type
+		value, add, sub, div, mul, rem, o_and, o_or, o_xor, load, store, accept, discard, yield, ret, jmp, jmpz, eq, ne, gt, ge, lt, le, local, member, forget
 	};
 
 	enum class ILDataType : unsigned char {
@@ -85,21 +85,24 @@ namespace Corrosive {
 		ILModule*		parent;
 		bool			is_const = false;
 
-		std::vector<unsigned int>				local_allocas;
-		std::vector<ILBlock*>					blocks;
-		std::vector<std::unique_ptr<ILBlock>>	blocks_memory;
-		std::set<ILBlock*>						return_blocks;
+		std::vector<std::pair<uint32_t,uint32_t>>			local_offsets;
+		uint32_t compile_stack_size = 0;
+		uint32_t runtime_stack_size = 0;
+
+		std::vector<ILBlock*>								blocks;
+		std::vector<std::unique_ptr<ILBlock>>				blocks_memory;
+		std::set<ILBlock*>									return_blocks;
+
+
 
 		ILBlock*	 create_block(ILDataType accepts);
 		ILBlock*	 create_and_append_block(ILDataType accepts);
 		void		 append_block(ILBlock* block);
 		void		 dump();
 		bool		 assert_flow();
-		unsigned int register_local(unsigned int type_size);
-	};
 
-	using ILPtr = uint64_t;
-	const inline ILPtr ilnullptr = 0;
+		uint16_t register_local(uint32_t type_compile_size, uint32_t type_runtime_size);
+	};
 
 	class ILEvaluator {
 	public:
@@ -110,38 +113,18 @@ namespace Corrosive {
 		static const inline size_t stack_size = 1024*4;
 		unsigned char memory_stack[stack_size];
 
-		static const inline size_t heap_size = UINT16_MAX;
-		unsigned char memory_heap[heap_size];
-
-		struct ILEvalAllocHeader {
-			uint16_t prev;
-			uint16_t next;
-			uint16_t size;
-			bool used;
-		};
-
-
-		unsigned int mem_allocated = 0;
-		unsigned int mem_fragmentation = 0;
-		void dump_memory_statistics(bool print_block);
-		void setup_allocator();
-		ILPtr malloc(size_t size);
-		void free(ILPtr p);
-		ILEvalAllocHeader* read_header(uint16_t wh);
-		uint16_t ilptr_to_heap(ILPtr p);
-
 		unsigned char register_stack[stack_size];
 		unsigned char* register_stack_pointer = register_stack;
 
+		unsigned char* memory_stack_pointer = memory_stack;
+		unsigned char* memory_stack_base_pointer = memory_stack;
 
-		ILPtr memory_stack_pointer = 1 + heap_size;
-		ILPtr memory_stack_base_pointer = 1 + heap_size;
+		ILFunction* executing = nullptr;
 
 
 		//std::vector<unsigned char*> local_ids;
 
 		register_value yield;
-		ILDataType yield_type;
 
 		void	write_register_value_indirect(size_t size, void* value);
 		void	pop_register_value_indirect(size_t size, void* into);
@@ -150,18 +133,9 @@ namespace Corrosive {
 		size_t	compile_time_register_size(ILDataType t);
 		void	discard_last_register_type(ILDataType rs);
 		
-		std::pair<ILPtr, ILPtr>			stack_push();
-		void							stack_pop(std::pair<ILPtr, ILPtr> stack_pointer);
-		ILPtr							stack_reserve(size_t size);
-
-		ILPtr read_register_value_ilptr();
-		ILPtr pop_register_value_ilptr();
-		void  write_register_value_ilptr(ILPtr ptr);
-		ILPtr load_ilptr(void* from);
-		ILPtr map_back(void* from);
-		void store_ilptr(ILPtr ptr, void* to);
-
-		void* map(ILPtr ptr);
+		std::pair<unsigned char*, unsigned char*>	stack_push();
+		void										stack_pop(std::pair<unsigned char*, unsigned char*> stack_pointer);
+		unsigned char*								stack_reserve(size_t size);
 
 		template<typename T> inline T read_register_value() {
 			return *(((T*)register_stack_pointer)-1);
@@ -201,7 +175,7 @@ namespace Corrosive {
 		static bool eval_const_f32   (ILEvaluator* eval_ctx, float    value);
 		static bool eval_const_f64   (ILEvaluator* eval_ctx, double   value);
 		static bool eval_const_type  (ILEvaluator* eval_ctx, void*    value);
-		static bool eval_const_ptr   (ILEvaluator* eval_ctx, ILPtr    value);
+		static bool eval_const_ptr   (ILEvaluator* eval_ctx, void*    value);
 
 		static bool build_const_ibool (ILBlock* block, int8_t   value);
 		static bool build_const_i8	  (ILBlock* block, int8_t   value);
@@ -219,7 +193,8 @@ namespace Corrosive {
 		static bool eval_add(ILEvaluator* eval_ctx,ILDataType tl,ILDataType tr);
 		static bool eval_load(ILEvaluator* eval_ctx, ILDataType type);
 		static bool eval_store(ILEvaluator* eval_ctx, ILDataType type);
-		static bool eval_local(ILEvaluator* eval_ctx, uint32_t offset);
+		static bool eval_local(ILEvaluator* eval_ctx, uint16_t id);
+		static bool eval_local_direct(ILEvaluator* eval_ctx, uint32_t offset);
 		static bool eval_member(ILEvaluator* eval_ctx, uint32_t offset);
 
 		static bool eval_and(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
@@ -235,15 +210,16 @@ namespace Corrosive {
 		static bool eval_div(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
 		static bool eval_rem(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
 		static bool eval_mul(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
-		static bool eval_accept(ILEvaluator* eval_ctx);
-		static bool eval_discard(ILEvaluator* eval_ctx);
-		static bool eval_yield(ILEvaluator* eval_ctx, ILDataType yt);
+		static bool eval_accept(ILEvaluator* eval_ctx, ILDataType type);
+		static bool eval_discard(ILEvaluator* eval_ctx, ILDataType type);
+		static bool eval_yield(ILEvaluator* eval_ctx, ILDataType type);
+		static bool eval_forget(ILEvaluator* eval_ctx, ILDataType type);
 
 		static ILDataType arith_result(ILDataType l,ILDataType r);
 		static bool build_add(ILBlock* block, ILDataType tl, ILDataType tr);
 		static bool build_load(ILBlock* block, ILDataType type);
 		static bool build_store(ILBlock* block, ILDataType type);
-		static bool build_local(ILBlock* block, uint32_t offset);
+		static bool build_local(ILBlock* block, uint16_t id);
 		static bool build_member(ILBlock* block, uint32_t offset);
 
 		static bool build_and(ILBlock* block, ILDataType tl, ILDataType tr);
@@ -259,10 +235,10 @@ namespace Corrosive {
 		static bool build_div(ILBlock* block, ILDataType tl, ILDataType tr);
 		static bool build_rem(ILBlock* block, ILDataType tl, ILDataType tr);
 		static bool build_mul(ILBlock* block, ILDataType tl, ILDataType tr);
-		static bool build_accept(ILBlock* block);
-		static bool build_discard(ILBlock* block);
+		static bool build_accept(ILBlock* block, ILDataType type);
+		static bool build_discard(ILBlock* block, ILDataType type);
 		static bool build_yield(ILBlock* block, ILDataType type);
-		static bool build_yield_type(ILBlock* block,std::string_view name);
+		static bool build_forget(ILBlock* block, ILDataType type);
 		static bool build_ret(ILBlock* block, ILDataType type);
 		static bool build_jmp(ILBlock* block,ILBlock* address);
 		static bool build_jmpz(ILBlock* block,ILBlock* ifz, ILBlock* ifnz);

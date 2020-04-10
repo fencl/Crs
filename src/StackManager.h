@@ -12,6 +12,7 @@ namespace Corrosive {
 		std::string_view name;
 		size_t previous = SIZE_MAX;
 		uint32_t local_offset = 0;
+		uint16_t local_id = 0;
 	};
 
 	class StackManager {
@@ -24,11 +25,12 @@ namespace Corrosive {
 				stack_pop<N>(ctx);
 			}
 		}
-		template<unsigned int N> static inline StackItem& stack_push(CompileContext& ctx,std::string_view name, CompileValue value) {
+		template<unsigned int N> static inline StackItem& stack_push(CompileContext& ctx,std::string_view name, CompileValue value, uint16_t id) {
 			StackItem sitm;
 			sitm.name = name;
 			sitm.value = value;
 			sitm.local_offset = stack_memory_size[N];
+			sitm.local_id = id;
 			stack_memory_size[N] += value.t->size(ctx);
 
 			auto prev = stack_namespace[N].find(name);

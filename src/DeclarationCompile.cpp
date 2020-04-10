@@ -65,7 +65,7 @@ namespace Corrosive {
 
 				gen_template_cmp.parent = this;
 				gen_template_cmp.ctx = ctx;
-				instances = std::make_unique<std::map<std::pair<unsigned int, ILPtr>, std::unique_ptr<FunctionInstance>, GenericTemplateCompare>>(gen_template_cmp);
+				instances = std::make_unique<std::map<std::pair<unsigned int, unsigned char*>, std::unique_ptr<FunctionInstance>, GenericTemplateCompare>>(gen_template_cmp);
 			}
 
 			compile_state = 2;
@@ -137,7 +137,7 @@ namespace Corrosive {
 
 				gen_template_cmp.parent = this;
 				gen_template_cmp.ctx = ctx;
-				instances = std::make_unique<std::map<ILPtr, std::unique_ptr<StructureInstance>, GenericTemplateCompare>>(gen_template_cmp);
+				instances = std::make_unique<std::map<unsigned char*, std::unique_ptr<StructureInstance>, GenericTemplateCompare>>(gen_template_cmp);
 			}
 
 			compile_state = 2;
@@ -156,9 +156,9 @@ namespace Corrosive {
 
 
 
-	bool StructureTemplate::generate(CompileContext& ctx, ILPtr argdata, StructureInstance*& out) {
+	bool StructureTemplate::generate(CompileContext& ctx, unsigned char* argdata, StructureInstance*& out) {
 		StructureInstance* new_inst = nullptr;
-		ILPtr new_key = ilnullptr;
+		unsigned char* new_key = nullptr;
 
 		if (!is_generic) {
 			if (singe_instance == nullptr) {
@@ -168,7 +168,7 @@ namespace Corrosive {
 			out = singe_instance.get();
 		}
 		else {
-			ILPtr key = argdata;
+			unsigned char* key = argdata;
 
 
 			auto f = instances->find(key);
@@ -177,8 +177,8 @@ namespace Corrosive {
 
 				new_inst = inst.get();
 				out = inst.get();
-				key = ctx.eval->malloc(generate_heap_size);
-				memcpy(ctx.eval->map(key), ctx.eval->map(argdata), generate_heap_size);
+				key = (unsigned char*)malloc(generate_heap_size);
+				memcpy(key, argdata, generate_heap_size);
 				new_key = key;
 
 				instances->emplace(key, std::move(inst));
@@ -261,9 +261,9 @@ namespace Corrosive {
 	}
 
 
-	bool FunctionTemplate::generate(CompileContext& ctx, ILPtr argdata, FunctionInstance*& out) {
+	bool FunctionTemplate::generate(CompileContext& ctx, unsigned char* argdata, FunctionInstance*& out) {
 		FunctionInstance* new_inst = nullptr;
-		ILPtr new_key = ilnullptr;
+		unsigned char* new_key = nullptr;
 
 		if (!is_generic) {
 			if (singe_instance == nullptr) {
@@ -273,7 +273,7 @@ namespace Corrosive {
 			out = singe_instance.get();
 		}
 		else {
-			std::pair<unsigned int, ILPtr> key = std::make_pair((unsigned int)generate_heap_size, argdata);
+			std::pair<unsigned int, unsigned char*> key = std::make_pair((unsigned int)generate_heap_size, argdata);
 
 			auto f = instances->find(key);
 
@@ -282,8 +282,8 @@ namespace Corrosive {
 
 				new_inst = inst.get();
 				out = inst.get();
-				key.second = ctx.eval->malloc(generate_heap_size);
-				memcpy(ctx.eval->map(key.second), ctx.eval->map(argdata), generate_heap_size);
+				key.second = (unsigned char*)malloc(generate_heap_size);
+				memcpy(key.second, argdata, generate_heap_size);
 				new_key = key.second;
 
 				instances->emplace(key, std::move(inst));
@@ -363,38 +363,47 @@ namespace Corrosive {
 		if (compile_state == 0) {
 			compile_state = 1;
 
+			func = ctx.module->create_function();
+
 			auto ss = std::move(StackManager::move_stack_out<0>());
 			for (auto&& a : arguments) {
 				CompileValue argval;
 				argval.t = a.second;
 				argval.lvalue = true;
-				StackManager::stack_push<0>(ctx,a.first.buffer, argval);
+				uint16_t id = func->register_local(argval.t->compile_size(ctx), argval.t->size(ctx));
+
+				StackManager::stack_push<0>(ctx,a.first.buffer, argval, id);
 			}
 
 			CompileContext nctx = ctx;
 			nctx.inside = generator->parent;
 
-			func = ctx.module->create_function();
 			
 
 			ILBlock* b = func->create_and_append_block(ILDataType::none);
 			b->alias = "entry";
 
-			ILBlock* b_exit = func->create_and_append_block(returns->rvalue);
-			b_exit->alias = "entry_exit";
-			ILBuilder::build_accept(b_exit);
-
-
 			nctx.scope = b;
-			nctx.scope_exit = b_exit;
 
 			nctx.function = this;
 
 			Cursor cb = block;
 			CompileValue cvres;
-			if (!Statement::parse(cb, nctx, cvres, CompileType::compile)) return false;
+			bool terminated;
+			if (!Statement::parse_inner_block(cb, nctx, cvres, CompileType::compile,terminated)) return false;
 
+
+			ILBlock* b_exit = func->create_and_append_block(returns->rvalue);
+
+			ILBuilder::build_yield(nctx.scope, cvres.t->rvalue);
+			ILBuilder::build_jmp(nctx.scope, b_exit);
+
+
+			b_exit->alias = "entry_exit";
+			ILBuilder::build_accept(b_exit,returns->rvalue);
 			ILBuilder::build_ret(b_exit,returns->rvalue);
+
+
 
 
 			func->dump();
@@ -430,16 +439,23 @@ namespace Corrosive {
 			alignment = 0;
 			size = 0;
 
+			compile_alignment = 0;
+			compile_size = 0;
+
 			for (auto&& m : member_vars) {
 				if (!m.type->compile(ctx)) return false;
 				
 
 				if (m.type->size(ctx) > 0) {
 					size = _align_up(size, m.type->alignment(ctx));
+					compile_size = _align_up(compile_size, m.type->compile_alignment(ctx));
 					m.offset = size;
+					m.compile_offset = compile_size;
 					size += m.type->size(ctx);
+					compile_size += m.type->compile_size(ctx);
 
 					alignment = std::max(alignment, m.type->alignment(ctx));
+					compile_alignment = std::max(compile_alignment, m.type->compile_alignment(ctx));
 				}
 				else {
 					throw_specific_error(m.definition, "Specified type is not an instantiable type");
@@ -455,6 +471,7 @@ namespace Corrosive {
 			}
 
 			size = _align_up(size, alignment);
+			compile_size = _align_up(compile_size, compile_alignment);
 
 			compile_state = 2;
 		}
@@ -477,7 +494,7 @@ namespace Corrosive {
 			generator->template_parent->insert_key_on_stack(ctx);
 		}
 
-		ILPtr key_ptr = key;
+		unsigned char* key_ptr = key;
 		for (auto key_l = generator->generic_layout.rbegin(); key_l != generator->generic_layout.rend(); key_l++) {
 			
 			/*ctx.eval->stack_push_pointer(key_ptr);
@@ -491,8 +508,9 @@ namespace Corrosive {
 			res.lvalue = true;
 			res.t = std::get<1>(*key_l);
 
-			ILPtr data_place = ctx.eval->stack_reserve(res.t->size(ctx));
-			StackManager::stack_push<1>(ctx,std::get<0>(*key_l).buffer, res);
+			unsigned char* data_place = ctx.eval->stack_reserve(res.t->size(ctx));
+			
+			StackManager::stack_push<1>(ctx,std::get<0>(*key_l).buffer, res,0);
 
 
 			res.t->move(ctx, key_ptr, data_place); // TODO! there will be copy
