@@ -314,16 +314,8 @@ namespace Corrosive {
 				return sizeof(double);
 			case Corrosive::ILDataType::type:
 				return sizeof(void*);
-			case Corrosive::ILDataType::ptr: {
-					switch (parent->architecture)
-					{
-						case ILArchitecture::i386:
-							return 4;
-						case ILArchitecture::x86_64:
-							return 8;
-					}
-					return 0;
-				}
+			case Corrosive::ILDataType::ptr: 
+				return sizeof(void*);
 			case Corrosive::ILDataType::none:
 				return 0;
 			case Corrosive::ILDataType::undefined:
@@ -333,20 +325,13 @@ namespace Corrosive {
 		}
 	}
 
-
-
-
-
-
-
-
 	bool ILBuilder::eval_load(ILEvaluator* eval_ctx, ILDataType type) {
 		unsigned char* ptr = eval_ctx->pop_register_value<unsigned char*>();
 		eval_ctx->write_register_value_indirect(eval_ctx->compile_time_register_size(type), ptr);
 		return true;
 	}
 
-	bool ILBuilder::eval_member(ILEvaluator* eval_ctx, uint32_t offset) {
+	bool ILBuilder::eval_member(ILEvaluator* eval_ctx, uint16_t offset) {
 		if (offset > 0) {
 			unsigned char* mem = eval_ctx->pop_register_value<unsigned char*>();
 			mem += offset;
@@ -374,13 +359,7 @@ namespace Corrosive {
 		memory_stack_pointer = stack_state.second;
 	}
 
-	bool ILBuilder::eval_local(ILEvaluator* eval_ctx, uint16_t id) {
-		auto offset = eval_ctx->executing->local_offsets[id];
-		eval_const_ptr(eval_ctx, eval_ctx->memory_stack_base_pointer+offset.first);
-		return true;
-	}
-
-	bool ILBuilder::eval_local_direct(ILEvaluator* eval_ctx, uint32_t offset) {
+	bool ILBuilder::eval_local(ILEvaluator* eval_ctx, uint16_t offset) {
 		eval_const_ptr(eval_ctx, eval_ctx->memory_stack_base_pointer + offset);
 		return true;
 	}

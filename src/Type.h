@@ -16,11 +16,13 @@ namespace Corrosive {
 	struct CompileContext;
 	class StructureInstance;
 	class StructureTemplate;
+	class TraitTemplate;
+	class TraitInstance;
 	class Type;
 	class DefaultTypes;
 
 	enum class TypeInstanceType {
-		type_template,type_instance,type_array,type_reference,type_function,type_undefined
+		type_template,type_instance,type_array,type_reference,type_function,type_trait_template,type_trait,type_undefined
 	};
 	class TypeArray;
 	class TypeReference;
@@ -73,6 +75,34 @@ namespace Corrosive {
 		inline virtual TypeInstanceType type() { return TypeInstanceType::type_template; }
 
 		StructureTemplate* owner;
+
+		virtual bool compile(CompileContext& ctx);
+		virtual void print(std::ostream& os);
+	};
+
+	class TypeTraitInstance : public Type {
+	public:
+		TraitInstance* owner;
+
+		inline virtual TypeInstanceType type() { return TypeInstanceType::type_trait; }
+
+		virtual bool compile(CompileContext& ctx);
+		virtual int compare(CompileContext& ctx, unsigned char* p1, unsigned char* p2);
+		virtual void move(CompileContext& ctx, unsigned char* src, unsigned char* dst);
+		virtual uint32_t size(CompileContext& ctx);
+		virtual uint32_t alignment(CompileContext& ctx);
+		virtual uint32_t compile_size(CompileContext& ctx);
+		virtual uint32_t compile_alignment(CompileContext& ctx);
+
+		virtual bool rvalue_stacked();
+		virtual void print(std::ostream& os);
+	};
+
+	class TypeTrait : public Type {
+	public:
+		inline virtual TypeInstanceType type() { return TypeInstanceType::type_trait_template; }
+
+		TraitTemplate* owner;
 
 		virtual bool compile(CompileContext& ctx);
 		virtual void print(std::ostream& os);

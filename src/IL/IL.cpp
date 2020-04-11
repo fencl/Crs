@@ -192,15 +192,15 @@ namespace Corrosive {
 				std::cout << "   add [";
 				dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 				break;
-			case ILInstruction::o_and:
+			case ILInstruction::bit_and:
 				std::cout << "   and [";
 				dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 				break;
-			case ILInstruction::o_or:
+			case ILInstruction::bit_or:
 				std::cout << "   or [";
 				dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 				break;
-			case ILInstruction::o_xor:
+			case ILInstruction::bit_xor:
 				std::cout << "   xor [";
 				dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 				break;
@@ -252,16 +252,29 @@ namespace Corrosive {
 				std::cout << *address << " \"" << parent->blocks[*address]->alias << "\"\n";
 				break;
 			}
+			case ILInstruction::local2: {
+				std::cout << "   local +";
+				auto offset = *read_data_type(uint16_t);
+				auto compile_offset = *read_data_type(uint16_t);
+				std::cout << offset << " (+" << compile_offset  <<")\n";
+				break;
+			}
+			case ILInstruction::member2: {
+				std::cout << "   member +";
+				auto offset = read_data_type(uint16_t);
+				auto compile_offset = read_data_type(uint16_t);
+				std::cout << *offset << " (+"<<*compile_offset<<")\n";
+				break;
+			}
 			case ILInstruction::local: {
 				std::cout << "   local +";
-				auto id = *read_data_type(uint16_t);
-				auto address = parent->local_offsets[id];
-				std::cout << address.second << " (+" << address.first<<")\n";
+				auto offset = *read_data_type(uint16_t);
+				std::cout << offset << "\n";
 				break;
 			}
 			case ILInstruction::member: {
 				std::cout << "   member +";
-				auto offset = read_data_type(uint32_t);
+				auto offset = read_data_type(uint16_t);
 				std::cout << *offset << "\n";
 				break;
 			}
@@ -363,12 +376,12 @@ namespace Corrosive {
 	}
 
 
-	uint16_t ILFunction::register_local(uint32_t type_compile_size, uint32_t type_runtime_size) {
+	/*uint16_t ILFunction::register_local(uint32_t type_compile_size, uint32_t type_runtime_size) {
 		local_offsets.push_back(std::make_pair(compile_stack_size,runtime_stack_size));
 		compile_stack_size += type_compile_size;
 		runtime_stack_size += type_runtime_size;
 		return (uint16_t)(local_offsets.size()-1);
-	}
+	}*/
 
 	/*
 	unsigned int ILType::runtime_size() { return 0; }

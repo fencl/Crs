@@ -20,11 +20,11 @@ namespace Corrosive {
 	class ILModule;
 
 	enum class ILInstruction : unsigned char {
-		value, add, sub, div, mul, rem, o_and, o_or, o_xor, load, store, accept, discard, yield, ret, jmp, jmpz, eq, ne, gt, ge, lt, le, local, member, forget
+		value, add, sub, div, mul, rem, bit_and, bit_or, bit_xor, load, store, accept, discard, yield, ret, jmp, jmpz, eq, ne, gt, ge, lt, le, local, member, forget, local2, member2
 	};
 
 	enum class ILDataType : unsigned char {
-		ibool, u8, i8, u16, i16, u32, i32, u64, i64, f32, f64, ptr,type, none, undefined
+		ibool, u8, i8, u16, i16, u32, i32, u64, i64, f32, f64, ptr, type, none, undefined
 	};
 
 	enum class ILArchitecture {
@@ -101,7 +101,7 @@ namespace Corrosive {
 		void		 dump();
 		bool		 assert_flow();
 
-		uint16_t register_local(uint32_t type_compile_size, uint32_t type_runtime_size);
+		//uint16_t register_local(uint32_t type_compile_size, uint32_t type_runtime_size);
 	};
 
 	class ILEvaluator {
@@ -193,9 +193,8 @@ namespace Corrosive {
 		static bool eval_add(ILEvaluator* eval_ctx,ILDataType tl,ILDataType tr);
 		static bool eval_load(ILEvaluator* eval_ctx, ILDataType type);
 		static bool eval_store(ILEvaluator* eval_ctx, ILDataType type);
-		static bool eval_local(ILEvaluator* eval_ctx, uint16_t id);
-		static bool eval_local_direct(ILEvaluator* eval_ctx, uint32_t offset);
-		static bool eval_member(ILEvaluator* eval_ctx, uint32_t offset);
+		static bool eval_local(ILEvaluator* eval_ctx, uint16_t offset);
+		static bool eval_member(ILEvaluator* eval_ctx, uint16_t offset);
 
 		static bool eval_and(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
 		static bool eval_or(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
@@ -219,8 +218,10 @@ namespace Corrosive {
 		static bool build_add(ILBlock* block, ILDataType tl, ILDataType tr);
 		static bool build_load(ILBlock* block, ILDataType type);
 		static bool build_store(ILBlock* block, ILDataType type);
-		static bool build_local(ILBlock* block, uint16_t id);
-		static bool build_member(ILBlock* block, uint32_t offset);
+		static bool build_local2(ILBlock* block, uint16_t compile_offset, uint16_t offset);
+		static bool build_member2(ILBlock* block, uint16_t compile_offset, uint16_t offset);
+		static bool build_local(ILBlock* block, uint16_t offset);
+		static bool build_member(ILBlock* block, uint16_t offset);
 
 		static bool build_and(ILBlock* block, ILDataType tl, ILDataType tr);
 		static bool build_or(ILBlock* block, ILDataType tl, ILDataType tr);

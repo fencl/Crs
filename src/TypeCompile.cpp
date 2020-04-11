@@ -20,6 +20,14 @@ namespace Corrosive {
 		return owner->compile(ctx);
 	}
 
+	bool TypeTrait::compile(CompileContext& ctx) {
+		return owner->compile(ctx);
+	}
+
+	bool TypeTraitInstance::compile(CompileContext& ctx) {
+		return owner->compile(ctx);
+	}
+
 	bool TypeArray::compile(CompileContext& ctx) {
 		return owner->compile(ctx);
 	}

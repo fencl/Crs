@@ -16,24 +16,18 @@ namespace Corrosive {
 		s->name = c;
 		s->parent = ctx.global;
 
-
-		s->compile_state = 2;
-		s->singe_instance = std::make_unique<StructureInstance>();
-		s->singe_instance->parent = ctx.global;
-		s->singe_instance->name = c;
-		s->singe_instance->namespace_type = NamespaceType::t_struct_instance;
-		s->singe_instance->size = runtime_size;
-		s->singe_instance->alignment = runtime_alignment;
-		s->singe_instance->compile_size = compile_size;
-		s->singe_instance->compile_alignment = compile_alignment;
-		s->singe_instance->generator = s.get();
-		s->singe_instance->key = 0;
-		s->singe_instance->compile_state = 2;
-		s->singe_instance->type = std::make_unique<TypeInstance>();
-		s->singe_instance->type->owner = s->singe_instance.get();
+		s->compile(ctx);
+		StructureInstance* sinst;
+		s->generate(ctx, nullptr, sinst);
+		sinst->compile(ctx);
+		
+		sinst->size = runtime_size;
+		sinst->alignment = runtime_alignment;
+		sinst->compile_size = compile_size;
+		sinst->compile_alignment = compile_alignment;
 		s->singe_instance->type->rvalue = ildt;
 
-		into = s->singe_instance->type.get();
+		into = sinst->type.get();
 
 		ctx.global->subtemplates[c.buffer] = std::move(s);
 	}
