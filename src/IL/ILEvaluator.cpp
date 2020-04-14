@@ -359,11 +359,240 @@ namespace Corrosive {
 		memory_stack_pointer = stack_state.second;
 	}
 
-	bool ILBuilder::eval_local(ILEvaluator* eval_ctx, uint16_t offset) {
+	bool ILBuilder::eval_local(ILEvaluator* eval_ctx, uint32_t offset) {
 		eval_const_ptr(eval_ctx, eval_ctx->memory_stack_base_pointer + offset);
 		return true;
 	}
 
+	bool ILBuilder::eval_fnptr(ILEvaluator* eval_ctx, ILFunction* fun) {
+		eval_ctx->write_register_value(fun);
+		return true;
+	}
+
+
+	bool ILBuilder::eval_callstart(ILEvaluator* eval_ctx) {
+		ILFunction* func = eval_ctx->pop_register_value<ILFunction*>();
+		eval_ctx->callstack[eval_ctx->callstack_depth] = func;
+		eval_ctx->callstack_depth++;
+		return true;
+	}
+
+	bool ILBuilder::eval_priv(ILEvaluator* eval_ctx, uint8_t fun) {
+		return eval_ctx->private_fun[fun](eval_ctx);
+	}
+
+#define read_data_type(T) ((T*)block->read_data(sizeof(T),mempool,memoff))
+	bool ILBuilder::eval_call(ILEvaluator* eval_ctx, ILDataType rett, uint16_t argc) {
+		
+		ILFunction* fun = eval_ctx->callstack[eval_ctx->callstack_depth - 1];
+
+		ILBlock* block = fun->blocks[0];
+		bool running = true;
+
+		unsigned char* lstack_base = eval_ctx->memory_stack_base_pointer;
+		unsigned char* lstack = eval_ctx->memory_stack_pointer;
+
+		eval_ctx->memory_stack_base_pointer = eval_ctx->memory_stack_pointer;
+		eval_ctx->memory_stack_pointer += fun->compile_time_stack;
+
+		while (true) {
+			std::list<std::unique_ptr<ILBlockData>>::iterator mempool = block->data_pool.begin();
+			size_t memoff = 0;
+			while (mempool != block->data_pool.end()) {
+
+				auto inst = read_data_type(ILInstruction);
+
+				switch (*inst) {
+					case ILInstruction::ret: {
+						auto type = read_data_type(ILDataType);
+						running = false;
+						goto returned;
+					} break;
+					case ILInstruction::call: {
+						auto type = read_data_type(ILDataType);
+						auto argc = read_data_type(uint16_t);
+						if (!eval_call(eval_ctx, *type, *argc)) return false;
+					} break;
+					case ILInstruction::fnptr: {
+						auto id = read_data_type(uint32_t);
+						eval_ctx->write_register_value(eval_ctx->parent->functions[*id].get());
+					} break;
+					case ILInstruction::priv: {
+						auto id = read_data_type(uint8_t);
+						if (!eval_priv(eval_ctx, *id)) return false;
+					} break;
+					case ILInstruction::sub: {
+						auto left = read_data_type(ILDataType);
+						auto right = read_data_type(ILDataType);
+						if (!eval_sub(eval_ctx, *left, *right)) return false;
+					} break;
+					case ILInstruction::div: {
+						auto left = read_data_type(ILDataType);
+						auto right = read_data_type(ILDataType);
+						if (!eval_div(eval_ctx, *left, *right)) return false;
+					} break;
+					case ILInstruction::rem: {
+						auto left = read_data_type(ILDataType);
+						auto right = read_data_type(ILDataType);
+						if (!eval_rem(eval_ctx, *left, *right)) return false;
+					} break;
+					case ILInstruction::mul: {
+						auto left = read_data_type(ILDataType);
+						auto right = read_data_type(ILDataType);
+						if (!eval_mul(eval_ctx, *left, *right)) return false;
+					} break;
+					case ILInstruction::add: {
+						auto left = read_data_type(ILDataType);
+						auto right = read_data_type(ILDataType);
+						if (!eval_add(eval_ctx, *left, *right)) return false;
+					} break;
+					case ILInstruction::bit_and: {
+						auto left = read_data_type(ILDataType);
+						auto right = read_data_type(ILDataType);
+						if (!eval_and(eval_ctx, *left, *right)) return false;
+					} break;
+					case ILInstruction::bit_or: {
+						auto left = read_data_type(ILDataType);
+						auto right = read_data_type(ILDataType);
+						if (!eval_or(eval_ctx, *left, *right)) return false;
+					} break;
+					case ILInstruction::bit_xor: {
+						auto left = read_data_type(ILDataType);
+						auto right = read_data_type(ILDataType);
+						if (!eval_xor(eval_ctx, *left, *right)) return false;
+					} break;
+					case ILInstruction::eq: {
+						auto left = read_data_type(ILDataType);
+						auto right = read_data_type(ILDataType);
+						if (!eval_eq(eval_ctx, *left, *right)) return false;
+					} break;
+					case ILInstruction::ne: {
+						auto left = read_data_type(ILDataType);
+						auto right = read_data_type(ILDataType);
+						if (!eval_ne(eval_ctx, *left, *right)) return false;
+					} break;
+					case ILInstruction::gt: {
+						auto left = read_data_type(ILDataType);
+						auto right = read_data_type(ILDataType);
+						if (!eval_gt(eval_ctx, *left, *right)) return false;
+					} break;
+					case ILInstruction::lt: {
+						auto left = read_data_type(ILDataType);
+						auto right = read_data_type(ILDataType);
+						if (!eval_lt(eval_ctx, *left, *right)) return false;
+					} break;
+					case ILInstruction::ge: {
+						auto left = read_data_type(ILDataType);
+						auto right = read_data_type(ILDataType);
+						if (!eval_ge(eval_ctx, *left, *right)) return false;
+					} break;
+					case ILInstruction::le: {
+						auto left = read_data_type(ILDataType);
+						auto right = read_data_type(ILDataType);
+						if (!eval_le(eval_ctx, *left, *right)) return false;
+					} break;
+					case ILInstruction::store: {
+						auto type = read_data_type(ILDataType);
+						if (!eval_store(eval_ctx, *type)) return false;
+					} break;
+					case ILInstruction::start: {
+						if (!eval_callstart(eval_ctx)) return false;
+					} break;
+					case ILInstruction::accept: {
+						auto type = read_data_type(ILDataType);
+						if (!eval_accept(eval_ctx, *type)) return false;
+					} break;
+					case ILInstruction::discard: {
+						auto type = read_data_type(ILDataType);
+						if (!eval_discard(eval_ctx, *type)) return false;
+					} break;
+					case ILInstruction::jmp: {
+						auto address = read_data_type(uint32_t);
+						block = block->parent->blocks[*address];
+						goto next_block;
+					}break;
+					case ILInstruction::member2: {
+						auto offset = read_data_type(uint16_t);
+						auto compile_offset = read_data_type(uint16_t);
+						if (!eval_member(eval_ctx, *compile_offset)) return false;
+					} break;
+					case ILInstruction::local: {
+						auto id = read_data_type(uint16_t);
+						auto& offsetdata = fun->local_offsets[*id];
+						if (!eval_local(eval_ctx, offsetdata.first)) return false;
+					} break;
+					case ILInstruction::member: {
+						auto offset = read_data_type(uint16_t);
+						if (!eval_member(eval_ctx, *offset)) return false;
+					} break;
+					case ILInstruction::load: {
+						auto type = read_data_type(ILDataType);
+						if (!eval_load(eval_ctx, *type)) return false;
+					} break;
+					case ILInstruction::forget: {
+						auto type = read_data_type(ILDataType);
+						if (!eval_forget(eval_ctx, *type)) return false;
+					} break;
+					case ILInstruction::jmpz: {
+
+						auto addressz = read_data_type(uint32_t);
+						auto addressnz = read_data_type(uint32_t);
+						int8_t z = eval_ctx->pop_register_value<int8_t>();
+						if (z) {
+							block = block->parent->blocks[*addressnz];
+						}
+						else {
+							block = block->parent->blocks[*addressz];
+						}
+
+						goto next_block;
+					} break;
+					case ILInstruction::yield: {
+						auto type = read_data_type(ILDataType);
+						if (!eval_yield(eval_ctx, *type)) return false;
+					} break;
+					case ILInstruction::value: {
+						
+						auto type = read_data_type(ILDataType);
+
+						switch (*type) {
+							case ILDataType::ibool:  eval_const_ibool(eval_ctx,*read_data_type(int8_t)); break;
+							case ILDataType::u8:  eval_const_u8(eval_ctx,*read_data_type(uint8_t)); break;
+							case ILDataType::u16: eval_const_u16(eval_ctx,*read_data_type(uint16_t)); break;
+							case ILDataType::u32: eval_const_u32(eval_ctx,*read_data_type(uint32_t)); break;
+							case ILDataType::u64: eval_const_u64(eval_ctx,*read_data_type(uint64_t)); break;
+							case ILDataType::i8:  eval_const_i8(eval_ctx,*read_data_type(int8_t)); break;
+							case ILDataType::i16: eval_const_i16(eval_ctx,*read_data_type(int16_t)); break;
+							case ILDataType::i32: eval_const_i32(eval_ctx,*read_data_type(int32_t)); break;
+							case ILDataType::i64: eval_const_i64(eval_ctx,*read_data_type(int64_t)); break;
+							case ILDataType::f32: eval_const_f32(eval_ctx, *read_data_type(float)); break;
+							case ILDataType::f64: eval_const_f64(eval_ctx, *read_data_type(double)); break;
+							case ILDataType::type: eval_const_type(eval_ctx, *read_data_type(void*)); break;
+							case ILDataType::ptr: eval_const_ptr(eval_ctx, *read_data_type(void*)); break;
+						}
+					} break;
+				}
+			}
+
+		next_block:
+			continue;
+		}
+
+		
+
+		throw_il_wrong_data_flow_error();
+		return false;
+		
+		
+	returned:
+
+		eval_ctx->memory_stack_base_pointer = lstack_base;
+		eval_ctx->memory_stack_pointer = lstack;
+		eval_ctx->callstack_depth--;
+		return true;
+	}
+
+#undef read_data_type
 
 	unsigned char* ILEvaluator::stack_reserve(size_t size) {
 		unsigned char* res = memory_stack_pointer;

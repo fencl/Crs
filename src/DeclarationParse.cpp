@@ -11,8 +11,7 @@ namespace Corrosive {
 
 	bool Namespace::parse(Cursor& c, CompileContext& ctx, std::unique_ptr<Namespace>& into) {
 		std::unique_ptr<Namespace> result = std::make_unique<Namespace>();
-		result->namespace_type = NamespaceType::t_namespace;
-
+		result->namespace_type = NamespaceType::t_namespace; 
 		if (c.tok != RecognizedToken::Symbol)
 		{
 			throw_not_a_name_error(c);
@@ -21,43 +20,58 @@ namespace Corrosive {
 		result->name = c;
 		c.move();
 
-
 		if (c.tok != RecognizedToken::OpenBrace) {
 			throw_wrong_token_error(c, "'{'");
 			return false;
 		}
 		c.move();
 
-		while (c.tok == RecognizedToken::Symbol) {
+		if (!parse_inner(c, ctx, result.get())) return false;
+
+		if (c.tok != RecognizedToken::CloseBrace) {
+			throw_wrong_token_error(c, "'}'");
+			return false;
+		}
+		c.move();
+
+		into = std::move(result);
+		return true;
+	}
+
+
+	bool Namespace::parse_inner(Cursor& c, CompileContext& ctx, Namespace* into) {
+		
+		while (c.tok != RecognizedToken::CloseBrace && c.tok!=RecognizedToken::Eof) {
+
 			if (c.buffer == "struct") {
 				c.move();
 				Cursor nm = c;
 
 				std::unique_ptr<StructureTemplate> decl;
-				if (!StructureTemplate::parse(c, ctx,result.get(), decl)) return false;
+				if (!StructureTemplate::parse(c, ctx, into, decl)) return false;
 
-				decl->parent = result.get();
-				if (result->subtemplates.find(decl->name.buffer) != result->subtemplates.end()) {
+				decl->parent = into;
+				if (into->subtemplates.find(decl->name.buffer) != into->subtemplates.end()) {
 					throw_specific_error(nm, "this name already exists in current namespace");
 					return false;
 				}
 
-				result->subtemplates[decl->name.buffer] = std::move(decl);
+				into->subtemplates[decl->name.buffer] = std::move(decl);
 
 			} else if (c.buffer == "trait") {
 				c.move();
 				Cursor nm = c;
 
 				std::unique_ptr<TraitTemplate> decl;
-				if (!TraitTemplate::parse(c, ctx, result.get(), decl)) return false;
+				if (!TraitTemplate::parse(c, ctx, into, decl)) return false;
 
-				decl->parent = result.get();
-				if (result->subtraits.find(decl->name.buffer) != result->subtraits.end()) {
+				decl->parent = into;
+				if (into->subtraits.find(decl->name.buffer) != into->subtraits.end()) {
 					throw_specific_error(nm, "this name already exists in current namespace");
 					return false;
 				}
 
-				result->subtraits[decl->name.buffer] = std::move(decl);
+				into->subtraits[decl->name.buffer] = std::move(decl);
 
 			}
 			else if (c.buffer == "namespace") {
@@ -66,12 +80,12 @@ namespace Corrosive {
 
 				std::unique_ptr<Namespace> decl;
 				if (!Namespace::parse(c, ctx, decl)) return false;
-				decl->parent = result.get();
-				if (result->subnamespaces.find(decl->name.buffer) != result->subnamespaces.end()) {
+				decl->parent = into;
+				if (into->subnamespaces.find(decl->name.buffer) != into->subnamespaces.end()) {
 					throw_specific_error(nm, "this name already exists in current namespace");
 					return false;
 				}
-				result->subnamespaces[decl->name.buffer] = std::move(decl);
+				into->subnamespaces[decl->name.buffer] = std::move(decl);
 			}
 			else if (c.buffer == "fn") {
 				StructureTemplateMemberFunc member;
@@ -136,39 +150,36 @@ namespace Corrosive {
 				}
 
 				CompileContext nctx = ctx;
-				nctx.inside = result.get();
+				nctx.inside = into;
 
 				std::unique_ptr<FunctionTemplate> ft = std::make_unique<FunctionTemplate>();
 				ft->name = member.name;
 				ft->annotation = member.annotation;
 				ft->is_generic = member.annotation.tok != RecognizedToken::Eof;
-				ft->parent = result.get();
+				ft->parent = into;
 				ft->template_parent = nullptr;
-				ft->type = member.type;
+				ft->decl_type = member.type;
 				ft->block = member.block;
 
-				if (result->subfunctions.find(member.name.buffer) != result->subfunctions.end()) {
-					throw_specific_error(member.name, "Funtion with the same name already exists in the namespace");
+				ft->type = std::make_unique<TypeFunctionTemplate>();
+				ft->type->owner = ft.get();
+				ft->type->rvalue = ILDataType::type;
+
+				if (into->subfunctions.find(member.name.buffer) != into->subfunctions.end()) {
+					throw_specific_error(member.name, "Function with the same name already exists in the namespace");
 					return false;
 				}
 
-				result->subfunctions[member.name.buffer] = std::move(ft);
+				into->subfunctions[member.name.buffer] = std::move(ft);
 
 			}
 			else {
-				throw_specific_error(c, "unexpected keyword found during parsing of namespace");
+				throw_specific_error(c, "Unexpected keyword found during parsing of namespace");
 				return false;
 			}
 		}
 
-		if (c.tok != RecognizedToken::CloseBrace) {
-			throw_wrong_token_error(c, "'}'");
-			return false;
-		}
-		c.move();
 
-
-		into = std::move(result);
 		return true;
 	}
 
@@ -523,8 +534,8 @@ namespace Corrosive {
 	}
 
 
-	bool Declaration::parse_global(Cursor &c, CompileContext& ctx, Namespace& global_namespace) {
-		while (c.tok == RecognizedToken::Symbol) {
+	bool Declaration::parse_global(Cursor &c, CompileContext& ctx, Namespace* global_namespace) {
+		/*while (c.tok == RecognizedToken::Symbol) {
 			if (c.buffer == "struct") {
 				c.move();
 				Cursor nm = c;
@@ -567,11 +578,16 @@ namespace Corrosive {
 			}
 		}
 
+		*/
+		
+		if (!Namespace::parse_inner(c,ctx, global_namespace)) return false; 
+
 		if (c.tok != RecognizedToken::Eof) {
 			throw_wrong_token_error(c, "end of file");
 			return false;
 		}
 
 		return true;
+
 	}
 }

@@ -279,6 +279,34 @@ namespace Corrosive {
 			new_inst->namespace_type = NamespaceType::t_struct_instance;
 			new_inst->key = new_key;
 
+			for (auto&& m : member_funcs) {
+				Cursor c = m.type;
+				//TODO we could probably skip the catalogue stage and build the functiontemplate directly in the structure template
+
+				CompileContext nctx = ctx;
+				nctx.inside = new_inst;
+
+				std::unique_ptr<FunctionTemplate> ft = std::make_unique<FunctionTemplate>();
+				ft->name = m.name;
+				ft->annotation = m.annotation;
+				ft->is_generic = m.annotation.tok != RecognizedToken::Eof;
+				ft->parent = new_inst;
+				ft->template_parent = new_inst;
+				ft->decl_type = m.type;
+				ft->block = m.block;
+
+				ft->type = std::make_unique<TypeFunctionTemplate>();
+				ft->type->owner = ft.get();
+				ft->type->rvalue = ILDataType::type;
+
+				if (new_inst->subfunctions.find(m.name.buffer) != new_inst->subfunctions.end()) {
+					throw_specific_error(m.name, "Funtion with the same name already exists in the structure");
+					return false;
+				}
+
+				new_inst->subfunctions[m.name.buffer] = std::move(ft);
+			}
+
 			for (auto&& t : member_templates) {
 				Cursor tc = t.cursor;
 				std::unique_ptr<StructureTemplate> decl;
@@ -286,15 +314,12 @@ namespace Corrosive {
 				new_inst->subtemplates[decl->name.buffer] = std::move(decl);
 			}
 
-
 			for (auto&& m : member_implementation) {
-				
-
 				Cursor c = m.type;
 				CompileValue value;
 
 				CompileContext nctx = ctx;
-				nctx.inside = parent;
+				nctx.inside = new_inst;
 				Cursor err = c;
 				if (!Expression::parse(c, nctx, value, CompileType::eval)) return false;
 				if (value.t != ctx.default_types->t_type) {
@@ -320,26 +345,136 @@ namespace Corrosive {
 					return false;
 				}
 				else {
-					std::map<std::string_view, std::unique_ptr<FunctionTemplate>> trait;
+					std::map<std::string_view, std::unique_ptr<FunctionInstance>> trait;
+					unsigned int func_count = 0;
 					for (auto&& f : m.functions) {
-						std::unique_ptr<FunctionTemplate> ft = std::make_unique<FunctionTemplate>();
-						ft->name = f.name;
-						ft->is_generic = false;
-						ft->parent = new_inst;
-						ft->template_parent = new_inst;
-						ft->type = m.type;
+
+						std::unique_ptr<FunctionInstance> ft = std::make_unique<FunctionInstance>();
+						ft->key = nullptr;
 						ft->block = f.block;
+
 						if (trait.find(f.name.buffer) != trait.end()) {
 							throw_specific_error(f.name, "Funtion with the same name already exists in the implementation");
 							return false;
 						}
 
-						if (tt->owner->member_table.find(f.name.buffer) == tt->owner->member_table.end()) {
+						auto fundecl_id = tt->owner->member_table.find(f.name.buffer);
+						if (fundecl_id == tt->owner->member_table.end()) {
 							throw_specific_error(f.name, "Implemented trait has no function with this name");
 							return false;
 						}
 
+						func_count += 1;
+
+						auto& fundecl = tt->owner->member_funcs[fundecl_id->second];
+
+						Cursor c = f.type;
+						c.move();
+						if (c.tok != RecognizedToken::CloseParenthesis) {
+							while (true) {
+								if (c.tok != RecognizedToken::Symbol) {
+									throw_not_a_name_error(c);
+									return false;
+								}
+								Cursor name = c;
+								c.move();
+								if (c.tok != RecognizedToken::Colon) {
+									throw_wrong_token_error(c, "':'");
+									return false;
+								}
+								c.move();
+
+								Cursor err = c;
+								CompileValue res;
+								if (!Expression::parse(c, nctx, res, CompileType::eval)) return false;
+								if (res.t != ctx.default_types->t_type) {
+									throw_specific_error(err, "Expected type");
+									return false;
+								}
+								Type* argt = ctx.eval->pop_register_value<Type*>();
+								if (ft->arguments.size() == 0) {
+									Type* this_type = new_inst->type->generate_reference();
+									if (argt != this_type) {
+										throw_specific_error(err, "First argument in implementation of trait function must be self reference to the structure");
+										return false;
+									}
+
+									ft->arguments.push_back(std::make_pair(name,argt));
+								}
+								else {
+									if (ft->arguments.size()-1 >= fundecl.arg_types.size()) {
+										throw_specific_error(err, "There are more arguments than in the original trait function");
+										return false;
+									}
+
+									Type* req_type = fundecl.arg_types[ft->arguments.size() - 1];
+									if (argt != req_type) {
+										throw_specific_error(err, "Argument does not match the type of the original trait function");
+										return false;
+									}
+									
+									ft->arguments.push_back(std::make_pair(name, argt));
+								}
+
+								if (c.tok == RecognizedToken::Comma) {
+									c.move();
+								}
+								else if (c.tok == RecognizedToken::CloseParenthesis) {
+									break;
+								}
+								else {
+									throw_wrong_token_error(c, "',' or ')'");
+									return false;
+								}
+							}
+						}
+
+						if (ft->arguments.size() != fundecl.arg_types.size() + 1) {
+							throw_specific_error(c, "Trait function declaration lacks arguments from the original");
+							return false;
+						}
+
+						c.move();
+
+						if (c.tok != RecognizedToken::OpenBrace) {
+							Cursor err = c;
+							CompileValue res;
+							if (!Expression::parse(c, nctx, res, CompileType::eval)) return false;
+							if (res.t != ctx.default_types->t_type) {
+								throw_specific_error(err, "Expected type");
+								return false;
+							}
+							Type* rett = ctx.eval->pop_register_value<Type*>();
+
+							Type* req_type = fundecl.return_type;
+							if (rett != req_type) {
+								throw_specific_error(err, "Return type does not match the type of the original trait function");
+								std::cerr << " |\tRequired type was: "; req_type->print(std::cerr);
+								std::cerr << "\n";
+								return false;
+							}
+
+							ft->returns = rett;
+						}
+						else {
+							ft->returns = ctx.default_types->t_void;
+						}
+						
+						
+						std::vector<Type*> argtypes;
+						for (auto&& a : ft->arguments) {
+							argtypes.push_back(a.second);
+						}
+
+						TypeFunction* ftype = ctx.default_types->load_or_register_function_type(std::move(argtypes), ft->returns);
+						ft->type = ftype->generate_reference();
+
 						trait[f.name.buffer] = std::move(ft);
+					}
+
+					if (func_count != tt->owner->member_funcs.size()) {
+						throw_specific_error(m.type,"Trait implementation is missing some functions");
+						return false;
 					}
 
 					new_inst->traitfunctions[tt->owner] = std::move(trait);
@@ -352,7 +487,7 @@ namespace Corrosive {
 				CompileValue value;
 
 				CompileContext nctx = ctx;
-				nctx.inside = parent;
+				nctx.inside = new_inst;
 				Cursor err = c;
 				if (!Expression::parse(c, nctx, value, CompileType::eval)) return false;
 				if (value.t != ctx.default_types->t_type) {
@@ -376,28 +511,7 @@ namespace Corrosive {
 				new_inst->member_vars.push_back(rec);
 			}
 
-			for (auto&& m : member_funcs) {
-				Cursor c = m.type;
-				//TODO we could probably skip the catalogue stage and build the functiontemplate directly in the structure template
-				
-				CompileContext nctx = ctx;
-				nctx.inside = parent;
-
-				std::unique_ptr<FunctionTemplate> ft = std::make_unique<FunctionTemplate>();
-				ft->name = m.name;
-				ft->annotation = m.annotation;
-				ft->is_generic = m.annotation.tok != RecognizedToken::Eof;
-				ft->parent = new_inst;
-				ft->template_parent = new_inst;
-				ft->type = m.type;
-				ft->block = m.block;
-				if (new_inst->subfunctions.find(m.name.buffer) != new_inst->subfunctions.end()) {
-					throw_specific_error(m.name, "Funtion with the same name already exists in the structure");
-					return false;
-				}
-
-				new_inst->subfunctions[m.name.buffer] = std::move(ft);
-			}
+			
 		}
 
 		return true;
@@ -483,7 +597,6 @@ namespace Corrosive {
 							c.move();
 						}
 						else if (c.tok == RecognizedToken::CloseParenthesis) {
-							c.move();
 							break;
 						}
 						else {
@@ -557,15 +670,17 @@ namespace Corrosive {
 
 
 		if (new_inst != nullptr) {
+			new_inst->compile_state = 0;
 			new_inst->generator = this;
 			new_inst->key = new_key;
+			new_inst->block = block;
 
 			CompileContext nctx = ctx;
 			nctx.inside = parent;
 
 			CompileValue cvres;
 
-			Cursor cc = type;
+			Cursor cc = decl_type;
 			cc.move();
 			if (cc.tok != RecognizedToken::CloseParenthesis) {
 				while (true) {
@@ -614,39 +729,52 @@ namespace Corrosive {
 				new_inst->returns = ctx.default_types->t_void;
 			}
 
-			new_inst->block = block;
+			std::vector<Type*> argtypes;
+			for (auto&& a : new_inst->arguments) {
+				argtypes.push_back(a.second);
+			}
+
+			TypeFunction* ftype = ctx.default_types->load_or_register_function_type(std::move(argtypes), new_inst->returns);
+			new_inst->type = ftype->generate_reference();
+			new_inst->compile_state = 1;
 		}
 
 		return true;
 	}
 
-	bool FunctionInstance::compile(CompileContext& ctx) {
-		if (compile_state == 0) {
-			compile_state = 1;
+	bool FunctionInstance::compile(Cursor err, CompileContext& ctx) {
+		if (compile_state == 1) {
+			compile_state = 2;
 
 			func = ctx.module->create_function();
+			ILBlock* b = func->create_and_append_block(ILDataType::none);
+			b->alias = "entry";
+
+			CompileContext nctx = ctx;
+			nctx.inside = generator->parent;
+			nctx.scope = b;
+			nctx.function = this;
 
 			auto ss = std::move(StackManager::move_stack_out<0>());
 			for (auto&& a : arguments) {
 				CompileValue argval;
 				argval.t = a.second;
 				argval.lvalue = true;
-				//uint16_t id = func->register_local(argval.t->compile_size(ctx), argval.t->size(ctx));
-
-				StackManager::stack_push<0>(ctx,a.first.buffer, argval);
+				uint16_t id = func->register_local(argval.t->compile_size(ctx), argval.t->size(ctx));
+				func->arguments.push_back(a.second->rvalue);
+				StackManager::stack_push<0>(ctx,a.first.buffer, argval, id);
 			}
 
-			CompileContext nctx = ctx;
-			nctx.inside = generator->parent;
+			uint16_t argid = (uint16_t)(arguments.size()-1);
+			for (auto a = arguments.rbegin(); a != arguments.rend(); a++) {
+				ILBuilder::build_local(nctx.scope, argid);
+				ILBuilder::build_store(nctx.scope, a->second->rvalue);
+				argid--;
+			}
+
+			func->returns = returns->rvalue;
 
 			
-
-			ILBlock* b = func->create_and_append_block(ILDataType::none);
-			b->alias = "entry";
-
-			nctx.scope = b;
-
-			nctx.function = this;
 
 			Cursor cb = block;
 			CompileValue cvres;
@@ -668,20 +796,26 @@ namespace Corrosive {
 
 
 			func->dump();
+			std::cout << std::endl;
 
 			if (!func->assert_flow()) return false;
 
 			StackManager::move_stack_in<0>(std::move(ss));
 
-			compile_state = 2;
+			compile_state = 3;
 		}
-		else if (compile_state == 2) {
+		else if (compile_state == 3) {
 			return true;
 		}
-		else {
+		else if (compile_state == 2) {
 			throw_specific_error(generator->name, "Build cycle");
 			return false;
 		}
+		else if (compile_state == 0) {
+			throw_specific_error(err, "Build cycle");
+			return false;
+		}
+
 
 		return true;
 	}
@@ -810,7 +944,7 @@ namespace Corrosive {
 
 			unsigned char* data_place = ctx.eval->stack_reserve(res.t->compile_size(ctx));
 
-			StackManager::stack_push<1>(ctx, std::get<0>(*key_l).buffer, res);
+			StackManager::stack_push<1>(ctx, std::get<0>(*key_l).buffer, res,0);
 
 			res.t->move(ctx, key_ptr, data_place); // TODO! there will be copy
 
@@ -836,7 +970,7 @@ namespace Corrosive {
 
 			unsigned char* data_place = ctx.eval->stack_reserve(res.t->compile_size(ctx));
 			
-			StackManager::stack_push<1>(ctx,std::get<0>(*key_l).buffer, res);
+			StackManager::stack_push<1>(ctx,std::get<0>(*key_l).buffer, res,0);
 
 			res.t->move(ctx, key_ptr, data_place); // TODO! there will be copy
 

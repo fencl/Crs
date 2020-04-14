@@ -131,6 +131,9 @@ namespace Corrosive {
 		os << owner->name.buffer;
 	}
 
+	void TypeFunctionTemplate::print(std::ostream& os) {
+		os << owner->name.buffer;
+	}
 
 	void TypeTrait::print(std::ostream& os) {
 		os << owner->name.buffer;
@@ -141,8 +144,8 @@ namespace Corrosive {
 		owner->print(os);
 	}
 	void TypeArray::print(std::ostream& os) {
+		os << "[" << count << "]";
 		owner->print(os);
-		os << "["<<count<<"]";
 	}
 
 	uint32_t Type::size(CompileContext& ctx) {

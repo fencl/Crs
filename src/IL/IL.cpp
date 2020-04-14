@@ -30,7 +30,7 @@ namespace Corrosive {
 	ILFunction* ILModule::create_function() {
 		std::unique_ptr<ILFunction> function = std::make_unique<ILFunction>();
 		ILFunction* function_ptr = function.get();
-		function_ptr->id = (unsigned int)functions.size();
+		function_ptr->id = (uint32_t)functions.size();
 		function_ptr->parent = this;
 		functions.push_back(std::move(function));
 		return function_ptr;
@@ -46,7 +46,7 @@ namespace Corrosive {
 	ILBlock* ILFunction::create_block(ILDataType accepts) {
 		std::unique_ptr<ILBlock> block = std::make_unique<ILBlock>();
 		ILBlock* block_ptr = block.get();
-		block->id = (unsigned int)blocks_memory.size();
+		block->id = (uint32_t)blocks_memory.size();
 		block->parent = this;
 		block->accepts = accepts;
 		blocks_memory.push_back(std::move(block));
@@ -135,11 +135,21 @@ namespace Corrosive {
 	}
 
 
+	uint16_t ILFunction::register_local(uint32_t type_compile_size, uint32_t type_runtime_size) {
+		local_offsets.push_back(std::make_pair(compile_time_stack, runtime_stack));
+		compile_time_stack += type_compile_size;
+		runtime_stack += type_runtime_size;
+		return (uint16_t)(local_offsets.size() - 1);
+
+	}
+
 	void ILBlock::push_const(bool c) {
 		is_const.push_back(c);
 	}
 
 	bool ILBlock::test_const() {
+		return false;
+
 		if (is_const.size() < 2)
 			return false;
 		return is_const[is_const.size()-1] && is_const[is_const.size()-2];
@@ -170,8 +180,24 @@ namespace Corrosive {
 				auto type = read_data_type(ILDataType);
 				dump_data_type(*type);
 				std::cout << "]\n";
-			}
-								   break;
+			} break;
+			case ILInstruction::call: {
+				std::cout << "   call [";
+				auto type = read_data_type(ILDataType);
+				dump_data_type(*type);
+				auto argc = read_data_type(uint16_t);
+				std::cout << "] ("<<*argc<<")\n";
+			} break;
+			case ILInstruction::fnptr: {
+				std::cout << "   fnptr ";
+				auto type = read_data_type(uint32_t);
+				std::cout << *type << "\n";
+			} break;
+			case ILInstruction::priv: {
+				std::cout << "   priv ";
+				auto type = read_data_type(uint8_t);
+				std::cout << *type << "\n";
+			} break;
 			case ILInstruction::sub:
 				std::cout << "   sub [";
 				dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
@@ -237,26 +263,20 @@ namespace Corrosive {
 				auto type = read_data_type(ILDataType);
 				dump_data_type(*type);
 				std::cout << "]\n";
-			}
-				break;
+			} break;
 			case ILInstruction::discard: {
 				std::cout << "   discard [";
 				auto type = read_data_type(ILDataType);
 				dump_data_type(*type);
 				std::cout << "]\n";
-			}
-				break;
+			} break;
+			case ILInstruction::start: {
+				std::cout << "   start\n";
+			} break;
 			case ILInstruction::jmp: {
 				std::cout << "   jmp ";
-				auto address = read_data_type(unsigned int);
+				auto address = read_data_type(uint32_t);
 				std::cout << *address << " \"" << parent->blocks[*address]->alias << "\"\n";
-				break;
-			}
-			case ILInstruction::local2: {
-				std::cout << "   local +";
-				auto offset = *read_data_type(uint16_t);
-				auto compile_offset = *read_data_type(uint16_t);
-				std::cout << offset << " (+" << compile_offset  <<")\n";
 				break;
 			}
 			case ILInstruction::member2: {
@@ -267,7 +287,7 @@ namespace Corrosive {
 				break;
 			}
 			case ILInstruction::local: {
-				std::cout << "   local +";
+				std::cout << "   local ";
 				auto offset = *read_data_type(uint16_t);
 				std::cout << offset << "\n";
 				break;
@@ -294,9 +314,9 @@ namespace Corrosive {
 			}
 			case ILInstruction::jmpz: {
 				std::cout << "   jmpz ";
-				auto address = read_data_type(unsigned int);
+				auto address = read_data_type(uint32_t);
 				std::cout << *address << " \"" << parent->blocks[*address]->alias << "\" : ";
-				address = read_data_type(unsigned int);
+				address = read_data_type(uint32_t);
 				std::cout << *address << " \"" << parent->blocks[*address]->alias << "\"\n";
 				break;
 			}
@@ -330,6 +350,7 @@ namespace Corrosive {
 					case ILDataType::f64: std::cout << *read_data_type(double); break;
 
 					case ILDataType::type: std::cout << *read_data_type(void*); break;
+					case ILDataType::ptr: std::cout << *read_data_type(void*); break;
 				
 				}
 				std::cout << "\n";

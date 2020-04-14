@@ -428,10 +428,29 @@ namespace Corrosive {
 		return true;
 	}
 
+	bool ILBuilder::build_fnptr(ILBlock* block, ILFunction* fun) {
+		block->parent->return_blocks.insert(block);
+		block->write_instruction(ILInstruction::fnptr);
+		block->write_value(sizeof(uint32_t), (unsigned char*)&(fun->id));
+		block->push_const(false);
+		return true;
+	}
+
+	bool ILBuilder::build_call(ILBlock* block, ILDataType type,uint16_t argc) {
+		block->parent->return_blocks.insert(block);
+		block->write_instruction(ILInstruction::call);
+		block->write_const_type(type);
+		block->write_value(sizeof(uint16_t), (unsigned char*)&argc);
+		for (uint16_t i=0;i<argc;i++)
+			block->pop_const();
+		block->push_const(false);
+		return true;
+	}
+
 	bool ILBuilder::build_jmp(ILBlock* block, ILBlock* address) {
 		address->predecessors.insert(block);
 		block->write_instruction(ILInstruction::jmp);
-		block->write_value(sizeof(unsigned int), (unsigned char*)&address->id);
+		block->write_value(sizeof(uint32_t), (unsigned char*)&address->id);
 
 		return true;
 	}
@@ -441,8 +460,8 @@ namespace Corrosive {
 		ifnz->predecessors.insert(block);
 
 		block->write_instruction(ILInstruction::jmpz);
-		block->write_value(sizeof(unsigned int), (unsigned char*)&ifz->id);
-		block->write_value(sizeof(unsigned int), (unsigned char*)&ifnz->id); 
+		block->write_value(sizeof(uint32_t), (unsigned char*)&ifz->id);
+		block->write_value(sizeof(uint32_t), (unsigned char*)&ifnz->id);
 		block->pop_const();
 		
 		return true;
@@ -476,7 +495,6 @@ namespace Corrosive {
 	}
 
 	bool ILBuilder::build_store(ILBlock* block, ILDataType type) {
-
 		block->write_instruction(ILInstruction::store);
 		block->write_const_type(type);
 		block->pop_const();
@@ -484,18 +502,22 @@ namespace Corrosive {
 	}
 
 
-	bool ILBuilder::build_local2(ILBlock* block, uint16_t compile_offset, uint16_t offset) {
-		block->write_instruction(ILInstruction::local2);
-		block->write_value(sizeof(uint16_t), (unsigned char*)&offset);
-		block->write_value(sizeof(uint16_t), (unsigned char*)&compile_offset);
+	bool ILBuilder::build_local(ILBlock* block, uint16_t id) {
+		block->write_instruction(ILInstruction::local);
+		block->write_value(sizeof(uint16_t), (unsigned char*)&id);
 		block->push_const(false);
 		return true;
 	}
 
-	bool ILBuilder::build_local(ILBlock* block, uint16_t offset) {
-		block->write_instruction(ILInstruction::local);
-		block->write_value(sizeof(uint16_t), (unsigned char*)&offset);
-		block->push_const(false);
+
+	bool ILBuilder::build_priv(ILBlock* block, uint8_t fun) {
+		block->write_instruction(ILInstruction::priv);
+		block->write_value(sizeof(uint8_t), (unsigned char*)&fun);
+		return true;
+	}
+
+	bool ILBuilder::build_callstart(ILBlock* block) {
+		block->write_instruction(ILInstruction::start);
 		return true;
 	}
 

@@ -19,6 +19,10 @@ namespace Corrosive {
 	bool TypeStructure::compile(CompileContext& ctx) {
 		return owner->compile(ctx);
 	}
+	
+	bool TypeFunctionTemplate::compile(CompileContext& ctx) {
+		return owner->compile(ctx);
+	}
 
 	bool TypeTrait::compile(CompileContext& ctx) {
 		return owner->compile(ctx);

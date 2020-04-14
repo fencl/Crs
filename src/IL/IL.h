@@ -20,7 +20,7 @@ namespace Corrosive {
 	class ILModule;
 
 	enum class ILInstruction : unsigned char {
-		value, add, sub, div, mul, rem, bit_and, bit_or, bit_xor, load, store, accept, discard, yield, ret, jmp, jmpz, eq, ne, gt, ge, lt, le, local, member, forget, local2, member2
+		value, add, sub, div, mul, rem, bit_and, bit_or, bit_xor, load, store, accept, discard, yield, ret, jmp, jmpz, eq, ne, gt, ge, lt, le, local, member, forget, member2, fnptr, call, start, priv
 	};
 
 	enum class ILDataType : unsigned char {
@@ -44,7 +44,7 @@ namespace Corrosive {
 		bool test_const();
 		void pop_const();
 
-		unsigned int id;
+		uint32_t id;
 		ILDataType yields = ILDataType::none;
 		ILDataType accepts = ILDataType::none;
 		ILFunction* parent;
@@ -71,10 +71,10 @@ namespace Corrosive {
 		void dump();
 		static void dump_data_type(ILDataType dt);
 		bool assert_flow();
-	private:
+
+		unsigned char* read_data(size_t, std::list<std::unique_ptr<ILBlockData>>::iterator& pool, size_t& memoff);
 		unsigned char* reserve_data(size_t size);
 		void memmove(std::list<std::unique_ptr<ILBlockData>>::iterator& pool, size_t& memoff, size_t off);
-		unsigned char* read_data(size_t, std::list<std::unique_ptr<ILBlockData>>::iterator& pool, size_t& memoff);
 	};
 
 
@@ -85,15 +85,15 @@ namespace Corrosive {
 		ILModule*		parent;
 		bool			is_const = false;
 
-		std::vector<std::pair<uint32_t,uint32_t>>			local_offsets;
+		std::vector<ILDataType>						arguments;
+		ILDataType									returns;
+		std::vector<std::pair<uint32_t,uint32_t>>	local_offsets;
 		uint32_t compile_stack_size = 0;
 		uint32_t runtime_stack_size = 0;
 
-		std::vector<ILBlock*>								blocks;
-		std::vector<std::unique_ptr<ILBlock>>				blocks_memory;
-		std::set<ILBlock*>									return_blocks;
-
-
+		std::vector<ILBlock*>						blocks;
+		std::vector<std::unique_ptr<ILBlock>>		blocks_memory;
+		std::set<ILBlock*>							return_blocks;
 
 		ILBlock*	 create_block(ILDataType accepts);
 		ILBlock*	 create_and_append_block(ILDataType accepts);
@@ -101,12 +101,15 @@ namespace Corrosive {
 		void		 dump();
 		bool		 assert_flow();
 
-		//uint16_t register_local(uint32_t type_compile_size, uint32_t type_runtime_size);
+		uint16_t register_local(uint32_t type_compile_size, uint32_t type_runtime_size);
+		uint32_t compile_time_stack=0; uint32_t runtime_stack=0;
 	};
 
 	class ILEvaluator {
 	public:
 		using register_value = uint64_t;
+
+		bool (*private_fun[256])(ILEvaluator*);
 
 		ILModule* parent = nullptr;
 
@@ -119,10 +122,9 @@ namespace Corrosive {
 		unsigned char* memory_stack_pointer = memory_stack;
 		unsigned char* memory_stack_base_pointer = memory_stack;
 
-		ILFunction* executing = nullptr;
+		ILFunction* callstack[1024];
 
-
-		//std::vector<unsigned char*> local_ids;
+		uint16_t callstack_depth = 0;
 
 		register_value yield;
 
@@ -193,7 +195,7 @@ namespace Corrosive {
 		static bool eval_add(ILEvaluator* eval_ctx,ILDataType tl,ILDataType tr);
 		static bool eval_load(ILEvaluator* eval_ctx, ILDataType type);
 		static bool eval_store(ILEvaluator* eval_ctx, ILDataType type);
-		static bool eval_local(ILEvaluator* eval_ctx, uint16_t offset);
+		static bool eval_local(ILEvaluator* eval_ctx, uint32_t offset);
 		static bool eval_member(ILEvaluator* eval_ctx, uint16_t offset);
 
 		static bool eval_and(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
@@ -213,14 +215,18 @@ namespace Corrosive {
 		static bool eval_discard(ILEvaluator* eval_ctx, ILDataType type);
 		static bool eval_yield(ILEvaluator* eval_ctx, ILDataType type);
 		static bool eval_forget(ILEvaluator* eval_ctx, ILDataType type);
+		static bool eval_fnptr(ILEvaluator* eval_ctx, ILFunction* fun);
+		static bool eval_priv(ILEvaluator* eval_ctx, uint8_t fun);
+
+		static bool eval_callstart(ILEvaluator* eval_ctx);
+		static bool eval_call(ILEvaluator* eval_ctx, ILDataType rett, uint16_t argc);
 
 		static ILDataType arith_result(ILDataType l,ILDataType r);
 		static bool build_add(ILBlock* block, ILDataType tl, ILDataType tr);
 		static bool build_load(ILBlock* block, ILDataType type);
 		static bool build_store(ILBlock* block, ILDataType type);
-		static bool build_local2(ILBlock* block, uint16_t compile_offset, uint16_t offset);
 		static bool build_member2(ILBlock* block, uint16_t compile_offset, uint16_t offset);
-		static bool build_local(ILBlock* block, uint16_t offset);
+		static bool build_local(ILBlock* block, uint16_t id);
 		static bool build_member(ILBlock* block, uint16_t offset);
 
 		static bool build_and(ILBlock* block, ILDataType tl, ILDataType tr);
@@ -241,8 +247,12 @@ namespace Corrosive {
 		static bool build_yield(ILBlock* block, ILDataType type);
 		static bool build_forget(ILBlock* block, ILDataType type);
 		static bool build_ret(ILBlock* block, ILDataType type);
+		static bool build_fnptr(ILBlock* block, ILFunction* fun);
+		static bool build_call(ILBlock* block, ILDataType type, uint16_t argc);
+		static bool build_callstart(ILBlock* block);
 		static bool build_jmp(ILBlock* block,ILBlock* address);
 		static bool build_jmpz(ILBlock* block,ILBlock* ifz, ILBlock* ifnz);
+		static bool build_priv(ILBlock* block, uint8_t fun);
 	};
 }
 

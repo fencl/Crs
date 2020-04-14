@@ -39,6 +39,7 @@ namespace Corrosive {
 		std::map<std::string_view, std::unique_ptr<FunctionTemplate>> subfunctions;
 		std::map<std::string_view, std::unique_ptr<TraitTemplate>> subtraits;
 
+		static bool parse_inner(Cursor& c, CompileContext& ctx, Namespace* into);
 		static bool parse(Cursor& c, CompileContext& ctx, std::unique_ptr<Namespace>& into);
 		void find_name(std::string_view name, Namespace*& subnamespace, StructureTemplate*& subtemplate, FunctionTemplate*& subfunction, TraitTemplate*& subtrait);
 	};
@@ -57,7 +58,7 @@ namespace Corrosive {
 
 		std::vector<StructureInstanceMemberRecord> member_vars;
 
-		std::map<TraitInstance*, std::map<std::string_view, std::unique_ptr<FunctionTemplate>>> traitfunctions;
+		std::map<TraitInstance*, std::map<std::string_view, std::unique_ptr<FunctionInstance>>> traitfunctions;
 
 		StructureTemplate* generator;
 
@@ -239,12 +240,14 @@ namespace Corrosive {
 
 		Cursor block;
 
+		Type* type;
+
 		std::vector<std::pair<Cursor,Type*>> arguments;
 		Type* returns;
 
 		unsigned char* key;
 
-		bool compile(CompileContext& ctx);
+		bool compile(Cursor err, CompileContext& ctx);
 
 		unsigned int compile_state = 0;
 
@@ -257,8 +260,10 @@ namespace Corrosive {
 		Namespace* parent = nullptr;
 		Cursor name;
 		Cursor annotation;
-		Cursor type;
+		Cursor decl_type;
 		Cursor block;
+
+		std::unique_ptr<TypeFunctionTemplate> type;
 
 		StructureInstance* template_parent = nullptr;
 		std::unique_ptr<FunctionInstance> singe_instance = nullptr;
@@ -284,7 +289,7 @@ namespace Corrosive {
 
 	class Declaration {
 	public:
-		static bool parse_global(Cursor& c, CompileContext& ctx, Namespace& into);
+		static bool parse_global(Cursor& c, CompileContext& ctx, Namespace* into);
 	};
 
 }

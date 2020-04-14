@@ -24,6 +24,9 @@ namespace Corrosive {
 		std::unique_ptr<DefaultTypes> dt = std::make_unique<DefaultTypes>();
 		std::unique_ptr<Namespace> gn = std::make_unique<Namespace>();
 		std::unique_ptr<ILEvaluator> e = std::make_unique<ILEvaluator>();
+		e->private_fun[1] = &Operand::priv_build_array;
+		e->private_fun[2] = &Operand::priv_build_reference;
+
 		m->architecture = ILArchitecture::x86_64;
 		e->parent = m.get();
 
@@ -36,20 +39,22 @@ namespace Corrosive {
 
 		ctx.default_types->setup(ctx);
 
-		if (Declaration::parse_global(c, ctx, *gn.get())) {
+		if (Declaration::parse_global(c, ctx, gn.get())) {
 			if (gn->subtemplates["B"]->compile(ctx)) {
 				auto& sfcs = gn->subtemplates["I"]->singe_instance->subfunctions;
 
 				auto f_r = sfcs.find("equals");
 				if (f_r != sfcs.end()) {
 					FunctionInstance* finst;
-					if (f_r->second->generate(ctx, nullptr, finst)) finst->compile(ctx);
+					Cursor cerr;
+					if (f_r->second->generate(ctx, nullptr, finst)) finst->compile(cerr,ctx);
 				}
 
 				f_r = sfcs.find("equals2");
 				if (f_r != sfcs.end()) {
 					FunctionInstance* finst;
-					if (f_r->second->generate(ctx, nullptr, finst)) finst->compile(ctx);
+					Cursor cerr;
+					if (f_r->second->generate(ctx, nullptr, finst)) finst->compile(cerr,ctx);
 				}
 			
 			}
