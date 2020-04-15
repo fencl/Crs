@@ -159,6 +159,22 @@ namespace Corrosive {
 		is_const.pop_back();
 	}
 
+	uint32_t ILEvaluator::get_compile_pointer_size() {
+		return sizeof(void*);
+	}
+
+	uint32_t ILEvaluator::get_pointer_size() {
+		switch (parent->architecture)
+		{
+			case ILArchitecture::i386:
+				return 4;
+			case ILArchitecture::x86_64:
+				return 8;
+			default:
+				return 0;
+		}
+	}
+
 #define read_data_type(T) ((T*)read_data(sizeof(T),mempool,memoff))
 
 	void ILBlock::dump() {
@@ -196,7 +212,8 @@ namespace Corrosive {
 			case ILInstruction::priv: {
 				std::cout << "   priv ";
 				auto type = read_data_type(uint8_t);
-				std::cout << *type << "\n";
+				auto data = read_data_type(uint32_t);
+				std::cout << (uint32_t)*type <<"("<<*data<< ")\n";
 			} break;
 			case ILInstruction::sub:
 				std::cout << "   sub [";

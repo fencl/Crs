@@ -13,5 +13,6 @@ namespace Corrosive {
 	private:
 		std::string buffer;
 	};
+
 }
 #endif

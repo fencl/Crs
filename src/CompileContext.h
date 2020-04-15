@@ -26,12 +26,22 @@ namespace Corrosive {
 		ILEvaluator*	eval = nullptr;
 		ILBlock*		scope = nullptr;
 		//ILBlock*		scope_exit = nullptr;
+
+
+
+		static CompileContext context_stack[1024];
+		static uint32_t context_sp;
+		static CompileContext& get();
+		static void push(CompileContext ctx);
+		static void pop();
 	};
 
 	struct CompileValue {
 		Type* t;
 		bool lvalue;
 	};
+
+
 }
 #include "PredefinedTypes.h"
 #include "Declaration.h"

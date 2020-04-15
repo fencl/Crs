@@ -377,8 +377,8 @@ namespace Corrosive {
 		return true;
 	}
 
-	bool ILBuilder::eval_priv(ILEvaluator* eval_ctx, uint8_t fun) {
-		return eval_ctx->private_fun[fun](eval_ctx);
+	bool ILBuilder::eval_priv(ILEvaluator* eval_ctx, uint8_t fun,uint32_t data) {
+		return eval_ctx->private_fun[fun](eval_ctx,data);
 	}
 
 #define read_data_type(T) ((T*)block->read_data(sizeof(T),mempool,memoff))
@@ -419,7 +419,8 @@ namespace Corrosive {
 					} break;
 					case ILInstruction::priv: {
 						auto id = read_data_type(uint8_t);
-						if (!eval_priv(eval_ctx, *id)) return false;
+						auto data = read_data_type(uint32_t);
+						if (!eval_priv(eval_ctx, *id,*data)) return false;
 					} break;
 					case ILInstruction::sub: {
 						auto left = read_data_type(ILDataType);

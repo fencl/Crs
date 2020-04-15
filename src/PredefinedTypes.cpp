@@ -16,10 +16,10 @@ namespace Corrosive {
 		s->name = c;
 		s->parent = ctx.global;
 
-		s->compile(ctx);
+		s->compile();
 		StructureInstance* sinst;
-		s->generate(ctx, nullptr, sinst);
-		sinst->compile(ctx);
+		s->generate(nullptr, sinst);
+		sinst->compile();
 		
 		sinst->size = runtime_size;
 		sinst->alignment = runtime_alignment;
@@ -65,6 +65,10 @@ namespace Corrosive {
 		return argument_array_storage.register_or_load(std::move(arg_array));
 	}
 
+	size_t DefaultTypes::load_or_register_debug_cursor(Cursor c) {
+		return debug_cursor_storage.register_or_load(c);
+	}
+
 	TypeFunction* DefaultTypes::load_or_register_function_type(std::vector<Type*> arg_array, Type* return_type) {
 		size_t arg_id = load_or_register_argument_array(std::move(arg_array));
 
@@ -78,8 +82,29 @@ namespace Corrosive {
 			tf->argument_array_id = arg_id;
 			tf->owner = this;
 			tf->return_type = return_type;
+			tf->rvalue = ILDataType::ptr;
 			TypeFunction* ret = tf.get();
 			function_types_storage[key] = std::move(tf);
+			return ret;
+		}
+	}
+
+	TypeTemplate* DefaultTypes::load_or_register_template_type(std::vector<Type*> arg_array) {
+		size_t arg_id = load_or_register_argument_array(std::move(arg_array));
+
+		size_t key = arg_id;
+
+		auto t_find = template_types_storage.find(key);
+		if (t_find != template_types_storage.end()) {
+			return t_find->second.get();
+		}
+		else {
+			std::unique_ptr<TypeTemplate> tf = std::make_unique<TypeTemplate>();
+			tf->argument_array_id = arg_id;
+			tf->owner = this;
+			tf->rvalue = ILDataType::type;
+			TypeTemplate* ret = tf.get();
+			template_types_storage[key] = std::move(tf);
 			return ret;
 		}
 	}

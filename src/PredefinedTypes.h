@@ -68,11 +68,17 @@ namespace Corrosive {
 		Type* t_type;
 		Type* t_void;
 
+		idset<Cursor> debug_cursor_storage;
 		idset<std::vector<Type*>> argument_array_storage;
 		std::map<std::pair<size_t,Type*>, std::unique_ptr<TypeFunction>> function_types_storage;
+		std::map<size_t, std::unique_ptr<TypeTemplate>> template_types_storage;
+
 
 		size_t load_or_register_argument_array(std::vector<Type*> arg_array);
+		size_t load_or_register_debug_cursor(Cursor c);
+
 		TypeFunction* load_or_register_function_type(std::vector<Type*> arg_array, Type* return_type);
+		TypeTemplate* load_or_register_template_type(std::vector<Type*> arg_array);
 
 		void setup(CompileContext& ctx);
 	private:

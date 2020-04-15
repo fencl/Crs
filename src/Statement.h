@@ -9,10 +9,10 @@ namespace Corrosive {
 	class Statement {
 	public:
 
-		static bool parse(Cursor& c, CompileContext& ctx, CompileValue& res, CompileType copm_type,bool& terminated);
-		static bool parse_inner_block(Cursor& c, CompileContext& ctx, CompileValue& res, CompileType copm_type, bool& terminated);
+		static bool parse(Cursor& c, CompileValue& res, CompileType copm_type,bool& terminated);
+		static bool parse_inner_block(Cursor& c, CompileValue& res, CompileType copm_type, bool& terminated);
 
-		static bool parse_return(Cursor& c, CompileContext& ctx, CompileValue& res, CompileType copm_type);
+		static bool parse_return(Cursor& c, CompileValue& res, CompileType copm_type);
 	};
 
 }

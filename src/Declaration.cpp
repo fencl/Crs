@@ -58,19 +58,19 @@ namespace Corrosive {
 		}
 	}
 
-	int TraitInstance::compare(CompileContext& ctx, unsigned char* p1, unsigned char* p2) {
+	int TraitInstance::compare(ILEvaluator* eval, unsigned char* p1, unsigned char* p2) {
 		//TODO test for specific compare function
-		return memcmp(p1, p2, ctx.default_types->t_ptr->compile_size(ctx)*2);
+		return memcmp(p1, p2, eval->get_compile_pointer_size()*2);
 	}
 
 
 
-	void TraitInstance::move(CompileContext& ctx, unsigned char* src, unsigned char* dst) {
+	void TraitInstance::move(ILEvaluator* eval, unsigned char* src, unsigned char* dst) {
 		//TODO test for specific move function
-		memcpy(dst, src, ctx.default_types->t_ptr->compile_size(ctx) * 2);
+		memcpy(dst, src, eval->get_compile_pointer_size() * 2);
 	}
 
-	int StructureInstance::compare(CompileContext& ctx, unsigned char* p1, unsigned char* p2) {
+	int StructureInstance::compare(ILEvaluator* eval, unsigned char* p1, unsigned char* p2) {
 		//TODO test for specific compare function
 
 		if (member_vars.size() == 0) {
@@ -78,9 +78,9 @@ namespace Corrosive {
 		}
 		else {
 			for (auto&& m : member_vars) {
-				int c = m.type->compare(ctx, p1, p2);
+				int c = m.type->compare(eval, p1, p2);
 				if (c != 0) return c;
-				size_t ms = m.type->compile_size(ctx);
+				size_t ms = m.type->compile_size(eval);
 				p1 += ms;
 				p2 += ms;
 			}
@@ -91,7 +91,7 @@ namespace Corrosive {
 
 
 
-	void StructureInstance::move(CompileContext& ctx, unsigned char* src, unsigned char* dst) {
+	void StructureInstance::move(ILEvaluator* eval, unsigned char* src, unsigned char* dst) {
 		//TODO test for specific move function
 		
 
@@ -100,9 +100,9 @@ namespace Corrosive {
 		}
 		else {
 			for (auto&& m : member_vars) {
-				m.type->move(ctx, src, dst);
+				m.type->move(eval, src, dst);
 
-				size_t ms = m.type->compile_size(ctx);
+				size_t ms = m.type->compile_size(eval);
 				src += ms;
 				dst += ms;
 			}
@@ -116,10 +116,10 @@ namespace Corrosive {
 
 		for (auto&& l : parent->generic_layout) {
 
-			int r = std::get<1>(l)->compare((CompileContext&)ctx, loff,roff);
+			int r = std::get<1>(l)->compare(ctx.eval, loff,roff);
 			if (r < 0) return true;
 			if (r > 0) return false;
-			unsigned int off = std::get<1>(l)->compile_size((CompileContext&)ctx);
+			unsigned int off = std::get<1>(l)->compile_size(ctx.eval);
 			loff += off;
 			roff += off;
 		}
@@ -130,13 +130,14 @@ namespace Corrosive {
 	bool TraitTemplate::GenericTemplateCompare::operator()(unsigned char* const& a, unsigned char* const& b) const {
 		unsigned char* loff = a;
 		unsigned char* roff = b;
+		CompileContext& nctx = CompileContext::get();
 
 		for (auto&& l : parent->generic_layout) {
 
-			int r = std::get<1>(l)->compare((CompileContext&)ctx, loff, roff);
+			int r = std::get<1>(l)->compare(nctx.eval, loff, roff);
 			if (r < 0) return true;
 			if (r > 0) return false;
-			unsigned int off = std::get<1>(l)->compile_size((CompileContext&)ctx);
+			unsigned int off = std::get<1>(l)->compile_size(nctx.eval);
 			loff += off;
 			roff += off;
 		}
@@ -147,16 +148,17 @@ namespace Corrosive {
 	bool FunctionTemplate::GenericTemplateCompare::operator()(const std::pair<unsigned int, unsigned char*>& a, const std::pair<unsigned int, unsigned char*>& b) const {
 		if (a.first < b.first) return true;
 		if (a.first > b.first) return false;
+		CompileContext& nctx = CompileContext::get();
 
 		unsigned char* loff = a.second;
 		unsigned char* roff = b.second;
 
 		for (auto&& l : parent->generic_layout) {
-			int r = std::get<1>(l)->compare((CompileContext&)ctx, loff, roff);
+			int r = std::get<1>(l)->compare(nctx.eval, loff, roff);
 			if (r < 0) return true;
 			if (r > 0) return false;
 
-			unsigned int off = std::get<1>(l)->compile_size((CompileContext&)ctx);
+			unsigned int off = std::get<1>(l)->compile_size(nctx.eval);
 			loff += off;
 			roff += off;
 		}

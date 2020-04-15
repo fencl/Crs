@@ -510,9 +510,10 @@ namespace Corrosive {
 	}
 
 
-	bool ILBuilder::build_priv(ILBlock* block, uint8_t fun) {
+	bool ILBuilder::build_priv(ILBlock* block, uint8_t fun,uint32_t data) {
 		block->write_instruction(ILInstruction::priv);
 		block->write_value(sizeof(uint8_t), (unsigned char*)&fun);
+		block->write_value(sizeof(uint32_t), (unsigned char*)&data);
 		return true;
 	}
 

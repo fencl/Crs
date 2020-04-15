@@ -26,39 +26,48 @@ namespace Corrosive {
 		std::unique_ptr<ILEvaluator> e = std::make_unique<ILEvaluator>();
 		e->private_fun[1] = &Operand::priv_build_array;
 		e->private_fun[2] = &Operand::priv_build_reference;
+		e->private_fun[3] = &Operand::priv_build_push_template;
+		e->private_fun[4] = &Operand::priv_build_build_template;
+		e->private_fun[5] = &Operand::priv_type_template_cast;
 
 		m->architecture = ILArchitecture::x86_64;
 		e->parent = m.get();
 
 		Cursor c = src.read_first();
+
+
 		CompileContext ctx;
 		ctx.module = m.get();
 		ctx.eval = e.get();
 		ctx.default_types = dt.get();
 		ctx.global = gn.get();
 
+		CompileContext::push(ctx);
+
 		ctx.default_types->setup(ctx);
 
-		if (Declaration::parse_global(c, ctx, gn.get())) {
-			if (gn->subtemplates["B"]->compile(ctx)) {
+		if (Declaration::parse_global(c, gn.get())) {
+			if (gn->subtemplates["B"]->compile()) {
 				auto& sfcs = gn->subtemplates["I"]->singe_instance->subfunctions;
 
 				auto f_r = sfcs.find("equals");
 				if (f_r != sfcs.end()) {
 					FunctionInstance* finst;
 					Cursor cerr;
-					if (f_r->second->generate(ctx, nullptr, finst)) finst->compile(cerr,ctx);
+					if (f_r->second->generate(nullptr, finst)) finst->compile(cerr);
 				}
 
 				f_r = sfcs.find("equals2");
 				if (f_r != sfcs.end()) {
 					FunctionInstance* finst;
 					Cursor cerr;
-					if (f_r->second->generate(ctx, nullptr, finst)) finst->compile(cerr,ctx);
+					if (f_r->second->generate(nullptr, finst)) finst->compile(cerr);
 				}
 			
 			}
 		}
+
+		CompileContext::pop();
 
 		std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 

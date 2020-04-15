@@ -8,22 +8,22 @@
 namespace Corrosive {
 
 
-	int Type::compare(CompileContext& ctx,  unsigned char* p1,  unsigned char* p2) {
+	int Type::compare(ILEvaluator* eval,  unsigned char* p1,  unsigned char* p2) {
 		return 0;
 	}
 
-	int TypeInstance::compare(CompileContext& ctx,  unsigned char* p1,  unsigned char* p2) {
-		return owner->compare(ctx, p1, p2);
+	int TypeStructureInstance::compare(ILEvaluator* eval,  unsigned char* p1,  unsigned char* p2) {
+		return owner->compare(eval, p1, p2);
 	}
 
-	int TypeTraitInstance::compare(CompileContext& ctx,  unsigned char* p1,  unsigned char* p2) {
-		return owner->compare(ctx, p1, p2);
+	int TypeTraitInstance::compare(ILEvaluator* eval,  unsigned char* p1,  unsigned char* p2) {
+		return owner->compare(eval, p1, p2);
 	}
 
-	int TypeArray::compare(CompileContext& ctx,  unsigned char* p1,  unsigned char* p2) {
-		size_t os = owner->compile_size(ctx);
+	int TypeArray::compare(ILEvaluator* eval,  unsigned char* p1,  unsigned char* p2) {
+		size_t os = owner->compile_size(eval);
 		for (uint64_t i = 0; i < count; i++) {
-			owner->compare(ctx, p1, p2);
+			owner->compare(eval, p1, p2);
 			
 			p1 += os;
 			p2 += os;
@@ -32,21 +32,25 @@ namespace Corrosive {
 	}
 
 
-	int TypeReference::compare(CompileContext& ctx,  unsigned char* p1,  unsigned char* p2) {
-		return memcmp(p1, p2, ctx.default_types->t_ptr->compile_size(ctx));
+	int TypeReference::compare(ILEvaluator* eval,  unsigned char* p1,  unsigned char* p2) {
+		return memcmp(p1, p2, eval->get_compile_pointer_size());
+	}
+	
+	int TypeTemplate::compare(ILEvaluator* eval,  unsigned char* p1,  unsigned char* p2) {
+		return memcmp(p1, p2, eval->get_compile_pointer_size());
 	}
 
 
-	void Type::move(CompileContext& ctx,  unsigned char* src,  unsigned char* dst) {
+	void Type::move(ILEvaluator* eval,  unsigned char* src,  unsigned char* dst) {
 		std::cout << "adsf";
 	}
 
 
-	void TypeArray::move(CompileContext& ctx,  unsigned char* src,  unsigned char* dst) {
-		size_t os = owner->compile_size(ctx);
+	void TypeArray::move(ILEvaluator* eval,  unsigned char* src,  unsigned char* dst) {
+		size_t os = owner->compile_size(eval);
 
 		for (uint64_t i = 0; i < count; i++) {
-			owner->move(ctx, src, dst);
+			owner->move(eval, src, dst);
 
 			src += os;
 			src += os;
@@ -54,23 +58,27 @@ namespace Corrosive {
 	}
 
 
-	void TypeInstance::move(CompileContext& ctx,  unsigned char* src,  unsigned char* dst) {
-		owner->move(ctx, src, dst);
+	void TypeStructureInstance::move(ILEvaluator* eval,  unsigned char* src,  unsigned char* dst) {
+		owner->move(eval, src, dst);
 	}
 
-	void TypeTraitInstance::move(CompileContext& ctx, unsigned char* src, unsigned char* dst) {
-		owner->move(ctx, src, dst);
+	void TypeTraitInstance::move(ILEvaluator* eval, unsigned char* src, unsigned char* dst) {
+		owner->move(eval, src, dst);
 	}
 
-	void TypeReference::move(CompileContext& ctx,  unsigned char* src,  unsigned char* dst) {
-		memcpy(dst, src, ctx.default_types->t_ptr->compile_size(ctx));
+	void TypeReference::move(ILEvaluator* eval,  unsigned char* src,  unsigned char* dst) {
+		memcpy(dst, src, eval->get_compile_pointer_size());
+	}
+
+	void TypeTemplate::move(ILEvaluator* eval,  unsigned char* src,  unsigned char* dst) {
+		memcpy(dst, src, eval->get_compile_pointer_size());
 	}
 
 	bool Type::rvalue_stacked() {
-		return true;
+		return false;
 	}
 
-	bool TypeInstance::rvalue_stacked() {
+	bool TypeStructureInstance::rvalue_stacked() {
 		return owner->generator->rvalue_stacked;
 	}
 
@@ -111,7 +119,7 @@ namespace Corrosive {
 		os << "?";
 	}
 
-	void TypeInstance::print(std::ostream& os) {
+	void TypeStructureInstance::print(std::ostream& os) {
 		os << owner->generator->name.buffer;
 
 		if (owner->generator->is_generic) {
@@ -127,7 +135,7 @@ namespace Corrosive {
 		}
 	}
 
-	void TypeStructure::print(std::ostream& os) {
+	void TypeStructureTemplate::print(std::ostream& os) {
 		os << owner->name.buffer;
 	}
 
@@ -135,7 +143,7 @@ namespace Corrosive {
 		os << owner->name.buffer;
 	}
 
-	void TypeTrait::print(std::ostream& os) {
+	void TypeTraitTemplate::print(std::ostream& os) {
 		os << owner->name.buffer;
 	}
 
@@ -148,84 +156,120 @@ namespace Corrosive {
 		owner->print(os);
 	}
 
-	uint32_t Type::size(CompileContext& ctx) {
+	uint32_t Type::size(ILEvaluator* eval) {
 		return 0;
 	}
-	uint32_t Type::alignment(CompileContext& ctx) {
-		return 0;
-	}
-
-	uint32_t Type::compile_size(CompileContext& ctx) {
-		return 0;
-	}
-	uint32_t Type::compile_alignment(CompileContext& ctx) {
+	uint32_t Type::alignment(ILEvaluator* eval) {
 		return 0;
 	}
 
+	uint32_t Type::compile_size(ILEvaluator* eval) {
+		return 0;
+	}
+	uint32_t Type::compile_alignment(ILEvaluator* eval) {
+		return 0;
+	}
 
-	uint32_t TypeInstance::size(CompileContext& ctx) {
+
+
+
+	uint32_t TypeStructureInstance::size(ILEvaluator* eval) {
 		return owner->size;
 	}
-	uint32_t TypeInstance::alignment(CompileContext& ctx) {
+	uint32_t TypeStructureInstance::alignment(ILEvaluator* eval) {
 		return owner->alignment;
 	}
 
-	uint32_t TypeInstance::compile_size(CompileContext& ctx) {
+	uint32_t TypeStructureInstance::compile_size(ILEvaluator* eval) {
 		return owner->compile_size;
 	}
-	uint32_t TypeInstance::compile_alignment(CompileContext& ctx) {
+	uint32_t TypeStructureInstance::compile_alignment(ILEvaluator* eval) {
 		return owner->compile_alignment;
 	}
 
-	uint32_t TypeTraitInstance::size(CompileContext& ctx) {
+	uint32_t TypeTraitInstance::size(ILEvaluator* eval) {
 		return owner->size;
 	}
-	uint32_t TypeTraitInstance::alignment(CompileContext& ctx) {
+	uint32_t TypeTraitInstance::alignment(ILEvaluator* eval) {
 		return owner->alignment;
 	}
 
-	uint32_t TypeTraitInstance::compile_size(CompileContext& ctx) {
+	uint32_t TypeTraitInstance::compile_size(ILEvaluator* eval) {
 		return owner->compile_size;
 	}
-	uint32_t TypeTraitInstance::compile_alignment(CompileContext& ctx) {
+	uint32_t TypeTraitInstance::compile_alignment(ILEvaluator* eval) {
 		return owner->compile_alignment;
 	}
 
-	uint32_t TypeReference::size(CompileContext& ctx) {
-		return ctx.default_types->t_ptr->size(ctx);
+	uint32_t TypeReference::size(ILEvaluator* eval) {
+		return eval->get_pointer_size();
 	}
-	uint32_t TypeReference::alignment(CompileContext& ctx) {
-		return ctx.default_types->t_ptr->alignment(ctx);
-	}
-
-	uint32_t TypeReference::compile_size(CompileContext& ctx) {
-		return ctx.default_types->t_ptr->compile_size(ctx);
-	}
-	uint32_t TypeReference::compile_alignment(CompileContext& ctx) {
-		return ctx.default_types->t_ptr->compile_alignment(ctx);
+	uint32_t TypeReference::alignment(ILEvaluator* eval) {
+		return eval->get_pointer_size();
 	}
 
-	uint32_t TypeArray::size(CompileContext& ctx) {
-		return owner->size(ctx)*count;
+	uint32_t TypeTemplate::compile_size(ILEvaluator* eval) {
+		return eval->get_compile_pointer_size();
 	}
-	uint32_t TypeArray::alignment(CompileContext& ctx) {
-		return owner->alignment(ctx);
+	uint32_t TypeTemplate::compile_alignment(ILEvaluator* eval) {
+		return eval->get_compile_pointer_size();
 	}
 
-	uint32_t TypeArray::compile_size(CompileContext& ctx) {
-		return owner->compile_size(ctx) * count;
+	uint32_t TypeReference::compile_size(ILEvaluator* eval) {
+		return eval->get_compile_pointer_size();
 	}
-	uint32_t TypeArray::compile_alignment(CompileContext& ctx) {
-		return owner->compile_alignment(ctx);
+	uint32_t TypeReference::compile_alignment(ILEvaluator* eval) {
+		return eval->get_compile_pointer_size();
+	}
+
+	uint32_t TypeFunction::compile_size(ILEvaluator* eval) {
+		return eval->get_compile_pointer_size();
+	}
+	uint32_t TypeFunction::compile_alignment(ILEvaluator* eval) {
+		return eval->get_compile_pointer_size();
+	}
+
+	uint32_t TypeFunction::size(ILEvaluator* eval) {
+		return eval->get_pointer_size();
+	}
+	uint32_t TypeFunction::alignment(ILEvaluator* eval) {
+		return eval->get_pointer_size();
+	}
+
+	uint32_t TypeArray::size(ILEvaluator* eval) {
+		return owner->size(eval)*count;
+	}
+	uint32_t TypeArray::alignment(ILEvaluator* eval) {
+		return owner->alignment(eval);
+	}
+
+	uint32_t TypeArray::compile_size(ILEvaluator* eval) {
+		return owner->compile_size(eval) * count;
+	}
+	uint32_t TypeArray::compile_alignment(ILEvaluator* eval) {
+		return owner->compile_alignment(eval);
 	}
 
 	void TypeFunction::print(std::ostream& os) {
 		os << "fn(";
 		std::vector<Type*> args = owner->argument_array_storage.get(argument_array_id);
 		for (auto arg = args.begin(); arg != args.end(); arg++) {
+			if (arg != args.begin())
+				os << ", ";
 			(*arg)->print(os);
 		}
 		os << ") ";
 		return_type->print(os);
+	}
+
+	void TypeTemplate::print(std::ostream& os) {
+		os << "type(";
+		std::vector<Type*> args = owner->argument_array_storage.get(argument_array_id);
+		for (auto arg = args.begin(); arg != args.end(); arg++) {
+			if (arg != args.begin())
+				os << ", ";
+			(*arg)->print(os);
+		}
+		os << ")";
 	}
 }

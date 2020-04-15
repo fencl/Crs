@@ -9,7 +9,7 @@ namespace Corrosive {
 
 
 
-	bool Namespace::parse(Cursor& c, CompileContext& ctx, std::unique_ptr<Namespace>& into) {
+	bool Namespace::parse(Cursor& c, std::unique_ptr<Namespace>& into) {
 		std::unique_ptr<Namespace> result = std::make_unique<Namespace>();
 		result->namespace_type = NamespaceType::t_namespace; 
 		if (c.tok != RecognizedToken::Symbol)
@@ -26,7 +26,7 @@ namespace Corrosive {
 		}
 		c.move();
 
-		if (!parse_inner(c, ctx, result.get())) return false;
+		if (!parse_inner(c, result.get())) return false;
 
 		if (c.tok != RecognizedToken::CloseBrace) {
 			throw_wrong_token_error(c, "'}'");
@@ -39,7 +39,7 @@ namespace Corrosive {
 	}
 
 
-	bool Namespace::parse_inner(Cursor& c, CompileContext& ctx, Namespace* into) {
+	bool Namespace::parse_inner(Cursor& c, Namespace* into) {
 		
 		while (c.tok != RecognizedToken::CloseBrace && c.tok!=RecognizedToken::Eof) {
 
@@ -48,7 +48,7 @@ namespace Corrosive {
 				Cursor nm = c;
 
 				std::unique_ptr<StructureTemplate> decl;
-				if (!StructureTemplate::parse(c, ctx, into, decl)) return false;
+				if (!StructureTemplate::parse(c, into, decl)) return false;
 
 				decl->parent = into;
 				if (into->subtemplates.find(decl->name.buffer) != into->subtemplates.end()) {
@@ -63,7 +63,7 @@ namespace Corrosive {
 				Cursor nm = c;
 
 				std::unique_ptr<TraitTemplate> decl;
-				if (!TraitTemplate::parse(c, ctx, into, decl)) return false;
+				if (!TraitTemplate::parse(c, into, decl)) return false;
 
 				decl->parent = into;
 				if (into->subtraits.find(decl->name.buffer) != into->subtraits.end()) {
@@ -79,7 +79,7 @@ namespace Corrosive {
 				Cursor nm = c;
 
 				std::unique_ptr<Namespace> decl;
-				if (!Namespace::parse(c, ctx, decl)) return false;
+				if (!Namespace::parse(c, decl)) return false;
 				decl->parent = into;
 				if (into->subnamespaces.find(decl->name.buffer) != into->subnamespaces.end()) {
 					throw_specific_error(nm, "this name already exists in current namespace");
@@ -149,9 +149,6 @@ namespace Corrosive {
 					}
 				}
 
-				CompileContext nctx = ctx;
-				nctx.inside = into;
-
 				std::unique_ptr<FunctionTemplate> ft = std::make_unique<FunctionTemplate>();
 				ft->name = member.name;
 				ft->annotation = member.annotation;
@@ -183,7 +180,7 @@ namespace Corrosive {
 		return true;
 	}
 
-	bool StructureTemplate::parse(Cursor& c, CompileContext& ctx, Namespace* parent, std::unique_ptr<StructureTemplate>& into) {
+	bool StructureTemplate::parse(Cursor& c, Namespace* parent, std::unique_ptr<StructureTemplate>& into) {
 		std::unique_ptr<StructureTemplate> result = std::make_unique<StructureTemplate>();
 
 		result->parent = parent;
@@ -445,10 +442,8 @@ namespace Corrosive {
 	
 
 
-	bool TraitTemplate::parse(Cursor& c, CompileContext& ctx, Namespace* parent, std::unique_ptr<TraitTemplate>& into) {
+	bool TraitTemplate::parse(Cursor& c, Namespace* parent, std::unique_ptr<TraitTemplate>& into) {
 		std::unique_ptr<TraitTemplate> result = std::make_unique<TraitTemplate>();
-
-		
 
 		result->parent = parent;
 		result->template_parent = dynamic_cast<StructureInstance*>(parent);
@@ -534,53 +529,9 @@ namespace Corrosive {
 	}
 
 
-	bool Declaration::parse_global(Cursor &c, CompileContext& ctx, Namespace* global_namespace) {
-		/*while (c.tok == RecognizedToken::Symbol) {
-			if (c.buffer == "struct") {
-				c.move();
-				Cursor nm = c;
-				std::unique_ptr<StructureTemplate> decl;
-				if (!StructureTemplate::parse(c, ctx,&global_namespace, decl)) return false;
-				decl->parent = &global_namespace;
-				if (global_namespace.subnamespaces.find(decl->name.buffer) != global_namespace.subnamespaces.end()) {
-					throw_specific_error(nm, "this name already exists in global namespace");
-					return false;
-				}
-				global_namespace.subtemplates[decl->name.buffer] = std::move(decl);
-			}else if (c.buffer == "trait") {
-				c.move();
-				Cursor nm = c;
-				std::unique_ptr<TraitTemplate> decl;
-				if (!TraitTemplate::parse(c, ctx, &global_namespace, decl)) return false;
-				decl->parent = &global_namespace;
-				if (global_namespace.subtraits.find(decl->name.buffer) != global_namespace.subtraits.end()) {
-					throw_specific_error(nm, "this name already exists in global namespace");
-					return false;
-				}
-				global_namespace.subtraits[decl->name.buffer] = std::move(decl);
-			}
-			else if(c.buffer == "namespace") {
-				c.move();
-				Cursor nm = c;
-
-				std::unique_ptr<Namespace> decl;
-				if (!Namespace::parse(c, ctx, decl)) return false;
-				decl->parent = &global_namespace;
-				if (global_namespace.subnamespaces.find(decl->name.buffer) != global_namespace.subnamespaces.end()) {
-					throw_specific_error(nm, "this name already exists in global namespace");
-					return false;
-				}
-				global_namespace.subnamespaces[decl->name.buffer] = std::move(decl);
-			}
-			else {
-				throw_wrong_token_error(c, "'struct'");
-				return false;
-			}
-		}
-
-		*/
+	bool Declaration::parse_global(Cursor &c, Namespace* global_namespace) {
 		
-		if (!Namespace::parse_inner(c,ctx, global_namespace)) return false; 
+		if (!Namespace::parse_inner(c, global_namespace)) return false; 
 
 		if (c.tok != RecognizedToken::Eof) {
 			throw_wrong_token_error(c, "end of file");

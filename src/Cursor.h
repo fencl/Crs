@@ -26,5 +26,7 @@ namespace Corrosive {
 
 	private:
 	};
+
+	bool operator < (const Cursor& c1, const Cursor& c2);
 }
 #endif

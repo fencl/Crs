@@ -40,6 +40,13 @@ namespace Corrosive {
 		return c;
 	}
 
+	bool operator < (const Cursor& c1, const Cursor& c2) {
+		if (c1.src < c2.src) return true;
+		if (c1.src > c2.src) return false;
+		if (c1.offset < c2.offset) return true;
+
+		return false;
+	}
 
 	Cursor Cursor::next() const {
 		Cursor c;

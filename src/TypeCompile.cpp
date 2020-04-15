@@ -8,31 +8,31 @@
 
 namespace Corrosive {
 
-	bool Type::compile(CompileContext& ctx) {
+	bool Type::compile() {
 		return true;
 	}
 
-	bool TypeInstance::compile(CompileContext& ctx) {
-		return owner->compile(ctx);
+	bool TypeStructureInstance::compile() {
+		return owner->compile();
 	}
 
-	bool TypeStructure::compile(CompileContext& ctx) {
-		return owner->compile(ctx);
+	bool TypeStructureTemplate::compile() {
+		return owner->compile();
 	}
 	
-	bool TypeFunctionTemplate::compile(CompileContext& ctx) {
-		return owner->compile(ctx);
+	bool TypeFunctionTemplate::compile() {
+		return owner->compile();
 	}
 
-	bool TypeTrait::compile(CompileContext& ctx) {
-		return owner->compile(ctx);
+	bool TypeTraitTemplate::compile() {
+		return owner->compile();
 	}
 
-	bool TypeTraitInstance::compile(CompileContext& ctx) {
-		return owner->compile(ctx);
+	bool TypeTraitInstance::compile() {
+		return owner->compile();
 	}
 
-	bool TypeArray::compile(CompileContext& ctx) {
-		return owner->compile(ctx);
+	bool TypeArray::compile() {
+		return owner->compile();
 	}
 }

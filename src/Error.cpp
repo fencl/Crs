@@ -16,11 +16,11 @@ namespace Corrosive {
 			size_t from = std::min(cc.offset, data.size() - 1);
 			size_t to = std::min(cc.offset, data.size() - 1);
 
-			while (from > 0 && (from == 1 || data[from - 1] != '\n') && (cc.offset - from) < 20) {
+			while (from > 0 && (from == 1 || data[from - 1] != '\n') && (cc.offset - from) < 40) {
 				from--;
 			}
 
-			while (to < data.size() - 1 && (to == data.size() - 2 || data[to + 1] != '\n') && (to - cc.offset) < 20) {
+			while (to < data.size() - 1 && (to == data.size() - 2 || data[to + 1] != '\n') && (to - cc.offset) < 40) {
 				to++;
 			}
 			int req_offset = 4;

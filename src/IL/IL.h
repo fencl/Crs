@@ -109,7 +109,7 @@ namespace Corrosive {
 	public:
 		using register_value = uint64_t;
 
-		bool (*private_fun[256])(ILEvaluator*);
+		bool (*private_fun[256])(ILEvaluator*, uint32_t);
 
 		ILModule* parent = nullptr;
 
@@ -134,6 +134,9 @@ namespace Corrosive {
 
 		size_t	compile_time_register_size(ILDataType t);
 		void	discard_last_register_type(ILDataType rs);
+
+		uint32_t get_compile_pointer_size();
+		uint32_t get_pointer_size();
 		
 		std::pair<unsigned char*, unsigned char*>	stack_push();
 		void										stack_pop(std::pair<unsigned char*, unsigned char*> stack_pointer);
@@ -216,7 +219,7 @@ namespace Corrosive {
 		static bool eval_yield(ILEvaluator* eval_ctx, ILDataType type);
 		static bool eval_forget(ILEvaluator* eval_ctx, ILDataType type);
 		static bool eval_fnptr(ILEvaluator* eval_ctx, ILFunction* fun);
-		static bool eval_priv(ILEvaluator* eval_ctx, uint8_t fun);
+		static bool eval_priv(ILEvaluator* eval_ctx, uint8_t fun, uint32_t data);
 
 		static bool eval_callstart(ILEvaluator* eval_ctx);
 		static bool eval_call(ILEvaluator* eval_ctx, ILDataType rett, uint16_t argc);
@@ -252,7 +255,7 @@ namespace Corrosive {
 		static bool build_callstart(ILBlock* block);
 		static bool build_jmp(ILBlock* block,ILBlock* address);
 		static bool build_jmpz(ILBlock* block,ILBlock* ifz, ILBlock* ifnz);
-		static bool build_priv(ILBlock* block, uint8_t fun);
+		static bool build_priv(ILBlock* block, uint8_t fun,uint32_t data);
 	};
 }
 

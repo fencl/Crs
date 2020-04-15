@@ -21,12 +21,12 @@ namespace Corrosive {
 		template<unsigned int N> static inline size_t stack_state() {
 			return stack[N].size();
 		}
-		template<unsigned int N> static inline void stack_restore(CompileContext& ctx, size_t state) {
+		template<unsigned int N> static inline void stack_restore(ILEvaluator* eval, size_t state) {
 			for (size_t i = stack[N].size() - 1; i > state; i--) {
-				stack_pop<N>(ctx);
+				stack_pop<N>(eval);
 			}
 		}
-		template<unsigned int N> static inline StackItem& stack_push(CompileContext& ctx,std::string_view name, CompileValue value, uint16_t id) {
+		template<unsigned int N> static inline StackItem& stack_push(ILEvaluator* eval, std::string_view name, CompileValue value, uint16_t id) {
 			StackItem sitm;
 			sitm.name = name;
 			sitm.value = value;
@@ -34,8 +34,8 @@ namespace Corrosive {
 			sitm.local_compile_offset = stack_memory_compile_size[N];
 			sitm.id = id;
 
-			stack_memory_size[N] += value.t->size(ctx);
-			stack_memory_compile_size[N] += value.t->compile_size(ctx);
+			stack_memory_size[N] += value.t->size(eval);
+			stack_memory_compile_size[N] += value.t->compile_size(eval);
 
 			auto prev = stack_namespace[N].find(name);
 			if (prev == stack_namespace[N].end()) {
@@ -70,10 +70,10 @@ namespace Corrosive {
 		}
 
 	private:
-		template<unsigned int N> static inline void stack_pop(CompileContext& ctx) {
+		template<unsigned int N> static inline void stack_pop(ILEvaluator* eval) {
 			StackItem sitm = stack[N].back();
-			stack_memory_size[N] -= sitm.value.t->size(ctx);
-			stack_memory_compile_size[N] -= sitm.value.t->compile_size(ctx);
+			stack_memory_size[N] -= sitm.value.t->size(eval);
+			stack_memory_compile_size[N] -= sitm.value.t->compile_size(eval);
 			if (sitm.previous == SIZE_MAX) {
 				stack_namespace[N].erase(sitm.name);
 			}

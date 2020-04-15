@@ -39,8 +39,8 @@ namespace Corrosive {
 		std::map<std::string_view, std::unique_ptr<FunctionTemplate>> subfunctions;
 		std::map<std::string_view, std::unique_ptr<TraitTemplate>> subtraits;
 
-		static bool parse_inner(Cursor& c, CompileContext& ctx, Namespace* into);
-		static bool parse(Cursor& c, CompileContext& ctx, std::unique_ptr<Namespace>& into);
+		static bool parse_inner(Cursor& c, Namespace* into);
+		static bool parse(Cursor& c, std::unique_ptr<Namespace>& into);
 		void find_name(std::string_view name, Namespace*& subnamespace, StructureTemplate*& subtemplate, FunctionTemplate*& subfunction, TraitTemplate*& subtrait);
 	};
 
@@ -71,13 +71,13 @@ namespace Corrosive {
 
 		unsigned char* key;
 
-		int compare(CompileContext& ctx, unsigned char* p1, unsigned char* p2);
-		void move(CompileContext& ctx, unsigned char* src, unsigned char* dst);
+		int compare(ILEvaluator* eval, unsigned char* p1, unsigned char* p2);
+		void move(ILEvaluator* eval, unsigned char* src, unsigned char* dst);
 
-		void insert_key_on_stack(CompileContext& ctx);
+		void insert_key_on_stack(ILEvaluator* eval);
 
-		std::unique_ptr<TypeInstance> type;
-		bool compile(CompileContext& ctx);
+		std::unique_ptr<TypeStructureInstance> type;
+		bool compile();
 
 		unsigned int compile_state = 0;
 	};
@@ -118,7 +118,7 @@ namespace Corrosive {
 		Cursor annotation;
 		StructureInstance* template_parent = nullptr;
 
-		std::unique_ptr<TypeStructure> type;
+		std::unique_ptr<TypeStructureTemplate> type;
 
 		std::unique_ptr<StructureInstance> singe_instance = nullptr;
 
@@ -130,11 +130,11 @@ namespace Corrosive {
 		std::vector<StructureTemplateSubtemplate> member_templates;
 		std::vector<StructureTemplateImpl> member_implementation;
 
-		bool generate(CompileContext& ctx, unsigned char* argdata, StructureInstance*& out);
+		bool generate(unsigned char* argdata, StructureInstance*& out);
 
-		bool compile(CompileContext& ctx);
+		bool compile();
 
-		static bool parse(Cursor &c, CompileContext& ctx, Namespace* parent, std::unique_ptr<StructureTemplate>& into);
+		static bool parse(Cursor &c, Namespace* parent, std::unique_ptr<StructureTemplate>& into);
 
 		unsigned int compile_state = 0;
 		std::vector<std::tuple<Cursor,Type*>> generic_layout;
@@ -179,13 +179,13 @@ namespace Corrosive {
 
 		unsigned char* key;
 
-		int compare(CompileContext& ctx, unsigned char* p1, unsigned char* p2);
-		void move(CompileContext& ctx, unsigned char* src, unsigned char* dst);
+		int compare(ILEvaluator* eval, unsigned char* p1, unsigned char* p2);
+		void move(ILEvaluator* eval, unsigned char* src, unsigned char* dst);
 
 		std::unique_ptr<TypeTraitInstance> type;
-		bool compile(CompileContext& ctx);
+		bool compile();
 
-		void insert_key_on_stack(CompileContext& ctx);
+		void insert_key_on_stack(ILEvaluator* eval);
 
 		unsigned int compile_state = 0;
 	};
@@ -203,7 +203,7 @@ namespace Corrosive {
 		Cursor annotation;
 		StructureInstance* template_parent = nullptr;
 
-		std::unique_ptr<TypeTrait> type;
+		std::unique_ptr<TypeTraitTemplate> type;
 
 		std::unique_ptr<TraitInstance> singe_instance = nullptr;
 
@@ -213,11 +213,11 @@ namespace Corrosive {
 
 		std::vector<TraitTemplateMemberFunc> member_funcs;
 
-		bool generate(CompileContext& ctx, unsigned char* argdata, TraitInstance*& out);
+		bool generate(unsigned char* argdata, TraitInstance*& out);
 
-		bool compile(CompileContext& ctx);
+		bool compile();
 
-		static bool parse(Cursor& c, CompileContext& ctx, Namespace* parent, std::unique_ptr<TraitTemplate>& into);
+		static bool parse(Cursor& c, Namespace* parent, std::unique_ptr<TraitTemplate>& into);
 
 		unsigned int compile_state = 0;
 		std::vector<std::tuple<Cursor, Type*>> generic_layout;
@@ -225,7 +225,6 @@ namespace Corrosive {
 	private:
 		struct GenericTemplateCompare {
 			TraitTemplate* parent;
-			CompileContext ctx;
 			bool operator()(unsigned char* const& a, unsigned char* const& b) const;
 		};
 		GenericTemplateCompare gen_template_cmp;
@@ -247,7 +246,7 @@ namespace Corrosive {
 
 		unsigned char* key;
 
-		bool compile(Cursor err, CompileContext& ctx);
+		bool compile(Cursor err);
 
 		unsigned int compile_state = 0;
 
@@ -271,15 +270,14 @@ namespace Corrosive {
 		size_t generate_heap_size = 0;
 
 		bool is_generic = false;
-		bool generate(CompileContext& ctx, unsigned char* argdata, FunctionInstance*& out);
-		bool compile(CompileContext& ctx);
+		bool generate(unsigned char* argdata, FunctionInstance*& out);
+		bool compile();
 
 		unsigned int compile_state = 0;
 		std::vector<std::tuple<Cursor, Type*>> generic_layout;
 	private:
 		struct GenericTemplateCompare {
 			FunctionTemplate* parent;
-			CompileContext ctx;
 			bool operator()(const std::pair<unsigned int, unsigned char*>& a, const std::pair<unsigned int, unsigned char*>& b) const;
 		};
 		GenericTemplateCompare gen_template_cmp;
@@ -289,7 +287,7 @@ namespace Corrosive {
 
 	class Declaration {
 	public:
-		static bool parse_global(Cursor& c, CompileContext& ctx, Namespace* into);
+		static bool parse_global(Cursor& c, Namespace* into);
 	};
 
 }
