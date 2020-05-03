@@ -92,7 +92,7 @@ namespace Corrosive {
 	void ILFunction::dump() {
 		std::cout << "function " << id << " -> ";
 		ILBlock::dump_data_type((*return_blocks.begin())->yields);
-		std::cout << "\n";
+		std::cout <<" \""<<alias<< "\"\n";
 
 		for (auto b = blocks.begin(); b != blocks.end(); b++) {
 			(*b)->dump();
@@ -121,8 +121,8 @@ namespace Corrosive {
 			case ILDataType::f32: std::cout << "f32"; break;
 			case ILDataType::f64: std::cout << "f64"; break;
 			case ILDataType::ptr:  std::cout << "ptr"; break;
-			case ILDataType::type:  std::cout << "type"; break;
 			case ILDataType::none: std::cout << "none"; break;
+			case ILDataType::size: std::cout << "size"; break;
 			default: std::cout << "error";
 		}
 	}
@@ -143,28 +143,20 @@ namespace Corrosive {
 
 	}
 
-	void ILBlock::push_const(bool c) {
-		is_const.push_back(c);
-	}
-
-	bool ILBlock::test_const() {
-		return false;
-
-		if (is_const.size() < 2)
-			return false;
-		return is_const[is_const.size()-1] && is_const[is_const.size()-2];
-	}
-
-	void ILBlock::pop_const() {
-		is_const.pop_back();
-	}
-
 	uint32_t ILEvaluator::get_compile_pointer_size() {
-		return sizeof(void*);
+		return parent->get_compile_pointer_size();
 	}
 
 	uint32_t ILEvaluator::get_pointer_size() {
-		switch (parent->architecture)
+		return parent->get_pointer_size();
+	}
+
+	uint32_t ILModule::get_compile_pointer_size() {
+		return sizeof(void*);
+	}
+
+	uint32_t ILModule::get_pointer_size() {
+		switch (architecture)
 		{
 			case ILArchitecture::i386:
 				return 4;
@@ -176,6 +168,7 @@ namespace Corrosive {
 	}
 
 #define read_data_type(T) ((T*)read_data(sizeof(T),mempool,memoff))
+#define read_data_size(S) (read_data((S),mempool,memoff))
 
 	void ILBlock::dump() {
 		std::cout << " " << id << " [";
@@ -206,14 +199,14 @@ namespace Corrosive {
 			} break;
 			case ILInstruction::fnptr: {
 				std::cout << "   fnptr ";
-				auto type = read_data_type(uint32_t);
-				std::cout << *type << "\n";
+				auto ind = read_data_type(uint32_t);
+				ILFunction* fn = parent->parent->functions[*ind].get();
+				std::cout << *ind <<" \""<<fn->alias<< "\"\n";
 			} break;
-			case ILInstruction::priv: {
-				std::cout << "   priv ";
+			case ILInstruction::insintric: {
+				std::cout << "   insintric \"";
 				auto type = read_data_type(uint8_t);
-				auto data = read_data_type(uint32_t);
-				std::cout << (uint32_t)*type <<"("<<*data<< ")\n";
+				std::cout << parent->parent->insintric_function_name[*type] << "\"\n";
 			} break;
 			case ILInstruction::sub:
 				std::cout << "   sub [";
@@ -271,6 +264,10 @@ namespace Corrosive {
 				std::cout << "   le [";
 				dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 				break;
+			case ILInstruction::cast:
+				std::cout << "   cast ";
+				dump_data_type(*read_data_type(ILDataType)); std::cout << " -> "; dump_data_type(*read_data_type(ILDataType)); std::cout << "\n";
+				break;
 			case ILInstruction::store:
 				std::cout << "   store [";
 				dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
@@ -309,10 +306,51 @@ namespace Corrosive {
 				std::cout << offset << "\n";
 				break;
 			}
+			case ILInstruction::offset: {
+				std::cout << "   offset *";
+				auto mul = *read_data_type(uint16_t);
+				std::cout << mul << "\n";
+				break;
+			}
+			case ILInstruction::offset2: {
+				std::cout << "   offset *";
+				auto mul = *read_data_type(uint16_t);
+				auto compile_mul = *read_data_type(uint16_t);
+				std::cout << mul <<" (*"<<compile_mul<< ")\n";
+				break;
+			}
 			case ILInstruction::member: {
 				std::cout << "   member +";
 				auto offset = read_data_type(uint16_t);
 				std::cout << *offset << "\n";
+				break;
+			}
+			case ILInstruction::rmember2: {
+				std::cout << "   R member +";
+				auto from_t = *read_data_type(ILDataType);
+				auto to_t = *read_data_type(ILDataType);
+				auto offset = *read_data_type(uint8_t);
+				auto compile_offset = *read_data_type(uint8_t);
+				std::cout << offset << " (+" << compile_offset << ") [";
+
+				dump_data_type(from_t);
+				std::cout << " -> ";
+				dump_data_type(to_t);
+				std::cout << "]\n";
+				break;
+			}
+			case ILInstruction::rmember: {
+				std::cout << "   R member +";
+				auto from_t = *read_data_type(ILDataType);
+				auto to_t = *read_data_type(ILDataType);
+				auto offset = *read_data_type(uint8_t);
+
+				std::cout << offset << " [";
+
+				dump_data_type(from_t);
+				std::cout << " -> ";
+				dump_data_type(to_t);
+				std::cout << "]\n";
 				break;
 			}
 			case ILInstruction::load: {
@@ -366,11 +404,29 @@ namespace Corrosive {
 					case ILDataType::f32: std::cout << *read_data_type(float); break;
 					case ILDataType::f64: std::cout << *read_data_type(double); break;
 
-					case ILDataType::type: std::cout << *read_data_type(void*); break;
 					case ILDataType::ptr: std::cout << *read_data_type(void*); break;
-				
 				}
 				std::cout << "\n";
+
+				break;
+			}
+			case ILInstruction::size: {
+				std::cout << "   size ";
+
+				ilsize_t v_cp = 0;
+				ilsize_t v_rt = 0;
+
+				uint32_t s = parent->parent->get_compile_pointer_size();
+				void* from = read_data_size(s);
+				memcpy(&v_cp, from, parent->parent->get_compile_pointer_size());
+				
+
+				s = parent->parent->get_pointer_size();
+				from = read_data_size(s);
+				memcpy(&v_rt, from, parent->parent->get_pointer_size());
+				
+					
+				std::cout <<v_rt<<" ("<<v_cp<< ")\n";
 
 				break;
 			}
@@ -378,6 +434,7 @@ namespace Corrosive {
 		}
 	}
 
+#undef read_data_size
 #undef read_data_type
 
 	bool ILFunction :: assert_flow() {

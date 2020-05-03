@@ -9,17 +9,20 @@ namespace Corrosive {
 	class Operand {
 	public:
 		static bool parse(Cursor& c, CompileValue& res, CompileType copm_type);
-		static bool cast(Cursor& err, CompileValue& from, Type*& to, CompileType copm_type);
+		static bool cast(Cursor& err, CompileValue& from, Type*& to, CompileType copm_type, bool implicit);
 
 		template<typename T, typename S>
 		static bool parse_generate_template(Cursor& c, T* st, S*& out);
 
-		static bool priv_type_template_cast(ILEvaluator* eva , uint32_t data);
-
-		static bool priv_build_array(ILEvaluator* eval, uint32_t data);
-		static bool priv_build_reference(ILEvaluator* eval, uint32_t data);
-		static bool priv_build_push_template(ILEvaluator* eval, uint32_t data);
-		static bool priv_build_build_template(ILEvaluator* eval, uint32_t data);
+		static bool priv_type_template_cast(ILEvaluator* eva);
+		static bool priv_type_template_cast_crsr(ILEvaluator* eval, Cursor& err);
+		static bool priv_build_array(ILEvaluator* eval);
+		static bool priv_build_reference(ILEvaluator* eval);
+		static bool priv_build_slice(ILEvaluator* eval);
+		static bool priv_build_push_template(ILEvaluator* eval);
+		static bool priv_build_build_template(ILEvaluator* eval);
+		static bool priv_malloc(ILEvaluator* eval);
+		static bool priv_memcpy(ILEvaluator* eval);
 
 		static Type* template_stack[1024];
 		static uint16_t template_sp;

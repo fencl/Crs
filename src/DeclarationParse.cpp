@@ -89,7 +89,17 @@ namespace Corrosive {
 			}
 			else if (c.buffer == "fn") {
 				StructureTemplateMemberFunc member;
+
 				c.move();
+				if (c.buffer == "compile") {
+					member.context = ILContext::compile;
+					c.move();
+				}else if (c.buffer == "runtime") {
+					member.context = ILContext::runtime;
+					c.move();
+				}
+				else member.context = ILContext::both;
+
 				if (c.tok != RecognizedToken::Symbol) {
 					throw_not_a_name_error(c);
 					return false;
@@ -157,10 +167,10 @@ namespace Corrosive {
 				ft->template_parent = nullptr;
 				ft->decl_type = member.type;
 				ft->block = member.block;
+				ft->context = member.context;
 
 				ft->type = std::make_unique<TypeFunctionTemplate>();
 				ft->type->owner = ft.get();
-				ft->type->rvalue = ILDataType::type;
 
 				if (into->subfunctions.find(member.name.buffer) != into->subfunctions.end()) {
 					throw_specific_error(member.name, "Function with the same name already exists in the namespace");
@@ -244,7 +254,17 @@ namespace Corrosive {
 			}
 			else if (c.buffer == "fn") {
 				StructureTemplateMemberFunc member;
+
 				c.move();
+				if (c.buffer == "compile") {
+					member.context = ILContext::compile;
+					c.move();
+				}else if (c.buffer == "runtime") {
+					member.context = ILContext::runtime;
+					c.move();
+				}
+				else member.context = ILContext::both;
+
 				if (c.tok != RecognizedToken::Symbol) {
 					throw_not_a_name_error(c);
 					return false;
@@ -484,6 +504,7 @@ namespace Corrosive {
 		while (c.tok == RecognizedToken::Symbol) {
 			if (c.buffer == "fn") {
 				TraitTemplateMemberFunc member;
+
 				c.move();
 				if (c.tok != RecognizedToken::Symbol) {
 					throw_not_a_name_error(c);

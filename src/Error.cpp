@@ -10,7 +10,7 @@ namespace Corrosive {
 		std::cerr << "\n | Error (" << (c.top+1) << "):\n | \t";
 
 		Cursor cc = c;
-		if (cc.tok != RecognizedToken::Eof) {
+		if (cc.tok != RecognizedToken::Eof && cc.src!=nullptr) {
 			Source* src = (Source*)cc.src;
 			std::string_view data = src->data();
 			size_t from = std::min(cc.offset, data.size() - 1);
@@ -73,6 +73,18 @@ namespace Corrosive {
 		std::cerr << "' to '";
 		to->print(std::cerr);
 		std::cerr << "'";
+
+		throw_exit();
+	}
+
+
+	void throw_cannot_implicit_cast_error(const Cursor& c, Type* from, Type* to) {
+		throw_error_header(c);
+		std::cerr << "Cannot implicitly cast from '";
+		from->print(std::cerr);
+		std::cerr << "' to '";
+		to->print(std::cerr);
+		std::cerr << "'"<<std::endl << " |\tplease, use explicit cast(...) and be careful";
 
 		throw_exit();
 	}

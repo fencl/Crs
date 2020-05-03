@@ -69,8 +69,7 @@ namespace Corrosive {
 			stack_memory_compile_size[N] = std::get<3>(s);
 		}
 
-	private:
-		template<unsigned int N> static inline void stack_pop(ILEvaluator* eval) {
+		template<unsigned int N> static inline StackItem stack_pop(ILEvaluator* eval) {
 			StackItem sitm = stack[N].back();
 			stack_memory_size[N] -= sitm.value.t->size(eval);
 			stack_memory_compile_size[N] -= sitm.value.t->compile_size(eval);
@@ -82,7 +81,10 @@ namespace Corrosive {
 			}
 
 			stack[N].pop_back();
+			return sitm;
 		}
+
+	private:
 
 		static std::unordered_map<std::string_view, size_t> stack_namespace[2];
 		static std::vector<StackItem> stack[2];

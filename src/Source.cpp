@@ -6,6 +6,7 @@
 #include <string>
 #include <string_view>
 #include "Utilities.h"
+#include "CompileContext.h"
 
 namespace Corrosive {
 
@@ -13,8 +14,7 @@ namespace Corrosive {
 
 	std::string_view const Source::data() const {
 		return std::string_view(buffer);
-	}
-
+	}	
 
 	void Source::load(const char* file) {
 

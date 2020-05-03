@@ -3,6 +3,8 @@
 #define _cursor_crs_h
 #include <string_view>
 #include <memory>
+#include "IL/IL.h"
+
 namespace Corrosive {
 	enum class RecognizedToken {
 		Number, FloatNumber, DoubleNumber, UnsignedNumber, LongNumber, UnsignedLongNumber, Symbol, OpenBracket, CloseBracket, OpenBrace, CloseBrace, OpenParenthesis, CloseParenthesis, Eof, Unknown,
@@ -23,8 +25,6 @@ namespace Corrosive {
 		unsigned int top = 0;
 		unsigned int left = 0;
 		size_t offset = 0;
-
-	private:
 	};
 
 	bool operator < (const Cursor& c1, const Cursor& c2);

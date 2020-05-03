@@ -17,7 +17,7 @@ namespace Corrosive {
 	}
 
 	int TypeTraitInstance::compare(ILEvaluator* eval,  unsigned char* p1,  unsigned char* p2) {
-		return owner->compare(eval, p1, p2);
+		return memcmp(p1, p2, eval->get_compile_pointer_size() * 2);
 	}
 
 	int TypeArray::compare(ILEvaluator* eval,  unsigned char* p1,  unsigned char* p2) {
@@ -36,6 +36,14 @@ namespace Corrosive {
 		return memcmp(p1, p2, eval->get_compile_pointer_size());
 	}
 	
+	int TypeFunction::compare(ILEvaluator* eval,  unsigned char* p1,  unsigned char* p2) {
+		return memcmp(p1, p2, eval->get_compile_pointer_size());
+	}
+	
+	int TypeSlice::compare(ILEvaluator* eval,  unsigned char* p1,  unsigned char* p2) {
+		return memcmp(p1, p2, eval->get_compile_pointer_size()*2);
+	}
+	
 	int TypeTemplate::compare(ILEvaluator* eval,  unsigned char* p1,  unsigned char* p2) {
 		return memcmp(p1, p2, eval->get_compile_pointer_size());
 	}
@@ -43,6 +51,10 @@ namespace Corrosive {
 
 	void Type::move(ILEvaluator* eval,  unsigned char* src,  unsigned char* dst) {
 		std::cout << "adsf";
+	}
+
+	void Type::copy(ILEvaluator* eval, unsigned char* src, unsigned char* dst) {
+		move(eval, src,dst);
 	}
 
 
@@ -58,30 +70,117 @@ namespace Corrosive {
 	}
 
 
+	void Type::construct(ILEvaluator* eval, unsigned char* ptr) {
+
+	}
+
+	void Type::drop(ILEvaluator* eval, unsigned char* ptr) {
+
+	}
+
+
+	void TypeStructureInstance::construct(ILEvaluator* eval, unsigned char* ptr) {
+		ILBuilder::eval_fnptr(eval, owner->auto_constructor);
+		ILBuilder::eval_callstart(eval);
+		ILBuilder::eval_const_ptr(eval, ptr);
+		ILBuilder::eval_call(eval, ILDataType::none, 1);
+	}
+
+	void TypeStructureInstance::drop(ILEvaluator* eval, unsigned char* ptr) {
+		ILBuilder::eval_fnptr(eval, owner->auto_destructor);
+		ILBuilder::eval_callstart(eval);
+		ILBuilder::eval_const_ptr(eval, ptr);
+		ILBuilder::eval_call(eval, ILDataType::none, 1);
+	}
+
+	void TypeArray::copy(ILEvaluator* eval, unsigned char* src, unsigned char* dst) {
+		size_t os = owner->compile_size(eval);
+
+		for (uint64_t i = 0; i < count; i++) {
+			owner->copy(eval, src, dst);
+
+			src += os;
+			src += os;
+		}
+	}
+
 	void TypeStructureInstance::move(ILEvaluator* eval,  unsigned char* src,  unsigned char* dst) {
 		owner->move(eval, src, dst);
 	}
+	void TypeStructureInstance::copy(ILEvaluator* eval,  unsigned char* src,  unsigned char* dst) {
+		owner->copy(eval, src, dst);
+	}
 
 	void TypeTraitInstance::move(ILEvaluator* eval, unsigned char* src, unsigned char* dst) {
-		owner->move(eval, src, dst);
+		memcpy(dst, src, eval->get_compile_pointer_size() * 2);
 	}
+	
+
+
 
 	void TypeReference::move(ILEvaluator* eval,  unsigned char* src,  unsigned char* dst) {
 		memcpy(dst, src, eval->get_compile_pointer_size());
+	}
+	
+	void TypeFunction::move(ILEvaluator* eval,  unsigned char* src,  unsigned char* dst) {
+		memcpy(dst, src, eval->get_compile_pointer_size());
+	}
+	
+	void TypeSlice::move(ILEvaluator* eval,  unsigned char* src,  unsigned char* dst) {
+		memcpy(dst, src, eval->get_compile_pointer_size()*2);
 	}
 
 	void TypeTemplate::move(ILEvaluator* eval,  unsigned char* src,  unsigned char* dst) {
 		memcpy(dst, src, eval->get_compile_pointer_size());
 	}
 
+
+
 	bool Type::rvalue_stacked() {
 		return false;
 	}
 
-	bool TypeStructureInstance::rvalue_stacked() {
-		return owner->generator->rvalue_stacked;
+	
+	bool TypeSlice::rvalue_stacked() {
+		return true;
 	}
 
+	bool TypeStructureInstance::rvalue_stacked() {
+		return owner->structure_type == StructureInstanceType::normal_structure;
+	}
+	
+	ILDataType Type::rvalue() {
+		return ILDataType::none;
+	}
+
+	ILDataType TypeStructureInstance::rvalue() {
+		return owner->rvalue;
+	}
+
+
+	ILDataType TypeReference::rvalue() {
+		return ILDataType::ptr;
+	}
+
+	ILDataType TypeArray::rvalue() {
+		return ILDataType::ptr;
+	}
+
+	ILDataType TypeTraitInstance::rvalue() {
+		return ILDataType::ptr;
+	}
+
+	ILDataType TypeSlice::rvalue() {
+		return ILDataType::ptr;
+	}
+
+	ILDataType TypeFunction::rvalue() {
+		return ILDataType::ptr;
+	}
+
+	ILDataType TypeTemplate::rvalue() {
+		return ILDataType::ptr;
+	}
 
 	bool TypeTraitInstance::rvalue_stacked() {
 		return true;
@@ -91,10 +190,18 @@ namespace Corrosive {
 		if (reference == nullptr) {
 			reference = std::make_unique<TypeReference>();
 			reference->owner = this;
-			reference->rvalue = ILDataType::ptr;
 		}
 
 		return reference.get();
+	}
+	
+	TypeSlice* Type::generate_slice() {
+		if (slice == nullptr) {
+			slice = std::make_unique<TypeSlice>();
+			slice->owner = this;
+		}
+
+		return slice.get();
 	}
 
 
@@ -104,7 +211,6 @@ namespace Corrosive {
 		if (f == arrays.end()) {
 			std::unique_ptr<TypeArray> ti = std::make_unique<TypeArray>();
 			ti->owner = this;
-			ti->rvalue = ILDataType::ptr;
 			ti->count = count;
 			TypeArray* rt = ti.get();
 			arrays[count] = std::move(ti);
@@ -151,6 +257,12 @@ namespace Corrosive {
 		os << "&";
 		owner->print(os);
 	}
+
+	void TypeSlice::print(std::ostream& os) {
+		os << "[]";
+		owner->print(os);
+	}
+
 	void TypeArray::print(std::ostream& os) {
 		os << "[" << count << "]";
 		owner->print(os);
@@ -207,6 +319,13 @@ namespace Corrosive {
 	uint32_t TypeReference::alignment(ILEvaluator* eval) {
 		return eval->get_pointer_size();
 	}
+	
+	uint32_t TypeSlice::size(ILEvaluator* eval) {
+		return eval->get_pointer_size();
+	}
+	uint32_t TypeSlice::alignment(ILEvaluator* eval) {
+		return eval->get_pointer_size();
+	}
 
 	uint32_t TypeTemplate::compile_size(ILEvaluator* eval) {
 		return eval->get_compile_pointer_size();
@@ -220,6 +339,13 @@ namespace Corrosive {
 	}
 	uint32_t TypeReference::compile_alignment(ILEvaluator* eval) {
 		return eval->get_compile_pointer_size();
+	}
+
+	uint32_t TypeSlice::compile_size(ILEvaluator* eval) {
+		return eval->get_compile_pointer_size()*2;
+	}
+	uint32_t TypeSlice::compile_alignment(ILEvaluator* eval) {
+		return eval->get_compile_pointer_size()*2;
 	}
 
 	uint32_t TypeFunction::compile_size(ILEvaluator* eval) {
@@ -251,7 +377,14 @@ namespace Corrosive {
 	}
 
 	void TypeFunction::print(std::ostream& os) {
-		os << "fn(";
+		os << "fn";
+		if (ptr_context == ILContext::compile) {
+			os << " compile";
+		}
+		else if (ptr_context == ILContext::runtime) {
+			os << " runtime";
+		}
+		os << "(";
 		std::vector<Type*> args = owner->argument_array_storage.get(argument_array_id);
 		for (auto arg = args.begin(); arg != args.end(); arg++) {
 			if (arg != args.begin())
@@ -271,5 +404,19 @@ namespace Corrosive {
 			(*arg)->print(os);
 		}
 		os << ")";
+	}
+
+	ILContext Type::context() { return ILContext::compile; }
+
+	ILContext TypeFunction::context() { return ptr_context; }
+
+	ILContext TypeReference::context() { return owner->context(); }
+
+	ILContext TypeSlice::context() { return owner->context(); }
+
+	ILContext TypeArray::context() { return owner->context(); }
+
+	ILContext TypeStructureInstance::context() {
+		return owner->context;
 	}
 }

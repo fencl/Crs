@@ -51,6 +51,9 @@ namespace Corrosive {
 		uint32_t offset;
 		uint32_t compile_offset;
 	};
+	enum class StructureInstanceType {
+		primitive_structure, compact_structure, normal_structure
+	};
 
 	class StructureInstance : public Namespace {
 	public:
@@ -65,16 +68,29 @@ namespace Corrosive {
 		uint32_t size;
 		uint32_t alignment;
 
+		StructureInstanceType structure_type = StructureInstanceType::normal_structure;
+		ILDataType rvalue = ILDataType::ptr;
 
 		uint32_t compile_size;
 		uint32_t compile_alignment;
 
+		ILContext context = ILContext::both;
 		unsigned char* key;
+
+		bool has_special_constructor = false;
+		bool has_special_destructor = false;
 
 		int compare(ILEvaluator* eval, unsigned char* p1, unsigned char* p2);
 		void move(ILEvaluator* eval, unsigned char* src, unsigned char* dst);
+		void copy(ILEvaluator* eval, unsigned char* src, unsigned char* dst);
 
 		void insert_key_on_stack(ILEvaluator* eval);
+
+
+		ILFunction* auto_constructor = nullptr;
+		ILFunction* auto_destructor = nullptr;
+		void build_automatic_constructor();
+		void build_automatic_destructor();
 
 		std::unique_ptr<TypeStructureInstance> type;
 		bool compile();
@@ -92,6 +108,7 @@ namespace Corrosive {
 		Cursor annotation;
 		Cursor type;
 		Cursor block;
+		ILContext context;
 	};
 
 	struct StructureTemplateImplFunc {
@@ -138,7 +155,6 @@ namespace Corrosive {
 
 		unsigned int compile_state = 0;
 		std::vector<std::tuple<Cursor,Type*>> generic_layout;
-		bool rvalue_stacked = true;
 
 	private:
 		struct GenericTemplateCompare {
@@ -178,9 +194,6 @@ namespace Corrosive {
 		uint32_t compile_alignment;
 
 		unsigned char* key;
-
-		int compare(ILEvaluator* eval, unsigned char* p1, unsigned char* p2);
-		void move(ILEvaluator* eval, unsigned char* src, unsigned char* dst);
 
 		std::unique_ptr<TypeTraitInstance> type;
 		bool compile();
@@ -242,7 +255,8 @@ namespace Corrosive {
 		Type* type;
 
 		std::vector<std::pair<Cursor,Type*>> arguments;
-		Type* returns;
+		std::pair<Cursor, Type*> returns;
+		ILContext context = ILContext::both;
 
 		unsigned char* key;
 
@@ -262,6 +276,7 @@ namespace Corrosive {
 		Cursor decl_type;
 		Cursor block;
 
+		ILContext context = ILContext::both;
 		std::unique_ptr<TypeFunctionTemplate> type;
 
 		StructureInstance* template_parent = nullptr;

@@ -20,7 +20,9 @@ namespace Corrosive {
 		DefaultTypes*	default_types = nullptr;
 		Namespace*		inside = nullptr;
 		Namespace*		global = nullptr;
-		FunctionInstance* function = nullptr;
+		ILFunction*     function = nullptr;
+		Type*			function_returns = nullptr;
+		ILContext		scope_context = ILContext::both;
 
 		ILModule*		module = nullptr;
 		ILEvaluator*	eval = nullptr;

@@ -92,7 +92,6 @@ namespace Corrosive {
 
 			type = std::make_unique<TypeStructureTemplate>();
 			type->owner = this;
-			type->rvalue = ILDataType::ptr;
 
 			if (is_generic) {
 				Cursor c = annotation;
@@ -169,7 +168,6 @@ namespace Corrosive {
 			compile_state = 1;
 			
 			type = std::make_unique<TypeTraitTemplate>();
-			type->rvalue = ILDataType::ptr;
 			type->owner = this;
 
 			if (is_generic) {
@@ -244,6 +242,8 @@ namespace Corrosive {
 
 
 	bool StructureTemplate::generate(unsigned char* argdata, StructureInstance*& out) {
+		CompileContext& nctx = CompileContext::get();
+
 		StructureInstance* new_inst = nullptr;
 		unsigned char* new_key = nullptr;
 
@@ -265,8 +265,16 @@ namespace Corrosive {
 				out = inst.get();
 
 				std::unique_ptr<unsigned char[]> new_key_inst = std::make_unique<unsigned char[]>(generate_heap_size);
+				unsigned char* old_offset = argdata;
+				unsigned char* new_offset = new_key_inst.get();
 				new_key = new_key_inst.get();
-				memcpy(new_key, argdata, generate_heap_size);
+
+				for (auto l = generic_layout.rbegin(); l != generic_layout.rend(); l++) {
+					std::get<1>(*l)->move(nctx.eval, old_offset, new_offset);
+					uint32_t c_size = std::get<1>(*l)->compile_size(nctx.eval);
+					old_offset += c_size;
+					new_offset += c_size;
+				}
 
 				instances->emplace(new_key, std::make_pair(std::move(new_key_inst),std::move(inst)));
 
@@ -283,13 +291,13 @@ namespace Corrosive {
 			new_inst->generator = this;
 			new_inst->parent = parent;
 			new_inst->name = name;
-			new_inst->type->rvalue = ILDataType::ptr;
 			new_inst->namespace_type = NamespaceType::t_struct_instance;
 			new_inst->key = new_key;
 
 
 			CompileContext nctx = CompileContext::get();
 			nctx.inside = new_inst;
+			nctx.scope_context = ILContext::compile;
 			CompileContext::push(nctx);
 
 			for (auto&& m : member_funcs) {
@@ -298,6 +306,7 @@ namespace Corrosive {
 
 
 				std::unique_ptr<FunctionTemplate> ft = std::make_unique<FunctionTemplate>();
+				ft->context = m.context;
 				ft->name = m.name;
 				ft->annotation = m.annotation;
 				ft->is_generic = m.annotation.tok != RecognizedToken::Eof;
@@ -308,7 +317,6 @@ namespace Corrosive {
 
 				ft->type = std::make_unique<TypeFunctionTemplate>();
 				ft->type->owner = ft.get();
-				ft->type->rvalue = ILDataType::type;
 
 				if (new_inst->subfunctions.find(m.name.buffer) != new_inst->subfunctions.end()) {
 					throw_specific_error(m.name, "Funtion with the same name already exists in the structure");
@@ -466,10 +474,11 @@ namespace Corrosive {
 								return false;
 							}
 
-							ft->returns = rett;
+							ft->returns.first = err;
+							ft->returns.second = rett;
 						}
 						else {
-							ft->returns = nctx.default_types->t_void;
+							ft->returns.second = nctx.default_types->t_void;
 						}
 						
 						
@@ -478,7 +487,7 @@ namespace Corrosive {
 							argtypes.push_back(a.second);
 						}
 
-						ft->type = nctx.default_types->load_or_register_function_type(std::move(argtypes), ft->returns);
+						ft->type = nctx.default_types->load_or_register_function_type(std::move(argtypes), ft->returns.second,ft->context);
 
 						trait[f.name.buffer] = std::move(ft);
 					}
@@ -508,8 +517,23 @@ namespace Corrosive {
 				}
 
 				Type* m_t = nctx.eval->pop_register_value<Type*>();
-				if (m_t == nullptr) {
-					std::cout << "error";
+				if (m_t->context() == ILContext::compile) {
+					if (new_inst->context == ILContext::both || new_inst->context == ILContext::compile) {
+						new_inst->context = ILContext::compile;
+					}
+					else {
+						throw_specific_error(err, "Cannot use compile type in runtime-only structure");
+						return false;
+					}
+				}
+				else if (m_t->context() == ILContext::runtime || new_inst->context == ILContext::runtime) {
+					if (new_inst->context == ILContext::both) {
+						new_inst->context = ILContext::runtime;
+					}
+					else {
+						throw_specific_error(err, "Cannot use runtime type in compile-only structure");
+						return false;
+					}
 				}
 
 				new_inst->member_table[m.name.buffer] = new_inst->member_vars.size();
@@ -520,6 +544,19 @@ namespace Corrosive {
 				new_inst->member_vars.push_back(rec);
 			}
 
+			if (new_inst->context == ILContext::runtime) {
+				for (auto&& f : new_inst->subfunctions) {
+					f.second.get()->context = ILContext::runtime;
+				}
+			}
+
+			if (new_inst->context == ILContext::compile) {
+				for (auto&& f : new_inst->subfunctions) {
+					f.second.get()->context = ILContext::compile;
+				}
+			}
+
+
 			CompileContext::pop();
 			
 		}
@@ -529,6 +566,7 @@ namespace Corrosive {
 
 
 	bool TraitTemplate::generate(unsigned char* argdata, TraitInstance*& out) {
+		CompileContext& nctx = CompileContext::get();
 		TraitInstance* new_inst = nullptr;
 		unsigned char* new_key = nullptr;
 
@@ -551,7 +589,16 @@ namespace Corrosive {
 
 				std::unique_ptr<unsigned char[]> new_key_inst = std::make_unique<unsigned char[]>(generate_heap_size);
 				new_key = new_key_inst.get();
-				memcpy(new_key, argdata, generate_heap_size);
+				unsigned char* old_offset = argdata;
+				unsigned char* new_offset = new_key_inst.get();
+
+				for (auto l = generic_layout.rbegin(); l != generic_layout.rend(); l++) {
+					std::get<1>(*l)->move(nctx.eval, old_offset, new_offset);
+					uint32_t c_size = std::get<1>(*l)->compile_size(nctx.eval);
+					old_offset += c_size;
+					new_offset += c_size;
+				}
+
 
 				instances->emplace(new_key, std::make_pair(std::move(new_key_inst), std::move(inst)));
 
@@ -565,7 +612,6 @@ namespace Corrosive {
 		if (new_inst != nullptr) {
 			new_inst->type = std::make_unique<TypeTraitInstance>();
 			new_inst->type->owner = new_inst;
-			new_inst->type->rvalue = ILDataType::ptr;
 
 			new_inst->generator = this;
 			new_inst->parent = parent;
@@ -687,6 +733,7 @@ namespace Corrosive {
 			new_inst->generator = this;
 			new_inst->key = new_key;
 			new_inst->block = block;
+			new_inst->context = context;
 
 			CompileContext nctx = CompileContext::get();
 			nctx.inside = parent;
@@ -737,10 +784,11 @@ namespace Corrosive {
 					return false;
 				}
 				Type* t = nctx.eval->pop_register_value<Type*>();
-				new_inst->returns = t;
+				new_inst->returns.first = err;
+				new_inst->returns.second = t;
 			}
 			else {
-				new_inst->returns = nctx.default_types->t_void;
+				new_inst->returns.second = nctx.default_types->t_void;
 			}
 
 			std::vector<Type*> argtypes;
@@ -748,7 +796,7 @@ namespace Corrosive {
 				argtypes.push_back(a.second);
 			}
 
-			new_inst->type = nctx.default_types->load_or_register_function_type(std::move(argtypes), new_inst->returns);
+			new_inst->type = nctx.default_types->load_or_register_function_type(std::move(argtypes), new_inst->returns.second,new_inst->context);
 			new_inst->compile_state = 1;
 
 			CompileContext::pop();
@@ -763,34 +811,80 @@ namespace Corrosive {
 
 
 			func = CompileContext::get().module->create_function();
+			func->alias = generator->name.buffer;
 			ILBlock* b = func->create_and_append_block(ILDataType::none);
 			b->alias = "entry";
 
 
-			CompileContext nctx = CompileContext::get();
-			nctx.inside = generator->parent;
-			nctx.scope = b;
-			nctx.function = this;
-			CompileContext::push(nctx);
+			CompileContext cctx = CompileContext::get();
+			cctx.inside = generator->parent;
+			cctx.scope = b;
+			cctx.function = func;
+			cctx.function_returns = returns.second;
+			cctx.scope_context = context;
+
+			CompileContext::push(cctx);
+			CompileContext& nctx = CompileContext::get();
 
 			auto ss = std::move(StackManager::move_stack_out<0>());
+			bool ret_rval_stack = false;
+			uint16_t return_ptr_local_id = 0;
+
+
+			if (returns.second->rvalue_stacked()) {
+				ret_rval_stack = true;
+				return_ptr_local_id = func->register_local(returns.second->compile_size(nctx.eval), returns.second->size(nctx.eval));
+				func->returns = ILDataType::none;
+			}
+			else {
+				func->returns = returns.second->rvalue();
+			}
+
 			for (auto&& a : arguments) {
+
+				if (a.second->context()==ILContext::compile && context != ILContext::compile) {
+					Cursor err = a.first;
+					err.move();
+					err.move();
+					throw_specific_error(err, "Type is marked for compile time use only");
+					return false;
+				}
+
+				if (!a.second->compile()) return false;
+
 				CompileValue argval;
 				argval.t = a.second;
 				argval.lvalue = true;
 				uint16_t id = func->register_local(argval.t->compile_size(nctx.eval), argval.t->size(nctx.eval));
-				func->arguments.push_back(a.second->rvalue);
+				func->arguments.push_back(a.second->rvalue());
 				StackManager::stack_push<0>(nctx.eval,a.first.buffer, argval, id);
 			}
 
-			uint16_t argid = (uint16_t)(arguments.size()-1);
+			
+
+			uint16_t argid = (uint16_t)(arguments.size()-(ret_rval_stack?0:1));
 			for (auto a = arguments.rbegin(); a != arguments.rend(); a++) {
+
+				if (a->second->has_special_constructor()) {
+					ILBuilder::build_local(nctx.scope, argid);
+					a->second->build_construct();
+				}
+
 				ILBuilder::build_local(nctx.scope, argid);
-				ILBuilder::build_store(nctx.scope, a->second->rvalue);
+				a->second->build_copy();
 				argid--;
 			}
 
-			func->returns = returns->rvalue;
+			if (returns.second->rvalue_stacked()) {
+				ILBuilder::build_local(nctx.scope, return_ptr_local_id);
+				ILBuilder::build_store(nctx.scope, ILDataType::ptr);
+			}
+
+
+			if (returns.second->context() == ILContext::compile && context != ILContext::compile) {
+				throw_specific_error(returns.first, "Type is marked for compile time use only");
+				return false;
+			}
 
 			
 
@@ -800,16 +894,28 @@ namespace Corrosive {
 			if (!Statement::parse_inner_block(cb, cvres, CompileType::compile,terminated)) return false;
 
 
-			ILBlock* b_exit = func->create_and_append_block(returns->rvalue);
+			ILBlock* b_exit = func->create_and_append_block(func->returns);
 
-			ILBuilder::build_yield(nctx.scope, cvres.t->rvalue);
+			ILBuilder::build_yield(nctx.scope, func->returns);
 			ILBuilder::build_jmp(nctx.scope, b_exit);
 
-
+			nctx.scope = b_exit;
 			b_exit->alias = "entry_exit";
-			ILBuilder::build_accept(b_exit,returns->rvalue);
-			ILBuilder::build_ret(b_exit,returns->rvalue);
 
+			ILBuilder::build_accept(nctx.scope,func->returns);
+
+
+			while (StackManager::stack_state<0>() > 0) {
+				StackItem sitm = StackManager::stack_pop<0>(nctx.eval);
+
+				if (sitm.value.t->has_special_destructor()) {
+					ILBuilder::build_local(nctx.scope, sitm.id);
+					sitm.value.t->build_drop();
+				}
+			}
+
+
+			ILBuilder::build_ret(nctx.scope,func->returns);
 
 
 
@@ -899,6 +1005,51 @@ namespace Corrosive {
 		return true;
 	}
 
+	void StructureInstance::build_automatic_constructor() {
+		CompileContext& nctx_old = CompileContext::get();
+		auto_constructor = nctx_old.module->create_function();
+		CompileContext cctx = nctx_old;
+
+		ILBlock* block = auto_constructor->create_and_append_block(ILDataType::none);
+
+		cctx.inside = this;
+		cctx.scope = block;
+		cctx.function = auto_constructor;
+		cctx.function_returns = nctx_old.default_types->t_void;
+		cctx.scope_context = context;
+		CompileContext::push(cctx);
+
+		auto ss = std::move(StackManager::move_stack_out<0>());
+
+		CompileContext& nctx = CompileContext::get();
+
+
+		uint16_t self_id = auto_constructor->register_local(nctx.eval->get_compile_pointer_size(), nctx.eval->get_pointer_size());
+		ILBuilder::build_store(block,ILDataType::ptr);
+
+		for (auto&& m : member_vars) {
+			if (m.type->has_special_constructor())
+			{
+				ILBuilder::build_local(block, self_id);
+				if (m.compile_offset == m.offset) {
+					ILBuilder::build_member(block, m.offset);
+				}
+				else {
+					ILBuilder::build_member2(block,m.compile_offset,m.offset);
+				}
+
+				m.type->build_construct();
+			}
+		}
+
+		StackManager::move_stack_in<0>(ss);
+		CompileContext::pop();
+	}
+
+	void StructureInstance::build_automatic_destructor() {
+
+	}
+
 	bool StructureInstance::compile() {
 		if (compile_state == 0) {
 			compile_state = 1;
@@ -914,6 +1065,11 @@ namespace Corrosive {
 			for (auto&& m : member_vars) {
 				if (!m.type->compile()) return false;
 				
+				if (m.type->has_special_constructor())
+					has_special_constructor = true;
+
+				if (m.type->has_special_destructor())
+					has_special_destructor = true;
 
 				if (m.type->size(nctx.eval) > 0) {
 					size = _align_up(size, m.type->alignment(nctx.eval));
@@ -941,8 +1097,28 @@ namespace Corrosive {
 
 			size = _align_up(size, alignment);
 			compile_size = _align_up(compile_size, compile_alignment);
-
 			compile_state = 2;
+
+			if (size <= 8) {
+				structure_type = StructureInstanceType::compact_structure;
+
+				if (size == 1)
+					rvalue = ILDataType::u8;
+				else if (size == 2)
+					rvalue = ILDataType::u16;
+				else if (size <= 4)
+					rvalue = ILDataType::u32;
+				else if (size <= 8)
+					rvalue = ILDataType::u64;
+			}
+			else {
+				structure_type = StructureInstanceType::normal_structure;
+			}
+
+			if (has_special_constructor)
+				build_automatic_constructor();
+			if (has_special_destructor)
+				build_automatic_destructor();
 		}
 		else if (compile_state == 2) {
 			return true;
@@ -971,7 +1147,7 @@ namespace Corrosive {
 
 			StackManager::stack_push<1>(eval, std::get<0>(*key_l).buffer, res,0);
 
-			res.t->move(eval, key_ptr, data_place); // TODO! there will be copy
+			res.t->copy(eval, key_ptr, data_place);
 
 			key_ptr += res.t->compile_size(eval);
 		}
@@ -997,7 +1173,7 @@ namespace Corrosive {
 			
 			StackManager::stack_push<1>(eval,std::get<0>(*key_l).buffer, res,0);
 
-			res.t->move(eval, key_ptr, data_place); // TODO! there will be copy
+			res.t->copy(eval, key_ptr, data_place);
 
 			key_ptr += res.t->compile_size(eval);
 		}

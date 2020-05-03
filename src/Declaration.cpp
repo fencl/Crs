@@ -58,17 +58,6 @@ namespace Corrosive {
 		}
 	}
 
-	int TraitInstance::compare(ILEvaluator* eval, unsigned char* p1, unsigned char* p2) {
-		//TODO test for specific compare function
-		return memcmp(p1, p2, eval->get_compile_pointer_size()*2);
-	}
-
-
-
-	void TraitInstance::move(ILEvaluator* eval, unsigned char* src, unsigned char* dst) {
-		//TODO test for specific move function
-		memcpy(dst, src, eval->get_compile_pointer_size() * 2);
-	}
 
 	int StructureInstance::compare(ILEvaluator* eval, unsigned char* p1, unsigned char* p2) {
 		//TODO test for specific compare function
@@ -109,6 +98,23 @@ namespace Corrosive {
 		}
 	}
 
+
+	void StructureInstance::copy(ILEvaluator* eval, unsigned char* src, unsigned char* dst) {
+		//TODO test for specific move function
+
+		if (member_vars.size() == 0) {
+			memcpy(dst, src, compile_size);
+		}
+		else {
+			for (auto&& m : member_vars) {
+				m.type->copy(eval, src, dst);
+
+				size_t ms = m.type->compile_size(eval);
+				src += ms;
+				dst += ms;
+			}
+		}
+	}
 
 	bool StructureTemplate::GenericTemplateCompare::operator()(unsigned char* const& a, unsigned char* const& b) const {
 		unsigned char* loff = a;

@@ -67,22 +67,35 @@ namespace Corrosive {
 		Type* t_ptr;
 		Type* t_type;
 		Type* t_void;
+		Type* t_size;
+
+		Cursor debug_info;
+
+		static bool priv_debug_cursor(ILEvaluator* eval_ctx);
+
+		Type* primitives [256];
+
+		Type* get_type_from_rvalue(ILDataType rval);
 
 		idset<Cursor> debug_cursor_storage;
 		idset<std::vector<Type*>> argument_array_storage;
-		std::map<std::pair<size_t,Type*>, std::unique_ptr<TypeFunction>> function_types_storage;
+		std::map<std::tuple<size_t,Type*,ILContext>, std::unique_ptr<TypeFunction>> function_types_storage;
 		std::map<size_t, std::unique_ptr<TypeTemplate>> template_types_storage;
 
 
 		size_t load_or_register_argument_array(std::vector<Type*> arg_array);
 		size_t load_or_register_debug_cursor(Cursor c);
 
-		TypeFunction* load_or_register_function_type(std::vector<Type*> arg_array, Type* return_type);
+		TypeFunction* load_or_register_function_type(std::vector<Type*> arg_array, Type* return_type, ILContext ctx);
 		TypeTemplate* load_or_register_template_type(std::vector<Type*> arg_array);
+
+		ILFunction* f_slice;
+		FunctionTemplate* f_malloc;
+
 
 		void setup(CompileContext& ctx);
 	private:
-		void setup_type(CompileContext& ctx, std::string_view name, Type*& into, uint32_t runtime_size, uint32_t runtime_alignment, uint32_t compile_size, uint32_t compile_alignment, ILDataType ildt);
+		void setup_type(CompileContext& ctx, std::string_view name, Type*& into, uint32_t runtime_size, uint32_t runtime_alignment, uint32_t compile_size, uint32_t compile_alignment, ILDataType ildt,ILContext runtime);
 	};
 }
 
