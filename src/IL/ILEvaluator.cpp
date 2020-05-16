@@ -477,6 +477,12 @@ namespace Corrosive {
 		return eval_ctx->parent->insintric_function[(unsigned char)fun](eval_ctx);
 	}
 
+	bool ILBuilder::eval_vtable(ILEvaluator* eval_ctx, uint32_t id) {
+		eval_ctx->write_register_value(eval_ctx->parent->vtable_data[id].get());
+		return true;
+	}
+
+
 #define read_data_type(T) ((T*)block->read_data(sizeof(T),mempool,memoff))
 #define read_data_size(S) (block->read_data((S),mempool,memoff))
 	bool ILBuilder::eval_call(ILEvaluator* eval_ctx, ILDataType rett, uint16_t argc) {
@@ -513,6 +519,10 @@ namespace Corrosive {
 					case ILInstruction::fnptr: {
 						auto id = read_data_type(uint32_t);
 						eval_ctx->write_register_value(eval_ctx->parent->functions[*id].get());
+					} break;
+					case ILInstruction::vtable: {
+						auto id = read_data_type(uint32_t);
+						if (!eval_vtable(eval_ctx, *id)) return false;
 					} break;
 					case ILInstruction::insintric: {
 						auto id = read_data_type(uint8_t);

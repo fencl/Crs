@@ -333,6 +333,8 @@ namespace Corrosive {
 				new_inst->subtemplates[decl->name.buffer] = std::move(decl);
 			}
 
+
+
 			for (auto&& m : member_implementation) {
 				Cursor c = m.type;
 				CompileValue value;
@@ -365,28 +367,32 @@ namespace Corrosive {
 					return false;
 				}
 				else {
-					std::map<std::string_view, std::unique_ptr<FunctionInstance>> trait;
+					std::vector<std::unique_ptr<FunctionInstance>> trait(tt->owner->member_funcs.size());
+
 					unsigned int func_count = 0;
 					for (auto&& f : m.functions) {
 
 						std::unique_ptr<FunctionInstance> ft = std::make_unique<FunctionInstance>();
+						ft->compile_state = 0;
 						ft->key = nullptr;
 						ft->block = f.block;
+						ft->name = f.name;
+						ft->generator = (Namespace*)this;
 
-						if (trait.find(f.name.buffer) != trait.end()) {
+						auto ttid = tt->owner->member_table.find(f.name.buffer);
+
+						if (ttid == tt->owner->member_table.end()) {
+							throw_specific_error(f.name, "Implemented trait has no function with this name");
+							return false;
+						}
+						else if (trait[ttid->second]!=nullptr) {
 							throw_specific_error(f.name, "Funtion with the same name already exists in the implementation");
 							return false;
 						}
 
-						auto fundecl_id = tt->owner->member_table.find(f.name.buffer);
-						if (fundecl_id == tt->owner->member_table.end()) {
-							throw_specific_error(f.name, "Implemented trait has no function with this name");
-							return false;
-						}
 
 						func_count += 1;
-
-						auto& fundecl = tt->owner->member_funcs[fundecl_id->second];
+						auto& fundecl = tt->owner->member_funcs[ttid->second];
 
 						Cursor c = f.type;
 						c.move();
@@ -488,12 +494,13 @@ namespace Corrosive {
 						}
 
 						ft->type = nctx.default_types->load_or_register_function_type(std::move(argtypes), ft->returns.second,ft->context);
+						ft->compile_state = 1;
+						trait[ttid->second] = std::move(ft);
 
-						trait[f.name.buffer] = std::move(ft);
 					}
 
 					if (func_count != tt->owner->member_funcs.size()) {
-						throw_specific_error(m.type,"Trait implementation is missing some functions");
+						throw_specific_error(m.type, "Trait implementation is missing some functions");
 						return false;
 					}
 
@@ -627,7 +634,7 @@ namespace Corrosive {
 
 
 				TraitInstanceMemberRecord member;
-
+				member.name = m.name;
 				member.definition = m.type;
 				Cursor c = member.definition;
 
@@ -730,9 +737,10 @@ namespace Corrosive {
 
 		if (new_inst != nullptr) {
 			new_inst->compile_state = 0;
-			new_inst->generator = this;
+			new_inst->generator = parent;
 			new_inst->key = new_key;
 			new_inst->block = block;
+			new_inst->name = name;
 			new_inst->context = context;
 
 			CompileContext nctx = CompileContext::get();
@@ -805,19 +813,19 @@ namespace Corrosive {
 		return true;
 	}
 
-	bool FunctionInstance::compile(Cursor err) {
+	bool FunctionInstance::compile() {
 		if (compile_state == 1) {
 			compile_state = 2;
 
 
 			func = CompileContext::get().module->create_function();
-			func->alias = generator->name.buffer;
+			func->alias = name.buffer;
 			ILBlock* b = func->create_and_append_block(ILDataType::none);
 			b->alias = "entry";
 
 
 			CompileContext cctx = CompileContext::get();
-			cctx.inside = generator->parent;
+			cctx.inside = generator;
 			cctx.scope = b;
 			cctx.function = func;
 			cctx.function_returns = returns.second;
@@ -934,11 +942,11 @@ namespace Corrosive {
 			return true;
 		}
 		else if (compile_state == 2) {
-			throw_specific_error(generator->name, "Build cycle");
+			throw_specific_error(name, "Build cycle");
 			return false;
 		}
 		else if (compile_state == 0) {
-			throw_specific_error(err, "Build cycle");
+			throw_specific_error(name, "Build cycle");
 			return false;
 		}
 
@@ -974,9 +982,8 @@ namespace Corrosive {
 				size = _align_up(size, nctx.default_types->t_ptr->alignment(nctx.eval));
 				compile_size = _align_up(compile_size, nctx.default_types->t_ptr->compile_alignment(nctx.eval));
 
-				m.offset = size;
-				m.compile_offset = compile_size;
-
+				//m.offset = size;
+				//m.compile_offset = compile_size;
 
 				size += nctx.default_types->t_ptr->size(nctx.eval);
 				compile_size += nctx.default_types->t_ptr->compile_size(nctx.eval);
@@ -1031,12 +1038,7 @@ namespace Corrosive {
 			if (m.type->has_special_constructor())
 			{
 				ILBuilder::build_local(block, self_id);
-				if (m.compile_offset == m.offset) {
-					ILBuilder::build_member(block, m.offset);
-				}
-				else {
-					ILBuilder::build_member2(block,m.compile_offset,m.offset);
-				}
+				ILBuilder::build_member(block, m.compile_offset, m.offset);
 
 				m.type->build_construct();
 			}
@@ -1178,5 +1180,27 @@ namespace Corrosive {
 			key_ptr += res.t->compile_size(eval);
 		}
 
+	}
+
+
+	bool TraitInstance::generate_vtable(StructureInstance* forinst, uint32_t& optid) {
+		if (!forinst->compile()) return false;
+
+		std::unique_ptr<void* []> vtable = std::make_unique<void* []>(member_funcs.size());
+
+		auto& f_table = forinst->traitfunctions[this];
+		size_t id = 0;
+		for (auto&& m_func : member_funcs) {
+			FunctionInstance* finst = f_table[id].get();
+			if (!finst->compile()) return false;
+			vtable[id] = finst->func;
+		}
+
+		void** vt = vtable.get();
+		CompileContext& nctx = CompileContext::get();
+		uint32_t vtid = nctx.module->register_vtable(std::move(vtable));
+		vtable_instances[forinst] = vtid;
+		optid = vtid;
+		return true;
 	}
 }

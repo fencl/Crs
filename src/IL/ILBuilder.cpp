@@ -96,8 +96,13 @@ namespace Corrosive {
 		return true;
 	}
 
-	bool ILBuilder::build_member2(ILBlock* block, uint16_t compile_offset, uint16_t offset) {
-		if (offset > 0) {
+	bool ILBuilder::build_member(ILBlock* block, uint16_t compile_offset, uint16_t offset) {
+		if (compile_offset == offset) {
+			if (offset > 0) {
+				block->write_instruction(ILInstruction::member);
+				block->write_value(sizeof(uint16_t), (unsigned char*)&offset);
+			}
+		}else if (offset > 0 || compile_offset>0) {
 			block->write_instruction(ILInstruction::member2);
 			block->write_value(sizeof(uint16_t), (unsigned char*)&offset);
 			block->write_value(sizeof(uint16_t), (unsigned char*)&compile_offset);
@@ -105,34 +110,27 @@ namespace Corrosive {
 		return true;
 	}
 
-	bool ILBuilder::build_member(ILBlock* block, uint16_t offset) {
-		if (offset > 0) {
-			block->write_instruction(ILInstruction::member);
-			block->write_value(sizeof(uint16_t), (unsigned char*)&offset);
+	bool ILBuilder::build_rmember(ILBlock* block, ILDataType from, ILDataType to, uint8_t compile_offset, uint8_t offset) {
+		if (offset == compile_offset) {
+			if (offset > 0) {
+				block->write_instruction(ILInstruction::rmember);
+				block->write_const_type(from);
+				block->write_const_type(to);
+				block->write_value(sizeof(uint8_t), (unsigned char*)&offset);
+			}
+		}
+		else {
+			if (offset > 0 || compile_offset>0) {
+				block->write_instruction(ILInstruction::rmember2);
+				block->write_const_type(from);
+				block->write_const_type(to);
+				block->write_value(sizeof(uint8_t), (unsigned char*)&offset);
+				block->write_value(sizeof(uint8_t), (unsigned char*)&compile_offset);
+			}
 		}
 		return true;
 	}
 
-	bool ILBuilder::build_rmember2(ILBlock* block, ILDataType from, ILDataType to, uint8_t compile_offset, uint8_t offset) {
-		if (offset > 0) {
-			block->write_instruction(ILInstruction::rmember2);
-			block->write_const_type(from);
-			block->write_const_type(to);
-			block->write_value(sizeof(uint8_t), (unsigned char*)&offset);
-			block->write_value(sizeof(uint8_t), (unsigned char*)&compile_offset);
-		}
-		return true;
-	}
-
-	bool ILBuilder::build_rmember(ILBlock* block, ILDataType from, ILDataType to, uint8_t offset) {
-		if (offset > 0) {
-			block->write_instruction(ILInstruction::rmember);
-			block->write_const_type(from);
-			block->write_const_type(to);
-			block->write_value(sizeof(uint8_t), (unsigned char*)&offset);
-		}
-		return true;
-	}
 
 
 	bool ILBuilder::build_store(ILBlock* block, ILDataType type) {
@@ -145,6 +143,12 @@ namespace Corrosive {
 	bool ILBuilder::build_local(ILBlock* block, uint16_t id) {
 		block->write_instruction(ILInstruction::local);
 		block->write_value(sizeof(uint16_t), (unsigned char*)&id);
+		return true;
+	}
+
+	bool ILBuilder::build_vtable(ILBlock* block, uint32_t id) {
+		block->write_instruction(ILInstruction::vtable);
+		block->write_value(sizeof(uint32_t), (unsigned char*)&id);
 		return true;
 	}
 

@@ -125,6 +125,83 @@ namespace Corrosive {
 				return true;
 			}
 		}
+		else if (res.t->type() == TypeInstanceType::type_reference && to->type() == TypeInstanceType::type_trait) {
+			TypeReference* tr = (TypeReference*)res.t;
+			TypeTraitInstance* tt = (TypeTraitInstance*)to;
+
+			if (tr->owner->type() == TypeInstanceType::type_structure_instance) {
+				TypeStructureInstance* ts = (TypeStructureInstance*)tr->owner;
+				if (!ts->compile()) return false;
+
+				auto tti = ts->owner->traitfunctions.find(tt->owner);
+				if (tti == ts->owner->traitfunctions.end()) {
+					throw_cannot_cast_error(err, res.t, to);
+					std::cerr << " |\trequested trait is not implemented in the structure\n";
+					return false;
+				}
+
+				if (!tt->compile()) return false;
+
+				uint32_t vtableid = 0;
+				auto vtbl = tt->owner->vtable_instances.find(ts->owner);
+				if (vtbl == tt->owner->vtable_instances.end()) {
+					tt->owner->generate_vtable(ts->owner, vtableid);
+				}
+				else {
+					vtableid = vtbl->second;
+				}
+
+				if (cpt == CompileType::eval) {
+
+					
+					if (to->rvalue_stacked()) {
+						CompileValue val;
+						val.t = to;
+						val.lvalue = false;
+						unsigned char* memory_place = nctx.eval->stack_reserve(to->compile_size(nctx.eval));
+						StackItem local_stack_item = StackManager::stack_push<1>(nctx.eval, "$tmp", val, 0);
+
+						ILBuilder::eval_local(nctx.eval, local_stack_item.local_compile_offset);
+						ILBuilder::eval_store(nctx.eval, ILDataType::ptr);
+
+						ILBuilder::eval_vtable(nctx.eval, vtableid);
+						ILBuilder::eval_local(nctx.eval, local_stack_item.local_compile_offset + nctx.eval->get_compile_pointer_size());
+						ILBuilder::eval_store(nctx.eval, ILDataType::ptr);
+					}
+					else {
+						ILBuilder::eval_vtable(nctx.eval, vtableid); // there is two pointers on register stack, if i read 2x pointer size register it will read the right value
+					}
+
+				}
+				else {
+					if (to->rvalue_stacked()) {
+						CompileValue val;
+						val.t = to;
+						val.lvalue = false;
+						uint32_t local_id = nctx.function->register_local(to->compile_size(nctx.eval), to->size(nctx.eval));
+						StackItem local_stack_item = StackManager::stack_push<0>(nctx.eval, "$tmp", val, local_id);
+						
+						ILBuilder::build_local(nctx.scope, local_id);
+						ILBuilder::build_store(nctx.scope, ILDataType::ptr);
+
+						ILBuilder::build_vtable(nctx.scope, vtableid);
+						ILBuilder::build_local(nctx.scope, local_id);
+						ILBuilder::build_member(nctx.scope, nctx.eval->get_compile_pointer_size(), nctx.eval->get_pointer_size());
+						ILBuilder::build_store(nctx.scope, ILDataType::ptr);
+					}
+					else {
+						std::cout << "???"; // two pointers require 128 int on x64, not yet implemented
+					}
+				}
+
+				res.t = to;
+				return true;
+			}
+			else {
+				throw_cannot_cast_error(err, res.t, to);
+				return false;
+			}
+		}
 		else if (res.t->type() == TypeInstanceType::type_reference && to->type() == TypeInstanceType::type_reference) {
 			if (res.t != to && implicit) {
 				throw_cannot_implicit_cast_error(err, res.t, to);
@@ -353,7 +430,7 @@ namespace Corrosive {
 			if (!func_inst->is_generic) {
 				FunctionInstance* inst;
 				if (!func_inst->generate(nullptr, inst)) return false;
-				if (!inst->compile(nm_err)) return false;
+				if (!inst->compile()) return false;
 
 				func = inst;
 				return true;
@@ -367,7 +444,7 @@ namespace Corrosive {
 				c.move();
 
 				if (!parse_generate_template(c, func_inst, inst)) return false;
-				if (!inst->compile(nm_err)) return false;
+				if (!inst->compile()) return false;
 
 				func = inst;
 				return true;
@@ -648,7 +725,7 @@ namespace Corrosive {
 					if (!func_inst->is_generic) {
 						FunctionInstance* inst;
 						if (!func_inst->generate(nullptr, inst)) return false;
-						if (!inst->compile(nm_err)) return false;
+						if (!inst->compile()) return false;
 
 						if (cpt == CompileType::eval) {
 							if (!ILBuilder::eval_fnptr(nctx.eval, inst->func)) return false;
@@ -1113,7 +1190,7 @@ namespace Corrosive {
 				else if (dt->type() == TypeInstanceType::type_function_template) {
 					FunctionInstance* inst;
 					if (!parse_generate_template(c, ((TypeFunctionTemplate*)dt)->owner, inst)) return false;
-					if (!inst->compile(nm_err)) return false;
+					if (!inst->compile()) return false;
 
 					ILBuilder::eval_fnptr(nctx.eval, inst->func);
 
@@ -1489,23 +1566,11 @@ namespace Corrosive {
 					uint32_t runtime_poniter = nctx.eval->get_pointer_size();
 
 					if (ret.t->rvalue_stacked()) {
-						if (compile_pointer != runtime_poniter)
-						{
-							ILBuilder::build_member2(nctx.scope, compile_pointer, runtime_poniter);
-						}
-						else {
-							ILBuilder::build_member(nctx.scope, compile_pointer);
-						}
+						ILBuilder::build_member(nctx.scope, compile_pointer, runtime_poniter);
 						ILBuilder::build_load(nctx.scope, ILDataType::size);
 					}
 					else {
-						if (compile_pointer != runtime_poniter)
-						{
-							ILBuilder::build_rmember2(nctx.scope,ret.t->rvalue(),ILDataType::size, (uint8_t)compile_pointer, (uint8_t)runtime_poniter);
-						}
-						else {
-							ILBuilder::build_rmember(nctx.scope, ret.t->rvalue(), ILDataType::size, (uint8_t)compile_pointer);
-						}
+						ILBuilder::build_rmember(nctx.scope, ret.t->rvalue(), ILDataType::size, (uint8_t)compile_pointer, (uint8_t)runtime_poniter);
 					}
 
 					if (c.buffer == "size") {
@@ -1784,12 +1849,7 @@ namespace Corrosive {
 
 				if (!ret.lvalue || ret.t->rvalue_stacked()) {
 					if (cpt == CompileType::compile) {
-						if (compile_offset == offset) {
-							ILBuilder::build_member(nctx.scope, offset);
-						}
-						else {
-							ILBuilder::build_member2(nctx.scope, compile_offset, offset);
-						}
+						ILBuilder::build_member(nctx.scope, compile_offset, offset);
 					}
 					else if (cpt == CompileType::eval) {
 						ILBuilder::eval_member(nctx.eval, compile_offset);
@@ -1798,12 +1858,7 @@ namespace Corrosive {
 				}
 				else {
 					if (cpt == CompileType::compile) {
-						if (compile_offset == offset) {
-							ILBuilder::build_rmember(nctx.scope,ret.t->rvalue(), mem_type->rvalue(), (uint8_t)offset);
-						}
-						else {
-							ILBuilder::build_rmember2(nctx.scope, ret.t->rvalue(), mem_type->rvalue(), (uint8_t)compile_offset, (uint8_t)offset);
-						}
+						ILBuilder::build_rmember(nctx.scope, ret.t->rvalue(), mem_type->rvalue(), (uint8_t)compile_offset, (uint8_t)offset);
 					}
 					else if (cpt == CompileType::eval) {
 						ILBuilder::eval_rmember(nctx.eval, ret.t->rvalue(), mem_type->rvalue(), (uint8_t)compile_offset);

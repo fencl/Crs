@@ -61,7 +61,7 @@ namespace Corrosive {
 
 		std::vector<StructureInstanceMemberRecord> member_vars;
 
-		std::map<TraitInstance*, std::map<std::string_view, std::unique_ptr<FunctionInstance>>> traitfunctions;
+		std::map<TraitInstance*, std::vector<std::unique_ptr<FunctionInstance>>> traitfunctions;
 
 		StructureTemplate* generator;
 
@@ -171,17 +171,23 @@ namespace Corrosive {
 
 	struct TraitInstanceMemberRecord {
 		Cursor definition;
+		Cursor name;
+
 		Type* return_type;
 		std::vector<Type*> arg_types;
 
-		uint32_t offset;
-		uint32_t compile_offset;
+		//uint32_t offset;
+		//uint32_t compile_offset;
 	};
 
 	class TraitInstance  {
 	public:
 		std::map<std::string_view, size_t> member_table;
 		std::vector<TraitInstanceMemberRecord> member_funcs;
+
+		std::map<StructureInstance*, uint32_t> vtable_instances;
+
+		bool generate_vtable(StructureInstance* forinst, uint32_t& optid);
 
 		Cursor name;
 		Namespace* parent = nullptr;
@@ -248,9 +254,10 @@ namespace Corrosive {
 	class FunctionInstance {
 	public:
 		ILFunction* func = nullptr;
-		FunctionTemplate* generator;
+		Namespace* parent;
 
 		Cursor block;
+		Cursor name;
 
 		Type* type;
 
@@ -260,7 +267,7 @@ namespace Corrosive {
 
 		unsigned char* key;
 
-		bool compile(Cursor err);
+		bool compile();
 
 		unsigned int compile_state = 0;
 

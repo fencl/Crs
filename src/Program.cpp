@@ -66,15 +66,13 @@ namespace Corrosive {
 				auto f_r = sfcs.find("equals");
 				if (f_r != sfcs.end()) {
 					FunctionInstance* finst;
-					Cursor cerr;
-					if (f_r->second->generate(nullptr, finst)) finst->compile(cerr);
+					if (f_r->second->generate(nullptr, finst)) finst->compile();
 				}
 
 				f_r = sfcs.find("equals2");
 				if (f_r != sfcs.end()) {
 					FunctionInstance* finst;
-					Cursor cerr;
-					if (f_r->second->generate(nullptr, finst)) finst->compile(cerr);
+					if (f_r->second->generate(nullptr, finst)) finst->compile();
 				}
 			
 			}

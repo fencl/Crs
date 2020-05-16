@@ -24,7 +24,7 @@ namespace Corrosive {
 	};
 
 	enum class ILInstruction : unsigned char {
-		value, add, sub, div, mul, rem, bit_and, bit_or, bit_xor, load, store, accept, discard, yield, ret, jmp, jmpz, eq, ne, gt, ge, lt, le, local, member, forget, member2, fnptr, call, start, insintric, size, cast, rmember, rmember2, offset,offset2
+		value, add, sub, div, mul, rem, bit_and, bit_or, bit_xor, load, store, accept, discard, yield, ret, jmp, jmpz, eq, ne, gt, ge, lt, le, local, member, forget, member2, fnptr, call, start, insintric, size, cast, rmember, rmember2, offset,offset2, vtable
 	};
 
 	enum class ILDataType : unsigned char {
@@ -166,6 +166,9 @@ namespace Corrosive {
 	class ILModule {
 	public:
 		std::vector<std::unique_ptr<ILFunction>> functions;
+		std::vector<std::unique_ptr<void*[]>> vtable_data;
+
+		uint32_t register_vtable(std::unique_ptr<void* []> table);
 
 		bool (*insintric_function[256])(ILEvaluator*);
 		std::string insintric_function_name[256];
@@ -215,6 +218,8 @@ namespace Corrosive {
 		static bool eval_load(ILEvaluator* eval_ctx, ILDataType type);
 		static bool eval_store(ILEvaluator* eval_ctx, ILDataType type);
 
+		static bool eval_vtable(ILEvaluator* eval_ctx, uint32_t id);
+
 		static bool eval_local(ILEvaluator* eval_ctx, uint32_t offset);
 		static bool eval_member(ILEvaluator* eval_ctx, uint16_t offset);
 		static bool eval_rmember(ILEvaluator* eval_ctx, ILDataType src, ILDataType dst, uint8_t offset);
@@ -248,14 +253,14 @@ namespace Corrosive {
 		static bool build_add(ILBlock* block, ILDataType tl, ILDataType tr);
 		static bool build_load(ILBlock* block, ILDataType type);
 		static bool build_store(ILBlock* block, ILDataType type);
-		static bool build_member2(ILBlock* block, uint16_t compile_offset, uint16_t offset);
+		static bool build_member(ILBlock* block, uint16_t compile_offset, uint16_t offset);
 		static bool build_offset(ILBlock* block,uint16_t multiplier);
 		static bool build_offset2(ILBlock* block,uint16_t compile_multiplier,uint16_t multiplier);
 
-		static bool build_rmember(ILBlock* block, ILDataType src, ILDataType dst, uint8_t offset);
-		static bool build_rmember2(ILBlock* block, ILDataType src, ILDataType dst, uint8_t compile_offset, uint8_t offset);
+		static bool build_rmember(ILBlock* block, ILDataType src, ILDataType dst, uint8_t compile_offset, uint8_t offset);
 		static bool build_local(ILBlock* block, uint16_t id);
-		static bool build_member(ILBlock* block, uint16_t offset);
+
+		static bool build_vtable(ILBlock* block, uint32_t id);
 
 		static bool build_and(ILBlock* block, ILDataType tl, ILDataType tr);
 		static bool build_or(ILBlock* block, ILDataType tl, ILDataType tr);
