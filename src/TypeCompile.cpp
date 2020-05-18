@@ -28,10 +28,6 @@ namespace Corrosive {
 		return owner->compile();
 	}
 
-	bool TypeTraitInstance::compile() {
-		return owner->compile();
-	}
-
 	bool TypeArray::compile() {
 		return owner->compile();
 	}

@@ -125,82 +125,96 @@ namespace Corrosive {
 				return true;
 			}
 		}
-		else if (res.t->type() == TypeInstanceType::type_reference && to->type() == TypeInstanceType::type_trait) {
-			TypeReference* tr = (TypeReference*)res.t;
+		else if ((res.t->type() == TypeInstanceType::type_reference || (res.t->type() == TypeInstanceType::type_structure_instance && res.lvalue)) && to->type() == TypeInstanceType::type_trait) {
+			
 			TypeTraitInstance* tt = (TypeTraitInstance*)to;
 
-			if (tr->owner->type() == TypeInstanceType::type_structure_instance) {
-				TypeStructureInstance* ts = (TypeStructureInstance*)tr->owner;
-				if (!ts->compile()) return false;
-
-				auto tti = ts->owner->traitfunctions.find(tt->owner);
-				if (tti == ts->owner->traitfunctions.end()) {
+			TypeStructureInstance* ts = nullptr;
+			if (res.t->type() == TypeInstanceType::type_reference) {
+				TypeReference* tr = (TypeReference*)res.t;
+				if (tr->owner->type() == TypeInstanceType::type_structure_instance) {
+					ts = (TypeStructureInstance*)tr->owner;
+				}
+				else {
 					throw_cannot_cast_error(err, res.t, to);
-					std::cerr << " |\trequested trait is not implemented in the structure\n";
 					return false;
 				}
-
-				if (!tt->compile()) return false;
-
-				uint32_t vtableid = 0;
-				auto vtbl = tt->owner->vtable_instances.find(ts->owner);
-				if (vtbl == tt->owner->vtable_instances.end()) {
-					tt->owner->generate_vtable(ts->owner, vtableid);
-				}
-				else {
-					vtableid = vtbl->second;
-				}
-
-				if (cpt == CompileType::eval) {
-
-					
-					if (to->rvalue_stacked()) {
-						CompileValue val;
-						val.t = to;
-						val.lvalue = false;
-						unsigned char* memory_place = nctx.eval->stack_reserve(to->compile_size(nctx.eval));
-						StackItem local_stack_item = StackManager::stack_push<1>(nctx.eval, "$tmp", val, 0);
-
-						ILBuilder::eval_local(nctx.eval, local_stack_item.local_compile_offset);
-						ILBuilder::eval_store(nctx.eval, ILDataType::ptr);
-
-						ILBuilder::eval_vtable(nctx.eval, vtableid);
-						ILBuilder::eval_local(nctx.eval, local_stack_item.local_compile_offset + nctx.eval->get_compile_pointer_size());
-						ILBuilder::eval_store(nctx.eval, ILDataType::ptr);
-					}
-					else {
-						ILBuilder::eval_vtable(nctx.eval, vtableid); // there is two pointers on register stack, if i read 2x pointer size register it will read the right value
-					}
-
-				}
-				else {
-					if (to->rvalue_stacked()) {
-						CompileValue val;
-						val.t = to;
-						val.lvalue = false;
-						uint32_t local_id = nctx.function->register_local(to->compile_size(nctx.eval), to->size(nctx.eval));
-						StackItem local_stack_item = StackManager::stack_push<0>(nctx.eval, "$tmp", val, local_id);
-						
-						ILBuilder::build_local(nctx.scope, local_id);
-						ILBuilder::build_store(nctx.scope, ILDataType::ptr);
-
-						ILBuilder::build_vtable(nctx.scope, vtableid);
-						ILBuilder::build_local(nctx.scope, local_id);
-						ILBuilder::build_member(nctx.scope, nctx.eval->get_compile_pointer_size(), nctx.eval->get_pointer_size());
-						ILBuilder::build_store(nctx.scope, ILDataType::ptr);
-					}
-					else {
-						std::cout << "???"; // two pointers require 128 int on x64, not yet implemented
-					}
-				}
-
-				res.t = to;
-				return true;
 			}
 			else {
+				ts = (TypeStructureInstance*)res.t;
+			}
+
+			
+			if (!ts->compile()) return false;
+
+			auto tti = ts->owner->traitfunctions.find(tt->owner);
+			if (tti == ts->owner->traitfunctions.end()) {
 				throw_cannot_cast_error(err, res.t, to);
+				std::cerr << " |\trequested trait is not implemented in the structure\n";
 				return false;
 			}
+
+			if (!tt->compile()) return false;
+
+			uint32_t vtableid = 0;
+			auto vtbl = tt->owner->vtable_instances.find(ts->owner);
+			if (vtbl == tt->owner->vtable_instances.end()) {
+				tt->owner->generate_vtable(ts->owner, vtableid);
+			}
+			else {
+				vtableid = vtbl->second;
+			}
+
+			if (cpt == CompileType::eval) {
+
+				
+				if (to->rvalue_stacked()) {
+					CompileValue val;
+					val.t = to;
+					val.lvalue = false;
+					unsigned char* memory_place = nctx.eval->stack_reserve(to->compile_size(nctx.eval));
+					StackItem local_stack_item = StackManager::stack_push<1>(nctx.eval, "$tmp", val, 0);
+
+					ILBuilder::eval_local(nctx.eval, local_stack_item.local_compile_offset);
+					ILBuilder::eval_store(nctx.eval, ILDataType::ptr);
+
+					ILBuilder::eval_vtable(nctx.eval, vtableid);
+					ILBuilder::eval_local(nctx.eval, local_stack_item.local_compile_offset + nctx.eval->get_compile_pointer_size());
+					ILBuilder::eval_store(nctx.eval, ILDataType::ptr);
+
+					ILBuilder::eval_local(nctx.eval, local_stack_item.local_compile_offset);
+				}
+				else {
+					ILBuilder::eval_vtable(nctx.eval, vtableid); // there is two pointers on register stack, if i read 2x pointer size register it will read the right value
+				}
+
+			}
+			else {
+				if (to->rvalue_stacked()) {
+					CompileValue val;
+					val.t = to;
+					val.lvalue = false;
+					uint32_t local_id = nctx.function->register_local(to->compile_size(nctx.eval), to->size(nctx.eval));
+					StackItem local_stack_item = StackManager::stack_push<0>(nctx.eval, "$tmp", val, local_id);
+					
+					ILBuilder::build_local(nctx.scope, local_id);
+					ILBuilder::build_store(nctx.scope, ILDataType::ptr);
+
+					ILBuilder::build_vtable(nctx.scope, vtableid);
+					ILBuilder::build_local(nctx.scope, local_id);
+					ILBuilder::build_member(nctx.scope, nctx.eval->get_compile_pointer_size(), nctx.eval->get_pointer_size());
+					ILBuilder::build_store(nctx.scope, ILDataType::ptr);
+
+					ILBuilder::build_local(nctx.scope, local_id);
+				}
+				else {
+					std::cout << "???"; // two pointers require 128 int on x64, not yet implemented
+				}
+			}
+
+			res.t = to;
+			return true;
+			
 		}
 		else if (res.t->type() == TypeInstanceType::type_reference && to->type() == TypeInstanceType::type_reference) {
 			if (res.t != to && implicit) {
@@ -209,6 +223,23 @@ namespace Corrosive {
 			}
 
 			res.t = to;
+			return true;
+		}
+		else if (res.t->type() == TypeInstanceType::type_structure_instance && to->type() == TypeInstanceType::type_reference) {
+			TypeReference* tr = (TypeReference*)to;
+			if (tr->owner != res.t) {
+				throw_cannot_cast_error(err, res.t, to);
+				return false;
+			}
+
+			if (!res.lvalue) {
+				throw_cannot_cast_error(err, res.t, to);
+				std::cerr << " |\tType was not lvalue\n";
+				return false;
+			}
+
+			res.t = to;
+			res.lvalue = false;
 			return true;
 		}
 		else if (res.t != to) {
@@ -223,6 +254,8 @@ namespace Corrosive {
 
 	bool Operand::parse(Cursor& c, CompileValue& res, CompileType cpt) {
 		CompileValue ret;
+
+		CompileContext& nctx = CompileContext::get();
 
 		ret.lvalue = false;
 		ret.t = nullptr;
@@ -256,7 +289,6 @@ namespace Corrosive {
 
 			case RecognizedToken::Symbol: {
 				if (c.buffer == "cast") {
-					CompileContext& nctx = CompileContext::get();
 					c.move();
 					if (c.tok != RecognizedToken::OpenParenthesis) {
 						throw_wrong_token_error(c, "'('");
@@ -318,6 +350,37 @@ namespace Corrosive {
 
 		while (true) {
 			switch (c.tok) {
+				case RecognizedToken::Symbol: {
+					if (c.buffer == "cast") {
+						if (!Expression::rvalue(ret, cpt)) return false;
+
+						c.move();
+						if (c.tok != RecognizedToken::OpenParenthesis) {
+							throw_wrong_token_error(c, "'('");
+							return false;
+						}
+						c.move();
+
+						Cursor err = c;
+
+						CompileValue t_res;
+						if (!Expression::parse(c, t_res, CompileType::eval)) return false;
+						if (t_res.t != nctx.default_types->t_type) {
+							throw_specific_error(err, "Expected type");
+							return false;
+						}
+						Type* to = nctx.eval->pop_register_value<Type*>();
+
+						if (c.tok != RecognizedToken::CloseParenthesis) {
+							throw_wrong_token_error(c, "')'");
+							return false;
+						}
+						c.move();
+
+						if (!Operand::cast(err, ret, to, cpt, false)) return false;
+					}
+					else goto break_while;
+				}break;
 				case RecognizedToken::OpenParenthesis: {
 					if (!parse_call_operator(ret, c, cpt)) return false;
 				}break;
@@ -350,7 +413,14 @@ namespace Corrosive {
 		StructureTemplate* struct_inst = nullptr;
 		FunctionTemplate* func_inst = nullptr;
 		TraitTemplate* trait_inst = nullptr;
+		
+		CompileContext new_ctx = CompileContext::get();
+		new_ctx.scope_context = ILContext::compile;
+		CompileContext::push(new_ctx);
 		CompileContext& nctx = CompileContext::get();
+
+		
+
 
 		Cursor err = c;
 		nctx.inside->find_name(c.buffer, namespace_inst, struct_inst, func_inst, trait_inst);
@@ -383,6 +453,8 @@ namespace Corrosive {
 			if (struct_inst->is_generic) {
 				if (c.tok != RecognizedToken::OpenParenthesis) {
 					type = struct_inst->type.get();
+
+					CompileContext::pop();
 					return true;
 				}
 				c.move();
@@ -394,6 +466,8 @@ namespace Corrosive {
 			}
 
 			if (c.tok != RecognizedToken::DoubleColon) {
+
+				CompileContext::pop();
 				type = inst->type.get();
 				return true;
 			}
@@ -433,12 +507,16 @@ namespace Corrosive {
 				if (!inst->compile()) return false;
 
 				func = inst;
+
+				CompileContext::pop();
 				return true;
 			}
 			else {
 				FunctionInstance* inst;
 				if (c.tok != RecognizedToken::OpenParenthesis) {
 					type = func_inst->type.get();
+
+					CompileContext::pop();
 					return true;
 				}
 				c.move();
@@ -446,6 +524,7 @@ namespace Corrosive {
 				if (!parse_generate_template(c, func_inst, inst)) return false;
 				if (!inst->compile()) return false;
 
+				CompileContext::pop();
 				func = inst;
 				return true;
 			}
@@ -456,6 +535,7 @@ namespace Corrosive {
 			return false;
 		}
 
+		CompileContext::pop();
 		return true;
 	}
 
@@ -1558,7 +1638,7 @@ namespace Corrosive {
 		CompileContext& nctx = CompileContext::get();
 		if (ret.t->type() == TypeInstanceType::type_slice) {
 			c.move();
-			if (c.buffer == "count" || c.buffer=="size") {
+			if (c.buffer == "count" || c.buffer == "size") {
 				if (!Expression::rvalue(ret, cpt)) return false;
 
 				uint32_t compile_pointer = nctx.eval->get_compile_pointer_size();
@@ -1577,7 +1657,7 @@ namespace Corrosive {
 						TypeSlice* st = (TypeSlice*)ret.t;
 						Type* bt = st->owner;
 
-						ILBuilder::build_const_size(nctx.scope,bt->compile_size(nctx.eval),bt->size(nctx.eval));
+						ILBuilder::build_const_size(nctx.scope, bt->compile_size(nctx.eval), bt->size(nctx.eval));
 						ILBuilder::build_mul(nctx.scope, ILDataType::size, ILDataType::size);
 					}
 				}
@@ -1587,7 +1667,7 @@ namespace Corrosive {
 						ILBuilder::eval_load(nctx.eval, ILDataType::size);
 					}
 					else {
-						ILBuilder::eval_rmember(nctx.eval,ret.t->rvalue(),ILDataType::size, (uint8_t)compile_pointer);
+						ILBuilder::eval_rmember(nctx.eval, ret.t->rvalue(), ILDataType::size, (uint8_t)compile_pointer);
 					}
 
 					if (c.buffer == "size") {
@@ -1611,7 +1691,7 @@ namespace Corrosive {
 					throw_wrong_token_error(c, "'('");
 					return false;
 				}
-				c.move(); 
+				c.move();
 
 				uint16_t local_tmp_id = 0;
 				uint32_t compile_pointer = nctx.eval->get_compile_pointer_size();
@@ -1631,7 +1711,7 @@ namespace Corrosive {
 				Cursor err = c;
 				if (!Expression::parse(c, arg, cpt)) return false;
 				if (!Operand::cast(err, arg, nctx.default_types->t_size, cpt, true)) return false;
-				
+
 				if (c.tok != RecognizedToken::Comma) {
 					throw_wrong_token_error(c, "','");
 					return false;
@@ -1696,7 +1776,8 @@ namespace Corrosive {
 				throw_specific_error(c, "Indentifier not recognized as a value of slice");
 				return false;
 			}
-		}else if (ret.t->type() == TypeInstanceType::type_template || ret.t == nctx.default_types->t_type) {
+		}
+		else if (ret.t->type() == TypeInstanceType::type_template || ret.t == nctx.default_types->t_type) {
 			c.move();
 			if (cpt != CompileType::compile) {
 				throw_specific_error(c, "Please use compile time operators for compile time type manipulation");
@@ -1799,6 +1880,97 @@ namespace Corrosive {
 
 			ret.lvalue = false;
 			ret.t = nctx.default_types->t_type;
+		}
+		else if (ret.t->type() == TypeInstanceType::type_trait) {
+			c.move(); 
+			
+			TypeTraitInstance* tti = (TypeTraitInstance*)ret.t;
+			TraitInstance* ti = tti->owner;
+
+
+			auto off_f = ti->member_table.find(c.buffer);
+			if (off_f == ti->member_table.end()) {
+				throw_specific_error(c, "Trait function not found");
+				return false;
+			}
+			uint32_t off = (uint32_t)off_f->second;
+			auto& mf = ti->member_funcs[off];
+
+			if (!Expression::rvalue(ret, cpt)) return false;
+			c.move();
+			if (c.tok == RecognizedToken::OpenParenthesis) {
+				if (cpt == CompileType::compile) {
+					if (ret.t->rvalue_stacked()) {
+						ILBuilder::build_copy(nctx.scope, ILDataType::ptr, 2);
+						ILBuilder::build_member(nctx.scope, nctx.eval->get_compile_pointer_size(), nctx.eval->get_pointer_size());
+						ILBuilder::build_load(nctx.scope, ILDataType::ptr);
+						ILBuilder::build_member(nctx.scope, off * nctx.eval->get_compile_pointer_size(), off * nctx.eval->get_pointer_size());
+						ILBuilder::build_load(nctx.scope, ILDataType::ptr);
+						ILBuilder::build_callstart(nctx.scope);
+
+						ILBuilder::build_load(nctx.scope, ILDataType::ptr);
+						// todo run the function
+					}
+					else {
+						std::cout << "???"; // not invented yet
+					}
+				}
+				else {
+					if (ret.t->rvalue_stacked()) {	
+						ILBuilder::eval_copy(nctx.eval, ILDataType::ptr, 2);
+						ILBuilder::eval_load(nctx.eval, ILDataType::ptr);
+						ILBuilder::eval_member(nctx.eval, nctx.eval->get_compile_pointer_size());
+						ILBuilder::eval_load(nctx.eval, ILDataType::ptr);
+						ILBuilder::eval_member(nctx.eval, off* nctx.eval->get_compile_pointer_size());
+						ILBuilder::eval_load(nctx.eval, ILDataType::ptr);
+						ILBuilder::eval_callstart(nctx.eval);
+						ILBuilder::eval_load(nctx.eval, ILDataType::ptr);
+					}
+					else {
+						std::cout << "???"; // not invented yet
+					}
+				}
+
+				c.move();
+				unsigned int argi = 1;
+				_crs_read_arguments(c, argi, mf.type, cpt);
+				c.move();
+
+				if (cpt == CompileType::compile) {
+					ILBuilder::build_call(nctx.scope, mf.type->return_type->rvalue(), argi);
+				}
+				else {
+					ILBuilder::eval_call(nctx.eval, mf.type->return_type->rvalue(), argi);
+				}
+
+				ret.lvalue = false;
+				ret.t = mf.type->return_type;
+			}
+			else {
+				if (cpt == CompileType::compile) {
+					if (ret.t->rvalue_stacked()) {
+						ILBuilder::build_member(nctx.scope, nctx.eval->get_compile_pointer_size(), nctx.eval->get_pointer_size());
+						ILBuilder::build_load(nctx.scope, ILDataType::ptr);
+						ILBuilder::build_member(nctx.scope, off * nctx.eval->get_compile_pointer_size(), off * nctx.eval->get_pointer_size());
+					}
+					else {
+						std::cout << "???"; // not invented yet
+					}
+				}
+				else {
+					if (ret.t->rvalue_stacked()) {
+						ILBuilder::eval_member(nctx.eval, nctx.eval->get_compile_pointer_size());
+						ILBuilder::eval_load(nctx.eval, ILDataType::ptr);
+						ILBuilder::eval_member(nctx.eval, off * nctx.eval->get_compile_pointer_size());
+					}
+					else {
+						std::cout << "???"; // not invented yet
+					}
+				}
+				
+				ret.lvalue = true;
+				ret.t = mf.type;
+			}
 		}
 		else {
 

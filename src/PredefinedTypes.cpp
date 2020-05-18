@@ -89,7 +89,7 @@ namespace Corrosive {
 		f_malloc_template->is_generic = false;
 		f_malloc_template->parent = ctx.global;
 		f_malloc_template->singe_instance = std::make_unique<FunctionInstance>();
-		f_malloc_template->singe_instance->generator = ctx.global;
+		f_malloc_template->singe_instance->parent = ctx.global;
 		f_malloc_template->singe_instance->returns.second = t_u8->generate_slice();
 		Cursor arg;
 		arg.buffer = "size";

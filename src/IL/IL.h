@@ -24,7 +24,7 @@ namespace Corrosive {
 	};
 
 	enum class ILInstruction : unsigned char {
-		value, add, sub, div, mul, rem, bit_and, bit_or, bit_xor, load, store, accept, discard, yield, ret, jmp, jmpz, eq, ne, gt, ge, lt, le, local, member, forget, member2, fnptr, call, start, insintric, size, cast, rmember, rmember2, offset,offset2, vtable
+		value, add, sub, div, mul, rem, bit_and, bit_or, bit_xor, load, store, accept, discard, yield, ret, jmp, jmpz, eq, ne, gt, ge, lt, le, local, member, forget, member2, fnptr, call, start, insintric, size, cast, rmember, rmember2, offset,offset2, vtable, copy
 	};
 
 	enum class ILDataType : unsigned char {
@@ -248,6 +248,11 @@ namespace Corrosive {
 
 		static bool eval_callstart(ILEvaluator* eval_ctx);
 		static bool eval_call(ILEvaluator* eval_ctx, ILDataType rett, uint16_t argc);
+
+		static bool eval_copy(ILEvaluator* eval_ctx, ILDataType type, uint16_t multiplier);
+
+
+		static bool build_copy(ILBlock* block, ILDataType type, uint16_t multiplier);
 
 		static ILDataType arith_result(ILDataType l,ILDataType r);
 		static bool build_add(ILBlock* block, ILDataType tl, ILDataType tr);

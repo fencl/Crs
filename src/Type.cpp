@@ -114,6 +114,10 @@ namespace Corrosive {
 	void TypeTraitInstance::move(ILEvaluator* eval, unsigned char* src, unsigned char* dst) {
 		memcpy(dst, src, eval->get_compile_pointer_size() * 2);
 	}
+
+	void TypeTraitInstance::copy(ILEvaluator* eval, unsigned char* src, unsigned char* dst) {
+		memcpy(dst, src, eval->get_compile_pointer_size() * 2);
+	}
 	
 
 
@@ -300,17 +304,17 @@ namespace Corrosive {
 	}
 
 	uint32_t TypeTraitInstance::size(ILEvaluator* eval) {
-		return owner->size;
+		return eval->get_pointer_size() * 2;
 	}
 	uint32_t TypeTraitInstance::alignment(ILEvaluator* eval) {
-		return owner->alignment;
+		return eval->get_pointer_size();
 	}
 
 	uint32_t TypeTraitInstance::compile_size(ILEvaluator* eval) {
-		return owner->compile_size;
+		return eval->get_compile_pointer_size() * 2;
 	}
 	uint32_t TypeTraitInstance::compile_alignment(ILEvaluator* eval) {
-		return owner->compile_alignment;
+		return eval->get_compile_pointer_size();
 	}
 
 	uint32_t TypeReference::size(ILEvaluator* eval) {
@@ -415,6 +419,8 @@ namespace Corrosive {
 	ILContext TypeSlice::context() { return owner->context(); }
 
 	ILContext TypeArray::context() { return owner->context(); }
+
+	ILContext TypeTraitInstance::context() { return owner->context; }
 
 	ILContext TypeStructureInstance::context() {
 		return owner->context;

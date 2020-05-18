@@ -460,6 +460,17 @@ namespace Corrosive {
 		return true;
 	}
 
+	bool ILBuilder::eval_copy(ILEvaluator* eval_ctx, ILDataType type, uint16_t multiplier) {
+		ilsize_t storage;
+		size_t reg_s = eval_ctx->compile_time_register_size(type);
+		eval_ctx->pop_register_value_indirect(reg_s, &storage);
+
+		for (uint16_t i = 0; i < multiplier; i++) {
+			eval_ctx->write_register_value_indirect(reg_s, &storage);
+		}
+		return true;
+	}
+
 	bool ILBuilder::eval_fnptr(ILEvaluator* eval_ctx, ILFunction* fun) {
 		eval_ctx->write_register_value(fun);
 		return true;
@@ -498,12 +509,15 @@ namespace Corrosive {
 		eval_ctx->memory_stack_base_pointer = eval_ctx->memory_stack_pointer;
 		eval_ctx->memory_stack_pointer += fun->compile_time_stack;
 
+		size_t instr = 0;
+
 		while (true) {
 			std::list<std::unique_ptr<ILBlockData>>::iterator mempool = block->data_pool.begin();
 			size_t memoff = 0;
 			while (mempool != block->data_pool.end()) {
 
 				auto inst = read_data_type(ILInstruction);
+				instr++;
 
 				switch (*inst) {
 					case ILInstruction::ret: {
@@ -523,6 +537,11 @@ namespace Corrosive {
 					case ILInstruction::vtable: {
 						auto id = read_data_type(uint32_t);
 						if (!eval_vtable(eval_ctx, *id)) return false;
+					} break;
+					case ILInstruction::copy: {
+						auto type = read_data_type(ILDataType);
+						auto mult = read_data_type(uint16_t);
+						if (!eval_copy(eval_ctx, *type,*mult)) return false;
 					} break;
 					case ILInstruction::insintric: {
 						auto id = read_data_type(uint8_t);

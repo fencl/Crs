@@ -59,11 +59,13 @@ namespace Corrosive {
 
 		ctx.default_types->setup(ctx);
 
+		ILFunction* ilf = nullptr;
+
 		if (Declaration::parse_global(c, gn.get())) {
 			if (gn->subtemplates["B"]->compile()) {
 				auto& sfcs = gn->subtemplates["I"]->singe_instance->subfunctions;
 
-				auto f_r = sfcs.find("equals");
+				/*auto f_r = sfcs.find("equals");
 				if (f_r != sfcs.end()) {
 					FunctionInstance* finst;
 					if (f_r->second->generate(nullptr, finst)) finst->compile();
@@ -73,10 +75,31 @@ namespace Corrosive {
 				if (f_r != sfcs.end()) {
 					FunctionInstance* finst;
 					if (f_r->second->generate(nullptr, finst)) finst->compile();
-				}
+				}*/
 			
+				auto f_r = sfcs.find("main");
+				if (f_r != sfcs.end()) {
+					FunctionInstance* finst;
+					if (f_r->second->generate(nullptr, finst)) {
+						if (finst->compile()) {
+							ilf = finst->func;
+						}
+					}
+				}
+				else {
+					std::cerr << "main not found\n";
+				}
 			}
 		}
+
+		if (ilf != nullptr) {
+			ILBuilder::eval_fnptr(ctx.eval, ilf);
+			ILBuilder::eval_callstart(ctx.eval);
+			ILBuilder::eval_call(ctx.eval, ILDataType::u64, 0);
+			uint64_t ret_val = ctx.eval->pop_register_value<uint64_t>();
+			std::cout << "\n\n========= TEST =========\ntest result was: " << ret_val << "\n\n";
+		}
+
 
 		CompileContext::pop();
 

@@ -56,7 +56,7 @@ namespace Corrosive {
 
 	uint32_t ILModule::register_vtable(std::unique_ptr<void* []> table) {
 		vtable_data.push_back(std::move(table));
-		return vtable_data.size() - 1;
+		return (uint32_t)vtable_data.size() - 1;
 	}
 
 	void ILFunction::append_block(ILBlock* block) {
@@ -212,6 +212,13 @@ namespace Corrosive {
 				std::cout << "   vtable ";
 				auto ind = read_data_type(uint32_t);
 				std::cout << *ind << "\n";
+			} break;
+			case ILInstruction::copy: {
+				std::cout << "   copy ";
+				auto type = read_data_type(ILDataType);
+				auto mult = read_data_type(uint16_t);
+				dump_data_type(*type);
+				std::cout <<" "<< *mult << "\n";
 			} break;
 			case ILInstruction::insintric: {
 				std::cout << "   insintric \"";

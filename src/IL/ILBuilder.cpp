@@ -158,6 +158,14 @@ namespace Corrosive {
 		block->write_value(sizeof(uint8_t), (unsigned char*)&fun);
 		return true;
 	}
+
+
+	bool ILBuilder::build_copy(ILBlock* block, ILDataType type, uint16_t multiplier) {
+		block->write_instruction(ILInstruction::copy);
+		block->write_const_type(type);
+		block->write_value(sizeof(uint16_t), (unsigned char*)&multiplier);
+		return true;
+	}
 	
 	bool ILBuilder::build_offset(ILBlock* block,uint16_t multiplier) {
 		block->write_instruction(ILInstruction::offset);

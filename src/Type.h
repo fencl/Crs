@@ -132,9 +132,10 @@ namespace Corrosive {
 
 		inline virtual TypeInstanceType type() { return TypeInstanceType::type_trait; }
 
-		virtual bool compile();
+		virtual ILContext context();
 		virtual int compare(ILEvaluator* eval, unsigned char* p1, unsigned char* p2);
 		virtual void move(ILEvaluator* eval, unsigned char* src, unsigned char* dst);
+		virtual void copy(ILEvaluator* eval, unsigned char* src, unsigned char* dst);
 		virtual uint32_t size(ILEvaluator* eval);
 		virtual uint32_t alignment(ILEvaluator* eval);
 		virtual uint32_t compile_size(ILEvaluator* eval);

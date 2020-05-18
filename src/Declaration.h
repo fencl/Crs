@@ -173,8 +173,7 @@ namespace Corrosive {
 		Cursor definition;
 		Cursor name;
 
-		Type* return_type;
-		std::vector<Type*> arg_types;
+		TypeFunction* type;
 
 		//uint32_t offset;
 		//uint32_t compile_offset;
@@ -192,21 +191,15 @@ namespace Corrosive {
 		Cursor name;
 		Namespace* parent = nullptr;
 
-		TraitTemplate* generator;
+		ILContext context = ILContext::both;
 
-		uint32_t size;
-		uint32_t alignment;
-		uint32_t compile_size;
-		uint32_t compile_alignment;
+		TraitTemplate* generator;
 
 		unsigned char* key;
 
 		std::unique_ptr<TypeTraitInstance> type;
-		bool compile();
 
 		void insert_key_on_stack(ILEvaluator* eval);
-
-		unsigned int compile_state = 0;
 	};
 
 	struct TraitTemplateMemberFunc {

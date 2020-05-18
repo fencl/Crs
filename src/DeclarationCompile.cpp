@@ -377,7 +377,7 @@ namespace Corrosive {
 						ft->key = nullptr;
 						ft->block = f.block;
 						ft->name = f.name;
-						ft->generator = (Namespace*)this;
+						ft->parent = (Namespace*)this;
 
 						auto ttid = tt->owner->member_table.find(f.name.buffer);
 
@@ -393,6 +393,8 @@ namespace Corrosive {
 
 						func_count += 1;
 						auto& fundecl = tt->owner->member_funcs[ttid->second];
+
+						auto& args = nctx.default_types->argument_array_storage.get(fundecl.type->argument_array_id);
 
 						Cursor c = f.type;
 						c.move();
@@ -428,12 +430,12 @@ namespace Corrosive {
 									ft->arguments.push_back(std::make_pair(name,argt));
 								}
 								else {
-									if (ft->arguments.size()-1 >= fundecl.arg_types.size()) {
+									if (ft->arguments.size()-1 >= args.size()) {
 										throw_specific_error(err, "There are more arguments than in the original trait function");
 										return false;
 									}
 
-									Type* req_type = fundecl.arg_types[ft->arguments.size() - 1];
+									Type* req_type = args[ft->arguments.size() - 1];
 									if (argt != req_type) {
 										throw_specific_error(err, "Argument does not match the type of the original trait function");
 										return false;
@@ -455,7 +457,7 @@ namespace Corrosive {
 							}
 						}
 
-						if (ft->arguments.size() != fundecl.arg_types.size() + 1) {
+						if (ft->arguments.size() != args.size() + 1) {
 							throw_specific_error(c, "Trait function declaration lacks arguments from the original");
 							return false;
 						}
@@ -472,7 +474,7 @@ namespace Corrosive {
 							}
 							Type* rett = nctx.eval->pop_register_value<Type*>();
 
-							Type* req_type = fundecl.return_type;
+							Type* req_type = fundecl.type->return_type;
 							if (rett != req_type) {
 								throw_specific_error(err, "Return type does not match the type of the original trait function");
 								std::cerr << " |\tRequired type was: "; req_type->print(std::cerr);
@@ -638,6 +640,9 @@ namespace Corrosive {
 				member.definition = m.type;
 				Cursor c = member.definition;
 
+				std::vector<Type*> args;
+				Type* ret_type;
+
 				if (c.tok != RecognizedToken::OpenParenthesis) {
 					throw_wrong_token_error(c, "'('");
 					return false;
@@ -656,7 +661,7 @@ namespace Corrosive {
 							return false;
 						}
 						Type* t = nctx.eval->pop_register_value<Type*>();
-						member.arg_types.push_back(t);
+						args.push_back(t);
 						if (c.tok == RecognizedToken::Comma) {
 							c.move();
 						}
@@ -672,7 +677,7 @@ namespace Corrosive {
 				c.move();
 
 				if (c.tok == RecognizedToken::Semicolon) {
-					member.return_type = nctx.default_types->t_void;
+					ret_type = nctx.default_types->t_void;
 				}
 				else {
 					Cursor err = c;
@@ -684,11 +689,11 @@ namespace Corrosive {
 						return false;
 					}
 					Type* t = nctx.eval->pop_register_value<Type*>();
-					member.return_type = t;
+					ret_type = t;
 				}
 
 
-
+				member.type = nctx.default_types->load_or_register_function_type(std::move(args), ret_type, ILContext::both);
 				
 				new_inst->member_table[m.name.buffer] = new_inst->member_funcs.size();
 				new_inst->member_funcs.push_back(std::move(member));
@@ -737,7 +742,7 @@ namespace Corrosive {
 
 		if (new_inst != nullptr) {
 			new_inst->compile_state = 0;
-			new_inst->generator = parent;
+			new_inst->parent = parent;
 			new_inst->key = new_key;
 			new_inst->block = block;
 			new_inst->name = name;
@@ -820,12 +825,13 @@ namespace Corrosive {
 
 			func = CompileContext::get().module->create_function();
 			func->alias = name.buffer;
+
 			ILBlock* b = func->create_and_append_block(ILDataType::none);
 			b->alias = "entry";
 
 
 			CompileContext cctx = CompileContext::get();
-			cctx.inside = generator;
+			cctx.inside = parent;
 			cctx.scope = b;
 			cctx.function = func;
 			cctx.function_returns = returns.second;
@@ -899,7 +905,7 @@ namespace Corrosive {
 			Cursor cb = block;
 			CompileValue cvres;
 			bool terminated;
-			if (!Statement::parse_inner_block(cb, cvres, CompileType::compile,terminated)) return false;
+			if (!Statement::parse_inner_block(cb, cvres, terminated)) return false;
 
 
 			ILBlock* b_exit = func->create_and_append_block(func->returns);
@@ -927,8 +933,8 @@ namespace Corrosive {
 
 
 
-			func->dump();
-			std::cout << std::endl;
+			//func->dump();
+			//std::cout << std::endl;
 
 			if (!func->assert_flow()) return false;
 
@@ -960,57 +966,6 @@ namespace Corrosive {
 		return alignment == 0 ? value : ((value % alignment == 0) ? value : value + (alignment - (value % alignment)));
 	}
 
-	bool TraitInstance::compile() {
-		if (compile_state == 0) {
-			compile_state = 1;
-
-			/*auto ss = std::move(StackManager::move_stack_out<1>());
-			auto sp = ctx.eval->stack_push();
-
-			insert_key_on_stack(ctx);*/
-
-			alignment = 0;
-			size = 0;
-
-			compile_alignment = 0;
-			compile_size = 0;
-
-			CompileContext& nctx = CompileContext::get();
-
-
-			for (auto&& m : member_funcs) {
-				size = _align_up(size, nctx.default_types->t_ptr->alignment(nctx.eval));
-				compile_size = _align_up(compile_size, nctx.default_types->t_ptr->compile_alignment(nctx.eval));
-
-				//m.offset = size;
-				//m.compile_offset = compile_size;
-
-				size += nctx.default_types->t_ptr->size(nctx.eval);
-				compile_size += nctx.default_types->t_ptr->compile_size(nctx.eval);
-
-				alignment = std::max(alignment, nctx.default_types->t_ptr->alignment(nctx.eval));
-				compile_alignment = std::max(compile_alignment, nctx.default_types->t_ptr->compile_alignment(nctx.eval));
-
-			}
-
-			size = _align_up(size, alignment);
-			compile_size = _align_up(compile_size, compile_alignment);
-
-			//ctx.eval->stack_pop(sp);
-			//StackManager::move_stack_in<1>(std::move(ss));
-
-			compile_state = 2;
-		}
-		else if (compile_state == 2) {
-			return true;
-		}
-		else {
-			throw_specific_error(generator->name, "Build cycle");
-			return false;
-		}
-
-		return true;
-	}
 
 	void StructureInstance::build_automatic_constructor() {
 		CompileContext& nctx_old = CompileContext::get();
