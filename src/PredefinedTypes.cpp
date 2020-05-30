@@ -11,7 +11,7 @@ namespace Corrosive {
 		return true;
 	}
 
-	void DefaultTypes::setup_type(CompileContext& ctx,std::string_view name,Type*& into, uint32_t runtime_size, uint32_t runtime_alignment, uint32_t compile_size, uint32_t compile_alignment,ILDataType ildt,ILContext context) {
+	void DefaultTypes::setup_type(CompileContext& ctx,std::string_view name,Type*& into, ILSize size, ILSize alignment,ILDataType ildt,ILContext context) {
 		std::unique_ptr<StructureTemplate> s = std::make_unique<StructureTemplate>();
 		Cursor c;
 		c.buffer = name;
@@ -27,10 +27,8 @@ namespace Corrosive {
 		sinst->compile();
 
 		sinst->context = context;
-		sinst->size = runtime_size;
-		sinst->alignment = runtime_alignment;
-		sinst->compile_size = compile_size;
-		sinst->compile_alignment = compile_alignment;
+		sinst->size = size;
+		sinst->alignment = alignment;
 		sinst->rvalue = ildt;
 		sinst->structure_type = StructureInstanceType::primitive_structure;
 
@@ -45,31 +43,22 @@ namespace Corrosive {
 	}
 
 	void DefaultTypes::setup(CompileContext& ctx) {
-		setup_type(ctx, "void", t_void, 0,0,0,0, ILDataType::none, ILContext::both);
-		setup_type(ctx, "i8", t_i8, 1,1,1,1, ILDataType::i8, ILContext::both);
-		setup_type(ctx, "bool", t_bool, 1, 1, 1, 1, ILDataType::ibool, ILContext::both);
-		setup_type(ctx, "i16", t_i16, 2, 2,2, 2, ILDataType::i16, ILContext::both);
-		setup_type(ctx, "i32", t_i32, 4, 4,4, 4, ILDataType::i32, ILContext::both);
-		setup_type(ctx, "u8",  t_u8, 1, 1,1, 1, ILDataType::u8, ILContext::both);
-		setup_type(ctx, "u16", t_u16, 2, 2,2, 2, ILDataType::u16, ILContext::both);
-		setup_type(ctx, "u32", t_u32, 4, 4,4, 4, ILDataType::u32, ILContext::both);
-		setup_type(ctx, "f32", t_f32, 4, 4, sizeof(float), alignof(float), ILDataType::f32, ILContext::both);
-		setup_type(ctx, "f64", t_f64, 8, 8, sizeof(double), alignof(double), ILDataType::f64, ILContext::both);
+		setup_type(ctx, "void", t_void, { 0,0 }, { 0, 0 }, ILDataType::none, ILContext::both);
+		setup_type(ctx, "i8", t_i8, { 1,0 }, { 1, 0 }, ILDataType::i8, ILContext::both);
+		setup_type(ctx, "bool", t_bool, { 1,0 }, { 1, 0 }, ILDataType::ibool, ILContext::both);
+		setup_type(ctx, "i16", t_i16, { 2,0 }, { 2, 0 }, ILDataType::i16, ILContext::both);
+		setup_type(ctx, "i32", t_i32, { 4,0 }, { 4, 0 }, ILDataType::i32, ILContext::both);
+		setup_type(ctx, "u8",  t_u8, { 1,0 }, { 1, 0 }, ILDataType::u8, ILContext::both);
+		setup_type(ctx, "u16", t_u16, { 2,0 }, { 2, 0 }, ILDataType::u16, ILContext::both);
+		setup_type(ctx, "u32", t_u32, { 4,0 }, { 4, 0 }, ILDataType::u32, ILContext::both);
+		setup_type(ctx, "f32", t_f32, { 4,0 }, { 4, 0 }, ILDataType::f32, ILContext::both);
 
-		if (ctx.module->architecture == ILArchitecture::i386) {
-			setup_type(ctx, "i64", t_i64, 8, 4, 8, alignof(int64_t), ILDataType::i64, ILContext::both);
-			setup_type(ctx, "u64", t_u64, 8, 4, 8, alignof(uint64_t), ILDataType::u64, ILContext::both);
-			setup_type(ctx, "ptr", t_ptr, 4, 4,sizeof(void*),alignof(void*), ILDataType::ptr, ILContext::both);
-			setup_type(ctx, "size", t_size, 4, 4,sizeof(size_t),alignof(size_t), ILDataType::size, ILContext::both);
-			setup_type(ctx, "type", t_type, sizeof(void*), alignof(void*), sizeof(void*), alignof(void*), ILDataType::ptr, ILContext::compile);
-		}
-		else if (ctx.module->architecture == ILArchitecture::x86_64) {
-			setup_type(ctx, "i64", t_i64, 8, 8, 8, alignof(int64_t), ILDataType::i64, ILContext::both);
-			setup_type(ctx, "u64", t_u64, 8, 8, 8, alignof(uint64_t), ILDataType::u64, ILContext::both);
-			setup_type(ctx, "ptr", t_ptr, 8, 8, sizeof(void*), alignof(void*), ILDataType::ptr, ILContext::both);
-			setup_type(ctx, "size", t_size, 8, 8, sizeof(size_t), alignof(size_t), ILDataType::size, ILContext::both);
-			setup_type(ctx, "type", t_type, sizeof(void*), alignof(void*), sizeof(void*), alignof(void*), ILDataType::ptr, ILContext::compile);
-		}
+		setup_type(ctx, "f64", t_f64, { 8,0 }, { 0, 1 }, ILDataType::f64, ILContext::both);
+		setup_type(ctx, "i64", t_i64, { 8,0 }, { 0, 1 }, ILDataType::i64, ILContext::both);
+		setup_type(ctx, "u64", t_u64, { 8,0 }, { 0, 1 }, ILDataType::u64, ILContext::both);
+		setup_type(ctx, "ptr", t_ptr, { 0,1 }, { 0, 1 }, ILDataType::ptr, ILContext::both);
+		setup_type(ctx, "size", t_size, { 0,1 }, { 0, 1 }, ILDataType::size, ILContext::both);
+		setup_type(ctx, "type", t_type, { 0,1 }, { 0, 1 }, ILDataType::ptr, ILContext::compile);
 
 		primitives[(unsigned char)ILDataType::ibool] = t_bool;
 		primitives[(unsigned char)ILDataType::u8] = t_u8;

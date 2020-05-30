@@ -8,142 +8,159 @@
 namespace Corrosive {
 
 
-	int Type::compare(ILEvaluator* eval,  unsigned char* p1,  unsigned char* p2) {
-		return 0;
+	int8_t Type::compare(ILEvaluator* eval,  unsigned char* me,  unsigned char* to) {
+		return (int8_t)memcmp(me,to,size().eval(compiler_arch));
 	}
 
-	int TypeStructureInstance::compare(ILEvaluator* eval,  unsigned char* p1,  unsigned char* p2) {
-		return owner->compare(eval, p1, p2);
+	void Type::move(ILEvaluator* eval, unsigned char* me, unsigned char* from) {
+		memcpy(me, from, size().eval(compiler_arch));
 	}
 
-	int TypeTraitInstance::compare(ILEvaluator* eval,  unsigned char* p1,  unsigned char* p2) {
-		return memcmp(p1, p2, eval->get_compile_pointer_size() * 2);
-	}
-
-	int TypeArray::compare(ILEvaluator* eval,  unsigned char* p1,  unsigned char* p2) {
-		size_t os = owner->compile_size(eval);
-		for (uint64_t i = 0; i < count; i++) {
-			owner->compare(eval, p1, p2);
-			
-			p1 += os;
-			p2 += os;
-		}
-		return 0;
+	void Type::copy(ILEvaluator* eval, unsigned char* me, unsigned char* from) {
+		memcpy(me, from, size().eval(compiler_arch));
 	}
 
 
-	int TypeReference::compare(ILEvaluator* eval,  unsigned char* p1,  unsigned char* p2) {
-		return memcmp(p1, p2, eval->get_compile_pointer_size());
+	void Type::construct(ILEvaluator* eval, unsigned char* me) {
+		// EMPTY
 	}
-	
-	int TypeFunction::compare(ILEvaluator* eval,  unsigned char* p1,  unsigned char* p2) {
-		return memcmp(p1, p2, eval->get_compile_pointer_size());
-	}
-	
-	int TypeSlice::compare(ILEvaluator* eval,  unsigned char* p1,  unsigned char* p2) {
-		return memcmp(p1, p2, eval->get_compile_pointer_size()*2);
-	}
-	
-	int TypeTemplate::compare(ILEvaluator* eval,  unsigned char* p1,  unsigned char* p2) {
-		return memcmp(p1, p2, eval->get_compile_pointer_size());
+
+	void Type::drop(ILEvaluator* eval, unsigned char* me) {
+		// EMPTY
 	}
 
 
-	void Type::move(ILEvaluator* eval,  unsigned char* src,  unsigned char* dst) {
-		std::cout << "adsf";
-	}
+	// ========================================================================   STRUCTURE EVAL COPY/MOVE/CMP/CTOR/DROP
 
-	void Type::copy(ILEvaluator* eval, unsigned char* src, unsigned char* dst) {
-		move(eval, src,dst);
-	}
-
-
-	void TypeArray::move(ILEvaluator* eval,  unsigned char* src,  unsigned char* dst) {
-		size_t os = owner->compile_size(eval);
-
-		for (uint64_t i = 0; i < count; i++) {
-			owner->move(eval, src, dst);
-
-			src += os;
-			src += os;
+	void TypeStructureInstance::construct(ILEvaluator* eval, unsigned char* me) {
+		if (has_special_constructor()) {
+			ILBuilder::eval_fnptr(eval, owner->auto_constructor);
+			ILBuilder::eval_callstart(eval);
+			ILBuilder::eval_const_ptr(eval, me);
+			ILBuilder::eval_call(eval, ILDataType::none, 1);
 		}
 	}
 
-
-	void Type::construct(ILEvaluator* eval, unsigned char* ptr) {
-
-	}
-
-	void Type::drop(ILEvaluator* eval, unsigned char* ptr) {
-
-	}
-
-
-	void TypeStructureInstance::construct(ILEvaluator* eval, unsigned char* ptr) {
-		ILBuilder::eval_fnptr(eval, owner->auto_constructor);
-		ILBuilder::eval_callstart(eval);
-		ILBuilder::eval_const_ptr(eval, ptr);
-		ILBuilder::eval_call(eval, ILDataType::none, 1);
-	}
-
-	void TypeStructureInstance::drop(ILEvaluator* eval, unsigned char* ptr) {
-		ILBuilder::eval_fnptr(eval, owner->auto_destructor);
-		ILBuilder::eval_callstart(eval);
-		ILBuilder::eval_const_ptr(eval, ptr);
-		ILBuilder::eval_call(eval, ILDataType::none, 1);
-	}
-
-	void TypeArray::copy(ILEvaluator* eval, unsigned char* src, unsigned char* dst) {
-		size_t os = owner->compile_size(eval);
-
-		for (uint64_t i = 0; i < count; i++) {
-			owner->copy(eval, src, dst);
-
-			src += os;
-			src += os;
+	void TypeStructureInstance::drop(ILEvaluator* eval, unsigned char* me) {
+		if (has_special_constructor()) {
+			ILBuilder::eval_fnptr(eval, owner->auto_destructor);
+			ILBuilder::eval_callstart(eval);
+			ILBuilder::eval_const_ptr(eval, me);
+			ILBuilder::eval_call(eval, ILDataType::none, 1);
 		}
 	}
 
-	void TypeStructureInstance::move(ILEvaluator* eval,  unsigned char* src,  unsigned char* dst) {
-		owner->move(eval, src, dst);
-	}
-	void TypeStructureInstance::copy(ILEvaluator* eval,  unsigned char* src,  unsigned char* dst) {
-		owner->copy(eval, src, dst);
-	}
-
-	void TypeTraitInstance::move(ILEvaluator* eval, unsigned char* src, unsigned char* dst) {
-		memcpy(dst, src, eval->get_compile_pointer_size() * 2);
-	}
-
-	void TypeTraitInstance::copy(ILEvaluator* eval, unsigned char* src, unsigned char* dst) {
-		memcpy(dst, src, eval->get_compile_pointer_size() * 2);
-	}
-	
-
-
-
-	void TypeReference::move(ILEvaluator* eval,  unsigned char* src,  unsigned char* dst) {
-		memcpy(dst, src, eval->get_compile_pointer_size());
-	}
-	
-	void TypeFunction::move(ILEvaluator* eval,  unsigned char* src,  unsigned char* dst) {
-		memcpy(dst, src, eval->get_compile_pointer_size());
-	}
-	
-	void TypeSlice::move(ILEvaluator* eval,  unsigned char* src,  unsigned char* dst) {
-		memcpy(dst, src, eval->get_compile_pointer_size()*2);
+	void TypeStructureInstance::move(ILEvaluator* eval,  unsigned char* me,  unsigned char* from) {
+		if (has_special_move()) {
+			ILBuilder::eval_fnptr(eval, owner->auto_move);
+			ILBuilder::eval_callstart(eval);
+			ILBuilder::eval_const_ptr(eval, me);
+			ILBuilder::eval_const_ptr(eval, from);
+			ILBuilder::eval_call(eval, ILDataType::none, 2);
+		}
+		else {
+			Type::move(eval, me, from);
+		}
 	}
 
-	void TypeTemplate::move(ILEvaluator* eval,  unsigned char* src,  unsigned char* dst) {
-		memcpy(dst, src, eval->get_compile_pointer_size());
+	void TypeStructureInstance::copy(ILEvaluator* eval,  unsigned char* me,  unsigned char* from) {
+		if (has_special_copy()) {
+			ILBuilder::eval_fnptr(eval, owner->auto_copy);
+			ILBuilder::eval_callstart(eval);
+			ILBuilder::eval_const_ptr(eval, me);
+			ILBuilder::eval_const_ptr(eval, from);
+			ILBuilder::eval_call(eval, ILDataType::none, 2);
+		}
+		else {
+			Type::move(eval, me, from);
+		}
+	}
+
+	int8_t TypeStructureInstance::compare(ILEvaluator* eval, unsigned char* me, unsigned char* to) {
+		if (has_special_compare()) {
+			ILBuilder::eval_fnptr(eval, owner->auto_compare);
+			ILBuilder::eval_callstart(eval);
+			ILBuilder::eval_const_ptr(eval, me);
+			ILBuilder::eval_const_ptr(eval, to);
+			ILBuilder::eval_call(eval, ILDataType::u8, 2);
+			return eval->pop_register_value<int8_t>();
+
+		}
+		else {
+			return Type::compare(eval, me, to);
+		}
+	}
+
+	// ========================================================================   ARRAY EVAL COPY/MOVE/CMP/CTOR/DROP
+
+	void TypeArray::construct(ILEvaluator* eval, unsigned char* me) {
+		if (has_special_constructor()) {
+			for (uint32_t i = 0; i < count; i++) {
+				owner->construct(eval, me);
+				me += owner->size().eval(compiler_arch);
+			}
+		}
+	}
+
+	void TypeArray::drop(ILEvaluator* eval, unsigned char* me) {
+		if (has_special_constructor()) {
+			for (uint32_t i = 0; i < count; i++) {
+				owner->drop(eval, me);
+				me += owner->size().eval(compiler_arch);
+			}
+		}
+	}
+
+	void TypeArray::move(ILEvaluator* eval, unsigned char* me, unsigned char* from) {
+		if (has_special_move()) {
+			for (uint32_t i = 0; i < count; i++) {
+				owner->move(eval, me, from);
+				me += owner->size().eval(compiler_arch);
+				from += owner->size().eval(compiler_arch);
+			}
+		}
+		else {
+			Type::move(eval, me, from);
+		}
+	}
+
+	void TypeArray::copy(ILEvaluator* eval, unsigned char* me, unsigned char* from) {
+		if (has_special_copy()) {
+			for (uint32_t i = 0; i < count; i++) {
+				owner->copy(eval, me, from);
+				me += owner->size().eval(compiler_arch);
+				from += owner->size().eval(compiler_arch);
+			}
+		}
+		else {
+			Type::move(eval, me, from);
+		}
+	}
+
+	int8_t TypeArray::compare(ILEvaluator* eval, unsigned char* me, unsigned char* to) {
+		if (has_special_compare()) {
+			for (uint32_t i = 0; i < count; i++) {
+				int8_t cmpval = owner->compare(eval, me, to);
+				if (cmpval != 0) return cmpval;
+				me += owner->size().eval(compiler_arch);
+				to += owner->size().eval(compiler_arch);
+			}
+
+			return 0;
+		}
+		else {
+			return Type::compare(eval, me, to);
+		}
 	}
 
 
+
+
+	// ==========================================================================   RVALUE
 
 	bool Type::rvalue_stacked() {
 		return false;
 	}
-
 	
 	bool TypeSlice::rvalue_stacked() {
 		return true;
@@ -151,6 +168,10 @@ namespace Corrosive {
 
 	bool TypeStructureInstance::rvalue_stacked() {
 		return owner->structure_type == StructureInstanceType::normal_structure;
+	}
+
+	bool TypeTraitInstance::rvalue_stacked() {
+		return true;
 	}
 	
 	ILDataType Type::rvalue() {
@@ -160,7 +181,6 @@ namespace Corrosive {
 	ILDataType TypeStructureInstance::rvalue() {
 		return owner->rvalue;
 	}
-
 
 	ILDataType TypeReference::rvalue() {
 		return ILDataType::ptr;
@@ -186,9 +206,9 @@ namespace Corrosive {
 		return ILDataType::ptr;
 	}
 
-	bool TypeTraitInstance::rvalue_stacked() {
-		return true;
-	}
+	// ==============================================================================================
+
+
 
 	TypeReference* Type::generate_reference() {
 		if (reference == nullptr) {
@@ -224,6 +244,10 @@ namespace Corrosive {
 			return f->second.get();
 		}
 	}
+
+
+
+	// ==============================================================================================  PRINT
 
 	void Type::print(std::ostream& os) {
 		os << "?";
@@ -272,114 +296,6 @@ namespace Corrosive {
 		owner->print(os);
 	}
 
-	uint32_t Type::size(ILEvaluator* eval) {
-		return 0;
-	}
-	uint32_t Type::alignment(ILEvaluator* eval) {
-		return 0;
-	}
-
-	uint32_t Type::compile_size(ILEvaluator* eval) {
-		return 0;
-	}
-	uint32_t Type::compile_alignment(ILEvaluator* eval) {
-		return 0;
-	}
-
-
-
-
-	uint32_t TypeStructureInstance::size(ILEvaluator* eval) {
-		return owner->size;
-	}
-	uint32_t TypeStructureInstance::alignment(ILEvaluator* eval) {
-		return owner->alignment;
-	}
-
-	uint32_t TypeStructureInstance::compile_size(ILEvaluator* eval) {
-		return owner->compile_size;
-	}
-	uint32_t TypeStructureInstance::compile_alignment(ILEvaluator* eval) {
-		return owner->compile_alignment;
-	}
-
-	uint32_t TypeTraitInstance::size(ILEvaluator* eval) {
-		return eval->get_pointer_size() * 2;
-	}
-	uint32_t TypeTraitInstance::alignment(ILEvaluator* eval) {
-		return eval->get_pointer_size();
-	}
-
-	uint32_t TypeTraitInstance::compile_size(ILEvaluator* eval) {
-		return eval->get_compile_pointer_size() * 2;
-	}
-	uint32_t TypeTraitInstance::compile_alignment(ILEvaluator* eval) {
-		return eval->get_compile_pointer_size();
-	}
-
-	uint32_t TypeReference::size(ILEvaluator* eval) {
-		return eval->get_pointer_size();
-	}
-	uint32_t TypeReference::alignment(ILEvaluator* eval) {
-		return eval->get_pointer_size();
-	}
-	
-	uint32_t TypeSlice::size(ILEvaluator* eval) {
-		return eval->get_pointer_size();
-	}
-	uint32_t TypeSlice::alignment(ILEvaluator* eval) {
-		return eval->get_pointer_size();
-	}
-
-	uint32_t TypeTemplate::compile_size(ILEvaluator* eval) {
-		return eval->get_compile_pointer_size();
-	}
-	uint32_t TypeTemplate::compile_alignment(ILEvaluator* eval) {
-		return eval->get_compile_pointer_size();
-	}
-
-	uint32_t TypeReference::compile_size(ILEvaluator* eval) {
-		return eval->get_compile_pointer_size();
-	}
-	uint32_t TypeReference::compile_alignment(ILEvaluator* eval) {
-		return eval->get_compile_pointer_size();
-	}
-
-	uint32_t TypeSlice::compile_size(ILEvaluator* eval) {
-		return eval->get_compile_pointer_size()*2;
-	}
-	uint32_t TypeSlice::compile_alignment(ILEvaluator* eval) {
-		return eval->get_compile_pointer_size()*2;
-	}
-
-	uint32_t TypeFunction::compile_size(ILEvaluator* eval) {
-		return eval->get_compile_pointer_size();
-	}
-	uint32_t TypeFunction::compile_alignment(ILEvaluator* eval) {
-		return eval->get_compile_pointer_size();
-	}
-
-	uint32_t TypeFunction::size(ILEvaluator* eval) {
-		return eval->get_pointer_size();
-	}
-	uint32_t TypeFunction::alignment(ILEvaluator* eval) {
-		return eval->get_pointer_size();
-	}
-
-	uint32_t TypeArray::size(ILEvaluator* eval) {
-		return owner->size(eval)*count;
-	}
-	uint32_t TypeArray::alignment(ILEvaluator* eval) {
-		return owner->alignment(eval);
-	}
-
-	uint32_t TypeArray::compile_size(ILEvaluator* eval) {
-		return owner->compile_size(eval) * count;
-	}
-	uint32_t TypeArray::compile_alignment(ILEvaluator* eval) {
-		return owner->compile_alignment(eval);
-	}
-
 	void TypeFunction::print(std::ostream& os) {
 		os << "fn";
 		if (ptr_context == ILContext::compile) {
@@ -409,6 +325,77 @@ namespace Corrosive {
 		}
 		os << ")";
 	}
+
+	// ==============================================================================================  SIZE/ALIGNMENT
+
+	ILSize Type::size() {
+		return { 0,0 };
+	}
+	ILSize Type::alignment() {
+		return { 0,0 };
+	}
+
+
+	ILSize TypeStructureInstance::size() {
+		return owner->size;
+	}
+	ILSize TypeStructureInstance::alignment() {
+		return owner->alignment;
+	}
+
+	ILSize TypeTraitInstance::size() {
+		return ILSize::double_ptr;
+	}
+
+	ILSize TypeTraitInstance::alignment() {
+		return ILSize::single_ptr;
+	}
+
+
+	ILSize TypeReference::size() {
+		return ILSize::single_ptr;
+	}
+
+	ILSize TypeReference::alignment() {
+		return ILSize::single_ptr;
+	}
+
+	ILSize TypeSlice::size() {
+		return ILSize::single_ptr;
+	}
+
+	ILSize TypeSlice::alignment() {
+		return ILSize::single_ptr;
+	}
+
+
+	ILSize TypeFunction::size() {
+		return ILSize::single_ptr;
+	}
+
+	ILSize TypeFunction::alignment() {
+		return ILSize::single_ptr;
+	}
+
+	ILSize TypeTemplate::size() {
+		return ILSize::single_ptr;
+	}
+
+	ILSize TypeTemplate::alignment() {
+		return ILSize::single_ptr;
+	}
+
+	ILSize TypeArray::size() {
+		return  owner->size() * count;
+	}
+
+	ILSize TypeArray::alignment() {
+		return owner->alignment();
+	}
+
+
+	// ==============================================================================================  CONTEXT
+
 
 	ILContext Type::context() { return ILContext::compile; }
 

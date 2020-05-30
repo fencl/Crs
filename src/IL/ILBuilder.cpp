@@ -17,7 +17,7 @@ namespace Corrosive {
 	bool ILBuilder::build_const_f64   (ILBlock* block, double   value) { block->write_instruction(ILInstruction::value); block->write_const_type(ILDataType::f64);    block->write_value(sizeof(double),   (unsigned char*)&value); return true; }
 	bool ILBuilder::build_const_type  (ILBlock* block, void*    value) { block->write_instruction(ILInstruction::value); block->write_const_type(ILDataType::ptr);	  block->write_value(sizeof(void*),    (unsigned char*)&value); return true; }
 
-	bool ILBuilder::build_const_size  (ILBlock* block, ilsize_t compile, ilsize_t runtime) { block->write_instruction(ILInstruction::size); block->write_value(block->parent->parent->get_compile_pointer_size(),    (unsigned char*)&compile); block->write_value(block->parent->parent->get_pointer_size(), (unsigned char*)&runtime); return true; }
+	bool ILBuilder::build_const_size  (ILBlock* block, ILSize   value) { block->write_instruction(ILInstruction::value); block->write_const_type(ILDataType::size);   block->write_value(sizeof(ILSize),   (unsigned char*)&value); return true; }
 
 
 
@@ -43,8 +43,10 @@ namespace Corrosive {
 	}
 
 	bool ILBuilder::build_forget(ILBlock* block, ILDataType type) {
-		block->write_instruction(ILInstruction::forget);
-		block->write_const_type(type);
+		if (type != ILDataType::none) {
+			block->write_instruction(ILInstruction::forget);
+			block->write_const_type(type);
+		}
 		return true;
 	}
 
@@ -96,45 +98,60 @@ namespace Corrosive {
 		return true;
 	}
 
-	bool ILBuilder::build_member(ILBlock* block, uint16_t compile_offset, uint16_t offset) {
-		if (compile_offset == offset) {
-			if (offset > 0) {
-				block->write_instruction(ILInstruction::member);
-				block->write_value(sizeof(uint16_t), (unsigned char*)&offset);
-			}
-		}else if (offset > 0 || compile_offset>0) {
-			block->write_instruction(ILInstruction::member2);
-			block->write_value(sizeof(uint16_t), (unsigned char*)&offset);
-			block->write_value(sizeof(uint16_t), (unsigned char*)&compile_offset);
-		}
-		return true;
-	}
-
-	bool ILBuilder::build_rmember(ILBlock* block, ILDataType from, ILDataType to, uint8_t compile_offset, uint8_t offset) {
-		if (offset == compile_offset) {
-			if (offset > 0) {
-				block->write_instruction(ILInstruction::rmember);
-				block->write_const_type(from);
-				block->write_const_type(to);
-				block->write_value(sizeof(uint8_t), (unsigned char*)&offset);
-			}
-		}
-		else {
-			if (offset > 0 || compile_offset>0) {
-				block->write_instruction(ILInstruction::rmember2);
-				block->write_const_type(from);
-				block->write_const_type(to);
-				block->write_value(sizeof(uint8_t), (unsigned char*)&offset);
-				block->write_value(sizeof(uint8_t), (unsigned char*)&compile_offset);
-			}
-		}
+	bool ILBuilder::build_roffset(ILBlock* block, ILDataType from, ILDataType to, ILSmallSize offset) {
+		block->write_instruction(ILInstruction::roffset);
+		block->write_const_type(from);
+		block->write_const_type(to);
+		block->write_value(sizeof(ILSmallSize), (unsigned char*)&offset);
 		return true;
 	}
 
 
+	bool ILBuilder::build_memcpy(ILBlock* block, ILSize size) {
+		block->write_instruction(ILInstruction::memcpy);
+		block->write_value(sizeof(ILSize), (unsigned char*)&size);
+		return true;
+	}
+
+	bool ILBuilder::build_memcpy2(ILBlock* block, ILSize size) {
+		block->write_instruction(ILInstruction::memcpy2);
+		block->write_value(sizeof(ILSize), (unsigned char*)&size);
+		return true;
+	}
+
+	bool ILBuilder::build_memcmp(ILBlock* block, ILSize size) {
+		block->write_instruction(ILInstruction::memcmp);
+		block->write_value(sizeof(ILSize), (unsigned char*)&size);
+		return true;
+	}
+
+	bool ILBuilder::build_memcmp2(ILBlock* block, ILSize size) {
+		block->write_instruction(ILInstruction::memcmp2);
+		block->write_value(sizeof(ILSize), (unsigned char*)&size);
+		return true;
+	}
+
+	bool ILBuilder::build_rmemcmp(ILBlock* block, ILDataType type) {
+		block->write_instruction(ILInstruction::rmemcmp);
+		block->write_const_type(type);
+		return true;
+	}
+
+	bool ILBuilder::build_rmemcmp2(ILBlock* block, ILDataType type) {
+		block->write_instruction(ILInstruction::rmemcmp2);
+		block->write_const_type(type);
+		return true;
+	}
 
 	bool ILBuilder::build_store(ILBlock* block, ILDataType type) {
 		block->write_instruction(ILInstruction::store);
+		block->write_const_type(type);
+		return true;
+	}
+	
+
+	bool ILBuilder::build_store2(ILBlock* block, ILDataType type) {
+		block->write_instruction(ILInstruction::store2);
 		block->write_const_type(type);
 		return true;
 	}
@@ -160,25 +177,35 @@ namespace Corrosive {
 	}
 
 
-	bool ILBuilder::build_copy(ILBlock* block, ILDataType type, uint16_t multiplier) {
-		block->write_instruction(ILInstruction::copy);
+	bool ILBuilder::build_duplicate(ILBlock* block, ILDataType type) {
+		block->write_instruction(ILInstruction::duplicate);
 		block->write_const_type(type);
-		block->write_value(sizeof(uint16_t), (unsigned char*)&multiplier);
 		return true;
 	}
 	
-	bool ILBuilder::build_offset(ILBlock* block,uint16_t multiplier) {
+	bool ILBuilder::build_swap(ILBlock* block, ILDataType type) {
+		block->write_instruction(ILInstruction::swap);
+		block->write_const_type(type);
+		return true;
+	}
+
+	bool ILBuilder::build_swap2(ILBlock* block, ILDataType type1, ILDataType type2) {
+		if (type1 == type2) {
+			return build_swap(block,type1);
+		}
+
+		block->write_instruction(ILInstruction::swap2);
+		block->write_const_type(type1);
+		block->write_const_type(type2);
+		return true;
+	}
+	
+	bool ILBuilder::build_offset(ILBlock* block,ILSize offset) {
 		block->write_instruction(ILInstruction::offset);
-		block->write_value(sizeof(uint16_t), (unsigned char*)&multiplier);
+		block->write_value(sizeof(ILSize), (unsigned char*)&offset);
 		return true;
 	}
 	
-	bool ILBuilder::build_offset2(ILBlock* block,uint16_t compile_multiplier,uint16_t multiplier) {
-		block->write_instruction(ILInstruction::offset2);
-		block->write_value(sizeof(uint16_t), (unsigned char*)&multiplier);
-		block->write_value(sizeof(uint16_t), (unsigned char*)&compile_multiplier);
-		return true;
-	}
 
 	bool ILBuilder::build_callstart(ILBlock* block) {
 		block->write_instruction(ILInstruction::start);

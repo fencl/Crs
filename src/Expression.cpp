@@ -6,6 +6,7 @@
 #include "PredefinedTypes.h"
 #include <iostream>
 #include <llvm/Target.h>
+#include "StackManager.h"
 
 namespace Corrosive {
 	bool Expression::rvalue(CompileValue& value, CompileType cpt) {
@@ -213,7 +214,82 @@ namespace Corrosive {
 	}
 
 	bool Expression::parse(Cursor& c, CompileValue& res, CompileType cpt) {
-		if (!parse_or(c, res, cpt)) return false;
+
+		CompileContext& nctx = CompileContext::get();
+		CompileValue val;
+		if (!parse_or(c, val, cpt)) return false;
+
+		if (c.tok == RecognizedToken::Equals) {
+			CompileValue val2;
+			if (!val.lvalue) {
+				throw_specific_error(c, "Left assignment must be modifiable lvalue");
+				return false;
+			}
+
+			if (cpt == CompileType::compile) {
+				ILBuilder::build_duplicate(nctx.scope, ILDataType::ptr);
+			}
+			else {
+				ILBuilder::eval_duplicate(nctx.eval, ILDataType::ptr);
+			}
+
+			c.move();
+			Cursor err = c;
+
+			if (!Expression::parse(c, val2, cpt)) return false;
+			
+			if (!Operand::cast(err, val2, val.t, cpt, true)) return false;
+
+			if (cpt == CompileType::compile) {
+
+				if (val.t->has_special_copy()) {
+					val.t->build_copy(!val.lvalue);
+				}
+				else {
+					// simple copy
+					if (!Expression::rvalue(val2, CompileType::compile)) return false;
+
+					if (val.t->rvalue_stacked()) {
+						ILBuilder::build_memcpy2(nctx.scope, val.t->size());
+					}
+					else {
+						ILBuilder::build_store2(nctx.scope, val.t->rvalue());
+					}
+				}
+			}
+			else {
+
+				if (val.t->has_special_copy()) {
+
+					if (!val.lvalue && !val.t->rvalue_stacked()) {
+						ilsize_t storage;
+						size_t reg_size = nctx.eval->compile_time_register_size(val.t->rvalue());
+						nctx.eval->pop_register_value_indirect(reg_size, &storage);
+						unsigned char* me = nctx.eval->pop_register_value<unsigned char*>();
+						val.t->copy(nctx.eval, me, (unsigned char*)&storage);
+					}
+					else {
+						unsigned char* copy_from = nctx.eval->pop_register_value<unsigned char*>();
+						unsigned char* me = nctx.eval->pop_register_value<unsigned char*>();
+						val.t->copy(nctx.eval, me, copy_from);
+					}
+				}
+				else {
+					//simple copy
+					if (!Expression::rvalue(val2, CompileType::eval)) return false;
+
+					if (val.t->rvalue_stacked()) {
+						ILBuilder::eval_memcpy2(nctx.eval, val.t->size().eval(compiler_arch));
+					}
+					else {
+						ILBuilder::eval_store2(nctx.eval, val.t->rvalue());
+					}
+				}
+			}
+		}
+
+		//if (!Expression::rvalue(val, cpt)) return false;
+		res = val;
 		return true;
 	}
 
@@ -232,6 +308,8 @@ namespace Corrosive {
 				return false;
 			}
 
+			if (!Expression::rvalue(value, cpt)) return false;
+
 			c.move();
 
 			if (cpt == CompileType::eval) {
@@ -240,6 +318,7 @@ namespace Corrosive {
 				nctx.eval->pop_register_value<uint8_t>();
 				CompileValue right;
 				if (!Expression::parse_operators(c, right, cpt)) return false;
+				if (!Expression::rvalue(right, cpt)) return false;
 
 				if (right.t != nctx.default_types->t_bool) {
 					throw_specific_error(c, "Operation requires right operand to be boolean");
@@ -267,6 +346,7 @@ namespace Corrosive {
 
 				nctx.scope = positive_block;
 				if (!Expression::parse_operators(c, value, cpt)) return false;
+				if (!Expression::rvalue(value, cpt)) return false;
 
 			}
 
@@ -312,6 +392,8 @@ namespace Corrosive {
 				return false;
 			}
 
+			if (!Expression::rvalue(value, cpt)) return false;
+
 			c.move();
 
 
@@ -321,6 +403,7 @@ namespace Corrosive {
 				nctx.eval->pop_register_value<uint8_t>();
 				CompileValue right;
 				if (!Expression::parse_and(c, right, cpt)) return false;
+				if (!Expression::rvalue(right,cpt)) return false;
 
 				if (right.t != nctx.default_types->t_bool) {
 					throw_specific_error(c, "Operation requires right operand to be boolean");
@@ -348,6 +431,7 @@ namespace Corrosive {
 				nctx.scope = positive_block;
 
 				if (!Expression::parse_and(c, value, cpt)) return false;
+				if (!Expression::rvalue(value, cpt)) return false;
 			}
 
 		}
@@ -456,7 +540,9 @@ namespace Corrosive {
 				}break;
 			}
 
-			if (!rvalue(value, cpt)) return false;
+			if (op_v >= 0 || current_layer>=0) {
+				if (!Expression::rvalue(value, cpt)) return false;
+			}
 
 			for (int i = current_layer; i >= std::max(op_v, 0); i--) {
 
@@ -464,7 +550,7 @@ namespace Corrosive {
 					CompileValue& left = layer[i];
 					CompileValue& right = value;
 
-					if (!emit(op_cursors[i], value, i, op_type[i], left, right, cpt, op_v, op_t)) return false;
+					if (!Expression::emit(op_cursors[i], value, i, op_type[i], left, right, cpt, op_v, op_t)) return false;
 					layer[i].t = nullptr;
 				}
 			}

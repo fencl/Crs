@@ -16,6 +16,13 @@ namespace Corrosive {
 		memcpy(dst, src, sz);
 		return true;
 	}
+	bool Operand::priv_memcpy2(ILEvaluator* eval) {
+		size_t sz = eval->pop_register_value<size_t>();
+		void* src = eval->pop_register_value<void*>();
+		void* dst = eval->pop_register_value<void*>();
+		memcpy(dst, src, sz);
+		return true;
+	}
 
 	bool Operand::priv_malloc(ILEvaluator* eval) {
 		size_t sz = eval->pop_register_value<size_t>();
@@ -113,13 +120,15 @@ namespace Corrosive {
 		}
 		else if (_crs_is_numeric_value(res.t) && _crs_is_numeric_value(to)) {
 			if (cpt == CompileType::eval) {
-				ILBuilder::eval_cast(nctx.eval, res.t->rvalue(), to->rvalue());
+				if (res.t->rvalue() != to->rvalue())
+					ILBuilder::eval_cast(nctx.eval, res.t->rvalue(), to->rvalue());
 
 				res.t = to;
 				return true;
 			}
 			else {
-				ILBuilder::build_cast(nctx.scope, res.t->rvalue(), to->rvalue());
+				if (res.t->rvalue() != to->rvalue())
+					ILBuilder::build_cast(nctx.scope, res.t->rvalue(), to->rvalue());
 
 				res.t = to;
 				return true;
@@ -172,17 +181,17 @@ namespace Corrosive {
 					CompileValue val;
 					val.t = to;
 					val.lvalue = false;
-					unsigned char* memory_place = nctx.eval->stack_reserve(to->compile_size(nctx.eval));
+					unsigned char* memory_place = nctx.eval->stack_reserve(to->size().eval(compiler_arch));
 					StackItem local_stack_item = StackManager::stack_push<1>(nctx.eval, "$tmp", val, 0);
 
-					ILBuilder::eval_local(nctx.eval, local_stack_item.local_compile_offset);
+					ILBuilder::eval_local(nctx.eval, local_stack_item.local_offset.eval(compiler_arch));
 					ILBuilder::eval_store(nctx.eval, ILDataType::ptr);
 
 					ILBuilder::eval_vtable(nctx.eval, vtableid);
-					ILBuilder::eval_local(nctx.eval, local_stack_item.local_compile_offset + nctx.eval->get_compile_pointer_size());
+					ILBuilder::eval_local(nctx.eval, (local_stack_item.local_offset + ILSize::single_ptr).eval(compiler_arch));
 					ILBuilder::eval_store(nctx.eval, ILDataType::ptr);
 
-					ILBuilder::eval_local(nctx.eval, local_stack_item.local_compile_offset);
+					ILBuilder::eval_local(nctx.eval, local_stack_item.local_offset.eval(compiler_arch));
 				}
 				else {
 					ILBuilder::eval_vtable(nctx.eval, vtableid); // there is two pointers on register stack, if i read 2x pointer size register it will read the right value
@@ -194,7 +203,7 @@ namespace Corrosive {
 					CompileValue val;
 					val.t = to;
 					val.lvalue = false;
-					uint32_t local_id = nctx.function->register_local(to->compile_size(nctx.eval), to->size(nctx.eval));
+					uint32_t local_id = nctx.function->register_local(to->size());
 					StackItem local_stack_item = StackManager::stack_push<0>(nctx.eval, "$tmp", val, local_id);
 					
 					ILBuilder::build_local(nctx.scope, local_id);
@@ -202,7 +211,7 @@ namespace Corrosive {
 
 					ILBuilder::build_vtable(nctx.scope, vtableid);
 					ILBuilder::build_local(nctx.scope, local_id);
-					ILBuilder::build_member(nctx.scope, nctx.eval->get_compile_pointer_size(), nctx.eval->get_pointer_size());
+					ILBuilder::build_offset(nctx.scope, ILSize::single_ptr);
 					ILBuilder::build_store(nctx.scope, ILDataType::ptr);
 
 					ILBuilder::build_local(nctx.scope, local_id);
@@ -300,6 +309,8 @@ namespace Corrosive {
 
 					CompileValue t_res;
 					if (!Expression::parse(c, t_res, CompileType::eval)) return false;
+					if (!Expression::rvalue(t_res, CompileType::eval)) return false;
+
 					if (t_res.t != nctx.default_types->t_type) {
 						throw_specific_error(err, "Expected type");
 						return false;
@@ -365,6 +376,8 @@ namespace Corrosive {
 
 						CompileValue t_res;
 						if (!Expression::parse(c, t_res, CompileType::eval)) return false;
+						if (!Expression::rvalue(t_res, CompileType::eval)) return false;
+
 						if (t_res.t != nctx.default_types->t_type) {
 							throw_specific_error(err, "Expected type");
 							return false;
@@ -544,6 +557,8 @@ namespace Corrosive {
 	bool Operand::parse_expression(CompileValue& ret, Cursor& c, CompileType cpt) {
 		c.move();
 		if (!Expression::parse(c, ret, cpt)) return false;
+		if (!Expression::rvalue(ret, cpt)) return false;
+
 		if (c.tok != RecognizedToken::CloseParenthesis) {
 			throw_wrong_token_error(c, "')'");
 			return false;
@@ -594,6 +609,8 @@ namespace Corrosive {
 						Cursor err = c;
 						CompileValue arg;
 						if (!Expression::parse(c, arg, CompileType::eval)) return false;
+						if (!Expression::rvalue(arg, CompileType::eval)) return false;
+
 						if (arg.t != nctx.default_types->t_type) {
 							throw_specific_error(err, "Expected type");
 							return false;
@@ -654,6 +671,8 @@ namespace Corrosive {
 					Cursor err = c;
 					CompileValue arg;
 					if (!Expression::parse(c, arg, CompileType::eval)) return false;
+					if (!Expression::rvalue(arg, CompileType::eval)) return false;
+
 					if (arg.t != nctx.default_types->t_type) {
 						throw_specific_error(err, "Expected type");
 						return false;
@@ -678,7 +697,9 @@ namespace Corrosive {
 			if (c.tok == RecognizedToken::Symbol || c.tok == RecognizedToken::And || c.tok == RecognizedToken::DoubleAnd) {
 				Cursor err = c;
 				CompileValue rt;
-				if (!Expression::parse(c, rt, cpt == CompileType::compile ? CompileType::eval : cpt)) return false;
+				if (!Expression::parse(c, rt, CompileType::eval)) return false;
+				if (!Expression::rvalue(rt, CompileType::eval)) return false;
+
 				if (rt.t != nctx.default_types->t_type) {
 					throw_specific_error(err, "Expected type");
 					return false;
@@ -706,7 +727,7 @@ namespace Corrosive {
 			}
 			else if (cpt != CompileType::compile && (sitm = StackManager::stack_find<1>(c.buffer))) {
 
-				ILBuilder::eval_local(nctx.eval, sitm->local_compile_offset);
+				ILBuilder::eval_local(nctx.eval, sitm->local_offset.eval(compiler_arch));
 
 				ret = sitm->value;
 				ret.lvalue = true;
@@ -1012,6 +1033,8 @@ namespace Corrosive {
 				CompileValue res;
 				Cursor err = c;
 				if (!Expression::parse(c, res, CompileType::eval)) return false;
+				if (!Expression::rvalue(res, CompileType::eval)) return false;
+
 				if (!Operand::cast(err, res, std::get<1>(*layout), CompileType::eval,false)) return false;
 
 				layout++;
@@ -1060,7 +1083,7 @@ namespace Corrosive {
 			res.t = std::get<1>(*act_layout);
 			res.lvalue = true;
 
-			unsigned char* data_place = nctx.eval->stack_reserve(res.t->compile_size(nctx.eval));
+			unsigned char* data_place = nctx.eval->stack_reserve(res.t->size().eval(compiler_arch));
 			StackManager::stack_push<1>(nctx.eval, std::get<0>(*act_layout).buffer, res, 0);
 
 			bool stacked = res.t->rvalue_stacked();
@@ -1070,11 +1093,11 @@ namespace Corrosive {
 				if (res.t->has_special_constructor()) {
 					res.t->construct(nctx.eval, data_place);
 				}
-				res.t->copy(nctx.eval, src, data_place);
+				res.t->copy(nctx.eval, data_place, src);
 			}
 			else {
 				void* src = nctx.eval->read_last_register_value_indirect(res.t->rvalue());
-				memcpy(data_place, src, res.t->compile_size(nctx.eval));
+				memcpy(data_place, src, res.t->size().eval(compiler_arch));
 				nctx.eval->discard_last_register_type(res.t->rvalue());
 			}
 
@@ -1092,7 +1115,7 @@ namespace Corrosive {
 			CompileValue res = sitm.value;
 
 			if (res.t->has_special_destructor()) {
-				res.t->drop(nctx.eval, nctx.eval->memory_stack_base_pointer + sitm.local_compile_offset);
+				res.t->drop(nctx.eval, nctx.eval->memory_stack_base_pointer + sitm.local_offset.eval(compiler_arch));
 			}
 		}
 
@@ -1147,7 +1170,7 @@ namespace Corrosive {
 			res.t = std::get<1>((*act_layout_it));
 			res.lvalue = true;
 
-			unsigned char* data_place = eval->stack_reserve(res.t->compile_size(eval));
+			unsigned char* data_place = eval->stack_reserve(res.t->size().eval(compiler_arch));
 			StackManager::stack_push<1>(eval, std::get<0>(*act_layout_it).buffer, res, 0);
 
 			bool stacked = res.t->rvalue_stacked();
@@ -1155,11 +1178,11 @@ namespace Corrosive {
 				unsigned char* src = eval->pop_register_value<unsigned char*>();
 				if (res.t->has_special_constructor())
 					res.t->construct(eval, data_place);
-				res.t->copy(eval, src, data_place);
+				res.t->copy(eval, data_place, src);
 			}
 			else {
 				void* src = eval->read_last_register_value_indirect(res.t->rvalue());
-				memcpy(data_place, src, res.t->compile_size(eval));
+				memcpy(data_place, src, res.t->size().eval(compiler_arch));
 				eval->discard_last_register_type(res.t->rvalue());
 			}
 
@@ -1187,7 +1210,7 @@ namespace Corrosive {
 			CompileValue res = sitm.value;
 
 			if (res.t->has_special_destructor()) {
-				res.t->drop(eval, eval->memory_stack_base_pointer + sitm.local_compile_offset);
+				res.t->drop(eval, eval->memory_stack_base_pointer + sitm.local_offset.eval(compiler_arch));
 			}
 		}
 		// ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
@@ -1213,6 +1236,8 @@ namespace Corrosive {
 				CompileValue arg;
 				Cursor err = c;
 				if (!Expression::parse(c, arg, cpt)) return false;
+				if (!Expression::rvalue(arg, cpt)) return false;
+
 				if (!Operand::cast(err, arg, nctx.default_types->argument_array_storage.get(ft->argument_array_id)[argi], cpt, true)) return false;
 				argi++;
 
@@ -1313,7 +1338,7 @@ namespace Corrosive {
 				ILBuilder::build_callstart(nctx.scope);
 
 				if (ft->return_type->rvalue_stacked()) {
-					local_return_id = nctx.function->register_local(retval.t->compile_size(nctx.eval), retval.t->size(nctx.eval));
+					local_return_id = nctx.function->register_local(retval.t->size());
 					StackManager::stack_push<0>(nctx.eval, "$tmp", retval, local_return_id);
 					if (retval.t->has_special_constructor()) {
 						ILBuilder::build_local(nctx.scope, local_return_id);
@@ -1351,14 +1376,14 @@ namespace Corrosive {
 				ILBuilder::eval_callstart(nctx.eval);
 
 				if (ft->return_type->rvalue_stacked()) {
-					unsigned char* memory_place = nctx.eval->stack_reserve(retval.t->compile_size(nctx.eval));
+					unsigned char* memory_place = nctx.eval->stack_reserve(retval.t->size().eval(compiler_arch));
 					local_stack_item = StackManager::stack_push<1>(nctx.eval, "$tmp", retval, 0);
 
 					if (retval.t->has_special_constructor()) {
 						retval.t->construct(nctx.eval, memory_place);
 					}
 
-					ILBuilder::eval_local(nctx.eval, local_stack_item.local_compile_offset);
+					ILBuilder::eval_local(nctx.eval, local_stack_item.local_offset.eval(compiler_arch));
 				}
 
 				if (!_crs_read_arguments(c, argi, ft, cpt)) return false;
@@ -1379,7 +1404,7 @@ namespace Corrosive {
 
 
 				if (ft->return_type->rvalue_stacked()) {
-					ILBuilder::eval_local(nctx.eval, local_stack_item.local_compile_offset);
+					ILBuilder::eval_local(nctx.eval, local_stack_item.local_offset.eval(compiler_arch));
 				}
 
 			}
@@ -1466,6 +1491,8 @@ namespace Corrosive {
 		Cursor err = c;
 		CompileValue index;
 		if (!Expression::parse(c, index, cpt)) return false;
+		if (!Expression::rvalue(index, cpt)) return false;
+
 		if (!Operand::cast(err, index, nctx.default_types->t_size,cpt,true)) return false;
 
 		if (c.tok != RecognizedToken::CloseBracket) {
@@ -1474,19 +1501,8 @@ namespace Corrosive {
 		}
 		c.move();
 		
-		uint16_t base_compile_size = base_slice->compile_size(nctx.eval);
+		uint16_t base_compile_size = base_slice->size().eval(compiler_arch);
 
-		if (cpt == CompileType::compile) {
-			uint16_t base_size = base_slice->size(nctx.eval);
-
-			if (base_size == base_compile_size)
-				ILBuilder::build_offset(nctx.scope,base_size);
-			else
-				ILBuilder::build_offset2(nctx.scope, base_size, base_compile_size);
-		}
-		else {
-			ILBuilder::eval_offset(nctx.eval, base_compile_size);
-		}
 
 		ret.lvalue = false;
 		ret.t = base_slice->generate_reference();
@@ -1533,6 +1549,8 @@ namespace Corrosive {
 		}
 		else {
 			if (!Expression::parse(c, res, cpt)) return false;
+			if (!Expression::rvalue(res, cpt)) return false;
+
 			if (!Operand::cast(err, res, nctx.default_types->t_u32, cpt, true)) return false;
 
 
@@ -1641,40 +1659,40 @@ namespace Corrosive {
 			if (c.buffer == "count" || c.buffer == "size") {
 				if (!Expression::rvalue(ret, cpt)) return false;
 
-				uint32_t compile_pointer = nctx.eval->get_compile_pointer_size();
+				uint32_t compile_pointer = ILSize::single_ptr.eval(compiler_arch);
+
 				if (cpt == CompileType::compile) {
-					uint32_t runtime_poniter = nctx.eval->get_pointer_size();
 
 					if (ret.t->rvalue_stacked()) {
-						ILBuilder::build_member(nctx.scope, compile_pointer, runtime_poniter);
+						ILBuilder::build_offset(nctx.scope, ILSize::single_ptr);
 						ILBuilder::build_load(nctx.scope, ILDataType::size);
 					}
 					else {
-						ILBuilder::build_rmember(nctx.scope, ret.t->rvalue(), ILDataType::size, (uint8_t)compile_pointer, (uint8_t)runtime_poniter);
+						ILBuilder::build_roffset(nctx.scope, ret.t->rvalue(), ILDataType::size, ILSmallSize(0,1));
 					}
 
 					if (c.buffer == "size") {
 						TypeSlice* st = (TypeSlice*)ret.t;
 						Type* bt = st->owner;
 
-						ILBuilder::build_const_size(nctx.scope, bt->compile_size(nctx.eval), bt->size(nctx.eval));
+						ILBuilder::build_const_size(nctx.scope, bt->size());
 						ILBuilder::build_mul(nctx.scope, ILDataType::size, ILDataType::size);
 					}
 				}
 				else {
 					if (ret.t->rvalue_stacked()) {
-						ILBuilder::eval_member(nctx.eval, compile_pointer);
+						ILBuilder::eval_offset(nctx.eval, compile_pointer);
 						ILBuilder::eval_load(nctx.eval, ILDataType::size);
 					}
 					else {
-						ILBuilder::eval_rmember(nctx.eval, ret.t->rvalue(), ILDataType::size, (uint8_t)compile_pointer);
+						ILBuilder::eval_roffset(nctx.eval, ret.t->rvalue(), ILDataType::size, (uint8_t)compile_pointer);
 					}
 
 					if (c.buffer == "size") {
 						TypeSlice* st = (TypeSlice*)ret.t;
 						Type* bt = st->owner;
 
-						ILBuilder::eval_const_size(nctx.eval, bt->compile_size(nctx.eval));
+						ILBuilder::eval_const_size(nctx.eval, bt->size().eval(compiler_arch));
 						ILBuilder::eval_mul(nctx.eval, ILDataType::size, ILDataType::size);
 					}
 				}
@@ -1817,6 +1835,7 @@ namespace Corrosive {
 						CompileValue res;
 						Cursor err = c;
 						if (!Expression::parse(c, res, CompileType::compile)) return false;
+						if (!Expression::rvalue(res, CompileType::compile)) return false;
 						if (!Operand::cast(err, res, *layout, CompileType::compile, true)) return false;
 
 						results.push_back(res);
@@ -1852,6 +1871,8 @@ namespace Corrosive {
 				if (!Expression::rvalue(ret, cpt)) return false;
 
 				if (!Expression::parse(c, res, cpt)) return false;
+				if (!Expression::rvalue(res, cpt)) return false;
+
 				if (!Operand::cast(err, res, nctx.default_types->t_u32, cpt, true)) return false;
 
 
@@ -1901,10 +1922,10 @@ namespace Corrosive {
 			if (c.tok == RecognizedToken::OpenParenthesis) {
 				if (cpt == CompileType::compile) {
 					if (ret.t->rvalue_stacked()) {
-						ILBuilder::build_copy(nctx.scope, ILDataType::ptr, 2);
-						ILBuilder::build_member(nctx.scope, nctx.eval->get_compile_pointer_size(), nctx.eval->get_pointer_size());
+						ILBuilder::build_duplicate(nctx.scope, ILDataType::ptr);
+						ILBuilder::build_offset(nctx.scope, {0,1});
 						ILBuilder::build_load(nctx.scope, ILDataType::ptr);
-						ILBuilder::build_member(nctx.scope, off * nctx.eval->get_compile_pointer_size(), off * nctx.eval->get_pointer_size());
+						ILBuilder::build_offset(nctx.scope, ILSize::single_ptr*off);
 						ILBuilder::build_load(nctx.scope, ILDataType::ptr);
 						ILBuilder::build_callstart(nctx.scope);
 
@@ -1917,11 +1938,11 @@ namespace Corrosive {
 				}
 				else {
 					if (ret.t->rvalue_stacked()) {	
-						ILBuilder::eval_copy(nctx.eval, ILDataType::ptr, 2);
+						ILBuilder::eval_duplicate(nctx.eval, ILDataType::ptr);
 						ILBuilder::eval_load(nctx.eval, ILDataType::ptr);
-						ILBuilder::eval_member(nctx.eval, nctx.eval->get_compile_pointer_size());
+						ILBuilder::eval_offset(nctx.eval, ILSize::single_ptr.eval(compiler_arch));
 						ILBuilder::eval_load(nctx.eval, ILDataType::ptr);
-						ILBuilder::eval_member(nctx.eval, off* nctx.eval->get_compile_pointer_size());
+						ILBuilder::eval_offset(nctx.eval, off* ILSize::single_ptr.eval(compiler_arch));
 						ILBuilder::eval_load(nctx.eval, ILDataType::ptr);
 						ILBuilder::eval_callstart(nctx.eval);
 						ILBuilder::eval_load(nctx.eval, ILDataType::ptr);
@@ -1949,9 +1970,9 @@ namespace Corrosive {
 			else {
 				if (cpt == CompileType::compile) {
 					if (ret.t->rvalue_stacked()) {
-						ILBuilder::build_member(nctx.scope, nctx.eval->get_compile_pointer_size(), nctx.eval->get_pointer_size());
+						ILBuilder::build_offset(nctx.scope, ILSize::single_ptr);
 						ILBuilder::build_load(nctx.scope, ILDataType::ptr);
-						ILBuilder::build_member(nctx.scope, off * nctx.eval->get_compile_pointer_size(), off * nctx.eval->get_pointer_size());
+						ILBuilder::build_offset(nctx.scope, ILSize::single_ptr*off);
 					}
 					else {
 						std::cout << "???"; // not invented yet
@@ -1959,9 +1980,9 @@ namespace Corrosive {
 				}
 				else {
 					if (ret.t->rvalue_stacked()) {
-						ILBuilder::eval_member(nctx.eval, nctx.eval->get_compile_pointer_size());
+						ILBuilder::eval_offset(nctx.eval, ILSize::single_ptr.eval(compiler_arch));
 						ILBuilder::eval_load(nctx.eval, ILDataType::ptr);
-						ILBuilder::eval_member(nctx.eval, off * nctx.eval->get_compile_pointer_size());
+						ILBuilder::eval_offset(nctx.eval, off * ILSize::single_ptr.eval(compiler_arch));
 					}
 					else {
 						std::cout << "???"; // not invented yet
@@ -1997,8 +2018,8 @@ namespace Corrosive {
 					if (!ti->compile()) return false;
 				}
 
-				uint16_t offset = 0;
-				uint16_t compile_offset = 0;
+				ILSize offset;
+
 				Type* mem_type = nullptr;
 
 				StructureInstance* si = ti->owner;
@@ -2007,9 +2028,8 @@ namespace Corrosive {
 					size_t id = table_element->second;
 					auto& member = si->member_vars[id];
 					
-					offset = member.offset;
-					compile_offset = member.compile_offset;
-					mem_type = member.type;
+					offset = member.second;
+					mem_type = member.first;
 
 					
 					c.move();
@@ -2021,19 +2041,19 @@ namespace Corrosive {
 
 				if (!ret.lvalue || ret.t->rvalue_stacked()) {
 					if (cpt == CompileType::compile) {
-						ILBuilder::build_member(nctx.scope, compile_offset, offset);
+						ILBuilder::build_offset(nctx.scope, offset);
 					}
 					else if (cpt == CompileType::eval) {
-						ILBuilder::eval_member(nctx.eval, compile_offset);
+						ILBuilder::eval_offset(nctx.eval, offset.eval(compiler_arch));
 					}
 					ret.lvalue = true;
 				}
 				else {
 					if (cpt == CompileType::compile) {
-						ILBuilder::build_rmember(nctx.scope, ret.t->rvalue(), mem_type->rvalue(), (uint8_t)compile_offset, (uint8_t)offset);
+						ILBuilder::build_roffset(nctx.scope, ret.t->rvalue(), mem_type->rvalue(),ILSmallSize(offset.absolute,offset.pointers));
 					}
 					else if (cpt == CompileType::eval) {
-						ILBuilder::eval_rmember(nctx.eval, ret.t->rvalue(), mem_type->rvalue(), (uint8_t)compile_offset);
+						ILBuilder::eval_roffset(nctx.eval, ret.t->rvalue(), mem_type->rvalue(), (uint8_t)offset.eval(compiler_arch));
 					}
 					ret.lvalue = false;
 				}

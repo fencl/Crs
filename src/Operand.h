@@ -23,6 +23,7 @@ namespace Corrosive {
 		static bool priv_build_build_template(ILEvaluator* eval);
 		static bool priv_malloc(ILEvaluator* eval);
 		static bool priv_memcpy(ILEvaluator* eval);
+		static bool priv_memcpy2(ILEvaluator* eval);
 
 		static Type* template_stack[1024];
 		static uint16_t template_sp;

@@ -39,25 +39,27 @@ namespace Corrosive {
 
 		virtual bool compile();
 
-		virtual int compare(ILEvaluator* eval, unsigned char* p1, unsigned char* p2);
-		virtual void move(ILEvaluator* eval, unsigned char* src, unsigned char* dst);
-		virtual void copy(ILEvaluator* eval, unsigned char* src, unsigned char* dst);
+		virtual int8_t compare(ILEvaluator* eval, unsigned char* me, unsigned char* p2);
+		virtual void move(ILEvaluator* eval, unsigned char* me, unsigned char* from);
+		virtual void copy(ILEvaluator* eval, unsigned char* me, unsigned char* from);
 
-		virtual void construct(ILEvaluator* eval, unsigned char* ptr);
-		virtual void drop(ILEvaluator* eval, unsigned char* ptr);
+		virtual void construct(ILEvaluator* eval, unsigned char* me);
+		virtual void drop(ILEvaluator* eval, unsigned char* me);
 
 		virtual bool has_special_constructor();
 		virtual bool has_special_destructor();
+		virtual bool has_special_copy();
+		virtual bool has_special_move();
+		virtual bool has_special_compare();
 
-		virtual uint32_t size(ILEvaluator* eval);
-		virtual uint32_t alignment(ILEvaluator* eval);
-		virtual uint32_t compile_size(ILEvaluator* eval);
-		virtual uint32_t compile_alignment(ILEvaluator* eval);
+		virtual ILSize size();
+		virtual ILSize alignment();
 
 		virtual void build_construct();
-		virtual void build_move();
-		virtual void build_copy();
 		virtual void build_drop();
+		virtual void build_move(bool rvalue);
+		virtual void build_copy(bool rvalue);
+		virtual void build_compare(bool rvalue);
 
 		virtual bool rvalue_stacked();
 		virtual void print(std::ostream& os);
@@ -81,24 +83,26 @@ namespace Corrosive {
 
 		virtual ILContext context();
 		virtual bool compile();
-		virtual int compare(ILEvaluator* eval,  unsigned char* p1,  unsigned char* p2);
-		virtual void move(ILEvaluator* eval,  unsigned char* src,  unsigned char* dst);
-		virtual void copy(ILEvaluator* eval, unsigned char* src, unsigned char* dst);
-		virtual uint32_t size(ILEvaluator* eval);
-		virtual uint32_t alignment(ILEvaluator* eval);
-		virtual uint32_t compile_size(ILEvaluator* eval);
-		virtual uint32_t compile_alignment(ILEvaluator* eval);
+		virtual int8_t compare(ILEvaluator* eval,  unsigned char* me,  unsigned char* to);
+		virtual void move(ILEvaluator* eval,  unsigned char* me,  unsigned char* from);
+		virtual void copy(ILEvaluator* eval, unsigned char* me, unsigned char* from);
+		virtual void construct(ILEvaluator* eval, unsigned char* me);
+		virtual void drop(ILEvaluator* eval, unsigned char* me);
 
-		virtual void construct(ILEvaluator* eval, unsigned char* ptr);
-		virtual void drop(ILEvaluator* eval, unsigned char* ptr);
+		virtual ILSize size();
+		virtual ILSize alignment();
 
 		virtual bool has_special_constructor();
 		virtual bool has_special_destructor();
+		virtual bool has_special_copy();
+		virtual bool has_special_move();
+		virtual bool has_special_compare();
 
 		virtual void build_construct();
-		virtual void build_move();
-		virtual void build_copy();
 		virtual void build_drop();
+		virtual void build_move(bool rvalue);
+		virtual void build_copy(bool rvalue);
+		virtual void build_compare(bool rvalue);
 
 		virtual bool rvalue_stacked();
 		virtual void print(std::ostream& os);
@@ -133,13 +137,8 @@ namespace Corrosive {
 		inline virtual TypeInstanceType type() { return TypeInstanceType::type_trait; }
 
 		virtual ILContext context();
-		virtual int compare(ILEvaluator* eval, unsigned char* p1, unsigned char* p2);
-		virtual void move(ILEvaluator* eval, unsigned char* src, unsigned char* dst);
-		virtual void copy(ILEvaluator* eval, unsigned char* src, unsigned char* dst);
-		virtual uint32_t size(ILEvaluator* eval);
-		virtual uint32_t alignment(ILEvaluator* eval);
-		virtual uint32_t compile_size(ILEvaluator* eval);
-		virtual uint32_t compile_alignment(ILEvaluator* eval);
+		virtual ILSize size();
+		virtual ILSize alignment();
 
 		virtual bool rvalue_stacked();
 		virtual void print(std::ostream& os);
@@ -165,18 +164,24 @@ namespace Corrosive {
 		uint32_t count;
 		virtual ILContext context();
 		virtual bool compile();
-		virtual int compare(ILEvaluator* eval,  unsigned char* p1,  unsigned char* p2);
-		virtual void move(ILEvaluator* eval,  unsigned char* src,  unsigned char* dst);
-		virtual void copy(ILEvaluator* eval, unsigned char* src, unsigned char* dst);
-		virtual uint32_t size(ILEvaluator* eval);
-		virtual uint32_t alignment(ILEvaluator* eval);
-		virtual uint32_t compile_size(ILEvaluator* eval);
-		virtual uint32_t compile_alignment(ILEvaluator* eval);
+		
+
+		virtual void construct(ILEvaluator* eval, unsigned char* me);
+		virtual void drop(ILEvaluator* eval, unsigned char* me);
+		virtual int8_t compare(ILEvaluator* eval,  unsigned char* me,  unsigned char* to);
+		virtual void move(ILEvaluator* eval,  unsigned char* me,  unsigned char* from);
+		virtual void copy(ILEvaluator* eval, unsigned char* me, unsigned char* from);
+
+		virtual ILSize size();
+		virtual ILSize alignment();
 		virtual void print(std::ostream& os);
 
 
 		virtual bool has_special_constructor();
 		virtual bool has_special_destructor();
+		virtual bool has_special_copy();
+		virtual bool has_special_move();
+		virtual bool has_special_compare();
 	};
 	
 	class TypeReference : public Type {
@@ -187,12 +192,8 @@ namespace Corrosive {
 
 		Type* owner;
 		virtual ILContext context();
-		virtual int compare(ILEvaluator* eval,  unsigned char* p1,  unsigned char* p2);
-		virtual void move(ILEvaluator* eval,  unsigned char* src,  unsigned char* dst);
-		virtual uint32_t size(ILEvaluator* eval);
-		virtual uint32_t alignment(ILEvaluator* eval);
-		virtual uint32_t compile_size(ILEvaluator* eval);
-		virtual uint32_t compile_alignment(ILEvaluator* eval);
+		virtual ILSize size();
+		virtual ILSize alignment();
 		virtual void print(std::ostream& os);
 	};
 
@@ -206,12 +207,8 @@ namespace Corrosive {
 		virtual bool rvalue_stacked();
 
 		virtual ILContext context();
-		virtual int compare(ILEvaluator* eval, unsigned char* p1, unsigned char* p2);
-		virtual void move(ILEvaluator* eval, unsigned char* src, unsigned char* dst);
-		virtual uint32_t size(ILEvaluator* eval);
-		virtual uint32_t alignment(ILEvaluator* eval);
-		virtual uint32_t compile_size(ILEvaluator* eval);
-		virtual uint32_t compile_alignment(ILEvaluator* eval);
+		virtual ILSize size();
+		virtual ILSize alignment();
 		virtual void print(std::ostream& os);
 	};
 
@@ -227,30 +224,19 @@ namespace Corrosive {
 		size_t argument_array_id;
 		Type* return_type;
 		virtual ILContext context();
-
-		virtual int compare(ILEvaluator* eval, unsigned char* p1, unsigned char* p2);
-		virtual void move(ILEvaluator* eval, unsigned char* src, unsigned char* dst);
-
-		uint32_t size(ILEvaluator* eval);
-		uint32_t alignment(ILEvaluator* eval);
-		virtual uint32_t compile_size(ILEvaluator* eval);
-		virtual uint32_t compile_alignment(ILEvaluator* eval);
+		virtual ILSize size();
+		virtual ILSize alignment();
 		virtual void print(std::ostream& os);
 	};
 
 	class TypeTemplate : public Type {
 	public:
 		inline virtual TypeInstanceType type() { return TypeInstanceType::type_template; }
-
 		virtual ILDataType rvalue();
-
 		DefaultTypes* owner;
 		size_t argument_array_id;
-
-		virtual int compare(ILEvaluator* eval, unsigned char* p1, unsigned char* p2);
-		virtual void move(ILEvaluator* eval, unsigned char* src, unsigned char* dst);
-		virtual uint32_t compile_size(ILEvaluator* eval);
-		virtual uint32_t compile_alignment(ILEvaluator* eval);
+		virtual ILSize size();
+		virtual ILSize alignment();
 		virtual void print(std::ostream& os);
 	};
 }

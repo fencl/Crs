@@ -34,6 +34,7 @@ namespace Corrosive {
 					Cursor err = c;
 					CompileValue value;
 					if (!Expression::parse(c, value, CompileType::eval)) return false;
+					if (!Expression::rvalue(value, CompileType::eval)) return false;
 					if (value.t != nctx.default_types->t_type) {
 						throw_specific_error(err, "Expected type value");
 						return false;
@@ -48,7 +49,7 @@ namespace Corrosive {
 
 					if (!t->compile()) return false;
 
-					generate_heap_size += t->compile_size(nctx.eval);
+					generate_heap_size += t->size().eval(compiler_arch);
 					generic_layout.push_back(std::make_tuple(name, t));
 
 
@@ -112,6 +113,8 @@ namespace Corrosive {
 					Cursor err = c;
 					CompileValue value;
 					if (!Expression::parse(c, value, CompileType::eval)) return false;
+					if (!Expression::rvalue(value, CompileType::eval)) return false;
+
 					if (value.t != nctx.default_types->t_type) {
 						throw_specific_error(err, "Expected type value");
 						return false;
@@ -126,7 +129,7 @@ namespace Corrosive {
 
 					if (!t->compile()) return false;
 					
-					generate_heap_size += t->compile_size(nctx.eval);
+					generate_heap_size += t->size().eval(compiler_arch);
 					generic_layout.push_back(std::make_tuple(name,t));
 
 
@@ -189,6 +192,8 @@ namespace Corrosive {
 					Cursor err = c;
 					CompileValue value;
 					if (!Expression::parse(c, value, CompileType::eval)) return false;
+					if (!Expression::rvalue(value, CompileType::eval)) return false;
+
 					if (value.t != nctx.default_types->t_type) {
 						throw_specific_error(err, "Expected type value");
 						return false;
@@ -203,7 +208,7 @@ namespace Corrosive {
 
 					if (!t->compile()) return false;
 
-					generate_heap_size += t->compile_size(nctx.eval);
+					generate_heap_size += t->size().eval(compiler_arch);
 					generic_layout.push_back(std::make_tuple(name, t));
 
 
@@ -270,8 +275,8 @@ namespace Corrosive {
 				new_key = new_key_inst.get();
 
 				for (auto l = generic_layout.rbegin(); l != generic_layout.rend(); l++) {
-					std::get<1>(*l)->move(nctx.eval, old_offset, new_offset);
-					uint32_t c_size = std::get<1>(*l)->compile_size(nctx.eval);
+					std::get<1>(*l)->move(nctx.eval, new_offset,old_offset);
+					size_t c_size = std::get<1>(*l)->size().eval(compiler_arch);
 					old_offset += c_size;
 					new_offset += c_size;
 				}
@@ -341,6 +346,8 @@ namespace Corrosive {
 
 				Cursor err = c;
 				if (!Expression::parse(c, value, CompileType::eval)) return false;
+				if (!Expression::rvalue(value, CompileType::eval)) return false;
+
 				if (value.t != nctx.default_types->t_type) {
 					throw_specific_error(m.type, "Expected type value");
 					std::cerr << " | \tType was '";
@@ -415,6 +422,7 @@ namespace Corrosive {
 								Cursor err = c;
 								CompileValue res;
 								if (!Expression::parse(c, res, CompileType::eval)) return false;
+								if (!Expression::rvalue(res, CompileType::eval)) return false;
 								if (res.t != nctx.default_types->t_type) {
 									throw_specific_error(err, "Expected type");
 									return false;
@@ -468,6 +476,8 @@ namespace Corrosive {
 							Cursor err = c;
 							CompileValue res;
 							if (!Expression::parse(c, res, CompileType::eval)) return false;
+							if (!Expression::rvalue(res, CompileType::eval)) return false;
+
 							if (res.t != nctx.default_types->t_type) {
 								throw_specific_error(err, "Expected type");
 								return false;
@@ -517,6 +527,7 @@ namespace Corrosive {
 
 				Cursor err = c;
 				if (!Expression::parse(c, value, CompileType::eval)) return false;
+				if (!Expression::rvalue(value, CompileType::eval)) return false;
 				if (value.t != nctx.default_types->t_type) {
 					throw_specific_error(m.type, "Expected type value");
 					std::cerr << " | \tType was '";
@@ -546,11 +557,17 @@ namespace Corrosive {
 				}
 
 				new_inst->member_table[m.name.buffer] = new_inst->member_vars.size();
-				StructureInstanceMemberRecord rec;
-				rec.definition = m.name;
-				rec.type = m_t;
+				
+				// TODO BETTER CHECK
+				/*if (m_t->size().absolute == 0 && m_t->size().pointers == 0) {
+					throw_specific_error(m.name, "Specified type is not an instantiable type");
+					std::cerr << " | \tType was '";
+					m_t->print(std::cerr);
+					std::cerr << "'\n";
+					return false;
+				}*/
 
-				new_inst->member_vars.push_back(rec);
+				new_inst->member_vars.push_back(std::make_pair(m_t, ILSize()));
 			}
 
 			if (new_inst->context == ILContext::runtime) {
@@ -602,8 +619,8 @@ namespace Corrosive {
 				unsigned char* new_offset = new_key_inst.get();
 
 				for (auto l = generic_layout.rbegin(); l != generic_layout.rend(); l++) {
-					std::get<1>(*l)->move(nctx.eval, old_offset, new_offset);
-					uint32_t c_size = std::get<1>(*l)->compile_size(nctx.eval);
+					std::get<1>(*l)->move(nctx.eval, new_offset, old_offset);
+					size_t c_size = std::get<1>(*l)->size().eval(compiler_arch);
 					old_offset += c_size;
 					new_offset += c_size;
 				}
@@ -655,6 +672,7 @@ namespace Corrosive {
 						Cursor err = c;
 						CompileValue val;
 						if (!Expression::parse(c, val, CompileType::eval)) return false;
+						if (!Expression::rvalue(val, CompileType::eval)) return false;
 
 						if (val.t != nctx.default_types->t_type) {
 							throw_specific_error(err, "Expected type");
@@ -683,6 +701,7 @@ namespace Corrosive {
 					Cursor err = c;
 					CompileValue val;
 					if (!Expression::parse(c, val, CompileType::eval)) return false;
+					if (!Expression::rvalue(val, CompileType::eval)) return false;
 
 					if (val.t != nctx.default_types->t_type) {
 						throw_specific_error(err, "Expected type");
@@ -766,7 +785,9 @@ namespace Corrosive {
 					}
 					cc.move();
 					Cursor err = cc;
-					if (!Expression::parse(cc, cvres, CompileType::eval))return false;
+					if (!Expression::parse(cc, cvres, CompileType::eval)) return false;
+					if (!Expression::rvalue(cvres, CompileType::eval)) return false;
+
 					if (cvres.t != nctx.default_types->t_type) {
 						throw_cannot_cast_error(err, cvres.t, nctx.default_types->t_type);
 						return false;
@@ -792,6 +813,8 @@ namespace Corrosive {
 			if (cc.tok != RecognizedToken::OpenBrace) {
 				Cursor err = cc;
 				if (!Expression::parse(cc, cvres, CompileType::eval))return false;
+				if (!Expression::rvalue(cvres, CompileType::eval)) return false;
+
 				if (cvres.t != nctx.default_types->t_type) {
 					throw_cannot_cast_error(err, cvres.t, nctx.default_types->t_type);
 					return false;
@@ -847,7 +870,7 @@ namespace Corrosive {
 
 			if (returns.second->rvalue_stacked()) {
 				ret_rval_stack = true;
-				return_ptr_local_id = func->register_local(returns.second->compile_size(nctx.eval), returns.second->size(nctx.eval));
+				return_ptr_local_id = func->register_local(returns.second->size());
 				func->returns = ILDataType::none;
 			}
 			else {
@@ -869,7 +892,7 @@ namespace Corrosive {
 				CompileValue argval;
 				argval.t = a.second;
 				argval.lvalue = true;
-				uint16_t id = func->register_local(argval.t->compile_size(nctx.eval), argval.t->size(nctx.eval));
+				uint16_t id = func->register_local(argval.t->size());
 				func->arguments.push_back(a.second->rvalue());
 				StackManager::stack_push<0>(nctx.eval,a.first.buffer, argval, id);
 			}
@@ -879,13 +902,27 @@ namespace Corrosive {
 			uint16_t argid = (uint16_t)(arguments.size()-(ret_rval_stack?0:1));
 			for (auto a = arguments.rbegin(); a != arguments.rend(); a++) {
 
+				
 				if (a->second->has_special_constructor()) {
 					ILBuilder::build_local(nctx.scope, argid);
 					a->second->build_construct();
 				}
+				
 
 				ILBuilder::build_local(nctx.scope, argid);
-				a->second->build_copy();
+				if (a->second->has_special_copy()) {
+					ILBuilder::build_swap2(nctx.scope, a->second->rvalue(),ILDataType::ptr);
+					a->second->build_copy(true);
+				}
+				else {
+					if (a->second->rvalue_stacked()) {
+						ILBuilder::build_memcpy(nctx.scope, a->second->size());
+					}
+					else {
+						ILBuilder::build_store(nctx.scope, a->second->rvalue());
+					}
+				}
+
 				argid--;
 			}
 
@@ -933,8 +970,8 @@ namespace Corrosive {
 
 
 
-			//func->dump();
-			//std::cout << std::endl;
+			func->dump();
+			std::cout << std::endl;
 
 			if (!func->assert_flow()) return false;
 
@@ -962,49 +999,24 @@ namespace Corrosive {
 
 
 
-	unsigned int _align_up(unsigned int value, unsigned int alignment) {
-		return alignment == 0 ? value : ((value % alignment == 0) ? value : value + (alignment - (value % alignment)));
-	}
-
-
 	void StructureInstance::build_automatic_constructor() {
-		CompileContext& nctx_old = CompileContext::get();
-		auto_constructor = nctx_old.module->create_function();
-		CompileContext cctx = nctx_old;
-
-		ILBlock* block = auto_constructor->create_and_append_block(ILDataType::none);
-
-		cctx.inside = this;
-		cctx.scope = block;
-		cctx.function = auto_constructor;
-		cctx.function_returns = nctx_old.default_types->t_void;
-		cctx.scope_context = context;
-		CompileContext::push(cctx);
-
-		auto ss = std::move(StackManager::move_stack_out<0>());
-
-		CompileContext& nctx = CompileContext::get();
-
-
-		uint16_t self_id = auto_constructor->register_local(nctx.eval->get_compile_pointer_size(), nctx.eval->get_pointer_size());
-		ILBuilder::build_store(block,ILDataType::ptr);
-
-		for (auto&& m : member_vars) {
-			if (m.type->has_special_constructor())
-			{
-				ILBuilder::build_local(block, self_id);
-				ILBuilder::build_member(block, m.compile_offset, m.offset);
-
-				m.type->build_construct();
-			}
-		}
-
-		StackManager::move_stack_in<0>(ss);
-		CompileContext::pop();
+		//TODO
 	}
 
 	void StructureInstance::build_automatic_destructor() {
+		//TODO
+	}
 
+	void StructureInstance::build_automatic_move() {
+		//TODO
+	}
+
+	void StructureInstance::build_automatic_copy() {
+		//TODO
+	}
+
+	void StructureInstance::build_automatic_compare() {
+		//TODO
 	}
 
 	bool StructureInstance::compile() {
@@ -1013,64 +1025,59 @@ namespace Corrosive {
 
 			CompileContext& nctx = CompileContext::get();
 
-			alignment = 0;
-			size = 0;
+			size = { 0,0 };
+			alignment = { 1,0 };
 
-			compile_alignment = 0;
-			compile_size = 0;
 
 			for (auto&& m : member_vars) {
-				if (!m.type->compile()) return false;
-				
-				if (m.type->has_special_constructor())
+				if (!m.first->compile()) return false;
+
+				if (m.first->has_special_constructor())
 					has_special_constructor = true;
 
-				if (m.type->has_special_destructor())
+				if (m.first->has_special_destructor())
 					has_special_destructor = true;
 
-				if (m.type->size(nctx.eval) > 0) {
-					size = _align_up(size, m.type->alignment(nctx.eval));
-					compile_size = _align_up(compile_size, m.type->compile_alignment(nctx.eval));
-					m.offset = size;
-					m.compile_offset = compile_size;
-					size += m.type->size(nctx.eval);
-					compile_size += m.type->compile_size(nctx.eval);
 
-					alignment = std::max(alignment, m.type->alignment(nctx.eval));
-					compile_alignment = std::max(compile_alignment, m.type->compile_alignment(nctx.eval));
-				}
-				else {
-					throw_specific_error(m.definition, "Specified type is not an instantiable type");
-					std::cerr << " | \tType was '";
-					m.type->print(std::cerr);
-					std::cerr << "'\n";
-					return false;
-				}
+				/*uint32_t abss = size.absolute;
+				abss = _align_up(abss, malign);
+				size.absolute = abss;*/
+
+				m.second = size;
+				size = size + m.first->size();
+
+				//absolute_alignment = std::max(absolute_alignment, malign);
+				
 			}
+
 
 			for (auto&& m : subfunctions) {
 				if (!m.second->compile()) return false;
 			}
 
-			size = _align_up(size, alignment);
-			compile_size = _align_up(compile_size, compile_alignment);
+			//size = _align_up(size, alignment);
+			//compile_size = _align_up(compile_size, compile_alignment);
 			compile_state = 2;
 
-			if (size <= 8) {
+			
+
+			/*if (size.absolute <= 8) {
 				structure_type = StructureInstanceType::compact_structure;
 
-				if (size == 1)
+				if (size.absolute == 1)
 					rvalue = ILDataType::u8;
-				else if (size == 2)
+				else if (size.absolute == 2)
 					rvalue = ILDataType::u16;
-				else if (size <= 4)
+				else if (size.absolute <= 4)
 					rvalue = ILDataType::u32;
-				else if (size <= 8)
+				else if (size.absolute <= 8)
 					rvalue = ILDataType::u64;
 			}
-			else {
-				structure_type = StructureInstanceType::normal_structure;
-			}
+			else {*/
+
+			structure_type = StructureInstanceType::normal_structure;
+			
+			//}
 
 			if (has_special_constructor)
 				build_automatic_constructor();
@@ -1100,13 +1107,13 @@ namespace Corrosive {
 			res.lvalue = true;
 			res.t = std::get<1>(*key_l);
 
-			unsigned char* data_place = eval->stack_reserve(res.t->compile_size(eval));
+			unsigned char* data_place = eval->stack_reserve(res.t->size().eval(compiler_arch));
 
 			StackManager::stack_push<1>(eval, std::get<0>(*key_l).buffer, res,0);
 
-			res.t->copy(eval, key_ptr, data_place);
+			res.t->copy(eval, data_place, key_ptr);
 
-			key_ptr += res.t->compile_size(eval);
+			key_ptr += res.t->size().eval(compiler_arch);
 		}
 
 	}
@@ -1126,13 +1133,13 @@ namespace Corrosive {
 			res.lvalue = true;
 			res.t = std::get<1>(*key_l);
 
-			unsigned char* data_place = eval->stack_reserve(res.t->compile_size(eval));
+			unsigned char* data_place = eval->stack_reserve(res.t->size().eval(compiler_arch));
 			
 			StackManager::stack_push<1>(eval,std::get<0>(*key_l).buffer, res,0);
 
-			res.t->copy(eval, key_ptr, data_place);
+			res.t->copy(eval, data_place, key_ptr);
 
-			key_ptr += res.t->compile_size(eval);
+			key_ptr += res.t->size().eval(compiler_arch);
 		}
 
 	}

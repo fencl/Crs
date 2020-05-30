@@ -52,6 +52,8 @@ namespace Corrosive {
 
 		CompileValue ret_val;
 		if (!Expression::parse(c, ret_val, cmp)) return false;
+		if (!Expression::rvalue(ret_val,cmp)) return false;
+
 		if (cmp == CompileType::compile) {
 			ILBuilder::build_forget(nctx.scope, ret_val.t->rvalue());
 		}
@@ -75,13 +77,15 @@ namespace Corrosive {
 		CompileValue ret_val;
 		Cursor err = c;
 		if (!Expression::parse(c, ret_val, CompileType::compile)) return false;
+		if (!Expression::rvalue(ret_val, CompileType::compile)) return false;
+
 		if (!Operand::cast(err, ret_val, nctx.function_returns, CompileType::compile,false)) return false;
 
 		if (nctx.function_returns->rvalue_stacked()) {
 			//if (cpt == CompileType::compile) {
 				ILBuilder::build_local(nctx.scope, 0);
 				ILBuilder::build_load(nctx.scope, ILDataType::ptr);
-				nctx.function_returns->build_move();
+				nctx.function_returns->build_move(true);
 			//}
 		}
 
@@ -120,6 +124,8 @@ namespace Corrosive {
 		CompileContext& nctx = CompileContext::get();
 
 		if (!Expression::parse(c, val, CompileType::eval)) return false;
+		if (!Expression::rvalue(val, CompileType::eval)) return false;
+
 		if (val.t != nctx.default_types->t_type) {
 			throw_specific_error(err, "Exprected type");
 			return false;
@@ -135,8 +141,13 @@ namespace Corrosive {
 			return false;
 		}
 
-		uint32_t local_id = nctx.function->register_local(new_t->compile_size(nctx.eval), new_t->size(nctx.eval));
+		uint32_t local_id = nctx.function->register_local(new_t->size());
 		StackItem local_stack_item = StackManager::stack_push<0>(nctx.eval, name.buffer, val, local_id);
+
+		if (new_t->has_special_constructor()) {
+			ILBuilder::build_local(nctx.scope, local_id);
+			new_t->build_construct();
+		}
 
 		if (c.tok != RecognizedToken::Semicolon) {
 			throw_wrong_token_error(c, "';'");

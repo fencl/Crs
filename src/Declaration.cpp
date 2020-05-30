@@ -59,63 +59,6 @@ namespace Corrosive {
 	}
 
 
-	int StructureInstance::compare(ILEvaluator* eval, unsigned char* p1, unsigned char* p2) {
-		//TODO test for specific compare function
-
-		if (member_vars.size() == 0) {
-			return memcmp(p1, p2, compile_size);
-		}
-		else {
-			for (auto&& m : member_vars) {
-				int c = m.type->compare(eval, p1, p2);
-				if (c != 0) return c;
-				size_t ms = m.type->compile_size(eval);
-				p1 += ms;
-				p2 += ms;
-			}
-
-			return 0;
-		}
-	}
-
-
-
-	void StructureInstance::move(ILEvaluator* eval, unsigned char* src, unsigned char* dst) {
-		//TODO test for specific move function
-		
-
-		if (member_vars.size() == 0) {
-			memcpy(dst, src, compile_size);
-		}
-		else {
-			for (auto&& m : member_vars) {
-				m.type->move(eval, src, dst);
-
-				size_t ms = m.type->compile_size(eval);
-				src += ms;
-				dst += ms;
-			}
-		}
-	}
-
-
-	void StructureInstance::copy(ILEvaluator* eval, unsigned char* src, unsigned char* dst) {
-		//TODO test for specific move function
-
-		if (member_vars.size() == 0) {
-			memcpy(dst, src, compile_size);
-		}
-		else {
-			for (auto&& m : member_vars) {
-				m.type->copy(eval, src, dst);
-
-				size_t ms = m.type->compile_size(eval);
-				src += ms;
-				dst += ms;
-			}
-		}
-	}
-
 	bool StructureTemplate::GenericTemplateCompare::operator()(unsigned char* const& a, unsigned char* const& b) const {
 		unsigned char* loff = a;
 		unsigned char* roff = b;
@@ -125,7 +68,7 @@ namespace Corrosive {
 			int r = std::get<1>(l)->compare(ctx.eval, loff,roff);
 			if (r < 0) return true;
 			if (r > 0) return false;
-			unsigned int off = std::get<1>(l)->compile_size(ctx.eval);
+			size_t off = std::get<1>(l)->size().eval(compiler_arch);
 			loff += off;
 			roff += off;
 		}
@@ -143,7 +86,7 @@ namespace Corrosive {
 			int r = std::get<1>(l)->compare(nctx.eval, loff, roff);
 			if (r < 0) return true;
 			if (r > 0) return false;
-			unsigned int off = std::get<1>(l)->compile_size(nctx.eval);
+			size_t off = std::get<1>(l)->size().eval(compiler_arch);
 			loff += off;
 			roff += off;
 		}
@@ -164,7 +107,7 @@ namespace Corrosive {
 			if (r < 0) return true;
 			if (r > 0) return false;
 
-			unsigned int off = std::get<1>(l)->compile_size(nctx.eval);
+			size_t off = std::get<1>(l)->size().eval(compiler_arch);
 			loff += off;
 			roff += off;
 		}

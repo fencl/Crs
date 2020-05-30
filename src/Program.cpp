@@ -11,6 +11,9 @@
 #include "IL/IL.h"
 
 namespace Corrosive {
+
+	const ILArchitecture compiler_arch = ILArchitecture::x86_64;
+
 	int crs_main() {
 		std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
@@ -36,8 +39,6 @@ namespace Corrosive {
 		m->insintric_function_name[(unsigned char)ILInsintric::template_cast] = "dynamic_cast";
 		m->insintric_function[(unsigned char)ILInsintric::malloc] = &Operand::priv_malloc;
 		m->insintric_function_name[(unsigned char)ILInsintric::malloc] = "malloc";
-		m->insintric_function[(unsigned char)ILInsintric::memcpy] = &Operand::priv_memcpy;
-		m->insintric_function_name[(unsigned char)ILInsintric::memcpy] = "memcpy";
 		m->insintric_function[(unsigned char)ILInsintric::build_slice] = &Operand::priv_build_slice;
 		m->insintric_function_name[(unsigned char)ILInsintric::build_slice] = "slice";
 		m->insintric_function[(unsigned char)ILInsintric::debug_cursor] = &DefaultTypes::priv_debug_cursor;

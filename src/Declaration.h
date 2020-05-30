@@ -44,13 +44,6 @@ namespace Corrosive {
 		void find_name(std::string_view name, Namespace*& subnamespace, StructureTemplate*& subtemplate, FunctionTemplate*& subfunction, TraitTemplate*& subtrait);
 	};
 
-	struct StructureInstanceMemberRecord {
-		Cursor definition;
-		Type* type;
-
-		uint32_t offset;
-		uint32_t compile_offset;
-	};
 	enum class StructureInstanceType {
 		primitive_structure, compact_structure, normal_structure
 	};
@@ -58,39 +51,40 @@ namespace Corrosive {
 	class StructureInstance : public Namespace {
 	public:
 		std::map<std::string_view, size_t> member_table;
-
-		std::vector<StructureInstanceMemberRecord> member_vars;
+		std::vector<std::pair<Type*,ILSize>> member_vars;
 
 		std::map<TraitInstance*, std::vector<std::unique_ptr<FunctionInstance>>> traitfunctions;
 
 		StructureTemplate* generator;
 
-		uint32_t size;
-		uint32_t alignment;
-
 		StructureInstanceType structure_type = StructureInstanceType::normal_structure;
 		ILDataType rvalue = ILDataType::ptr;
 
-		uint32_t compile_size;
-		uint32_t compile_alignment;
+		ILSize size;
+		ILSize alignment;
 
 		ILContext context = ILContext::both;
 		unsigned char* key;
 
 		bool has_special_constructor = false;
 		bool has_special_destructor = false;
-
-		int compare(ILEvaluator* eval, unsigned char* p1, unsigned char* p2);
-		void move(ILEvaluator* eval, unsigned char* src, unsigned char* dst);
-		void copy(ILEvaluator* eval, unsigned char* src, unsigned char* dst);
+		bool has_special_copy = false;
+		bool has_special_move = false;
+		bool has_special_compare = false;
 
 		void insert_key_on_stack(ILEvaluator* eval);
 
-
 		ILFunction* auto_constructor = nullptr;
 		ILFunction* auto_destructor = nullptr;
+		ILFunction* auto_copy = nullptr;
+		ILFunction* auto_move = nullptr;
+		ILFunction* auto_compare = nullptr;
+
 		void build_automatic_constructor();
 		void build_automatic_destructor();
+		void build_automatic_move();
+		void build_automatic_copy();
+		void build_automatic_compare();
 
 		std::unique_ptr<TypeStructureInstance> type;
 		bool compile();

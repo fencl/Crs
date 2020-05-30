@@ -7,6 +7,8 @@
 #include <list>
 #include <string>
 #include <string_view>
+#include <map>
+#include <variant>
 
 namespace Corrosive {
 
@@ -24,15 +26,50 @@ namespace Corrosive {
 	};
 
 	enum class ILInstruction : unsigned char {
-		value, add, sub, div, mul, rem, bit_and, bit_or, bit_xor, load, store, accept, discard, yield, ret, jmp, jmpz, eq, ne, gt, ge, lt, le, local, member, forget, member2, fnptr, call, start, insintric, size, cast, rmember, rmember2, offset,offset2, vtable, copy
+		value, add, sub, div, mul, rem, bit_and, bit_or, bit_xor,
+		load, store, store2, accept, discard, yield, ret, jmp, jmpz,
+		eq, ne, gt, ge, lt, le, 
+		local, forget, 
+		fnptr, call, start, insintric, cast, 
+		roffset, offset, vtable, duplicate, swap, swap2,
+		memcpy, memcpy2, memcmp, memcmp2, rmemcmp, rmemcmp2
 	};
 
 	enum class ILDataType : unsigned char {
 		ibool, u8, i8, u16, i16, u32, i32, u64, i64, size, f32, f64, ptr, none, undefined
 	};
 
-	enum class ILArchitecture {
-		x86_64,i386
+	enum class ILArchitecture : unsigned char {
+		none,x86_64,i386
+	};
+
+	enum class ILAlignment : unsigned char {
+		none,two,four,__4word__,eight,__8word__,word
+	};
+
+	
+	struct ILSize {
+		ILSize();
+		ILSize(uint32_t a, uint16_t p);
+		uint32_t absolute;
+		uint16_t pointers;
+
+		size_t eval(ILArchitecture arch, ILAlignment align= ILAlignment::none) const;
+		static const ILSize single_ptr;
+		static const ILSize double_ptr;
+	};
+
+	ILSize operator* (const ILSize& l, const uint32_t& r);
+	ILSize operator+ (const ILSize& l, const uint32_t& r);
+	ILSize operator- (const ILSize& l, const uint32_t& r);
+	ILSize operator+ (const ILSize& l, const ILSize& r);
+	ILSize operator- (const ILSize& l, const ILSize& r);
+
+	struct ILSmallSize {
+		ILSmallSize();
+		ILSmallSize(uint8_t a, uint8_t p);
+		uint8_t combined;
+		size_t eval(ILArchitecture arch) const;
 	};
 
 	struct ILBlockData {
@@ -89,9 +126,8 @@ namespace Corrosive {
 
 		std::vector<ILDataType>						arguments;
 		ILDataType									returns;
-		std::vector<std::pair<uint32_t,uint32_t>>	local_offsets;
-		uint32_t compile_stack_size = 0;
-		uint32_t runtime_stack_size = 0;
+		std::vector<ILSize>							local_offsets;
+		ILSize stack_size;
 
 		std::vector<ILBlock*>						blocks;
 		std::vector<std::unique_ptr<ILBlock>>		blocks_memory;
@@ -103,14 +139,14 @@ namespace Corrosive {
 		void		 dump();
 		bool		 assert_flow();
 
-		uint16_t register_local(uint32_t type_compile_size, uint32_t type_runtime_size);
+		uint16_t register_local(ILSize size);
 		uint32_t compile_time_stack=0; uint32_t runtime_stack=0;
 	};
 
 	using ilsize_t = uint64_t; // max size for all architectures
 
 	enum class ILInsintric : unsigned char {
-		build_array, build_reference, push_template, build_template, malloc,memcpy, build_slice, debug_cursor, template_cast
+		build_array, build_reference, push_template, build_template, malloc, build_slice, debug_cursor, template_cast
 	};
 
 	class ILEvaluator {
@@ -140,9 +176,6 @@ namespace Corrosive {
 
 		size_t	compile_time_register_size(ILDataType t);
 		void	discard_last_register_type(ILDataType rs);
-
-		uint32_t get_compile_pointer_size();
-		uint32_t get_pointer_size();
 		
 		std::pair<unsigned char*, unsigned char*>	stack_push();
 		void										stack_pop(std::pair<unsigned char*, unsigned char*> stack_pointer);
@@ -163,10 +196,13 @@ namespace Corrosive {
 		}
 	};
 
+	
+
 	class ILModule {
 	public:
 		std::vector<std::unique_ptr<ILFunction>> functions;
 		std::vector<std::unique_ptr<void*[]>> vtable_data;
+
 
 		uint32_t register_vtable(std::unique_ptr<void* []> table);
 
@@ -175,10 +211,6 @@ namespace Corrosive {
 
 		ILArchitecture architecture = ILArchitecture::x86_64;
 		ILFunction* create_function();
-
-
-		uint32_t get_compile_pointer_size();
-		uint32_t get_pointer_size();
 	};
 
 
@@ -212,19 +244,29 @@ namespace Corrosive {
 		static bool build_const_f32	  (ILBlock* block, float    value);
 		static bool build_const_f64	  (ILBlock* block, double   value);
 		static bool build_const_type  (ILBlock* block, void*    value);
-		static bool build_const_size  (ILBlock* block, ilsize_t compile, ilsize_t runtime);
+		static bool build_const_size  (ILBlock* block, ILSize   value);
 
-		static bool eval_add(ILEvaluator* eval_ctx,ILDataType tl,ILDataType tr);
 		static bool eval_load(ILEvaluator* eval_ctx, ILDataType type);
 		static bool eval_store(ILEvaluator* eval_ctx, ILDataType type);
+		static bool eval_store2(ILEvaluator* eval_ctx, ILDataType type);
 
 		static bool eval_vtable(ILEvaluator* eval_ctx, uint32_t id);
 
-		static bool eval_local(ILEvaluator* eval_ctx, uint32_t offset);
-		static bool eval_member(ILEvaluator* eval_ctx, uint16_t offset);
-		static bool eval_rmember(ILEvaluator* eval_ctx, ILDataType src, ILDataType dst, uint8_t offset);
-		static bool eval_offset(ILEvaluator* eval_ctx, uint16_t multiplier);
+		static bool eval_memcpy(ILEvaluator* eval_ctx, size_t size);
+		static bool eval_memcpy2(ILEvaluator* eval_ctx, size_t size);
+		static bool eval_memcmp(ILEvaluator* eval_ctx, size_t size);
+		static bool eval_memcmp2(ILEvaluator* eval_ctx, size_t size);
 
+
+		static bool eval_rmemcmp(ILEvaluator* eval_ctx, ILDataType type);
+		static bool eval_rmemcmp2(ILEvaluator* eval_ctx, ILDataType type);
+
+		static bool eval_local(ILEvaluator* eval_ctx, size_t offset);
+
+		static bool eval_offset(ILEvaluator* eval_ctx, size_t offset);
+		static bool eval_roffset(ILEvaluator* eval_ctx, ILDataType src, ILDataType dst, size_t offset);
+
+		static bool eval_add(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
 		static bool eval_and(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
 		static bool eval_or(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
 		static bool eval_xor(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
@@ -249,24 +291,40 @@ namespace Corrosive {
 		static bool eval_callstart(ILEvaluator* eval_ctx);
 		static bool eval_call(ILEvaluator* eval_ctx, ILDataType rett, uint16_t argc);
 
-		static bool eval_copy(ILEvaluator* eval_ctx, ILDataType type, uint16_t multiplier);
+		static bool eval_duplicate(ILEvaluator* eval_ctx, ILDataType type);
 
+		static bool eval_swap(ILEvaluator* eval_ctx, ILDataType type);
+		static bool eval_swap2(ILEvaluator* eval_ctx, ILDataType type1, ILDataType type2);
 
-		static bool build_copy(ILBlock* block, ILDataType type, uint16_t multiplier);
+		static bool build_duplicate(ILBlock* block, ILDataType type);
+
+		static bool build_swap(ILBlock* block, ILDataType type);
+		static bool build_swap2(ILBlock* block, ILDataType type1, ILDataType type2);
 
 		static ILDataType arith_result(ILDataType l,ILDataType r);
-		static bool build_add(ILBlock* block, ILDataType tl, ILDataType tr);
+
 		static bool build_load(ILBlock* block, ILDataType type);
 		static bool build_store(ILBlock* block, ILDataType type);
-		static bool build_member(ILBlock* block, uint16_t compile_offset, uint16_t offset);
-		static bool build_offset(ILBlock* block,uint16_t multiplier);
-		static bool build_offset2(ILBlock* block,uint16_t compile_multiplier,uint16_t multiplier);
+		static bool build_store2(ILBlock* block, ILDataType type);
 
-		static bool build_rmember(ILBlock* block, ILDataType src, ILDataType dst, uint8_t compile_offset, uint8_t offset);
+
+		static bool build_memcpy(ILBlock* block, ILSize size);
+		static bool build_memcpy2(ILBlock* block, ILSize size);
+
+		static bool build_memcmp(ILBlock* block, ILSize size);
+		static bool build_memcmp2(ILBlock* block, ILSize size);
+
+		static bool build_offset(ILBlock* block, ILSize offest);
+		static bool build_roffset(ILBlock* block, ILDataType src, ILDataType dst, ILSmallSize offset);
+
+		static bool build_rmemcmp(ILBlock* block, ILDataType type);
+		static bool build_rmemcmp2(ILBlock* block, ILDataType type);
+
+
 		static bool build_local(ILBlock* block, uint16_t id);
-
 		static bool build_vtable(ILBlock* block, uint32_t id);
 
+		static bool build_add(ILBlock* block, ILDataType tl, ILDataType tr);
 		static bool build_and(ILBlock* block, ILDataType tl, ILDataType tr);
 		static bool build_or(ILBlock* block, ILDataType tl, ILDataType tr);
 		static bool build_xor(ILBlock* block, ILDataType tl, ILDataType tr);

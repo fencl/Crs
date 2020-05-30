@@ -12,6 +12,8 @@ namespace Corrosive {
 		compile, eval/*, short_circuit*/
 	};
 
+	extern const ILArchitecture compiler_arch;
+
 	class Namespace;
 	class DefaultTypes;
 	class FunctionInstance;
