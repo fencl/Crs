@@ -4,6 +4,7 @@
 #include <vector>
 #include <memory>
 #include "Type.h"
+#include "Source.h"
 
 namespace Corrosive {
 	extern const char* PredefinedNamespace;
@@ -92,8 +93,13 @@ namespace Corrosive {
 		ILFunction* f_slice;
 		FunctionTemplate* f_malloc;
 
+		Source std_lib;
 
-		void setup(CompileContext& ctx);
+		TraitTemplate* tr_copy;
+		TraitTemplate* tr_move;
+		TraitTemplate* tr_compare;
+
+		bool setup(CompileContext& ctx);
 	private:
 		void setup_type(CompileContext& ctx, std::string_view name, Type*& into, ILSize size, ILSize alignment, ILDataType ildt,ILContext runtime);
 	};

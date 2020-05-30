@@ -29,6 +29,10 @@ namespace Corrosive {
 		}
 	}
 
+	void Source::load_data(const char* data) {
+		buffer = data;
+	}
+
 	void Source::read_after(Cursor& out, const Cursor& c) const {
 		read(out, c.offset + c.buffer.length(), c.left + (unsigned int)c.buffer.length(), c.top);
 	}

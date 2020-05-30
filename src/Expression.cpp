@@ -219,7 +219,9 @@ namespace Corrosive {
 		CompileValue val;
 		if (!parse_or(c, val, cpt)) return false;
 
-		if (c.tok == RecognizedToken::Equals) {
+		if (c.tok == RecognizedToken::Equals || c.tok == RecognizedToken::BackArrow) {
+			bool do_copy = c.tok == RecognizedToken::Equals;
+
 			CompileValue val2;
 			if (!val.lvalue) {
 				throw_specific_error(c, "Left assignment must be modifiable lvalue");
@@ -242,11 +244,14 @@ namespace Corrosive {
 
 			if (cpt == CompileType::compile) {
 
-				if (val.t->has_special_copy()) {
+				if (do_copy && val.t->has_special_copy()) {
 					val.t->build_copy(!val.lvalue);
 				}
+				else if (!do_copy && val.t->has_special_move()) {
+					val.t->build_move(!val.lvalue);
+				}
 				else {
-					// simple copy
+					// simple copy/move
 					if (!Expression::rvalue(val2, CompileType::compile)) return false;
 
 					if (val.t->rvalue_stacked()) {
@@ -259,23 +264,33 @@ namespace Corrosive {
 			}
 			else {
 
-				if (val.t->has_special_copy()) {
+				if ((do_copy && val.t->has_special_copy()) || (!do_copy && val.t->has_special_move())) {
 
 					if (!val.lvalue && !val.t->rvalue_stacked()) {
 						ilsize_t storage;
 						size_t reg_size = nctx.eval->compile_time_register_size(val.t->rvalue());
 						nctx.eval->pop_register_value_indirect(reg_size, &storage);
 						unsigned char* me = nctx.eval->pop_register_value<unsigned char*>();
-						val.t->copy(nctx.eval, me, (unsigned char*)&storage);
+						if (do_copy) {
+							val.t->copy(nctx.eval, me, (unsigned char*)&storage);
+						}
+						else {
+							val.t->move(nctx.eval, me, (unsigned char*)&storage);
+						}
 					}
 					else {
 						unsigned char* copy_from = nctx.eval->pop_register_value<unsigned char*>();
 						unsigned char* me = nctx.eval->pop_register_value<unsigned char*>();
-						val.t->copy(nctx.eval, me, copy_from);
+						if (do_copy) {
+							val.t->copy(nctx.eval, me, copy_from);
+						}
+						else {
+							val.t->move(nctx.eval, me, copy_from);
+						}
 					}
 				}
 				else {
-					//simple copy
+					//simple copy/move
 					if (!Expression::rvalue(val2, CompileType::eval)) return false;
 
 					if (val.t->rvalue_stacked()) {

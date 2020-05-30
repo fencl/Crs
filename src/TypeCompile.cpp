@@ -57,9 +57,10 @@ namespace Corrosive {
 		}
 	}
 
-	void Type::build_move(bool rv) {
+
+	void Type::build_copy(bool rv) {
 		//dst(me), src(from)
-		
+
 		CompileContext& nctx = CompileContext::get();
 		if (rvalue_stacked() || !rv) {
 			ILBuilder::build_memcpy2(nctx.scope, size());
@@ -69,7 +70,7 @@ namespace Corrosive {
 		}
 	}
 
-	void Type::build_copy(bool rv) {
+	void Type::build_move(bool rv) {
 		//dst(me), src(from)
 
 		CompileContext& nctx = CompileContext::get();
@@ -185,27 +186,7 @@ namespace Corrosive {
 		}
 	}
 
-	void TypeStructureInstance::build_move(bool rv) {
-		//dst(me), src(from)
-		if (has_special_move()) {
-			CompileContext& nctx = CompileContext::get();
-
-			// rvalue passed to ctor, create stack copy, no need to drop
-			if (rv && !rvalue_stacked()) {
-				uint16_t loc_id = nctx.function->register_local(size());
-				ILBuilder::build_local(nctx.scope, loc_id);
-				ILBuilder::build_store(nctx.scope, rvalue());
-				ILBuilder::build_local(nctx.scope, loc_id);
-			}
-
-			ILBuilder::build_fnptr(nctx.scope, owner->auto_move);
-			ILBuilder::build_callstart(nctx.scope);
-			ILBuilder::build_call(nctx.scope, ILDataType::none, 2);
-		}
-		else {
-			Type::build_move(rv);
-		}
-	}
+	
 
 	void TypeStructureInstance::build_copy(bool rv) {
 		//dst(me), src(from)
@@ -226,6 +207,28 @@ namespace Corrosive {
 		}
 		else {
 			Type::build_copy(rv);
+		}
+	}
+
+	void TypeStructureInstance::build_move(bool rv) {
+		//dst(me), src(from)
+		if (has_special_move()) {
+			CompileContext& nctx = CompileContext::get();
+
+			// rvalue passed to ctor, create stack copy, no need to drop
+			if (rv && !rvalue_stacked()) {
+				uint16_t loc_id = nctx.function->register_local(size());
+				ILBuilder::build_local(nctx.scope, loc_id);
+				ILBuilder::build_store(nctx.scope, rvalue());
+				ILBuilder::build_local(nctx.scope, loc_id);
+			}
+
+			ILBuilder::build_fnptr(nctx.scope, owner->auto_move);
+			ILBuilder::build_callstart(nctx.scope);
+			ILBuilder::build_call(nctx.scope, ILDataType::none, 2);
+		}
+		else {
+			Type::build_move(rv);
 		}
 	}
 

@@ -42,7 +42,7 @@ namespace Corrosive {
 		return primitives[(unsigned char)rval];
 	}
 
-	void DefaultTypes::setup(CompileContext& ctx) {
+	bool DefaultTypes::setup(CompileContext& ctx) {
 		setup_type(ctx, "void", t_void, { 0,0 }, { 0, 0 }, ILDataType::none, ILContext::both);
 		setup_type(ctx, "i8", t_i8, { 1,0 }, { 1, 0 }, ILDataType::i8, ILContext::both);
 		setup_type(ctx, "bool", t_bool, { 1,0 }, { 1, 0 }, ILDataType::ibool, ILContext::both);
@@ -100,64 +100,15 @@ namespace Corrosive {
 		ctx.global->subfunctions["malloc"] = std::move(f_malloc_template);
 
 
+		std_lib.load_data("trait Copy(T:type) {fn Copy: (&T);}\ntrait Move(T:type) {fn Move: (&T);}\ntrait Compare(T:type) {fn Compare: (&T) i8;}");
+		Cursor c = std_lib.read_first();
+		if (!Declaration::parse_global(c, ctx.global)) return false;
 
+		tr_copy = ctx.global->subtraits["Copy"].get();
+		tr_move = ctx.global->subtraits["Move"].get();
+		tr_compare = ctx.global->subtraits["Compare"].get();
 
-		/*f_slice = ctx.module->create_function();
-
-		f_slice->alias = "slice";
-		ILBlock* f_slice_block = f_slice->create_and_append_block(ILDataType::none);
-
-		uint16_t return_ptr_local_id = f_slice->register_local(ctx.module->get_compile_pointer_size() * 2, ctx.module->get_pointer_size() * 2);
-		uint16_t slice_local_id = f_slice->register_local(ctx.module->get_compile_pointer_size() * 2, ctx.module->get_pointer_size() * 2);
-		uint16_t offset_local_id = f_slice->register_local(ctx.module->get_compile_pointer_size(), ctx.module->get_pointer_size());
-		uint16_t count_local_id = f_slice->register_local(ctx.module->get_compile_pointer_size(), ctx.module->get_pointer_size());
-		uint16_t elem_size_local_id = f_slice->register_local(ctx.module->get_compile_pointer_size(), ctx.module->get_pointer_size());
-
-		ILBuilder::build_local(f_slice_block, elem_size_local_id);
-		ILBuilder::build_store(f_slice_block, ILDataType::size);
-		ILBuilder::build_local(f_slice_block, count_local_id);
-		ILBuilder::build_store(f_slice_block, ILDataType::size);
-		ILBuilder::build_local(f_slice_block, offset_local_id);
-		ILBuilder::build_store(f_slice_block, ILDataType::size);
-
-		ILBuilder::build_local(f_slice_block, slice_local_id);
-		ILBuilder::build_const_size(f_slice_block, ctx.module->get_compile_pointer_size() * 2, ctx.module->get_pointer_size() * 2);
-		ILBuilder::build_insintric(f_slice_block, ILInsintric::memcpy);
-
-		ILBuilder::build_local(f_slice_block, return_ptr_local_id);
-		ILBuilder::build_store(f_slice_block, ILDataType::ptr);
-
-
-		ILBuilder::build_local(f_slice_block, slice_local_id);
-		ILBuilder::build_load(f_slice_block, ILDataType::size);
-		ILBuilder::build_local(f_slice_block, offset_local_id);
-		ILBuilder::build_load(f_slice_block, ILDataType::size);
-		ILBuilder::build_local(f_slice_block, elem_size_local_id);
-		ILBuilder::build_load(f_slice_block, ILDataType::size);
-		ILBuilder::build_mul(f_slice_block, ILDataType::size, ILDataType::size);
-		ILBuilder::build_add(f_slice_block, ILDataType::size, ILDataType::size);
-		ILBuilder::build_local(f_slice_block, slice_local_id);
-		ILBuilder::build_store(f_slice_block, ILDataType::size);
-
-
-		ILBuilder::build_local(f_slice_block, slice_local_id);
-		ILBuilder::build_member2(f_slice_block, ctx.module->get_compile_pointer_size(), ctx.module->get_pointer_size());
-		ILBuilder::build_local(f_slice_block, count_local_id);
-		ILBuilder::build_load(f_slice_block, ILDataType::size);
-		ILBuilder::build_local(f_slice_block, slice_local_id);
-		ILBuilder::build_member2(f_slice_block, ctx.module->get_compile_pointer_size(), ctx.module->get_pointer_size());
-		ILBuilder::build_store(f_slice_block, ILDataType::size);
-
-
-		ILBuilder::build_local(f_slice_block, return_ptr_local_id);
-		ILBuilder::build_load(f_slice_block, ILDataType::ptr);
-		ILBuilder::build_local(f_slice_block, slice_local_id);
-		ILBuilder::build_member2(f_slice_block, ctx.module->get_compile_pointer_size(), ctx.module->get_pointer_size());
-		ILBuilder::build_insintric(f_slice_block, ILInsintric::memcpy);
-		ILBuilder::build_ret(f_slice_block, ILDataType::none);
-
-		f_slice->assert_flow();
-		f_slice->dump();*/
+		return true;
 	}
 
 

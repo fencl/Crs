@@ -80,6 +80,10 @@ namespace Corrosive {
 		ILFunction* auto_move = nullptr;
 		ILFunction* auto_compare = nullptr;
 
+		FunctionInstance* impl_copy = nullptr;
+		FunctionInstance* impl_move = nullptr;
+		FunctionInstance* impl_compare = nullptr;
+
 		void build_automatic_constructor();
 		void build_automatic_destructor();
 		void build_automatic_move();

@@ -515,8 +515,21 @@ namespace Corrosive {
 						throw_specific_error(m.type, "Trait implementation is missing some functions");
 						return false;
 					}
+					
+					if (tt->owner->generator == nctx.default_types->tr_copy) {
+						new_inst->impl_copy = trait.begin()->get();
+					}
+
+					if (tt->owner->generator == nctx.default_types->tr_move) {
+						new_inst->impl_move = trait.begin()->get();
+					}
+
+					if (tt->owner->generator == nctx.default_types->tr_compare) {
+						new_inst->impl_compare = trait.begin()->get();
+					}
 
 					new_inst->traitfunctions[tt->owner] = std::move(trait);
+					
 				}
 			}
 
@@ -1083,6 +1096,24 @@ namespace Corrosive {
 				build_automatic_constructor();
 			if (has_special_destructor)
 				build_automatic_destructor();
+
+			if (impl_copy) {
+				if (!impl_copy->compile()) return false;
+				auto_copy = impl_copy->func;
+				has_special_copy = true;
+			}
+
+			if (impl_move) {
+				if (!impl_move->compile()) return false;
+				auto_move = impl_move->func;
+				has_special_move = true;
+			}
+
+			if (impl_compare) {
+				if (!impl_compare->compile()) return false;
+				auto_compare = impl_compare->func;
+				has_special_compare = true;
+			}
 		}
 		else if (compile_state == 2) {
 			return true;

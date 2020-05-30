@@ -1501,7 +1501,7 @@ namespace Corrosive {
 		}
 		c.move();
 		
-		uint16_t base_compile_size = base_slice->size().eval(compiler_arch);
+		//size_t base_compile_size = base_slice->size().eval(compiler_arch);
 
 
 		ret.lvalue = false;
@@ -1659,7 +1659,7 @@ namespace Corrosive {
 			if (c.buffer == "count" || c.buffer == "size") {
 				if (!Expression::rvalue(ret, cpt)) return false;
 
-				uint32_t compile_pointer = ILSize::single_ptr.eval(compiler_arch);
+				size_t compile_pointer = ILSize::single_ptr.eval(compiler_arch);
 
 				if (cpt == CompileType::compile) {
 
@@ -2050,7 +2050,7 @@ namespace Corrosive {
 				}
 				else {
 					if (cpt == CompileType::compile) {
-						ILBuilder::build_roffset(nctx.scope, ret.t->rvalue(), mem_type->rvalue(),ILSmallSize(offset.absolute,offset.pointers));
+						ILBuilder::build_roffset(nctx.scope, ret.t->rvalue(), mem_type->rvalue(),ILSmallSize((uint8_t)offset.absolute, (uint8_t)offset.pointers));
 					}
 					else if (cpt == CompileType::eval) {
 						ILBuilder::eval_roffset(nctx.eval, ret.t->rvalue(), mem_type->rvalue(), (uint8_t)offset.eval(compiler_arch));

@@ -72,7 +72,7 @@ namespace Corrosive {
 			ILBuilder::eval_call(eval, ILDataType::none, 2);
 		}
 		else {
-			Type::move(eval, me, from);
+			Type::copy(eval, me, from);
 		}
 	}
 
