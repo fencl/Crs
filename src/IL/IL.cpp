@@ -439,6 +439,14 @@ namespace Corrosive {
 					std::cout << "   malloc\n";
 				} break;
 
+				case ILInstruction::rtoffset: {
+					std::cout << "   rtoffset\n";
+				} break;
+
+				case ILInstruction::rtoffset2: {
+					std::cout << "   rtoffset2\n";
+				} break;
+
 				case ILInstruction::jmp: {
 					std::cout << "   jmp ";
 					auto address = read_data_type(uint32_t);

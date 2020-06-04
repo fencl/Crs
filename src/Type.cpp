@@ -353,7 +353,7 @@ namespace Corrosive {
 	}
 
 	ILSize TypeSlice::size() {
-		return ILSize::single_ptr;
+		return ILSize::double_ptr;
 	}
 
 	ILSize TypeSlice::alignment() {

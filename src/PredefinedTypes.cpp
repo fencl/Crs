@@ -1,4 +1,5 @@
 #include "PredefinedTypes.h"
+#include <iostream>
 
 namespace Corrosive {
 
@@ -93,11 +94,39 @@ namespace Corrosive {
 		f_malloc_template->singe_instance->type = tf;
 
 		ILBlock* f_malloc_block = f_malloc_template->singe_instance->func->create_and_append_block(ILDataType::none);
+
+		uint16_t loc_ret_ptr = f_malloc_template->singe_instance->func->register_local(t_ptr->size());
+		uint16_t loc_size = f_malloc_template->singe_instance->func->register_local(t_size->size());
+
+		ILBuilder::build_local(f_malloc_block, loc_size);
+		ILBuilder::build_store(f_malloc_block, ILDataType::size);
+
+		ILBuilder::build_local(f_malloc_block, loc_ret_ptr);
+		ILBuilder::build_store(f_malloc_block, ILDataType::ptr);
+
+		ILBuilder::build_local(f_malloc_block, loc_size);
+		ILBuilder::build_load(f_malloc_block, ILDataType::size);
 		ILBuilder::build_duplicate(f_malloc_block, ILDataType::size);
+
 		ILBuilder::build_malloc(f_malloc_block);
+		ILBuilder::build_local(f_malloc_block, loc_ret_ptr);
+		ILBuilder::build_load(f_malloc_block, ILDataType::ptr);
+		ILBuilder::build_store(f_malloc_block, ILDataType::ptr);
+
+
+		ILBuilder::build_local(f_malloc_block, loc_ret_ptr);
+		ILBuilder::build_load(f_malloc_block, ILDataType::ptr);
+		ILBuilder::build_offset(f_malloc_block, ILSize::single_ptr);
+		ILBuilder::build_store(f_malloc_block, ILDataType::size);
+
 		ILBuilder::build_ret(f_malloc_block, ILDataType::none);
 
+		f_malloc_template->singe_instance->func->dump();
+		std::cout << "\n";
+
 		ctx.global->subfunctions["malloc"] = std::move(f_malloc_template);
+
+
 
 
 		std_lib.load_data("trait Copy(T:type) {fn Copy: (&T);}\ntrait Move(T:type) {fn Move: (&T);}\ntrait Compare(T:type) {fn Compare: (&T) i8;}");

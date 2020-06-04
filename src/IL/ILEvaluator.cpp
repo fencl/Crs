@@ -417,6 +417,22 @@ namespace Corrosive {
 		return true;
 	}
 
+	bool ILBuilder::eval_rtoffset(ILEvaluator* eval_ctx) {
+		size_t offset = eval_ctx->pop_register_value<size_t>();
+		unsigned char* mem = eval_ctx->pop_register_value<unsigned char*>();
+		mem += offset;
+		eval_ctx->write_register_value(mem);
+		return true;
+	}
+	
+	bool ILBuilder::eval_rtoffset2(ILEvaluator* eval_ctx) {
+		unsigned char* mem = eval_ctx->pop_register_value<unsigned char*>();
+		size_t offset = eval_ctx->pop_register_value<size_t>();
+		mem += offset;
+		eval_ctx->write_register_value(mem);
+		return true;
+	}
+
 	bool ILBuilder::eval_roffset(ILEvaluator* eval_ctx, ILDataType from,ILDataType to, size_t offset) {
 		ilsize_t mem;
 		eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(from), &mem);
@@ -739,6 +755,12 @@ namespace Corrosive {
 					case ILInstruction::offset: {
 						auto size = read_data_type(ILSize);
 						if (!eval_offset(eval_ctx, size->eval(eval_ctx->parent->architecture))) return false;
+					} break;
+					case ILInstruction::rtoffset: {
+						if (!eval_rtoffset(eval_ctx)) return false;
+					} break;
+					case ILInstruction::rtoffset2: {
+						if (!eval_rtoffset2(eval_ctx)) return false;
 					} break;
 					case ILInstruction::roffset: {
 						auto from_t = *read_data_type(ILDataType);

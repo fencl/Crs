@@ -383,6 +383,10 @@ namespace Corrosive {
 						}
 						c.move();
 
+						CompileContext newctx = nctx;
+						newctx.scope_context = ILContext::compile;
+						CompileContext::push(newctx);
+
 						Cursor err = c;
 
 						CompileValue t_res;
@@ -400,6 +404,8 @@ namespace Corrosive {
 							return false;
 						}
 						c.move();
+
+						CompileContext::pop();
 
 						if (!Operand::cast(err, ret, to, cpt, false)) return false;
 					}
@@ -1508,6 +1514,14 @@ namespace Corrosive {
 		TypeSlice* slice = (TypeSlice*)ret.t;
 		Type* base_slice = slice->owner;
 
+
+		if (cpt == CompileType::compile) {
+			ILBuilder::build_load(nctx.scope, ILDataType::ptr);
+		}
+		else {
+			ILBuilder::eval_load(nctx.eval, ILDataType::ptr);
+		}
+
 		Cursor err = c;
 		CompileValue index;
 		if (!Expression::parse(c, index, cpt)) return false;
@@ -1515,14 +1529,18 @@ namespace Corrosive {
 
 		if (!Operand::cast(err, index, nctx.default_types->t_size,cpt,true)) return false;
 
+		if (cpt == CompileType::compile) {
+			ILBuilder::build_rtoffset(nctx.scope);
+		}
+		else {
+			ILBuilder::eval_rtoffset(nctx.eval);
+		}
+
 		if (c.tok != RecognizedToken::CloseBracket) {
 			throw_wrong_token_error(c, "']'");
 			return false;
 		}
 		c.move();
-		
-		//size_t base_compile_size = base_slice->size().eval(compiler_arch);
-
 
 		ret.lvalue = false;
 		ret.t = base_slice->generate_reference();
@@ -1678,7 +1696,7 @@ namespace Corrosive {
 		CompileContext& nctx = CompileContext::get();
 		if (ret.t->type() == TypeInstanceType::type_slice) {
 			c.move();
-			if (c.buffer == "count" || c.buffer == "size") {
+			if (c.buffer == "size") {
 				if (!Expression::rvalue(ret, cpt)) return false;
 
 				size_t compile_pointer = ILSize::single_ptr.eval(compiler_arch);
@@ -1692,14 +1710,6 @@ namespace Corrosive {
 					else {
 						ILBuilder::build_roffset(nctx.scope, ret.t->rvalue(), ILDataType::size, ILSmallSize(0,1));
 					}
-
-					if (c.buffer == "size") {
-						TypeSlice* st = (TypeSlice*)ret.t;
-						Type* bt = st->owner;
-
-						ILBuilder::build_const_size(nctx.scope, bt->size());
-						ILBuilder::build_mul(nctx.scope, ILDataType::size, ILDataType::size);
-					}
 				}
 				else {
 					if (ret.t->rvalue_stacked()) {
@@ -1709,14 +1719,6 @@ namespace Corrosive {
 					else {
 						ILBuilder::eval_roffset(nctx.eval, ret.t->rvalue(), ILDataType::size, (uint8_t)compile_pointer);
 					}
-
-					if (c.buffer == "size") {
-						TypeSlice* st = (TypeSlice*)ret.t;
-						Type* bt = st->owner;
-
-						ILBuilder::eval_const_size(nctx.eval, bt->size().eval(compiler_arch));
-						ILBuilder::eval_mul(nctx.eval, ILDataType::size, ILDataType::size);
-					}
 				}
 
 
@@ -1725,93 +1727,6 @@ namespace Corrosive {
 				ret.t = nctx.default_types->t_size;
 				return true;
 			}
-			/*else if(c.buffer=="slice") {
-				c.move();
-				if (c.tok != RecognizedToken::OpenParenthesis) {
-					throw_wrong_token_error(c, "'('");
-					return false;
-				}
-				c.move();
-
-				uint16_t local_tmp_id = 0;
-				uint32_t compile_pointer = nctx.eval->get_compile_pointer_size();
-				uint32_t runtime_poniter = nctx.eval->get_pointer_size();
-
-				if (cpt == CompileType::compile) {
-					CompileValue tmp_res = ret;
-					tmp_res.lvalue = false;
-					local_tmp_id = nctx.function->register_local(compile_pointer * 2, runtime_poniter * 2);
-					StackManager::stack_push<0>(nctx.eval, "$tmp", tmp_res, local_tmp_id);
-					ILBuilder::build_local(nctx.scope, local_tmp_id);
-					ILBuilder::build_const_size(nctx.scope, compile_pointer*2, runtime_poniter*2);
-					ILBuilder::build_insintric(nctx.scope, ILInsintric::memcpy);
-				}
-
-				CompileValue arg;
-				Cursor err = c;
-				if (!Expression::parse(c, arg, cpt)) return false;
-				if (!Operand::cast(err, arg, nctx.default_types->t_size, cpt, true)) return false;
-
-				if (c.tok != RecognizedToken::Comma) {
-					throw_wrong_token_error(c, "','");
-					return false;
-				}
-				c.move();
-
-				err = c;
-				if (!Expression::parse(c, arg, cpt)) return false;
-				if (!Operand::cast(err, arg, nctx.default_types->t_size, cpt, true)) return false;
-
-				if (c.tok != RecognizedToken::CloseParenthesis) {
-					throw_wrong_token_error(c, "')'");
-					return false;
-				}
-				c.move();
-
-				TypeSlice* st = (TypeSlice*)ret.t;
-				Type* bt = st->owner;
-
-
-				if (cpt == CompileType::compile) {
-
-					ILBuilder::build_local(nctx.scope, local_tmp_id);
-					if (compile_pointer != runtime_poniter)
-						ILBuilder::build_member2(nctx.scope, compile_pointer, runtime_poniter);
-					else
-						ILBuilder::build_member(nctx.scope, compile_pointer);
-					ILBuilder::build_store(nctx.scope, ILDataType::size);
-
-					ILBuilder::build_local(nctx.scope, local_tmp_id);
-					ILBuilder::build_load(nctx.scope, ILDataType::size);
-					ILBuilder::build_const_size(nctx.scope, bt->compile_size(nctx.eval), bt->size(nctx.eval));
-					ILBuilder::build_mul(nctx.scope, ILDataType::size, ILDataType::size);
-					ILBuilder::build_add(nctx.scope, ILDataType::size, ILDataType::size);
-					ILBuilder::build_local(nctx.scope, local_tmp_id);
-					ILBuilder::build_store(nctx.scope, ILDataType::size);
-
-					ILBuilder::build_local(nctx.scope, local_tmp_id);
-				}
-				else {
-					CompileValue tmp_res = ret;
-					tmp_res.lvalue = false;
-
-					size_t* memory_place = (size_t*)nctx.eval->stack_reserve(compile_pointer*2);
-					StackItem local_stack_item = StackManager::stack_push<1>(nctx.eval, "$tmp", tmp_res, 0);
-
-
-					size_t cnt = nctx.eval->pop_register_value<size_t>();
-					size_t from = nctx.eval->pop_register_value<size_t>();
-					size_t* old_slice = nctx.eval->pop_register_value<size_t*>();
-
-					memory_place[0] = old_slice[0] + from*bt->size(nctx.eval);
-					memory_place[1] = cnt;
-
-					ILBuilder::eval_const_ptr(nctx.eval, memory_place);
-				}
-
-				ret.lvalue = false;
-				return true;
-			}*/
 			else {
 				throw_specific_error(c, "Indentifier not recognized as a value of slice");
 				return false;

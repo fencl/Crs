@@ -206,6 +206,15 @@ namespace Corrosive {
 		return true;
 	}
 	
+	bool ILBuilder::build_rtoffset(ILBlock* block) {
+		block->write_instruction(ILInstruction::rtoffset);
+		return true;
+	}
+
+	bool ILBuilder::build_rtoffset2(ILBlock* block) {
+		block->write_instruction(ILInstruction::rtoffset2);
+		return true;
+	}
 
 	bool ILBuilder::build_callstart(ILBlock* block) {
 		block->write_instruction(ILInstruction::start);
