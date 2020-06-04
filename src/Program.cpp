@@ -9,6 +9,7 @@
 #include "Operand.h"
 #include "Expression.h"
 #include "IL/IL.h"
+#include "StackManager.h"
 
 namespace Corrosive {
 
@@ -27,6 +28,9 @@ namespace Corrosive {
 		std::unique_ptr<DefaultTypes> dt = std::make_unique<DefaultTypes>();
 		std::unique_ptr<Namespace> gn = std::make_unique<Namespace>();
 		std::unique_ptr<ILEvaluator> e = std::make_unique<ILEvaluator>();
+		std::unique_ptr<StackManager> rts = std::make_unique<StackManager>();
+		std::unique_ptr<StackManager> cps = std::make_unique<StackManager>();
+
 		m->insintric_function[(unsigned char)ILInsintric::build_array] = &Operand::priv_build_array;
 		m->insintric_function_name[(unsigned char)ILInsintric::build_array] = "array";
 		m->insintric_function[(unsigned char)ILInsintric::build_reference] = &Operand::priv_build_reference;
@@ -37,8 +41,6 @@ namespace Corrosive {
 		m->insintric_function_name[(unsigned char)ILInsintric::build_template] = "build_template";
 		m->insintric_function[(unsigned char)ILInsintric::template_cast] = &Operand::priv_type_template_cast;
 		m->insintric_function_name[(unsigned char)ILInsintric::template_cast] = "dynamic_cast";
-		m->insintric_function[(unsigned char)ILInsintric::malloc] = &Operand::priv_malloc;
-		m->insintric_function_name[(unsigned char)ILInsintric::malloc] = "malloc";
 		m->insintric_function[(unsigned char)ILInsintric::build_slice] = &Operand::priv_build_slice;
 		m->insintric_function_name[(unsigned char)ILInsintric::build_slice] = "slice";
 		m->insintric_function[(unsigned char)ILInsintric::debug_cursor] = &DefaultTypes::priv_debug_cursor;
@@ -55,46 +57,29 @@ namespace Corrosive {
 		ctx.eval = e.get();
 		ctx.default_types = dt.get();
 		ctx.global = gn.get();
+		ctx.runtime_stack = rts.get();
+		ctx.compile_stack = cps.get();
 
 		CompileContext::push(ctx);
 
 		if (ctx.default_types->setup(ctx)) {
 
-			ILFunction* ilf = nullptr;
+			ILFunction* main = nullptr;
 
 			if (Declaration::parse_global(c, gn.get())) {
-				if (gn->subtemplates["B"]->compile()) {
-					auto& sfcs = gn->subtemplates["I"]->singe_instance->subfunctions;
-
-					/*auto f_r = sfcs.find("equals");
-					if (f_r != sfcs.end()) {
-						FunctionInstance* finst;
-						if (f_r->second->generate(nullptr, finst)) finst->compile();
-					}
-
-					f_r = sfcs.find("equals2");
-					if (f_r != sfcs.end()) {
-						FunctionInstance* finst;
-						if (f_r->second->generate(nullptr, finst)) finst->compile();
-					}*/
-
-					auto f_r = sfcs.find("main");
-					if (f_r != sfcs.end()) {
-						FunctionInstance* finst;
-						if (f_r->second->generate(nullptr, finst)) {
-							if (finst->compile()) {
-								ilf = finst->func;
-							}
+				auto mainfun = gn->subfunctions.find("main");
+				if (mainfun != gn->subfunctions.end()) {
+					FunctionInstance* finst;
+					if (mainfun->second->generate(nullptr, finst)) {
+						if (finst->compile()) {
+							main = finst->func;
 						}
-					}
-					else {
-						std::cerr << "main not found\n";
 					}
 				}
 			}
 
-			if (ilf != nullptr) {
-				ILBuilder::eval_fnptr(ctx.eval, ilf);
+			if (main != nullptr) {
+				ILBuilder::eval_fnptr(ctx.eval, main);
 				ILBuilder::eval_callstart(ctx.eval);
 				ILBuilder::eval_call(ctx.eval, ILDataType::u64, 0);
 				uint64_t ret_val = ctx.eval->pop_register_value<uint64_t>();

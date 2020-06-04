@@ -146,6 +146,60 @@ namespace Corrosive {
 		return (uint16_t)(local_offsets.size() - 1);
 	}
 
+
+	uint16_t ILEvaluator::mask_local(unsigned char* ptr) {
+		auto& ls = local_stack_offsets.back();
+		ls.push_back(ptr);
+		return (uint16_t)(ls.size() - 1);
+	}
+
+	void ILEvaluator::pop_mask_local() {
+		local_stack_offsets.pop_back();
+	}
+
+	uint16_t ILEvaluator::push_local(ILSize size) {
+		auto& lss = local_stack_size.back();
+		auto& lsb = local_stack_base.back();
+		auto& ls = local_stack_offsets.back();
+		
+		size_t sz = size.eval(compiler_arch);
+
+		ls.push_back(lsb + lss);
+		lss += sz;
+
+		return (uint16_t)(ls.size() - 1);
+	}
+
+	void ILEvaluator::pop_local(ILSize size) {
+		auto& lss = local_stack_size.back();
+		size_t sz = size.eval(compiler_arch);
+		lss -= sz;
+		local_stack_offsets.pop_back();
+	}
+
+
+	void ILEvaluator::stack_push() {
+		if (local_stack_base.size() == 0) {
+			local_stack_base.push_back(memory_stack);
+		}
+		else {
+			local_stack_base.push_back(local_stack_base.back() + local_stack_size.back());
+		}
+
+		local_stack_size.push_back(0);
+		local_stack_offsets.push_back(std::move(decltype(local_stack_offsets)::value_type()));
+	}
+
+	void ILEvaluator::stack_pop() {
+		local_stack_base.pop_back();
+		local_stack_size.pop_back();
+		local_stack_offsets.pop_back();
+	}
+
+	unsigned char* ILEvaluator::stack_ptr(uint16_t id) {
+		return local_stack_offsets.back()[id];
+	}
+
 	size_t _align_up(size_t value, size_t alignment) {
 		return alignment == 0 ? value : ((value % alignment == 0) ? value : value + (alignment - (value % alignment)));
 	}
@@ -380,6 +434,11 @@ namespace Corrosive {
 				case ILInstruction::start: {
 					std::cout << "   start\n";
 				} break;
+
+				case ILInstruction::malloc: {
+					std::cout << "   malloc\n";
+				} break;
+
 				case ILInstruction::jmp: {
 					std::cout << "   jmp ";
 					auto address = read_data_type(uint32_t);

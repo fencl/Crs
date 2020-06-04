@@ -212,6 +212,11 @@ namespace Corrosive {
 		return true;
 	}
 
+	bool ILBuilder::build_malloc(ILBlock* block) {
+		block->write_instruction(ILInstruction::malloc);
+		return true;
+	}
+
 	ILDataType ILBuilder::arith_result(ILDataType l, ILDataType r) {
 		return std::max(l, r);
 	}

@@ -12,11 +12,10 @@ namespace Corrosive {
 		compile, eval/*, short_circuit*/
 	};
 
-	extern const ILArchitecture compiler_arch;
-
 	class Namespace;
 	class DefaultTypes;
 	class FunctionInstance;
+	class StackManager;
 
 	struct CompileContext {
 		DefaultTypes*	default_types = nullptr;
@@ -31,6 +30,8 @@ namespace Corrosive {
 		ILBlock*		scope = nullptr;
 		//ILBlock*		scope_exit = nullptr;
 
+		StackManager*	runtime_stack = nullptr;
+		StackManager*	compile_stack = nullptr;
 
 
 		static CompileContext context_stack[1024];

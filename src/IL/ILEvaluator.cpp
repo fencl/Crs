@@ -443,20 +443,8 @@ namespace Corrosive {
 		return true;
 	}
 
-
-	std::pair<unsigned char*, unsigned char*> ILEvaluator::stack_push() {
-		std::pair<unsigned char*, unsigned char*> res = std::make_pair(memory_stack_base_pointer, memory_stack_pointer);
-		memory_stack_base_pointer = memory_stack_pointer;
-		return res;
-	}
-
-	void ILEvaluator::stack_pop(std::pair<unsigned char*, unsigned char*> stack_state) {
-		memory_stack_base_pointer = stack_state.first;
-		memory_stack_pointer = stack_state.second;
-	}
-
-	bool ILBuilder::eval_local(ILEvaluator* eval_ctx, size_t offset) {
-		eval_const_ptr(eval_ctx, eval_ctx->memory_stack_base_pointer + offset);
+	bool ILBuilder::eval_local(ILEvaluator* eval_ctx, uint16_t id) {
+		eval_const_ptr(eval_ctx, eval_ctx->stack_ptr(id));
 		return true;
 	}
 
@@ -494,6 +482,12 @@ namespace Corrosive {
 		void* dst = eval_ctx->pop_register_value<void*>();
 		void* src = eval_ctx->pop_register_value<void*>();
 		memcpy(dst, src, size);
+		return true;
+	}
+
+	bool ILBuilder::eval_malloc(ILEvaluator* eval_ctx) {
+		size_t size = eval_ctx->pop_register_value<size_t>();
+		eval_const_ptr(eval_ctx, malloc(size));
 		return true;
 	}
 	
@@ -568,11 +562,10 @@ namespace Corrosive {
 		ILBlock* block = fun->blocks[0];
 		bool running = true;
 
-		unsigned char* lstack_base = eval_ctx->memory_stack_base_pointer;
-		unsigned char* lstack = eval_ctx->memory_stack_pointer;
+		eval_ctx->stack_push();
+		eval_ctx->local_stack_size.back() = fun->stack_size.eval(compiler_arch);
+		unsigned char* lstack_base = eval_ctx->local_stack_base.back();
 
-		eval_ctx->memory_stack_base_pointer = eval_ctx->memory_stack_pointer;
-		eval_ctx->memory_stack_pointer += fun->compile_time_stack;
 
 		size_t instr = 0;
 
@@ -757,12 +750,18 @@ namespace Corrosive {
 					case ILInstruction::local: {
 						auto id = read_data_type(uint16_t);
 						auto& offsetdata = fun->local_offsets[*id];
-						if (!eval_local(eval_ctx, offsetdata.eval(eval_ctx->parent->architecture))) return false;
+						eval_const_ptr(eval_ctx, lstack_base + offsetdata.eval(compiler_arch));
 					} break;
+
 					case ILInstruction::load: {
 						auto type = read_data_type(ILDataType);
 						if (!eval_load(eval_ctx, *type)) return false;
 					} break;
+
+					case ILInstruction::malloc: {
+						if (!eval_malloc(eval_ctx)) return false;
+					} break;
+
 					case ILInstruction::forget: {
 						auto type = read_data_type(ILDataType);
 						if (!eval_forget(eval_ctx, *type)) return false;
@@ -820,20 +819,13 @@ namespace Corrosive {
 
 	returned:
 
-		eval_ctx->memory_stack_base_pointer = lstack_base;
-		eval_ctx->memory_stack_pointer = lstack;
+		eval_ctx->stack_pop();
 		eval_ctx->callstack_depth--;
 		return true;
 	}
 
 #undef read_data_type
 #undef read_data_size
-
-	unsigned char* ILEvaluator::stack_reserve(size_t size) {
-		unsigned char* res = memory_stack_pointer;
-		memory_stack_pointer += size;
-		return res;
-	}
 
 	bool ILBuilder::eval_add(ILEvaluator* eval_ctx, ILDataType t_l, ILDataType t_r) {
 		if (!_il_evaluator_const_op<std::plus>(eval_ctx, t_l, t_r)) return false;

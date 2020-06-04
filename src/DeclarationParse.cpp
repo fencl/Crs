@@ -26,7 +26,7 @@ namespace Corrosive {
 		}
 		c.move();
 
-		if (!parse_inner(c, result.get())) return false;
+		if (!parse_inner(c, result.get(),nullptr)) return false;
 
 		if (c.tok != RecognizedToken::CloseBrace) {
 			throw_wrong_token_error(c, "'}'");
@@ -39,7 +39,7 @@ namespace Corrosive {
 	}
 
 
-	bool Namespace::parse_inner(Cursor& c, Namespace* into) {
+	bool Namespace::parse_inner(Cursor& c, Namespace* into, GenericInstance* gen_inst) {
 		
 		while (c.tok != RecognizedToken::CloseBrace && c.tok!=RecognizedToken::Eof) {
 
@@ -48,7 +48,7 @@ namespace Corrosive {
 				Cursor nm = c;
 
 				std::unique_ptr<StructureTemplate> decl;
-				if (!StructureTemplate::parse(c, into, decl)) return false;
+				if (!StructureTemplate::parse(c, into,nullptr, decl)) return false;
 
 				decl->parent = into;
 				if (into->subtemplates.find(decl->name.buffer) != into->subtemplates.end()) {
@@ -63,7 +63,7 @@ namespace Corrosive {
 				Cursor nm = c;
 
 				std::unique_ptr<TraitTemplate> decl;
-				if (!TraitTemplate::parse(c, into, decl)) return false;
+				if (!TraitTemplate::parse(c, into,nullptr, decl)) return false;
 
 				decl->parent = into;
 				if (into->subtraits.find(decl->name.buffer) != into->subtraits.end()) {
@@ -164,7 +164,8 @@ namespace Corrosive {
 				ft->annotation = member.annotation;
 				ft->is_generic = member.annotation.tok != RecognizedToken::Eof;
 				ft->parent = into;
-				ft->template_parent = nullptr;
+				ft->generic_ctx.generator = gen_inst;
+				//ft->template_parent = nullptr;
 				ft->decl_type = member.type;
 				ft->block = member.block;
 				ft->context = member.context;
@@ -190,11 +191,13 @@ namespace Corrosive {
 		return true;
 	}
 
-	bool StructureTemplate::parse(Cursor& c, Namespace* parent, std::unique_ptr<StructureTemplate>& into) {
+	bool StructureTemplate::parse(Cursor& c, Namespace* parent, GenericInstance* gen_inst, std::unique_ptr<StructureTemplate>& into) {
 		std::unique_ptr<StructureTemplate> result = std::make_unique<StructureTemplate>();
 
 		result->parent = parent;
-		result->template_parent = dynamic_cast<StructureInstance*>(parent);
+		result->generic_ctx.generator = gen_inst;
+
+		//result->template_parent = dynamic_cast<StructureInstance*>(parent);
 
 		if (c.tok != RecognizedToken::Symbol)
 		{
@@ -395,8 +398,18 @@ namespace Corrosive {
 				if (c.tok != RecognizedToken::CloseBrace) {
 					while (c.tok != RecognizedToken::CloseBrace) {
 						if (c.buffer == "fn") {
+
 							StructureTemplateImplFunc member;
 							c.move();
+							if (c.buffer == "compile") {
+								member.ctx = ILContext::compile;
+								c.move();
+							}
+							else if (c.buffer == "runtime") {
+								member.ctx = ILContext::runtime;
+								c.move();
+							}
+
 							if (c.tok != RecognizedToken::Symbol) {
 								throw_not_a_name_error(c);
 								return false;
@@ -462,11 +475,12 @@ namespace Corrosive {
 	
 
 
-	bool TraitTemplate::parse(Cursor& c, Namespace* parent, std::unique_ptr<TraitTemplate>& into) {
+	bool TraitTemplate::parse(Cursor& c, Namespace* parent, GenericInstance* gen_inst, std::unique_ptr<TraitTemplate>& into) {
 		std::unique_ptr<TraitTemplate> result = std::make_unique<TraitTemplate>();
 
 		result->parent = parent;
-		result->template_parent = dynamic_cast<StructureInstance*>(parent);
+		result->generic_ctx.generator = gen_inst;
+		//result->template_parent = dynamic_cast<StructureInstance*>(parent);
 
 		if (c.tok != RecognizedToken::Symbol)
 		{
@@ -506,6 +520,16 @@ namespace Corrosive {
 				TraitTemplateMemberFunc member;
 
 				c.move();
+
+				if (c.buffer == "compile") {
+					member.ctx = ILContext::compile;
+					c.move();
+				}
+				else if (c.buffer == "runtime") {
+					member.ctx = ILContext::runtime;
+					c.move();
+				}
+
 				if (c.tok != RecognizedToken::Symbol) {
 					throw_not_a_name_error(c);
 					return false;
@@ -552,7 +576,7 @@ namespace Corrosive {
 
 	bool Declaration::parse_global(Cursor &c, Namespace* global_namespace) {
 		
-		if (!Namespace::parse_inner(c, global_namespace)) return false; 
+		if (!Namespace::parse_inner(c, global_namespace,nullptr)) return false; 
 
 		if (c.tok != RecognizedToken::Eof) {
 			throw_wrong_token_error(c, "end of file");

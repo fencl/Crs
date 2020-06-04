@@ -17,7 +17,6 @@ namespace Corrosive {
 		c.buffer = name;
 
 		s->parent = ctx.global;
-		s->template_parent = nullptr;
 		s->name = c;
 		s->parent = ctx.global;
 
@@ -94,7 +93,8 @@ namespace Corrosive {
 		f_malloc_template->singe_instance->type = tf;
 
 		ILBlock* f_malloc_block = f_malloc_template->singe_instance->func->create_and_append_block(ILDataType::none);
-		ILBuilder::build_insintric(f_malloc_block, ILInsintric::malloc);
+		ILBuilder::build_duplicate(f_malloc_block, ILDataType::size);
+		ILBuilder::build_malloc(f_malloc_block);
 		ILBuilder::build_ret(f_malloc_block, ILDataType::none);
 
 		ctx.global->subfunctions["malloc"] = std::move(f_malloc_template);

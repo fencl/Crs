@@ -63,7 +63,7 @@ namespace Corrosive {
 		unsigned char* loff = a;
 		unsigned char* roff = b;
 
-		for (auto&& l : parent->generic_layout) {
+		for (auto&& l : parent->generic_ctx.generic_layout) {
 
 			int r = std::get<1>(l)->compare(ctx.eval, loff,roff);
 			if (r < 0) return true;
@@ -79,9 +79,10 @@ namespace Corrosive {
 	bool TraitTemplate::GenericTemplateCompare::operator()(unsigned char* const& a, unsigned char* const& b) const {
 		unsigned char* loff = a;
 		unsigned char* roff = b;
+
 		CompileContext& nctx = CompileContext::get();
 
-		for (auto&& l : parent->generic_layout) {
+		for (auto&& l : parent->generic_ctx.generic_layout) {
 
 			int r = std::get<1>(l)->compare(nctx.eval, loff, roff);
 			if (r < 0) return true;
@@ -94,15 +95,13 @@ namespace Corrosive {
 		return false;
 	}
 
-	bool FunctionTemplate::GenericTemplateCompare::operator()(const std::pair<unsigned int, unsigned char*>& a, const std::pair<unsigned int, unsigned char*>& b) const {
-		if (a.first < b.first) return true;
-		if (a.first > b.first) return false;
+	bool FunctionTemplate::GenericTemplateCompare::operator()(unsigned char* const& a, unsigned char* const& b) const {
 		CompileContext& nctx = CompileContext::get();
 
-		unsigned char* loff = a.second;
-		unsigned char* roff = b.second;
+		unsigned char* loff = a;
+		unsigned char* roff = b;
 
-		for (auto&& l : parent->generic_layout) {
+		for (auto&& l : parent->generic_ctx.generic_layout) {
 			int r = std::get<1>(l)->compare(nctx.eval, loff, roff);
 			if (r < 0) return true;
 			if (r > 0) return false;

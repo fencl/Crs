@@ -32,7 +32,8 @@ namespace Corrosive {
 		local, forget, 
 		fnptr, call, start, insintric, cast, 
 		roffset, offset, vtable, duplicate, swap, swap2,
-		memcpy, memcpy2, memcmp, memcmp2, rmemcmp, rmemcmp2
+		memcpy, memcpy2, memcmp, memcmp2, rmemcmp, rmemcmp2,
+		malloc
 	};
 
 	enum class ILDataType : unsigned char {
@@ -140,14 +141,15 @@ namespace Corrosive {
 		bool		 assert_flow();
 
 		uint16_t register_local(ILSize size);
-		uint32_t compile_time_stack=0; uint32_t runtime_stack=0;
 	};
 
 	using ilsize_t = uint64_t; // max size for all architectures
 
 	enum class ILInsintric : unsigned char {
-		build_array, build_reference, push_template, build_template, malloc, build_slice, debug_cursor, template_cast
+		build_array, build_reference, push_template, build_template, build_slice, debug_cursor, template_cast
 	};
+
+	extern const ILArchitecture compiler_arch;
 
 	class ILEvaluator {
 	public:
@@ -161,14 +163,25 @@ namespace Corrosive {
 		unsigned char register_stack[stack_size];
 		unsigned char* register_stack_pointer = register_stack;
 
-		unsigned char* memory_stack_pointer = memory_stack;
-		unsigned char* memory_stack_base_pointer = memory_stack;
+
 
 		ILFunction* callstack[1024];
 
 		uint16_t callstack_depth = 0;
 
 		register_value yield;
+
+		std::vector<size_t> local_stack_size;
+		std::vector<unsigned char*> local_stack_base;
+		std::vector<std::vector<unsigned char*>> local_stack_offsets;
+
+		uint16_t mask_local(unsigned char* ptr);
+		void pop_mask_local();
+		uint16_t push_local(ILSize size);
+		void pop_local(ILSize size);
+		void stack_push();
+		void stack_pop();
+		unsigned char* stack_ptr(uint16_t id);
 
 		void	write_register_value_indirect(size_t size, void* value);
 		void	pop_register_value_indirect(size_t size, void* into);
@@ -177,9 +190,6 @@ namespace Corrosive {
 		size_t	compile_time_register_size(ILDataType t);
 		void	discard_last_register_type(ILDataType rs);
 		
-		std::pair<unsigned char*, unsigned char*>	stack_push();
-		void										stack_pop(std::pair<unsigned char*, unsigned char*> stack_pointer);
-		unsigned char*								stack_reserve(size_t size);
 
 		template<typename T> inline T read_register_value() {
 			return *(((T*)register_stack_pointer)-1);
@@ -257,11 +267,12 @@ namespace Corrosive {
 		static bool eval_memcmp(ILEvaluator* eval_ctx, size_t size);
 		static bool eval_memcmp2(ILEvaluator* eval_ctx, size_t size);
 
+		static bool eval_malloc(ILEvaluator* eval_ctx);
 
 		static bool eval_rmemcmp(ILEvaluator* eval_ctx, ILDataType type);
 		static bool eval_rmemcmp2(ILEvaluator* eval_ctx, ILDataType type);
 
-		static bool eval_local(ILEvaluator* eval_ctx, size_t offset);
+		static bool eval_local(ILEvaluator* eval_ctx, uint16_t id);
 
 		static bool eval_offset(ILEvaluator* eval_ctx, size_t offset);
 		static bool eval_roffset(ILEvaluator* eval_ctx, ILDataType src, ILDataType dst, size_t offset);
@@ -319,6 +330,9 @@ namespace Corrosive {
 
 		static bool build_rmemcmp(ILBlock* block, ILDataType type);
 		static bool build_rmemcmp2(ILBlock* block, ILDataType type);
+
+
+		static bool build_malloc(ILBlock* block);
 
 
 		static bool build_local(ILBlock* block, uint16_t id);

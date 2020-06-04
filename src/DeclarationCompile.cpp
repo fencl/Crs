@@ -49,8 +49,8 @@ namespace Corrosive {
 
 					if (!t->compile()) return false;
 
-					generate_heap_size += t->size().eval(compiler_arch);
-					generic_layout.push_back(std::make_tuple(name, t));
+					generic_ctx.generate_heap_size += t->size().eval(compiler_arch);
+					generic_ctx.generic_layout.push_back(std::make_tuple(name, t));
 
 
 					if (c.tok == RecognizedToken::Comma) {
@@ -67,8 +67,8 @@ namespace Corrosive {
 
 
 
-				gen_template_cmp.parent = this;
-				instances = std::make_unique<std::map<std::pair<unsigned int, unsigned char*>, std::unique_ptr<FunctionInstance>, GenericTemplateCompare>>(gen_template_cmp);
+				gen_template_cmp.parent = this; 
+				instances = std::make_unique<std::map<unsigned char*, std::pair<std::unique_ptr<unsigned char[]>, std::unique_ptr<FunctionInstance>>, GenericTemplateCompare>>(gen_template_cmp);
 				CompileContext::pop();
 			}
 
@@ -129,8 +129,8 @@ namespace Corrosive {
 
 					if (!t->compile()) return false;
 					
-					generate_heap_size += t->size().eval(compiler_arch);
-					generic_layout.push_back(std::make_tuple(name,t));
+					generic_ctx.generate_heap_size += t->size().eval(compiler_arch);
+					generic_ctx.generic_layout.push_back(std::make_tuple(name,t));
 
 
 					if (c.tok == RecognizedToken::Comma) {
@@ -208,8 +208,8 @@ namespace Corrosive {
 
 					if (!t->compile()) return false;
 
-					generate_heap_size += t->size().eval(compiler_arch);
-					generic_layout.push_back(std::make_tuple(name, t));
+					generic_ctx.generate_heap_size += t->size().eval(compiler_arch);
+					generic_ctx.generic_layout.push_back(std::make_tuple(name, t));
 
 
 					if (c.tok == RecognizedToken::Comma) {
@@ -269,12 +269,14 @@ namespace Corrosive {
 				new_inst = inst.get();
 				out = inst.get();
 
-				std::unique_ptr<unsigned char[]> new_key_inst = std::make_unique<unsigned char[]>(generate_heap_size);
+				std::unique_ptr<unsigned char[]> new_key_inst = std::make_unique<unsigned char[]>(generic_ctx.generate_heap_size);
 				unsigned char* old_offset = argdata;
 				unsigned char* new_offset = new_key_inst.get();
 				new_key = new_key_inst.get();
 
-				for (auto l = generic_layout.rbegin(); l != generic_layout.rend(); l++) {
+				//memcpy(new_offset, old_offset, generic_ctx.generate_heap_size);
+
+				for (auto l = generic_ctx.generic_layout.rbegin(); l != generic_ctx.generic_layout.rend(); l++) {
 					std::get<1>(*l)->move(nctx.eval, new_offset,old_offset);
 					size_t c_size = std::get<1>(*l)->size().eval(compiler_arch);
 					old_offset += c_size;
@@ -293,12 +295,11 @@ namespace Corrosive {
 		if (new_inst != nullptr) {
 			new_inst->type = std::make_unique<TypeStructureInstance>();
 			new_inst->type->owner = new_inst;
-			new_inst->generator = this;
 			new_inst->parent = parent;
 			new_inst->name = name;
 			new_inst->namespace_type = NamespaceType::t_struct_instance;
-			new_inst->key = new_key;
-
+			new_inst->generic_inst.key = new_key;
+			new_inst->generic_inst.generator = &generic_ctx;
 
 			CompileContext nctx = CompileContext::get();
 			nctx.inside = new_inst;
@@ -316,7 +317,7 @@ namespace Corrosive {
 				ft->annotation = m.annotation;
 				ft->is_generic = m.annotation.tok != RecognizedToken::Eof;
 				ft->parent = new_inst;
-				ft->template_parent = new_inst;
+				ft->generic_ctx.generator = &new_inst->generic_inst;
 				ft->decl_type = m.type;
 				ft->block = m.block;
 
@@ -334,7 +335,7 @@ namespace Corrosive {
 			for (auto&& t : member_templates) {
 				Cursor tc = t.cursor;
 				std::unique_ptr<StructureTemplate> decl;
-				if (!StructureTemplate::parse(tc, new_inst, decl)) return false;
+				if (!StructureTemplate::parse(tc, new_inst,&new_inst->generic_inst, decl)) return false;
 				new_inst->subtemplates[decl->name.buffer] = std::move(decl);
 			}
 
@@ -381,7 +382,10 @@ namespace Corrosive {
 
 						std::unique_ptr<FunctionInstance> ft = std::make_unique<FunctionInstance>();
 						ft->compile_state = 0;
-						ft->key = nullptr;
+						ft->generic_inst.generator = nullptr;
+						ft->generic_inst.key = nullptr;
+						ft->context = f.ctx;
+
 						ft->block = f.block;
 						ft->name = f.name;
 						ft->parent = (Namespace*)this;
@@ -400,6 +404,11 @@ namespace Corrosive {
 
 						func_count += 1;
 						auto& fundecl = tt->owner->member_funcs[ttid->second];
+
+						if (fundecl.ctx != f.ctx) {
+							throw_specific_error(f.name, "Implemented function cannot use different context than the declaration");
+							return false;
+						}
 
 						auto& args = nctx.default_types->argument_array_storage.get(fundecl.type->argument_array_id);
 
@@ -516,15 +525,15 @@ namespace Corrosive {
 						return false;
 					}
 					
-					if (tt->owner->generator == nctx.default_types->tr_copy) {
+					if (tt->owner->generic_inst.generator == &nctx.default_types->tr_copy->generic_ctx) {
 						new_inst->impl_copy = trait.begin()->get();
 					}
 
-					if (tt->owner->generator == nctx.default_types->tr_move) {
+					if (tt->owner->generic_inst.generator == &nctx.default_types->tr_move->generic_ctx) {
 						new_inst->impl_move = trait.begin()->get();
 					}
 
-					if (tt->owner->generator == nctx.default_types->tr_compare) {
+					if (tt->owner->generic_inst.generator == &nctx.default_types->tr_compare->generic_ctx) {
 						new_inst->impl_compare = trait.begin()->get();
 					}
 
@@ -626,17 +635,19 @@ namespace Corrosive {
 				new_inst = inst.get();
 				out = inst.get();
 
-				std::unique_ptr<unsigned char[]> new_key_inst = std::make_unique<unsigned char[]>(generate_heap_size);
+				std::unique_ptr<unsigned char[]> new_key_inst = std::make_unique<unsigned char[]>(generic_ctx.generate_heap_size);
 				new_key = new_key_inst.get();
 				unsigned char* old_offset = argdata;
 				unsigned char* new_offset = new_key_inst.get();
 
-				for (auto l = generic_layout.rbegin(); l != generic_layout.rend(); l++) {
+				for (auto l = generic_ctx.generic_layout.rbegin(); l != generic_ctx.generic_layout.rend(); l++) {
 					std::get<1>(*l)->move(nctx.eval, new_offset, old_offset);
 					size_t c_size = std::get<1>(*l)->size().eval(compiler_arch);
 					old_offset += c_size;
 					new_offset += c_size;
 				}
+
+				//memcpy(new_offset, old_offset, generic_ctx.generate_heap_size);
 
 
 				instances->emplace(new_key, std::make_pair(std::move(new_key_inst), std::move(inst)));
@@ -652,10 +663,10 @@ namespace Corrosive {
 			new_inst->type = std::make_unique<TypeTraitInstance>();
 			new_inst->type->owner = new_inst;
 
-			new_inst->generator = this;
 			new_inst->parent = parent;
 			new_inst->name = name;
-			new_inst->key = new_key;
+			new_inst->generic_inst.key = new_key;
+			new_inst->generic_inst.generator = &generic_ctx;
 
 			CompileContext nctx = CompileContext::get();
 			nctx.inside = parent;
@@ -668,6 +679,7 @@ namespace Corrosive {
 				TraitInstanceMemberRecord member;
 				member.name = m.name;
 				member.definition = m.type;
+				member.ctx = m.ctx;
 				Cursor c = member.definition;
 
 				std::vector<Type*> args;
@@ -750,7 +762,9 @@ namespace Corrosive {
 			out = singe_instance.get();
 		}
 		else {
-			std::pair<unsigned int, unsigned char*> key = std::make_pair((unsigned int)generate_heap_size, argdata);
+			CompileContext& nctx = CompileContext::get();
+
+			unsigned char* key = argdata;
 
 			auto f = instances->find(key);
 
@@ -759,15 +773,26 @@ namespace Corrosive {
 
 				new_inst = inst.get();
 				out = inst.get();
-				key.second = (unsigned char*)malloc(generate_heap_size);
-				memcpy(key.second, argdata, generate_heap_size);
-				new_key = key.second;
 
-				instances->emplace(key, std::move(inst));
+				std::unique_ptr<unsigned char[]> new_key_inst = std::make_unique<unsigned char[]>(generic_ctx.generate_heap_size);
+				new_key = new_key_inst.get();
+				unsigned char* old_offset = argdata;
+				unsigned char* new_offset = new_key_inst.get();
+
+				for (auto l = generic_ctx.generic_layout.rbegin(); l != generic_ctx.generic_layout.rend(); l++) {
+					std::get<1>(*l)->move(nctx.eval, new_offset, old_offset);
+					size_t c_size = std::get<1>(*l)->size().eval(compiler_arch);
+					old_offset += c_size;
+					new_offset += c_size;
+				}
+
+				//memcpy(new_offset, old_offset, generic_ctx.generate_heap_size);
+
+				instances->emplace(new_key, std::make_pair(std::move(new_key_inst), std::move(inst)));
 
 			}
 			else {
-				out = f->second.get();
+				out = f->second.second.get();
 			}
 		}
 
@@ -775,7 +800,8 @@ namespace Corrosive {
 		if (new_inst != nullptr) {
 			new_inst->compile_state = 0;
 			new_inst->parent = parent;
-			new_inst->key = new_key;
+			new_inst->generic_inst.key = new_key;
+			new_inst->generic_inst.generator = &generic_ctx;
 			new_inst->block = block;
 			new_inst->name = name;
 			new_inst->context = context;
@@ -857,6 +883,7 @@ namespace Corrosive {
 	bool FunctionInstance::compile() {
 		if (compile_state == 1) {
 			compile_state = 2;
+			
 
 
 			func = CompileContext::get().module->create_function();
@@ -876,7 +903,12 @@ namespace Corrosive {
 			CompileContext::push(cctx);
 			CompileContext& nctx = CompileContext::get();
 
-			auto ss = std::move(StackManager::move_stack_out<0>());
+			nctx.eval->stack_push();
+			nctx.compile_stack->push();
+			generic_inst.insert_key_on_stack(nctx.eval);
+
+			nctx.runtime_stack->push();
+
 			bool ret_rval_stack = false;
 			uint16_t return_ptr_local_id = 0;
 
@@ -907,7 +939,8 @@ namespace Corrosive {
 				argval.lvalue = true;
 				uint16_t id = func->register_local(argval.t->size());
 				func->arguments.push_back(a.second->rvalue());
-				StackManager::stack_push<0>(nctx.eval,a.first.buffer, argval, id);
+
+				nctx.runtime_stack->push_item(a.first.buffer,argval,id,StackItemTag::regular);
 			}
 
 			
@@ -969,9 +1002,8 @@ namespace Corrosive {
 			ILBuilder::build_accept(nctx.scope,func->returns);
 
 
-			while (StackManager::stack_state<0>() > 0) {
-				StackItem sitm = StackManager::stack_pop<0>(nctx.eval);
-
+			StackItem sitm;
+			while (nctx.runtime_stack->pop_item(sitm)) {
 				if (sitm.value.t->has_special_destructor()) {
 					ILBuilder::build_local(nctx.scope, sitm.id);
 					sitm.value.t->build_drop();
@@ -988,8 +1020,9 @@ namespace Corrosive {
 
 			if (!func->assert_flow()) return false;
 
-			StackManager::move_stack_in<0>(std::move(ss));
-
+			nctx.runtime_stack->pop();
+			nctx.compile_stack->pop();
+			nctx.eval->stack_pop();
 
 			CompileContext::pop();
 			compile_state = 3;
@@ -1119,58 +1152,44 @@ namespace Corrosive {
 			return true;
 		}
 		else {
-			throw_specific_error(generator->name, "Build cycle");
+			throw_specific_error(name, "Build cycle");
 			return false;
 		}
 
 		return true;
 	}
 
-	void TraitInstance::insert_key_on_stack(ILEvaluator* eval) {
-		if (generator->template_parent != nullptr) {
-			generator->template_parent->insert_key_on_stack(eval);
-		}
-
-		unsigned char* key_ptr = key;
-		for (auto key_l = generator->generic_layout.rbegin(); key_l != generator->generic_layout.rend(); key_l++) {
-
-			CompileValue res;
-			res.lvalue = true;
-			res.t = std::get<1>(*key_l);
-
-			unsigned char* data_place = eval->stack_reserve(res.t->size().eval(compiler_arch));
-
-			StackManager::stack_push<1>(eval, std::get<0>(*key_l).buffer, res,0);
-
-			res.t->copy(eval, data_place, key_ptr);
-
-			key_ptr += res.t->size().eval(compiler_arch);
-		}
-
-	}
-
-
-
-	void StructureInstance::insert_key_on_stack(ILEvaluator* eval) {
-		if (generator->template_parent != nullptr) {
-			generator->template_parent->insert_key_on_stack(eval);
-		}
-
-		unsigned char* key_ptr = key;
-		for (auto key_l = generator->generic_layout.rbegin(); key_l != generator->generic_layout.rend(); key_l++) {
-			
+	void GenericInstance::insert_key_on_stack(ILEvaluator* eval) {
 		
-			CompileValue res;
-			res.lvalue = true;
-			res.t = std::get<1>(*key_l);
 
-			unsigned char* data_place = eval->stack_reserve(res.t->size().eval(compiler_arch));
+		if (generator != nullptr) {
 			
-			StackManager::stack_push<1>(eval,std::get<0>(*key_l).buffer, res,0);
+			if (generator->generator != nullptr) {
+				generator->generator->insert_key_on_stack(eval);
+			}
 
-			res.t->copy(eval, data_place, key_ptr);
+			CompileContext& nctx = CompileContext::get();
 
-			key_ptr += res.t->size().eval(compiler_arch);
+			unsigned char* key_ptr = key;
+			for (auto key_l = generator->generic_layout.rbegin(); key_l != generator->generic_layout.rend(); key_l++) {
+
+				CompileValue res;
+				res.lvalue = true;
+				res.t = std::get<1>(*key_l);
+
+				/*uint16_t sid = nctx.eval->push_local(res.t->size());
+				unsigned char* data_place = nctx.eval->stack_ptr(sid);
+				nctx.compile_stack->push_item(std::get<0>(*key_l).buffer, res, sid);
+
+				res.t->copy(eval, data_place, key_ptr);*/
+
+				uint16_t sid = nctx.eval->mask_local(key_ptr);
+				nctx.compile_stack->push_item(std::get<0>(*key_l).buffer, res, sid, StackItemTag::alias);
+
+				key_ptr += res.t->size().eval(compiler_arch);
+			}
+
+			
 		}
 
 	}

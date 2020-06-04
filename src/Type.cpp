@@ -254,19 +254,11 @@ namespace Corrosive {
 	}
 
 	void TypeStructureInstance::print(std::ostream& os) {
-		os << owner->generator->name.buffer;
-
-		if (owner->generator->is_generic) {
-			os << "(...)";
-		}
+		os << owner->name.buffer;
 	}
 
 	void TypeTraitInstance::print(std::ostream& os) {
-		os << owner->generator->name.buffer;
-
-		if (owner->generator->is_generic) {
-			os << "(...)";
-		}
+		os << owner->name.buffer;
 	}
 
 	void TypeStructureTemplate::print(std::ostream& os) {

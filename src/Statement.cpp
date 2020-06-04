@@ -136,13 +136,17 @@ namespace Corrosive {
 		val.lvalue = true;
 		val.t = new_t;
 
+		if (!new_t->compile()) return false;
+
 		if (new_t->context() != ILContext::both && nctx.scope_context != new_t->context()) {
 			throw_specific_error(err, "Type was not designed for this context");
 			return false;
 		}
 
-		uint32_t local_id = nctx.function->register_local(new_t->size());
-		StackItem local_stack_item = StackManager::stack_push<0>(nctx.eval, name.buffer, val, local_id);
+
+		ILSize s = new_t->size();
+		uint32_t local_id = nctx.function->register_local(s);
+		nctx.runtime_stack->push_item(name.buffer, val, local_id, StackItemTag::regular);
 
 		if (new_t->has_special_constructor()) {
 			ILBuilder::build_local(nctx.scope, local_id);
