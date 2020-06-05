@@ -8,32 +8,33 @@
 namespace Corrosive {
 
 
-	int8_t Type::compare(ILEvaluator* eval,  unsigned char* me,  unsigned char* to) {
+	int8_t Type::compare(unsigned char* me,  unsigned char* to) {
 		return (int8_t)memcmp(me,to,size().eval(compiler_arch));
 	}
 
-	void Type::move(ILEvaluator* eval, unsigned char* me, unsigned char* from) {
+	void Type::move(unsigned char* me, unsigned char* from) {
 		memcpy(me, from, size().eval(compiler_arch));
 	}
 
-	void Type::copy(ILEvaluator* eval, unsigned char* me, unsigned char* from) {
+	void Type::copy(unsigned char* me, unsigned char* from) {
 		memcpy(me, from, size().eval(compiler_arch));
 	}
 
 
-	void Type::construct(ILEvaluator* eval, unsigned char* me) {
+	void Type::construct(unsigned char* me) {
 		// EMPTY
 	}
 
-	void Type::drop(ILEvaluator* eval, unsigned char* me) {
+	void Type::drop(unsigned char* me) {
 		// EMPTY
 	}
 
 
 	// ========================================================================   STRUCTURE EVAL COPY/MOVE/CMP/CTOR/DROP
 
-	void TypeStructureInstance::construct(ILEvaluator* eval, unsigned char* me) {
+	void TypeStructureInstance::construct(unsigned char* me) {
 		if (has_special_constructor()) {
+			ILEvaluator* eval = Ctx::eval();
 			ILBuilder::eval_fnptr(eval, owner->auto_constructor);
 			ILBuilder::eval_callstart(eval);
 			ILBuilder::eval_const_ptr(eval, me);
@@ -41,8 +42,9 @@ namespace Corrosive {
 		}
 	}
 
-	void TypeStructureInstance::drop(ILEvaluator* eval, unsigned char* me) {
+	void TypeStructureInstance::drop(unsigned char* me) {
 		if (has_special_constructor()) {
+			ILEvaluator* eval = Ctx::eval();
 			ILBuilder::eval_fnptr(eval, owner->auto_destructor);
 			ILBuilder::eval_callstart(eval);
 			ILBuilder::eval_const_ptr(eval, me);
@@ -50,8 +52,10 @@ namespace Corrosive {
 		}
 	}
 
-	void TypeStructureInstance::move(ILEvaluator* eval,  unsigned char* me,  unsigned char* from) {
+	void TypeStructureInstance::move(unsigned char* me,  unsigned char* from) {
 		if (has_special_move()) {
+
+			ILEvaluator* eval = Ctx::eval();
 			ILBuilder::eval_fnptr(eval, owner->auto_move);
 			ILBuilder::eval_callstart(eval);
 			ILBuilder::eval_const_ptr(eval, me);
@@ -59,12 +63,14 @@ namespace Corrosive {
 			ILBuilder::eval_call(eval, ILDataType::none, 2);
 		}
 		else {
-			Type::move(eval, me, from);
+			Type::move(me, from);
 		}
 	}
 
-	void TypeStructureInstance::copy(ILEvaluator* eval,  unsigned char* me,  unsigned char* from) {
+	void TypeStructureInstance::copy(unsigned char* me,  unsigned char* from) {
 		if (has_special_copy()) {
+
+			ILEvaluator* eval = Ctx::eval();
 			ILBuilder::eval_fnptr(eval, owner->auto_copy);
 			ILBuilder::eval_callstart(eval);
 			ILBuilder::eval_const_ptr(eval, me);
@@ -72,12 +78,14 @@ namespace Corrosive {
 			ILBuilder::eval_call(eval, ILDataType::none, 2);
 		}
 		else {
-			Type::copy(eval, me, from);
+			Type::copy(me, from);
 		}
 	}
 
-	int8_t TypeStructureInstance::compare(ILEvaluator* eval, unsigned char* me, unsigned char* to) {
+	int8_t TypeStructureInstance::compare(unsigned char* me, unsigned char* to) {
 		if (has_special_compare()) {
+
+			ILEvaluator* eval = Ctx::eval();
 			ILBuilder::eval_fnptr(eval, owner->auto_compare);
 			ILBuilder::eval_callstart(eval);
 			ILBuilder::eval_const_ptr(eval, me);
@@ -87,60 +95,60 @@ namespace Corrosive {
 
 		}
 		else {
-			return Type::compare(eval, me, to);
+			return Type::compare(me, to);
 		}
 	}
 
 	// ========================================================================   ARRAY EVAL COPY/MOVE/CMP/CTOR/DROP
 
-	void TypeArray::construct(ILEvaluator* eval, unsigned char* me) {
+	void TypeArray::construct(unsigned char* me) {
 		if (has_special_constructor()) {
 			for (uint32_t i = 0; i < count; i++) {
-				owner->construct(eval, me);
+				owner->construct(me);
 				me += owner->size().eval(compiler_arch);
 			}
 		}
 	}
 
-	void TypeArray::drop(ILEvaluator* eval, unsigned char* me) {
+	void TypeArray::drop(unsigned char* me) {
 		if (has_special_constructor()) {
 			for (uint32_t i = 0; i < count; i++) {
-				owner->drop(eval, me);
+				owner->drop(me);
 				me += owner->size().eval(compiler_arch);
 			}
 		}
 	}
 
-	void TypeArray::move(ILEvaluator* eval, unsigned char* me, unsigned char* from) {
+	void TypeArray::move(unsigned char* me, unsigned char* from) {
 		if (has_special_move()) {
 			for (uint32_t i = 0; i < count; i++) {
-				owner->move(eval, me, from);
+				owner->move(me, from);
 				me += owner->size().eval(compiler_arch);
 				from += owner->size().eval(compiler_arch);
 			}
 		}
 		else {
-			Type::move(eval, me, from);
+			Type::move(me, from);
 		}
 	}
 
-	void TypeArray::copy(ILEvaluator* eval, unsigned char* me, unsigned char* from) {
+	void TypeArray::copy(unsigned char* me, unsigned char* from) {
 		if (has_special_copy()) {
 			for (uint32_t i = 0; i < count; i++) {
-				owner->copy(eval, me, from);
+				owner->copy(me, from);
 				me += owner->size().eval(compiler_arch);
 				from += owner->size().eval(compiler_arch);
 			}
 		}
 		else {
-			Type::move(eval, me, from);
+			Type::move(me, from);
 		}
 	}
 
-	int8_t TypeArray::compare(ILEvaluator* eval, unsigned char* me, unsigned char* to) {
+	int8_t TypeArray::compare(unsigned char* me, unsigned char* to) {
 		if (has_special_compare()) {
 			for (uint32_t i = 0; i < count; i++) {
-				int8_t cmpval = owner->compare(eval, me, to);
+				int8_t cmpval = owner->compare(me, to);
 				if (cmpval != 0) return cmpval;
 				me += owner->size().eval(compiler_arch);
 				to += owner->size().eval(compiler_arch);
@@ -149,7 +157,7 @@ namespace Corrosive {
 			return 0;
 		}
 		else {
-			return Type::compare(eval, me, to);
+			return Type::compare(me, to);
 		}
 	}
 

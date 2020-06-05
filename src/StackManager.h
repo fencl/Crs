@@ -9,7 +9,7 @@
 namespace Corrosive {
 
 	enum class StackItemTag {
-		regular, alias, temp
+		regular, alias
 	};
 
 	struct StackItem {

@@ -344,20 +344,6 @@ namespace Corrosive {
 			memcpy(into, register_stack_pointer, size);
 	}
 
-	bool ILBuilder::eval_accept(ILEvaluator* eval_ctx, ILDataType type) {
-		eval_ctx->write_register_value_indirect(eval_ctx->compile_time_register_size(type), (unsigned char*)&eval_ctx->yield);
-		return true;
-	}
-
-	bool ILBuilder::eval_discard(ILEvaluator* eval_ctx, ILDataType type) {
-		return true;
-	}
-
-	bool ILBuilder::eval_yield(ILEvaluator* eval_ctx, ILDataType type) {
-		eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(type), (unsigned char*)&eval_ctx->yield);
-		return true;
-	}
-
 	bool ILBuilder::eval_forget(ILEvaluator* eval_ctx, ILDataType type) {
 		eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(type), nullptr);
 		return true;
@@ -473,6 +459,12 @@ namespace Corrosive {
 
 	bool ILBuilder::eval_fnptr(ILEvaluator* eval_ctx, ILFunction* fun) {
 		eval_ctx->write_register_value(fun);
+		return true;
+	}
+	
+	bool ILBuilder::eval_null(ILEvaluator* eval_ctx) {
+		void* null = nullptr;
+		eval_ctx->write_register_value((size_t)8);
 		return true;
 	}
 
@@ -739,17 +731,14 @@ namespace Corrosive {
 					case ILInstruction::start: {
 						if (!eval_callstart(eval_ctx)) return false;
 					} break;
-					case ILInstruction::accept: {
-						auto type = read_data_type(ILDataType);
-						if (!eval_accept(eval_ctx, *type)) return false;
+
+					case ILInstruction::null: {
+						if (!eval_null(eval_ctx)) return false;
 					} break;
-					case ILInstruction::discard: {
-						auto type = read_data_type(ILDataType);
-						if (!eval_discard(eval_ctx, *type)) return false;
-					} break;
+					
 					case ILInstruction::jmp: {
 						auto address = read_data_type(uint32_t);
-						block = block->parent->blocks[*address];
+						block = block->parent->blocks_memory[*address].get();
 						goto next_block;
 					}break;
 					case ILInstruction::offset: {
@@ -794,17 +783,13 @@ namespace Corrosive {
 						auto addressnz = read_data_type(uint32_t);
 						int8_t z = eval_ctx->pop_register_value<int8_t>();
 						if (z) {
-							block = block->parent->blocks[*addressnz];
+							block = block->parent->blocks_memory[*addressnz].get();
 						}
 						else {
-							block = block->parent->blocks[*addressz];
+							block = block->parent->blocks_memory[*addressz].get();
 						}
 
 						goto next_block;
-					} break;
-					case ILInstruction::yield: {
-						auto type = read_data_type(ILDataType);
-						if (!eval_yield(eval_ctx, *type)) return false;
 					} break;
 					case ILInstruction::value: {
 

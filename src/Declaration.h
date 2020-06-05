@@ -98,6 +98,7 @@ namespace Corrosive {
 		FunctionInstance* impl_copy = nullptr;
 		FunctionInstance* impl_move = nullptr;
 		FunctionInstance* impl_compare = nullptr;
+		FunctionInstance* impl_drop = nullptr;
 
 		void build_automatic_constructor();
 		void build_automatic_destructor();
@@ -171,7 +172,7 @@ namespace Corrosive {
 	private:
 		struct GenericTemplateCompare {
 			StructureTemplate* parent;
-			CompileContext ctx;
+			Ctx ctx;
 			bool operator()(unsigned char* const& a, unsigned char* const& b) const;
 		};
 		GenericTemplateCompare gen_template_cmp;

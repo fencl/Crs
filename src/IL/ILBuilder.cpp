@@ -22,22 +22,29 @@ namespace Corrosive {
 
 
 	bool ILBuilder::build_accept(ILBlock* block, ILDataType type) {
-		block->write_instruction(ILInstruction::accept);
-		block->write_const_type(type);
+
+		/*if (type != ILDataType::none) {
+			block->write_instruction(ILInstruction::accept);
+			block->write_const_type(type);
+		}*/
 		block->accepts = type;
 		return true;
 	}
 
 	bool ILBuilder::build_discard(ILBlock* block, ILDataType type) {
-		block->write_instruction(ILInstruction::discard);
-		block->write_const_type(type);
+		if (type != ILDataType::none) {
+			block->write_instruction(ILInstruction::forget);
+			block->write_const_type(type);
+		}
 		block->accepts = type;
 		return true;
 	}
 
 	bool ILBuilder::build_yield(ILBlock* block,ILDataType type) {
-		block->write_instruction(ILInstruction::yield);
-		block->write_const_type(type);
+		/*if (type != ILDataType::none) {
+			block->write_instruction(ILInstruction::yield);
+			block->write_const_type(type);
+		}*/
 		block->yields = type;
 		return true;
 	}
@@ -59,14 +66,12 @@ namespace Corrosive {
 	}
 
 	bool ILBuilder::build_fnptr(ILBlock* block, ILFunction* fun) {
-		block->parent->return_blocks.insert(block);
 		block->write_instruction(ILInstruction::fnptr);
 		block->write_value(sizeof(uint32_t), (unsigned char*)&(fun->id));
 		return true;
 	}
 
 	bool ILBuilder::build_call(ILBlock* block, ILDataType type,uint16_t argc) {
-		block->parent->return_blocks.insert(block);
 		block->write_instruction(ILInstruction::call);
 		block->write_const_type(type);
 		block->write_value(sizeof(uint16_t), (unsigned char*)&argc);
@@ -106,6 +111,11 @@ namespace Corrosive {
 		return true;
 	}
 
+
+	bool ILBuilder::build_null(ILBlock* block) {
+		block->write_instruction(ILInstruction::null);
+		return true;
+	}
 
 	bool ILBuilder::build_memcpy(ILBlock* block, ILSize size) {
 		block->write_instruction(ILInstruction::memcpy);
@@ -201,8 +211,10 @@ namespace Corrosive {
 	}
 	
 	bool ILBuilder::build_offset(ILBlock* block,ILSize offset) {
-		block->write_instruction(ILInstruction::offset);
-		block->write_value(sizeof(ILSize), (unsigned char*)&offset);
+		if (offset.absolute > 0 || offset.pointers > 0) {
+			block->write_instruction(ILInstruction::offset);
+			block->write_value(sizeof(ILSize), (unsigned char*)&offset);
+		}
 		return true;
 	}
 	

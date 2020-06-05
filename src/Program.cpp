@@ -30,6 +30,7 @@ namespace Corrosive {
 		std::unique_ptr<ILEvaluator> e = std::make_unique<ILEvaluator>();
 		std::unique_ptr<StackManager> rts = std::make_unique<StackManager>();
 		std::unique_ptr<StackManager> cps = std::make_unique<StackManager>();
+		std::unique_ptr<StackManager> tms = std::make_unique<StackManager>();
 
 		m->insintric_function[(unsigned char)ILInsintric::build_array] = &Operand::priv_build_array;
 		m->insintric_function_name[(unsigned char)ILInsintric::build_array] = "array";
@@ -51,18 +52,10 @@ namespace Corrosive {
 
 		Cursor c = src.read_first();
 
+		Ctx::init(m.get(), dt.get(), e.get(), gn.get(), rts.get(), cps.get(), tms.get());
 
-		CompileContext ctx;
-		ctx.module = m.get();
-		ctx.eval = e.get();
-		ctx.default_types = dt.get();
-		ctx.global = gn.get();
-		ctx.runtime_stack = rts.get();
-		ctx.compile_stack = cps.get();
 
-		CompileContext::push(ctx);
-
-		if (ctx.default_types->setup(ctx)) {
+		if (Ctx::types()->setup()) {
 
 			ILFunction* main = nullptr;
 
@@ -79,16 +72,15 @@ namespace Corrosive {
 			}
 
 			if (main != nullptr) {
-				ILBuilder::eval_fnptr(ctx.eval, main);
-				ILBuilder::eval_callstart(ctx.eval);
-				ILBuilder::eval_call(ctx.eval, ILDataType::u64, 0);
-				uint64_t ret_val = ctx.eval->pop_register_value<uint64_t>();
+				ILBuilder::eval_fnptr(Ctx::eval(), main);
+				ILBuilder::eval_callstart(Ctx::eval());
+				ILBuilder::eval_call(Ctx::eval(), ILDataType::u64, 0);
+				uint64_t ret_val = Ctx::eval()->pop_register_value<uint64_t>();
 				std::cout << "\n\n========= TEST =========\ntest result was: " << ret_val << "\n\n";
 			}
 		}
 
 
-		CompileContext::pop();
 
 		std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 

@@ -12,13 +12,12 @@ namespace Corrosive {
 
 
 	bool Expression::copy_from_rvalue(Type* me, CompileType cpt, bool me_top) {
-		CompileContext& nctx = CompileContext::get();
 		if (cpt == CompileType::compile) {
 
 			if (me->has_special_copy()) {
 				if (me->rvalue_stacked()) {
 					if (!me_top) {
-						ILBuilder::build_swap(nctx.scope, ILDataType::ptr);
+						ILBuilder::build_swap(Ctx::scope(), ILDataType::ptr);
 					}
 					me->build_copy();
 				}
@@ -30,18 +29,18 @@ namespace Corrosive {
 			else {
 				if (me_top) {
 					if (me->rvalue_stacked()) {
-						ILBuilder::build_memcpy2(nctx.scope, me->size());
+						ILBuilder::build_memcpy2(Ctx::scope(), me->size());
 					}
 					else {
-						ILBuilder::build_store2(nctx.scope, me->rvalue());
+						ILBuilder::build_store2(Ctx::scope(), me->rvalue());
 					}
 				}
 				else {
 					if (me->rvalue_stacked()) {
-						ILBuilder::build_memcpy(nctx.scope, me->size());
+						ILBuilder::build_memcpy(Ctx::scope(), me->size());
 					}
 					else {
-						ILBuilder::build_store(nctx.scope, me->rvalue());
+						ILBuilder::build_store(Ctx::scope(), me->rvalue());
 					}
 				}
 			}
@@ -50,14 +49,14 @@ namespace Corrosive {
 			if (me->has_special_copy()) {
 				if (me->rvalue_stacked()) {
 					if (me_top) {
-						unsigned char* copy_from = nctx.eval->pop_register_value<unsigned char*>();
-						unsigned char* copy_to = nctx.eval->pop_register_value<unsigned char*>();
-						me->copy(nctx.eval, copy_to, copy_from);
+						unsigned char* copy_from = Ctx::eval()->pop_register_value<unsigned char*>();
+						unsigned char* copy_to = Ctx::eval()->pop_register_value<unsigned char*>();
+						me->copy(copy_to, copy_from);
 					}
 					else {
-						unsigned char* copy_to = nctx.eval->pop_register_value<unsigned char*>();
-						unsigned char* copy_from = nctx.eval->pop_register_value<unsigned char*>();
-						me->copy(nctx.eval, copy_to, copy_from);
+						unsigned char* copy_to = Ctx::eval()->pop_register_value<unsigned char*>();
+						unsigned char* copy_from = Ctx::eval()->pop_register_value<unsigned char*>();
+						me->copy(copy_to, copy_from);
 					}
 				}
 				else {
@@ -69,18 +68,18 @@ namespace Corrosive {
 
 				if (me_top) {
 					if (me->rvalue_stacked()) {
-						ILBuilder::eval_memcpy2(nctx.eval, me->size().eval(compiler_arch));
+						ILBuilder::eval_memcpy2(Ctx::eval(), me->size().eval(compiler_arch));
 					}
 					else {
-						ILBuilder::eval_store2(nctx.eval, me->rvalue());
+						ILBuilder::eval_store2(Ctx::eval(), me->rvalue());
 					}
 				}
 				else {
 					if (me->rvalue_stacked()) {
-						ILBuilder::eval_memcpy(nctx.eval, me->size().eval(compiler_arch));
+						ILBuilder::eval_memcpy(Ctx::eval(), me->size().eval(compiler_arch));
 					}
 					else {
-						ILBuilder::eval_store(nctx.eval, me->rvalue());
+						ILBuilder::eval_store(Ctx::eval(), me->rvalue());
 					}
 				}
 			}
@@ -90,13 +89,12 @@ namespace Corrosive {
 	}
 
 	bool Expression::move_from_rvalue(Type* me, CompileType cpt, bool me_top) {
-		CompileContext& nctx = CompileContext::get();
 		if (cpt == CompileType::compile) {
 
 			if (me->has_special_move()) {
 				if (me->rvalue_stacked()) {
 					if (!me_top) {
-						ILBuilder::build_swap(nctx.scope, ILDataType::ptr);
+						ILBuilder::build_swap(Ctx::scope(), ILDataType::ptr);
 					}
 					me->build_move();
 				}
@@ -108,18 +106,18 @@ namespace Corrosive {
 			else {
 				if (me_top) {
 					if (me->rvalue_stacked()) {
-						ILBuilder::build_memcpy2(nctx.scope, me->size());
+						ILBuilder::build_memcpy2(Ctx::scope(), me->size());
 					}
 					else {
-						ILBuilder::build_store2(nctx.scope, me->rvalue());
+						ILBuilder::build_store2(Ctx::scope(), me->rvalue());
 					}
 				}
 				else {
 					if (me->rvalue_stacked()) {
-						ILBuilder::build_memcpy(nctx.scope, me->size());
+						ILBuilder::build_memcpy(Ctx::scope(), me->size());
 					}
 					else {
-						ILBuilder::build_store(nctx.scope, me->rvalue());
+						ILBuilder::build_store(Ctx::scope(), me->rvalue());
 					}
 				}
 			}
@@ -128,14 +126,14 @@ namespace Corrosive {
 			if (me->has_special_move()) {
 				if (me->rvalue_stacked()) {
 					if (me_top) {
-						unsigned char* copy_from = nctx.eval->pop_register_value<unsigned char*>();
-						unsigned char* copy_to = nctx.eval->pop_register_value<unsigned char*>();
-						me->move(nctx.eval, copy_to, copy_from);
+						unsigned char* copy_from = Ctx::eval()->pop_register_value<unsigned char*>();
+						unsigned char* copy_to = Ctx::eval()->pop_register_value<unsigned char*>();
+						me->move(copy_to, copy_from);
 					}
 					else {
-						unsigned char* copy_to = nctx.eval->pop_register_value<unsigned char*>();
-						unsigned char* copy_from = nctx.eval->pop_register_value<unsigned char*>();
-						me->move(nctx.eval, copy_to, copy_from);
+						unsigned char* copy_to = Ctx::eval()->pop_register_value<unsigned char*>();
+						unsigned char* copy_from = Ctx::eval()->pop_register_value<unsigned char*>();
+						me->move(copy_to, copy_from);
 					}
 				}
 				else {
@@ -147,18 +145,18 @@ namespace Corrosive {
 
 				if (me_top) {
 					if (me->rvalue_stacked()) {
-						ILBuilder::eval_memcpy2(nctx.eval, me->size().eval(compiler_arch));
+						ILBuilder::eval_memcpy2(Ctx::eval(), me->size().eval(compiler_arch));
 					}
 					else {
-						ILBuilder::eval_store2(nctx.eval, me->rvalue());
+						ILBuilder::eval_store2(Ctx::eval(), me->rvalue());
 					}
 				}
 				else {
 					if (me->rvalue_stacked()) {
-						ILBuilder::eval_memcpy(nctx.eval, me->size().eval(compiler_arch));
+						ILBuilder::eval_memcpy(Ctx::eval(), me->size().eval(compiler_arch));
 					}
 					else {
-						ILBuilder::eval_store(nctx.eval, me->rvalue());
+						ILBuilder::eval_store(Ctx::eval(), me->rvalue());
 					}
 				}
 			}
@@ -171,15 +169,14 @@ namespace Corrosive {
 
 	bool Expression::rvalue(CompileValue& value, CompileType cpt) {
 		if (value.lvalue && !value.t->rvalue_stacked()) {
-			CompileContext& nctx = CompileContext::get();
 
 			if (cpt == CompileType::compile) {
 				value.lvalue = false;
-				if (!ILBuilder::build_load(nctx.scope, value.t->rvalue())) return false;
+				if (!ILBuilder::build_load(Ctx::scope(), value.t->rvalue())) return false;
 			}
 			else if (cpt == CompileType::eval) {
 				value.lvalue = false;
-				if (!ILBuilder::eval_load(nctx.eval, value.t->rvalue())) return false;
+				if (!ILBuilder::eval_load(Ctx::eval(), value.t->rvalue())) return false;
 			}
 		}
 
@@ -205,10 +202,9 @@ namespace Corrosive {
 		if (lv == ILDataType::none || rv == ILDataType::none) return false;
 
 
-		CompileContext& nctx = CompileContext::get();
 		ILDataType rsv = ILBuilder::arith_result(lv, rv);
 		ret.lvalue = false;
-		ret.t = nctx.default_types->get_type_from_rvalue(rsv);
+		ret.t = Ctx::types()->get_type_from_rvalue(rsv);
 		return true;
 	}
 
@@ -217,8 +213,6 @@ namespace Corrosive {
 	bool Expression::emit(Cursor& c, CompileValue& res, int l, int op, CompileValue left, CompileValue right, CompileType cpt, int next_l, int next_op) {
 		bool isf = false;
 		bool sig = false;
-
-		CompileContext& nctx = CompileContext::get();
 
 		CompileValue ret;
 		if (!_crs_expr_arith_res(left, right, ret)) {
@@ -234,69 +228,69 @@ namespace Corrosive {
 
 		ret.lvalue = false;
 		if (l == 1 || l == 2)
-			ret.t = nctx.default_types->t_bool;
+			ret.t = Ctx::types()->t_bool;
 
 		if (cpt == CompileType::compile) {
 			switch (l) {
 				case 0: {
 					switch (op) {
 						case 0: {
-							if (!ILBuilder::build_and(nctx.scope, left.t->rvalue(), right.t->rvalue())) return false;
+							if (!ILBuilder::build_and(Ctx::scope(), left.t->rvalue(), right.t->rvalue())) return false;
 						}break;
 						case 1: {
-							if (!ILBuilder::build_or(nctx.scope, left.t->rvalue(), right.t->rvalue())) return false;
+							if (!ILBuilder::build_or(Ctx::scope(), left.t->rvalue(), right.t->rvalue())) return false;
 						}break;
 						case 2: {
-							if (!ILBuilder::build_xor(nctx.scope, left.t->rvalue(), right.t->rvalue())) return false;
+							if (!ILBuilder::build_xor(Ctx::scope(), left.t->rvalue(), right.t->rvalue())) return false;
 						}break;
 					}
 				}break;
 				case 1: {
 					switch (op) {
 						case 0: {
-							if (!ILBuilder::build_eq(nctx.scope, left.t->rvalue(), right.t->rvalue())) return false;
+							if (!ILBuilder::build_eq(Ctx::scope(), left.t->rvalue(), right.t->rvalue())) return false;
 						}break;
 						case 1: {
-							if (!ILBuilder::build_ne(nctx.scope, left.t->rvalue(), right.t->rvalue())) return false;
+							if (!ILBuilder::build_ne(Ctx::scope(), left.t->rvalue(), right.t->rvalue())) return false;
 						}break;
 					}
 				}break;
 				case 2: {
 					switch (op) {
 						case 0: {
-							if (!ILBuilder::build_gt(nctx.scope, left.t->rvalue(), right.t->rvalue())) return false;
+							if (!ILBuilder::build_gt(Ctx::scope(), left.t->rvalue(), right.t->rvalue())) return false;
 						}break;
 						case 1: {
-							if (!ILBuilder::build_lt(nctx.scope, left.t->rvalue(), right.t->rvalue())) return false;
+							if (!ILBuilder::build_lt(Ctx::scope(), left.t->rvalue(), right.t->rvalue())) return false;
 						} break;
 						case 2: {
-							if (!ILBuilder::build_ge(nctx.scope, left.t->rvalue(), right.t->rvalue())) return false;
+							if (!ILBuilder::build_ge(Ctx::scope(), left.t->rvalue(), right.t->rvalue())) return false;
 						}break;
 						case 3: {
-							if (!ILBuilder::build_le(nctx.scope, left.t->rvalue(), right.t->rvalue())) return false;
+							if (!ILBuilder::build_le(Ctx::scope(), left.t->rvalue(), right.t->rvalue())) return false;
 						}break;
 					}
 				}break;
 				case 3: {
 					switch (op) {
 						case 0: {
-							if (!ILBuilder::build_add(nctx.scope, left.t->rvalue(), right.t->rvalue())) return false;
+							if (!ILBuilder::build_add(Ctx::scope(), left.t->rvalue(), right.t->rvalue())) return false;
 						}break;
 						case 1: {
-							if (!ILBuilder::build_sub(nctx.scope, left.t->rvalue(), right.t->rvalue())) return false;
+							if (!ILBuilder::build_sub(Ctx::scope(), left.t->rvalue(), right.t->rvalue())) return false;
 						}break;
 					}
 				}break;
 				case 4: {
 					switch (op) {
 						case 0: {
-							if (!ILBuilder::build_mul(nctx.scope, left.t->rvalue(), right.t->rvalue())) return false;
+							if (!ILBuilder::build_mul(Ctx::scope(), left.t->rvalue(), right.t->rvalue())) return false;
 						}break;
 						case 1: {
-							if (!ILBuilder::build_div(nctx.scope, left.t->rvalue(), right.t->rvalue())) return false;
+							if (!ILBuilder::build_div(Ctx::scope(), left.t->rvalue(), right.t->rvalue())) return false;
 						} break;
 						case 2: {
-							if (!ILBuilder::build_rem(nctx.scope, left.t->rvalue(), right.t->rvalue())) return false;
+							if (!ILBuilder::build_rem(Ctx::scope(), left.t->rvalue(), right.t->rvalue())) return false;
 						}break;
 					}
 				}break;
@@ -307,62 +301,62 @@ namespace Corrosive {
 				case 0: {
 					switch (op) {
 						case 0: {
-							if (!ILBuilder::eval_and(nctx.eval, left.t->rvalue(), right.t->rvalue())) return false;
+							if (!ILBuilder::eval_and(Ctx::eval(), left.t->rvalue(), right.t->rvalue())) return false;
 						}break;
 						case 1: {
-							if (!ILBuilder::eval_or(nctx.eval, left.t->rvalue(), right.t->rvalue())) return false;
+							if (!ILBuilder::eval_or(Ctx::eval(), left.t->rvalue(), right.t->rvalue())) return false;
 						}break;
 						case 2: {
-							if (!ILBuilder::eval_xor(nctx.eval, left.t->rvalue(), right.t->rvalue())) return false;
+							if (!ILBuilder::eval_xor(Ctx::eval(), left.t->rvalue(), right.t->rvalue())) return false;
 						}break;
 					}
 				}break;
 				case 1: {
 					switch (op) {
 						case 0: {
-							if (!ILBuilder::eval_eq(nctx.eval, left.t->rvalue(), right.t->rvalue())) return false;
+							if (!ILBuilder::eval_eq(Ctx::eval(), left.t->rvalue(), right.t->rvalue())) return false;
 						}break;
 						case 1: {
-							if (!ILBuilder::eval_ne(nctx.eval, left.t->rvalue(), right.t->rvalue())) return false;
+							if (!ILBuilder::eval_ne(Ctx::eval(), left.t->rvalue(), right.t->rvalue())) return false;
 						}break;
 					}
 				}break;
 				case 2: {
 					switch (op) {
 						case 0: {
-							if (!ILBuilder::eval_gt(nctx.eval, left.t->rvalue(), right.t->rvalue())) return false;
+							if (!ILBuilder::eval_gt(Ctx::eval(), left.t->rvalue(), right.t->rvalue())) return false;
 						}break;
 						case 1: {
-							if (!ILBuilder::eval_lt(nctx.eval, left.t->rvalue(), right.t->rvalue())) return false;
+							if (!ILBuilder::eval_lt(Ctx::eval(), left.t->rvalue(), right.t->rvalue())) return false;
 						} break;
 						case 2: {
-							if (!ILBuilder::eval_ge(nctx.eval, left.t->rvalue(), right.t->rvalue())) return false;
+							if (!ILBuilder::eval_ge(Ctx::eval(), left.t->rvalue(), right.t->rvalue())) return false;
 						}break;
 						case 3: {
-							if (!ILBuilder::eval_le(nctx.eval, left.t->rvalue(), right.t->rvalue())) return false;
+							if (!ILBuilder::eval_le(Ctx::eval(), left.t->rvalue(), right.t->rvalue())) return false;
 						}break;
 					}
 				}break;
 				case 3: {
 					switch (op) {
 						case 0: {
-							if (!ILBuilder::eval_add(nctx.eval, left.t->rvalue(), right.t->rvalue())) return false;
+							if (!ILBuilder::eval_add(Ctx::eval(), left.t->rvalue(), right.t->rvalue())) return false;
 						}break;
 						case 1: {
-							if (!ILBuilder::eval_sub(nctx.eval, left.t->rvalue(), right.t->rvalue())) return false;
+							if (!ILBuilder::eval_sub(Ctx::eval(), left.t->rvalue(), right.t->rvalue())) return false;
 						}break;
 					}
 				}break;
 				case 4: {
 					switch (op) {
 						case 0: {
-							if (!ILBuilder::eval_mul(nctx.eval, left.t->rvalue(), right.t->rvalue())) return false;
+							if (!ILBuilder::eval_mul(Ctx::eval(), left.t->rvalue(), right.t->rvalue())) return false;
 						}break;
 						case 1: {
-							if (!ILBuilder::eval_div(nctx.eval, left.t->rvalue(), right.t->rvalue())) return false;
+							if (!ILBuilder::eval_div(Ctx::eval(), left.t->rvalue(), right.t->rvalue())) return false;
 						} break;
 						case 2: {
-							if (!ILBuilder::eval_rem(nctx.eval, left.t->rvalue(), right.t->rvalue())) return false;
+							if (!ILBuilder::eval_rem(Ctx::eval(), left.t->rvalue(), right.t->rvalue())) return false;
 						}break;
 					}
 				}break;
@@ -374,8 +368,6 @@ namespace Corrosive {
 	}
 
 	bool Expression::parse(Cursor& c, CompileValue& res, CompileType cpt, bool require_output) {
-
-		CompileContext& nctx = CompileContext::get();
 		CompileValue val;
 		if (!parse_or(c, val, cpt)) return false;
 
@@ -390,10 +382,10 @@ namespace Corrosive {
 
 			if (require_output) {
 				if (cpt == CompileType::compile) {
-					ILBuilder::build_duplicate(nctx.scope, ILDataType::ptr);
+					ILBuilder::build_duplicate(Ctx::scope(), ILDataType::ptr);
 				}
 				else {
-					ILBuilder::eval_duplicate(nctx.eval, ILDataType::ptr);
+					ILBuilder::eval_duplicate(Ctx::eval(), ILDataType::ptr);
 				}
 			}
 
@@ -401,8 +393,13 @@ namespace Corrosive {
 			Cursor err = c;
 
 			if (!Expression::parse(c, val2, cpt)) return false;
-			if (!Expression::rvalue(val2, CompileType::compile)) return false;
 			if (!Operand::cast(err, val2, val.t, cpt, true)) return false;
+
+			if (!val2.lvalue) {
+				do_copy = false;
+			}
+
+			if (!Expression::rvalue(val2, CompileType::compile)) return false;
 
 			if (do_copy) {
 				if (!Expression::copy_from_rvalue(val.t, cpt)) return false;
@@ -413,7 +410,7 @@ namespace Corrosive {
 
 			if (!require_output) {
 				val.lvalue = false;
-				val.t = nctx.default_types->t_void;
+				val.t = Ctx::types()->t_void;
 			}
 		}
 
@@ -428,11 +425,8 @@ namespace Corrosive {
 		CompileValue value;
 		if (!Expression::parse_operators(c, value, cpt)) return false;
 
-
-		CompileContext& nctx = CompileContext::get();
-
 		while (c.tok == RecognizedToken::DoubleAnd) {
-			if (value.t != nctx.default_types->t_bool) {
+			if (value.t != Ctx::types()->t_bool) {
 				throw_specific_error(c, "Operation requires left operand to be boolean");
 				return false;
 			}
@@ -442,38 +436,40 @@ namespace Corrosive {
 			c.move();
 
 			if (cpt == CompileType::eval) {
-				uint8_t v = nctx.eval->read_register_value<uint8_t>();
+				uint8_t v = Ctx::eval()->read_register_value<uint8_t>();
 
-				nctx.eval->pop_register_value<uint8_t>();
+				Ctx::eval()->pop_register_value<uint8_t>();
 				CompileValue right;
 				if (!Expression::parse_operators(c, right, cpt)) return false;
 				if (!Expression::rvalue(right, cpt)) return false;
 
-				if (right.t != nctx.default_types->t_bool) {
+				if (right.t != Ctx::types()->t_bool) {
 					throw_specific_error(c, "Operation requires right operand to be boolean");
 					return false;
 				}
-				uint8_t rv = nctx.eval->pop_register_value<uint8_t>();
-				ILBuilder::eval_const_ibool(nctx.eval, v & rv);
+				uint8_t rv = Ctx::eval()->pop_register_value<uint8_t>();
+				ILBuilder::eval_const_ibool(Ctx::eval(), v & rv);
 			}
 			else {
 				if (!fallback) {
-					fallback = nctx.function->create_block(ILDataType::ibool);
+					fallback = Ctx::workspace_function()->create_block();
 				}
 
 				if (!rvalue(value, cpt)) return false;
 
-				ILBlock* positive_block = nctx.function->create_block(ILDataType::ibool);
-				nctx.function->append_block(positive_block);
+				ILBlock* positive_block = Ctx::workspace_function()->create_block();
+				Ctx::workspace_function()->append_block(positive_block);
 
 				if (!ILBuilder::build_discard(positive_block, ILDataType::ibool)) return false;
 
-				ILBuilder::build_const_ibool(nctx.scope, false);
-				if (!ILBuilder::build_yield(nctx.scope, ILDataType::ibool)) return false;
+				ILBuilder::build_const_ibool(Ctx::scope(), false);
+				if (!ILBuilder::build_yield(Ctx::scope(), ILDataType::ibool)) return false;
 
-				if (!ILBuilder::build_jmpz(nctx.scope, fallback, positive_block)) return false;
+				if (!ILBuilder::build_jmpz(Ctx::scope(), fallback, positive_block)) return false;
 
-				nctx.scope = positive_block;
+				Ctx::pop_scope();
+				Ctx::push_scope(positive_block);
+
 				if (!Expression::parse_operators(c, value, cpt)) return false;
 				if (!Expression::rvalue(value, cpt)) return false;
 
@@ -482,21 +478,22 @@ namespace Corrosive {
 		}
 
 		if (fallback != nullptr && cpt == CompileType::compile) {
-			if (value.t != nctx.default_types->t_bool) {
+			if (value.t != Ctx::types()->t_bool) {
 				throw_specific_error(c, "Operation requires right operand to be boolean");
 				return false;
 			}
 
 			if (!rvalue(value, cpt)) return false;
-			if (!ILBuilder::build_yield(nctx.scope, ILDataType::ibool)) return false;
-			if (!ILBuilder::build_jmp(nctx.scope, fallback)) return false;
+			if (!ILBuilder::build_yield(Ctx::scope(), ILDataType::ibool)) return false;
+			if (!ILBuilder::build_jmp(Ctx::scope(), fallback)) return false;
 
-			nctx.function->append_block(fallback);
-			nctx.scope = fallback;
+			Ctx::workspace_function()->append_block(fallback);
+			Ctx::pop_scope();
+			Ctx::push_scope(fallback);
 			fallback = nullptr;
 
-			if (!ILBuilder::build_accept(nctx.scope, ILDataType::ibool)) return false;
-			value.t = nctx.default_types->t_bool;
+			if (!ILBuilder::build_accept(Ctx::scope(), ILDataType::ibool)) return false;
+			value.t = Ctx::types()->t_bool;
 			value.lvalue = false;
 		}
 
@@ -513,10 +510,8 @@ namespace Corrosive {
 		CompileValue value;
 		if (!Expression::parse_and(c, value, cpt)) return false;
 
-		CompileContext& nctx = CompileContext::get();
-
 		while (c.tok == RecognizedToken::DoubleOr) {
-			if (value.t != nctx.default_types->t_bool) {
+			if (value.t != Ctx::types()->t_bool) {
 				throw_specific_error(c, "Operation requires left operand to be boolean");
 				return false;
 			}
@@ -527,37 +522,39 @@ namespace Corrosive {
 
 
 			if (cpt == CompileType::eval) {
-				uint8_t v = nctx.eval->read_register_value<uint8_t>();
+				uint8_t v = Ctx::eval()->read_register_value<uint8_t>();
 
-				nctx.eval->pop_register_value<uint8_t>();
+				Ctx::eval()->pop_register_value<uint8_t>();
 				CompileValue right;
 				if (!Expression::parse_and(c, right, cpt)) return false;
 				if (!Expression::rvalue(right,cpt)) return false;
 
-				if (right.t != nctx.default_types->t_bool) {
+				if (right.t != Ctx::types()->t_bool) {
 					throw_specific_error(c, "Operation requires right operand to be boolean");
 					return false;
 				}
-				uint8_t rv = nctx.eval->pop_register_value<uint8_t>();
-				ILBuilder::eval_const_ibool(nctx.eval, v | rv);
+				uint8_t rv = Ctx::eval()->pop_register_value<uint8_t>();
+				ILBuilder::eval_const_ibool(Ctx::eval(), v | rv);
 			}
 			else {
 				if (!fallback) {
-					fallback = nctx.function->create_block(ILDataType::ibool);
+					fallback = Ctx::workspace_function()->create_block();
 				}
 
 				if (!rvalue(value, cpt)) return false;
 
-				ILBlock* positive_block = nctx.function->create_block(ILDataType::ibool);
-				nctx.function->append_block(positive_block);
+				ILBlock* positive_block = Ctx::workspace_function()->create_block();
+				Ctx::workspace_function()->append_block(positive_block);
 
 				if (!ILBuilder::build_discard(positive_block, ILDataType::ibool)) return false;
 
-				ILBuilder::build_const_ibool(nctx.scope, true);
-				if (!ILBuilder::build_yield(nctx.scope, ILDataType::ibool)) return false;
+				ILBuilder::build_const_ibool(Ctx::scope(), true);
+				if (!ILBuilder::build_yield(Ctx::scope(), ILDataType::ibool)) return false;
 
-				if (!ILBuilder::build_jmpz(nctx.scope, positive_block, fallback)) return false;
-				nctx.scope = positive_block;
+				if (!ILBuilder::build_jmpz(Ctx::scope(), positive_block, fallback)) return false;
+
+				Ctx::pop_scope();
+				Ctx::push_scope(positive_block);
 
 				if (!Expression::parse_and(c, value, cpt)) return false;
 				if (!Expression::rvalue(value, cpt)) return false;
@@ -566,24 +563,25 @@ namespace Corrosive {
 		}
 
 		if (fallback != nullptr && cpt == CompileType::compile) {
-			if (value.t != nctx.default_types->t_bool) {
+			if (value.t != Ctx::types()->t_bool) {
 				throw_specific_error(c, "Operation requires right operand to be boolean");
 				return false;
 			}
 
 			if (!rvalue(value, cpt)) return false;
 
-			if (!ILBuilder::build_yield(nctx.scope, ILDataType::ibool)) return false;
-			if (!ILBuilder::build_jmp(nctx.scope, fallback)) return false;
+			if (!ILBuilder::build_yield(Ctx::scope(), ILDataType::ibool)) return false;
+			if (!ILBuilder::build_jmp(Ctx::scope(), fallback)) return false;
 
-			nctx.function->append_block(fallback);
-			nctx.scope = fallback;
+			Ctx::workspace_function()->append_block(fallback);
+			Ctx::pop_scope();
+			Ctx::push_scope(fallback);
 
 			fallback = nullptr;
 
-			if (!ILBuilder::build_accept(nctx.scope, ILDataType::ibool)) return false;
+			if (!ILBuilder::build_accept(Ctx::scope(), ILDataType::ibool)) return false;
 
-			value.t = nctx.default_types->t_bool;
+			value.t = Ctx::types()->t_bool;
 			value.lvalue = false;
 		}
 

@@ -27,13 +27,13 @@ namespace Corrosive {
 
 	enum class ILInstruction : unsigned char {
 		value, add, sub, div, mul, rem, bit_and, bit_or, bit_xor,
-		load, store, store2, accept, discard, yield, ret, jmp, jmpz,
+		load, store, store2, ret, jmp, jmpz,
 		eq, ne, gt, ge, lt, le, 
 		local, forget, 
 		fnptr, call, start, insintric, cast, 
 		roffset, offset, vtable, duplicate, swap, swap2,
 		memcpy, memcpy2, memcmp, memcmp2, rmemcmp, rmemcmp2,
-		malloc, rtoffset, rtoffset2
+		malloc, rtoffset, rtoffset2, null
 	};
 
 	enum class ILDataType : unsigned char {
@@ -134,8 +134,8 @@ namespace Corrosive {
 		std::vector<std::unique_ptr<ILBlock>>		blocks_memory;
 		std::set<ILBlock*>							return_blocks;
 
-		ILBlock*	 create_block(ILDataType accepts);
-		ILBlock*	 create_and_append_block(ILDataType accepts);
+		ILBlock*	 create_block();
+		ILBlock*	 create_and_append_block();
 		void		 append_block(ILBlock* block);
 		void		 dump();
 		bool		 assert_flow();
@@ -168,8 +168,6 @@ namespace Corrosive {
 		ILFunction* callstack[1024];
 
 		uint16_t callstack_depth = 0;
-
-		register_value yield;
 
 		std::vector<size_t> local_stack_size;
 		std::vector<unsigned char*> local_stack_base;
@@ -268,6 +266,7 @@ namespace Corrosive {
 		static bool eval_memcmp2(ILEvaluator* eval_ctx, size_t size);
 
 		static bool eval_malloc(ILEvaluator* eval_ctx);
+		static bool eval_null(ILEvaluator* eval_ctx);
 
 		static bool eval_rmemcmp(ILEvaluator* eval_ctx, ILDataType type);
 		static bool eval_rmemcmp2(ILEvaluator* eval_ctx, ILDataType type);
@@ -295,9 +294,6 @@ namespace Corrosive {
 		static bool eval_rem(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
 		static bool eval_mul(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
 		static bool eval_cast(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
-		static bool eval_accept(ILEvaluator* eval_ctx, ILDataType type);
-		static bool eval_discard(ILEvaluator* eval_ctx, ILDataType type);
-		static bool eval_yield(ILEvaluator* eval_ctx, ILDataType type);
 		static bool eval_forget(ILEvaluator* eval_ctx, ILDataType type);
 		static bool eval_fnptr(ILEvaluator* eval_ctx, ILFunction* fun);
 		static bool eval_insintric(ILEvaluator* eval_ctx, ILInsintric fun);
@@ -340,6 +336,8 @@ namespace Corrosive {
 
 
 		static bool build_malloc(ILBlock* block);
+
+		static bool build_null(ILBlock* block);
 
 
 		static bool build_local(ILBlock* block, uint16_t id);

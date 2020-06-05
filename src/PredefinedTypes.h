@@ -98,10 +98,11 @@ namespace Corrosive {
 		TraitTemplate* tr_copy;
 		TraitTemplate* tr_move;
 		TraitTemplate* tr_compare;
+		TraitTemplate* tr_drop;
 
-		bool setup(CompileContext& ctx);
+		bool setup();
 	private:
-		void setup_type(CompileContext& ctx, std::string_view name, Type*& into, ILSize size, ILSize alignment, ILDataType ildt,ILContext runtime);
+		void setup_type(std::string_view name, Type*& into, ILSize size, ILSize alignment, ILDataType ildt,ILContext runtime);
 	};
 }
 

@@ -37,18 +37,17 @@ namespace Corrosive {
 	}
 
 
-	ILBlock* ILFunction::create_and_append_block(ILDataType accepts) {
-		ILBlock* b = create_block(accepts);
+	ILBlock* ILFunction::create_and_append_block() {
+		ILBlock* b = create_block();
 		append_block(b);
 		return b;
 	}
 
-	ILBlock* ILFunction::create_block(ILDataType accepts) {
+	ILBlock* ILFunction::create_block() {
 		std::unique_ptr<ILBlock> block = std::make_unique<ILBlock>();
 		ILBlock* block_ptr = block.get();
 		block->id = (uint32_t)blocks_memory.size();
 		block->parent = this;
-		block->accepts = accepts;
 		blocks_memory.push_back(std::move(block));
 		return block_ptr;
 	}
@@ -419,18 +418,6 @@ namespace Corrosive {
 					std::cout << "   store2 [";
 					dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 					break;
-				case ILInstruction::accept: {
-					std::cout << "   accept [";
-					auto type = read_data_type(ILDataType);
-					dump_data_type(*type);
-					std::cout << "]\n";
-				} break;
-				case ILInstruction::discard: {
-					std::cout << "   discard [";
-					auto type = read_data_type(ILDataType);
-					dump_data_type(*type);
-					std::cout << "]\n";
-				} break;
 				case ILInstruction::start: {
 					std::cout << "   start\n";
 				} break;
@@ -446,11 +433,15 @@ namespace Corrosive {
 				case ILInstruction::rtoffset2: {
 					std::cout << "   rtoffset2\n";
 				} break;
+					
+				case ILInstruction::null: {
+					std::cout << "   null\n";
+				} break;
 
 				case ILInstruction::jmp: {
 					std::cout << "   jmp ";
 					auto address = read_data_type(uint32_t);
-					std::cout << *address << " \"" << parent->blocks[*address]->alias << "\"\n";
+					std::cout << *address << " \"" << parent->blocks_memory[*address]->alias << "\"\n";
 					break;
 				}
 				case ILInstruction::local: {
@@ -529,18 +520,11 @@ namespace Corrosive {
 				case ILInstruction::jmpz: {
 					std::cout << "   jmpz ";
 					auto address = read_data_type(uint32_t);
-					std::cout << *address << " \"" << parent->blocks[*address]->alias << "\" : ";
+					std::cout << *address << " \"" << parent->blocks_memory[*address]->alias << "\" : ";
 					address = read_data_type(uint32_t);
-					std::cout << *address << " \"" << parent->blocks[*address]->alias << "\"\n";
+					std::cout << *address << " \"" << parent->blocks_memory[*address]->alias << "\"\n";
 					break;
 				}
-				case ILInstruction::yield: {
-					std::cout << "   yield [";
-					auto type = read_data_type(ILDataType);
-					dump_data_type(*type);
-					std::cout << "]\n";
-				}
-										 break;
 				case ILInstruction::value: {
 					std::cout << "   const [";
 

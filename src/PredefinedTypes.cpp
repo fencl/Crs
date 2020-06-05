@@ -6,20 +6,19 @@ namespace Corrosive {
 	const char* PredefinedNamespace = "corrosive";
 
 	bool DefaultTypes::priv_debug_cursor(ILEvaluator* eval_ctx) {
-		CompileContext& nctx = CompileContext::get();
 		uint64_t c_id = eval_ctx->pop_register_value<uint64_t>();
-		nctx.default_types->debug_info = nctx.default_types->debug_cursor_storage.get((size_t)c_id);
+		Ctx::types()->debug_info = Ctx::types()->debug_cursor_storage.get((size_t)c_id);
 		return true;
 	}
 
-	void DefaultTypes::setup_type(CompileContext& ctx,std::string_view name,Type*& into, ILSize size, ILSize alignment,ILDataType ildt,ILContext context) {
+	void DefaultTypes::setup_type(std::string_view name,Type*& into, ILSize size, ILSize alignment,ILDataType ildt,ILContext context) {
 		std::unique_ptr<StructureTemplate> s = std::make_unique<StructureTemplate>();
 		Cursor c;
 		c.buffer = name;
 
-		s->parent = ctx.global;
+		s->parent = Ctx::global_namespace();
 		s->name = c;
-		s->parent = ctx.global;
+		s->parent = Ctx::global_namespace();
 
 		s->compile();
 		StructureInstance* sinst;
@@ -34,7 +33,7 @@ namespace Corrosive {
 
 		into = sinst->type.get();
 
-		ctx.global->subtemplates[c.buffer] = std::move(s);
+		Ctx::global_namespace()->subtemplates[c.buffer] = std::move(s);
 	}
 
 
@@ -42,23 +41,23 @@ namespace Corrosive {
 		return primitives[(unsigned char)rval];
 	}
 
-	bool DefaultTypes::setup(CompileContext& ctx) {
-		setup_type(ctx, "void", t_void, { 0,0 }, { 0, 0 }, ILDataType::none, ILContext::both);
-		setup_type(ctx, "i8", t_i8, { 1,0 }, { 1, 0 }, ILDataType::i8, ILContext::both);
-		setup_type(ctx, "bool", t_bool, { 1,0 }, { 1, 0 }, ILDataType::ibool, ILContext::both);
-		setup_type(ctx, "i16", t_i16, { 2,0 }, { 2, 0 }, ILDataType::i16, ILContext::both);
-		setup_type(ctx, "i32", t_i32, { 4,0 }, { 4, 0 }, ILDataType::i32, ILContext::both);
-		setup_type(ctx, "u8",  t_u8, { 1,0 }, { 1, 0 }, ILDataType::u8, ILContext::both);
-		setup_type(ctx, "u16", t_u16, { 2,0 }, { 2, 0 }, ILDataType::u16, ILContext::both);
-		setup_type(ctx, "u32", t_u32, { 4,0 }, { 4, 0 }, ILDataType::u32, ILContext::both);
-		setup_type(ctx, "f32", t_f32, { 4,0 }, { 4, 0 }, ILDataType::f32, ILContext::both);
+	bool DefaultTypes::setup() {
+		setup_type("void", t_void, { 0,0 }, { 0, 0 }, ILDataType::none, ILContext::both);
+		setup_type("i8", t_i8, { 1,0 }, { 1, 0 }, ILDataType::i8, ILContext::both);
+		setup_type("bool", t_bool, { 1,0 }, { 1, 0 }, ILDataType::ibool, ILContext::both);
+		setup_type("i16", t_i16, { 2,0 }, { 2, 0 }, ILDataType::i16, ILContext::both);
+		setup_type("i32", t_i32, { 4,0 }, { 4, 0 }, ILDataType::i32, ILContext::both);
+		setup_type("u8",  t_u8, { 1,0 }, { 1, 0 }, ILDataType::u8, ILContext::both);
+		setup_type("u16", t_u16, { 2,0 }, { 2, 0 }, ILDataType::u16, ILContext::both);
+		setup_type("u32", t_u32, { 4,0 }, { 4, 0 }, ILDataType::u32, ILContext::both);
+		setup_type("f32", t_f32, { 4,0 }, { 4, 0 }, ILDataType::f32, ILContext::both);
 
-		setup_type(ctx, "f64", t_f64, { 8,0 }, { 0, 1 }, ILDataType::f64, ILContext::both);
-		setup_type(ctx, "i64", t_i64, { 8,0 }, { 0, 1 }, ILDataType::i64, ILContext::both);
-		setup_type(ctx, "u64", t_u64, { 8,0 }, { 0, 1 }, ILDataType::u64, ILContext::both);
-		setup_type(ctx, "ptr", t_ptr, { 0,1 }, { 0, 1 }, ILDataType::ptr, ILContext::both);
-		setup_type(ctx, "size", t_size, { 0,1 }, { 0, 1 }, ILDataType::size, ILContext::both);
-		setup_type(ctx, "type", t_type, { 0,1 }, { 0, 1 }, ILDataType::ptr, ILContext::compile);
+		setup_type("f64", t_f64, { 8,0 }, { 0, 1 }, ILDataType::f64, ILContext::both);
+		setup_type("i64", t_i64, { 8,0 }, { 0, 1 }, ILDataType::i64, ILContext::both);
+		setup_type("u64", t_u64, { 8,0 }, { 0, 1 }, ILDataType::u64, ILContext::both);
+		setup_type("ptr", t_ptr, { 0,1 }, { 0, 1 }, ILDataType::ptr, ILContext::both);
+		setup_type("size", t_size, { 0,1 }, { 0, 1 }, ILDataType::size, ILContext::both);
+		setup_type("type", t_type, { 0,1 }, { 0, 1 }, ILDataType::ptr, ILContext::compile);
 
 		primitives[(unsigned char)ILDataType::ibool] = t_bool;
 		primitives[(unsigned char)ILDataType::u8] = t_u8;
@@ -76,9 +75,9 @@ namespace Corrosive {
 		auto f_malloc_template = std::make_unique<FunctionTemplate>();
 		f_malloc_template->name.buffer = "malloc";
 		f_malloc_template->is_generic = false;
-		f_malloc_template->parent = ctx.global;
+		f_malloc_template->parent = Ctx::global_namespace();
 		f_malloc_template->singe_instance = std::make_unique<FunctionInstance>();
-		f_malloc_template->singe_instance->parent = ctx.global;
+		f_malloc_template->singe_instance->parent = Ctx::global_namespace();
 		f_malloc_template->singe_instance->returns.second = t_u8->generate_slice();
 		Cursor arg;
 		arg.buffer = "size";
@@ -86,14 +85,14 @@ namespace Corrosive {
 
 		f_malloc_template->compile_state = 2;
 		f_malloc_template->singe_instance->compile_state = 3;
-		f_malloc_template->singe_instance->func = ctx.module->create_function();
+		f_malloc_template->singe_instance->func = Ctx::global_module()->create_function();
 		f_malloc_template->singe_instance->func->alias = "malloc";
 		std::vector<Type*> arg_array = {t_size};
 
 		TypeFunction* tf = load_or_register_function_type(std::move(arg_array), f_malloc_template->singe_instance->returns.second,ILContext::both);
 		f_malloc_template->singe_instance->type = tf;
 
-		ILBlock* f_malloc_block = f_malloc_template->singe_instance->func->create_and_append_block(ILDataType::none);
+		ILBlock* f_malloc_block = f_malloc_template->singe_instance->func->create_and_append_block();
 
 		uint16_t loc_ret_ptr = f_malloc_template->singe_instance->func->register_local(t_ptr->size());
 		uint16_t loc_size = f_malloc_template->singe_instance->func->register_local(t_size->size());
@@ -124,18 +123,19 @@ namespace Corrosive {
 		f_malloc_template->singe_instance->func->dump();
 		std::cout << "\n";
 
-		ctx.global->subfunctions["malloc"] = std::move(f_malloc_template);
+		Ctx::global_namespace()->subfunctions["malloc"] = std::move(f_malloc_template);
 
 
 
 
-		std_lib.load_data("trait Copy(T:type) {fn Copy: (&T);}\ntrait Move(T:type) {fn Move: (&T);}\ntrait Compare(T:type) {fn Compare: (&T) i8;}");
+		std_lib.load_data("trait Copy(T:type) {fn Copy: (&T);}\ntrait Move(T:type) {fn Move: (&T);}\ntrait Compare(T:type) {fn Compare: (&T) i8;}\ntrait Drop {fn Drop: ();}");
 		Cursor c = std_lib.read_first();
-		if (!Declaration::parse_global(c, ctx.global)) return false;
-
-		tr_copy = ctx.global->subtraits["Copy"].get();
-		tr_move = ctx.global->subtraits["Move"].get();
-		tr_compare = ctx.global->subtraits["Compare"].get();
+		if (!Declaration::parse_global(c, Ctx::global_namespace())) return false;
+		
+		tr_copy = Ctx::global_namespace()->subtraits["Copy"].get();
+		tr_move = Ctx::global_namespace()->subtraits["Move"].get();
+		tr_compare = Ctx::global_namespace()->subtraits["Compare"].get();
+		tr_drop = Ctx::global_namespace()->subtraits["Drop"].get();
 
 		return true;
 	}

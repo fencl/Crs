@@ -5,6 +5,7 @@
 #include <vector>
 #include "IL/IL.h"
 #include "Type.h"
+#include <vector>
 
 namespace Corrosive {
 
@@ -17,28 +18,54 @@ namespace Corrosive {
 	class FunctionInstance;
 	class StackManager;
 
-	struct CompileContext {
-		DefaultTypes*	default_types = nullptr;
-		Namespace*		inside = nullptr;
-		Namespace*		global = nullptr;
-		ILFunction*     function = nullptr;
-		Type*			function_returns = nullptr;
-		ILContext		scope_context = ILContext::both;
+	class Ctx {
+	public:
+		static DefaultTypes* types();
+		static Namespace* global_namespace();
+		static ILModule* global_module();
+		static ILEvaluator* eval();
+		
+		static Namespace* workspace();
+		static ILFunction* workspace_function();
+		static Type* workspace_return();
+		static ILContext scope_context();
+		static ILBlock* scope();
+		static ILBlock* scope_exit();
+		static StackManager* stack();
+		static StackManager* temp_stack();
+		static StackManager* eval_stack();
 
-		ILModule*		module = nullptr;
-		ILEvaluator*	eval = nullptr;
-		ILBlock*		scope = nullptr;
-		//ILBlock*		scope_exit = nullptr;
+		static void init(ILModule* global_mod, DefaultTypes* def_types, ILEvaluator* evaluator, Namespace* global_nspc, StackManager* rt_stack, StackManager* cp_stack, StackManager* tmp_stack);
 
-		StackManager*	runtime_stack = nullptr;
-		StackManager*	compile_stack = nullptr;
+		static void push_workspace(Namespace* workspace);
+		static void pop_workspace();
+		static void push_scope_context(ILContext context);
+		static void pop_scope_context();
 
+		static void push_function(ILFunction* ilf, Type* ret);
+		static void pop_function();
 
-		static CompileContext context_stack[1024];
-		static uint32_t context_sp;
-		static CompileContext& get();
-		static void push(CompileContext ctx);
-		static void pop();
+		static void push_scope(ILBlock* scope);
+		static void pop_scope();
+
+		static void push_scope_exit(ILBlock* scope_exit);
+		static void pop_scope_exit();
+
+	private:
+		static DefaultTypes* default_types;
+		static Namespace* global;
+		static ILModule* il_module;
+		static ILEvaluator* il_eval;
+		static StackManager* runtime_stack;
+		static StackManager* temporary_stack;
+		static StackManager* compile_stack;
+
+		static std::vector<Namespace*> inside;
+		static std::vector<ILFunction*> il_function;
+		static std::vector<Type*> function_returns;
+		static std::vector<ILContext> scope_ctx;
+		static std::vector<ILBlock*> il_scope;
+		static std::vector<ILBlock*> il_scope_exit;
 	};
 
 	struct CompileValue {

@@ -13,7 +13,7 @@
 #include <map>
 
 namespace Corrosive {
-	struct CompileContext;
+	class Ctx;
 	class StructureInstance;
 	class StructureTemplate;
 	class TraitTemplate;
@@ -39,12 +39,12 @@ namespace Corrosive {
 
 		virtual bool compile();
 
-		virtual int8_t compare(ILEvaluator* eval, unsigned char* me, unsigned char* p2);
-		virtual void move(ILEvaluator* eval, unsigned char* me, unsigned char* from);
-		virtual void copy(ILEvaluator* eval, unsigned char* me, unsigned char* from);
+		virtual int8_t compare(unsigned char* me, unsigned char* p2);
+		virtual void move(unsigned char* me, unsigned char* from);
+		virtual void copy(unsigned char* me, unsigned char* from);
 
-		virtual void construct(ILEvaluator* eval, unsigned char* me);
-		virtual void drop(ILEvaluator* eval, unsigned char* me);
+		virtual void construct(unsigned char* me);
+		virtual void drop(unsigned char* me);
 
 		virtual bool has_special_constructor();
 		virtual bool has_special_destructor();
@@ -84,11 +84,11 @@ namespace Corrosive {
 
 		virtual ILContext context();
 		virtual bool compile();
-		virtual int8_t compare(ILEvaluator* eval,  unsigned char* me,  unsigned char* to);
-		virtual void move(ILEvaluator* eval,  unsigned char* me,  unsigned char* from);
-		virtual void copy(ILEvaluator* eval, unsigned char* me, unsigned char* from);
-		virtual void construct(ILEvaluator* eval, unsigned char* me);
-		virtual void drop(ILEvaluator* eval, unsigned char* me);
+		virtual int8_t compare(unsigned char* me,  unsigned char* to);
+		virtual void move(unsigned char* me,  unsigned char* from);
+		virtual void copy(unsigned char* me, unsigned char* from);
+		virtual void construct(unsigned char* me);
+		virtual void drop(unsigned char* me);
 
 		virtual ILSize size();
 		virtual ILSize alignment();
@@ -167,11 +167,11 @@ namespace Corrosive {
 		virtual bool compile();
 		
 
-		virtual void construct(ILEvaluator* eval, unsigned char* me);
-		virtual void drop(ILEvaluator* eval, unsigned char* me);
-		virtual int8_t compare(ILEvaluator* eval,  unsigned char* me,  unsigned char* to);
-		virtual void move(ILEvaluator* eval,  unsigned char* me,  unsigned char* from);
-		virtual void copy(ILEvaluator* eval, unsigned char* me, unsigned char* from);
+		virtual void construct(unsigned char* me);
+		virtual void drop(unsigned char* me);
+		virtual int8_t compare(unsigned char* me,  unsigned char* to);
+		virtual void move(unsigned char* me,  unsigned char* from);
+		virtual void copy(unsigned char* me, unsigned char* from);
 
 		virtual ILSize size();
 		virtual ILSize alignment();
