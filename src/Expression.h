@@ -8,8 +8,11 @@
 namespace Corrosive {
 	class Expression {
 	public:
-		static bool parse(Cursor& c, CompileValue& res, CompileType comp_type);
+		static bool parse(Cursor& c, CompileValue& res, CompileType comp_type, bool require_output = true);
 		static bool rvalue(CompileValue& value, CompileType cpt);
+
+		static bool copy_from_rvalue(Type* me, CompileType cpt, bool me_top = true);
+		static bool move_from_rvalue(Type* me, CompileType cpt, bool me_top = true);
 
 	private:
 		static bool parse_and(Cursor& c, CompileValue& res, CompileType comp_type);

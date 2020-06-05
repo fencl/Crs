@@ -9,6 +9,166 @@
 #include "StackManager.h"
 
 namespace Corrosive {
+
+
+	bool Expression::copy_from_rvalue(Type* me, CompileType cpt, bool me_top) {
+		CompileContext& nctx = CompileContext::get();
+		if (cpt == CompileType::compile) {
+
+			if (me->has_special_copy()) {
+				if (me->rvalue_stacked()) {
+					if (!me_top) {
+						ILBuilder::build_swap(nctx.scope, ILDataType::ptr);
+					}
+					me->build_copy();
+				}
+				else {
+					std::cerr << "Compiler error, structure with special copy should not have rvalue stacked\n";
+					return false;
+				}
+			}
+			else {
+				if (me_top) {
+					if (me->rvalue_stacked()) {
+						ILBuilder::build_memcpy2(nctx.scope, me->size());
+					}
+					else {
+						ILBuilder::build_store2(nctx.scope, me->rvalue());
+					}
+				}
+				else {
+					if (me->rvalue_stacked()) {
+						ILBuilder::build_memcpy(nctx.scope, me->size());
+					}
+					else {
+						ILBuilder::build_store(nctx.scope, me->rvalue());
+					}
+				}
+			}
+		}
+		else {
+			if (me->has_special_copy()) {
+				if (me->rvalue_stacked()) {
+					if (me_top) {
+						unsigned char* copy_from = nctx.eval->pop_register_value<unsigned char*>();
+						unsigned char* copy_to = nctx.eval->pop_register_value<unsigned char*>();
+						me->copy(nctx.eval, copy_to, copy_from);
+					}
+					else {
+						unsigned char* copy_to = nctx.eval->pop_register_value<unsigned char*>();
+						unsigned char* copy_from = nctx.eval->pop_register_value<unsigned char*>();
+						me->copy(nctx.eval, copy_to, copy_from);
+					}
+				}
+				else {
+					std::cerr << "Compiler error, structure with special copy should not have rvalue stacked\n";
+					return false;
+				}
+			}
+			else {
+
+				if (me_top) {
+					if (me->rvalue_stacked()) {
+						ILBuilder::eval_memcpy2(nctx.eval, me->size().eval(compiler_arch));
+					}
+					else {
+						ILBuilder::eval_store2(nctx.eval, me->rvalue());
+					}
+				}
+				else {
+					if (me->rvalue_stacked()) {
+						ILBuilder::eval_memcpy(nctx.eval, me->size().eval(compiler_arch));
+					}
+					else {
+						ILBuilder::eval_store(nctx.eval, me->rvalue());
+					}
+				}
+			}
+		}
+
+		return true;
+	}
+
+	bool Expression::move_from_rvalue(Type* me, CompileType cpt, bool me_top) {
+		CompileContext& nctx = CompileContext::get();
+		if (cpt == CompileType::compile) {
+
+			if (me->has_special_move()) {
+				if (me->rvalue_stacked()) {
+					if (!me_top) {
+						ILBuilder::build_swap(nctx.scope, ILDataType::ptr);
+					}
+					me->build_move();
+				}
+				else {
+					std::cerr << "Compiler error, structure with special copy should not have rvalue stacked\n";
+					return false;
+				}
+			}
+			else {
+				if (me_top) {
+					if (me->rvalue_stacked()) {
+						ILBuilder::build_memcpy2(nctx.scope, me->size());
+					}
+					else {
+						ILBuilder::build_store2(nctx.scope, me->rvalue());
+					}
+				}
+				else {
+					if (me->rvalue_stacked()) {
+						ILBuilder::build_memcpy(nctx.scope, me->size());
+					}
+					else {
+						ILBuilder::build_store(nctx.scope, me->rvalue());
+					}
+				}
+			}
+		}
+		else {
+			if (me->has_special_move()) {
+				if (me->rvalue_stacked()) {
+					if (me_top) {
+						unsigned char* copy_from = nctx.eval->pop_register_value<unsigned char*>();
+						unsigned char* copy_to = nctx.eval->pop_register_value<unsigned char*>();
+						me->move(nctx.eval, copy_to, copy_from);
+					}
+					else {
+						unsigned char* copy_to = nctx.eval->pop_register_value<unsigned char*>();
+						unsigned char* copy_from = nctx.eval->pop_register_value<unsigned char*>();
+						me->move(nctx.eval, copy_to, copy_from);
+					}
+				}
+				else {
+					std::cerr << "Compiler error, structure with special move should not have rvalue stacked\n";
+					return false;
+				}
+			}
+			else {
+
+				if (me_top) {
+					if (me->rvalue_stacked()) {
+						ILBuilder::eval_memcpy2(nctx.eval, me->size().eval(compiler_arch));
+					}
+					else {
+						ILBuilder::eval_store2(nctx.eval, me->rvalue());
+					}
+				}
+				else {
+					if (me->rvalue_stacked()) {
+						ILBuilder::eval_memcpy(nctx.eval, me->size().eval(compiler_arch));
+					}
+					else {
+						ILBuilder::eval_store(nctx.eval, me->rvalue());
+					}
+				}
+			}
+		}
+
+		return true;
+	}
+
+
+
 	bool Expression::rvalue(CompileValue& value, CompileType cpt) {
 		if (value.lvalue && !value.t->rvalue_stacked()) {
 			CompileContext& nctx = CompileContext::get();
@@ -213,7 +373,7 @@ namespace Corrosive {
 		return true;
 	}
 
-	bool Expression::parse(Cursor& c, CompileValue& res, CompileType cpt) {
+	bool Expression::parse(Cursor& c, CompileValue& res, CompileType cpt, bool require_output) {
 
 		CompileContext& nctx = CompileContext::get();
 		CompileValue val;
@@ -228,83 +388,37 @@ namespace Corrosive {
 				return false;
 			}
 
-			if (cpt == CompileType::compile) {
-				ILBuilder::build_duplicate(nctx.scope, ILDataType::ptr);
-			}
-			else {
-				ILBuilder::eval_duplicate(nctx.eval, ILDataType::ptr);
+			if (require_output) {
+				if (cpt == CompileType::compile) {
+					ILBuilder::build_duplicate(nctx.scope, ILDataType::ptr);
+				}
+				else {
+					ILBuilder::eval_duplicate(nctx.eval, ILDataType::ptr);
+				}
 			}
 
 			c.move();
 			Cursor err = c;
 
 			if (!Expression::parse(c, val2, cpt)) return false;
-			
+			if (!Expression::rvalue(val2, CompileType::compile)) return false;
 			if (!Operand::cast(err, val2, val.t, cpt, true)) return false;
 
-			if (cpt == CompileType::compile) {
-
-				if (do_copy && val.t->has_special_copy()) {
-					val.t->build_copy(!val.lvalue);
-				}
-				else if (!do_copy && val.t->has_special_move()) {
-					val.t->build_move(!val.lvalue);
-				}
-				else {
-					// simple copy/move
-					if (!Expression::rvalue(val2, CompileType::compile)) return false;
-
-					if (val.t->rvalue_stacked()) {
-						ILBuilder::build_memcpy2(nctx.scope, val.t->size());
-					}
-					else {
-						ILBuilder::build_store2(nctx.scope, val.t->rvalue());
-					}
-				}
+			if (do_copy) {
+				if (!Expression::copy_from_rvalue(val.t, cpt)) return false;
 			}
 			else {
+				if (!Expression::move_from_rvalue(val.t, cpt)) return false;
+			}
 
-				if ((do_copy && val.t->has_special_copy()) || (!do_copy && val.t->has_special_move())) {
-
-					if (!val.lvalue && !val.t->rvalue_stacked()) {
-						ilsize_t storage;
-						size_t reg_size = nctx.eval->compile_time_register_size(val.t->rvalue());
-						nctx.eval->pop_register_value_indirect(reg_size, &storage);
-						unsigned char* me = nctx.eval->pop_register_value<unsigned char*>();
-						if (do_copy) {
-							val.t->copy(nctx.eval, me, (unsigned char*)&storage);
-						}
-						else {
-							val.t->move(nctx.eval, me, (unsigned char*)&storage);
-						}
-					}
-					else {
-						unsigned char* copy_from = nctx.eval->pop_register_value<unsigned char*>();
-						unsigned char* me = nctx.eval->pop_register_value<unsigned char*>();
-						if (do_copy) {
-							val.t->copy(nctx.eval, me, copy_from);
-						}
-						else {
-							val.t->move(nctx.eval, me, copy_from);
-						}
-					}
-				}
-				else {
-					//simple copy/move
-					if (!Expression::rvalue(val2, CompileType::eval)) return false;
-
-					if (val.t->rvalue_stacked()) {
-						ILBuilder::eval_memcpy2(nctx.eval, val.t->size().eval(compiler_arch));
-					}
-					else {
-						ILBuilder::eval_store2(nctx.eval, val.t->rvalue());
-					}
-				}
+			if (!require_output) {
+				val.lvalue = false;
+				val.t = nctx.default_types->t_void;
 			}
 		}
 
-		//if (!Expression::rvalue(val, cpt)) return false;
 		res = val;
+		
 		return true;
 	}
 

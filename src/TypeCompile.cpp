@@ -58,11 +58,11 @@ namespace Corrosive {
 	}
 
 
-	void Type::build_copy(bool rv) {
+	void Type::build_copy() {
 		//dst(me), src(from)
 
 		CompileContext& nctx = CompileContext::get();
-		if (rvalue_stacked() || !rv) {
+		if (rvalue_stacked()) {
 			ILBuilder::build_memcpy2(nctx.scope, size());
 		}
 		else {
@@ -70,11 +70,11 @@ namespace Corrosive {
 		}
 	}
 
-	void Type::build_move(bool rv) {
+	void Type::build_move() {
 		//dst(me), src(from)
 
 		CompileContext& nctx = CompileContext::get();
-		if (rvalue_stacked() || !rv) {
+		if (rvalue_stacked()) {
 			ILBuilder::build_memcpy2(nctx.scope, size());
 		}
 		else {
@@ -82,12 +82,12 @@ namespace Corrosive {
 		}
 	}
 
-	void Type::build_compare(bool rv) {
+	void Type::build_compare() {
 		// non rev
 		//dst(me), src(compare_to)
 
 		CompileContext& nctx = CompileContext::get();
-		if (rvalue_stacked() || !rv) {
+		if (rvalue_stacked()) {
 			ILBuilder::build_memcmp2(nctx.scope, size());
 		}
 		else {
@@ -188,70 +188,45 @@ namespace Corrosive {
 
 	
 
-	void TypeStructureInstance::build_copy(bool rv) {
+	void TypeStructureInstance::build_copy() {
 		//dst(me), src(from)
 		if (has_special_copy()) {
 			CompileContext& nctx = CompileContext::get();
-
-			// rvalue passed to ctor, create stack copy, no need to drop
-			if (rv && !rvalue_stacked()) {
-				uint16_t loc_id = nctx.function->register_local(size());
-				ILBuilder::build_local(nctx.scope, loc_id);
-				ILBuilder::build_store(nctx.scope, rvalue());
-				ILBuilder::build_local(nctx.scope, loc_id);
-			}
-
 			ILBuilder::build_fnptr(nctx.scope, owner->auto_copy);
 			ILBuilder::build_callstart(nctx.scope);
 			ILBuilder::build_call(nctx.scope, ILDataType::none, 2);
 		}
 		else {
-			Type::build_copy(rv);
+			Type::build_copy();
 		}
 	}
 
-	void TypeStructureInstance::build_move(bool rv) {
+	void TypeStructureInstance::build_move() {
 		//dst(me), src(from)
 		if (has_special_move()) {
 			CompileContext& nctx = CompileContext::get();
-
-			// rvalue passed to ctor, create stack copy, no need to drop
-			if (rv && !rvalue_stacked()) {
-				uint16_t loc_id = nctx.function->register_local(size());
-				ILBuilder::build_local(nctx.scope, loc_id);
-				ILBuilder::build_store(nctx.scope, rvalue());
-				ILBuilder::build_local(nctx.scope, loc_id);
-			}
 
 			ILBuilder::build_fnptr(nctx.scope, owner->auto_move);
 			ILBuilder::build_callstart(nctx.scope);
 			ILBuilder::build_call(nctx.scope, ILDataType::none, 2);
 		}
 		else {
-			Type::build_move(rv);
+			Type::build_move();
 		}
 	}
 
-	void TypeStructureInstance::build_compare(bool rv) {
+	void TypeStructureInstance::build_compare() {
 		//dst(me), src(compare to)
 
 		if (has_special_copy()) {
 			CompileContext& nctx = CompileContext::get();
-
-			// rvalue passed to ctor, create stack copy
-			if (rv && !rvalue_stacked()) {
-				uint16_t loc_id = nctx.function->register_local(size());
-				ILBuilder::build_local(nctx.scope, loc_id);
-				ILBuilder::build_store(nctx.scope, rvalue());
-				ILBuilder::build_local(nctx.scope, loc_id);
-			}
 
 			ILBuilder::build_fnptr(nctx.scope, owner->auto_compare);
 			ILBuilder::build_callstart(nctx.scope);
 			ILBuilder::build_call(nctx.scope, ILDataType::i8, 2);
 		}
 		else {
-			Type::build_compare(rv);
+			Type::build_compare();
 		}
 	}
 }

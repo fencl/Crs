@@ -41,6 +41,9 @@ namespace Corrosive {
 				}else if (c.buffer == "make") {
 					return parse_make(c, res);
 				}
+				else if (c.buffer == "let") {
+					return parse_let(c, res);
+				}
 			}break;
 			case RecognizedToken::OpenBrace: {
 				c.move();
@@ -51,15 +54,38 @@ namespace Corrosive {
 		//fallthrough if every other check fails, statement is plain expression
 
 		CompileValue ret_val;
-		if (!Expression::parse(c, ret_val, cmp)) return false;
-		if (!Expression::rvalue(ret_val,cmp)) return false;
+		if (!Expression::parse(c, ret_val, cmp, false)) return false;
 
-		if (cmp == CompileType::compile) {
-			ILBuilder::build_forget(nctx.scope, ret_val.t->rvalue());
+		if (ret_val.t->rvalue() != ILDataType::none) {
+			if (cmp == CompileType::compile) {
+
+				if (ret_val.lvalue || ret_val.t->rvalue_stacked()) {
+					if (ret_val.t->has_special_destructor()) {
+						ret_val.t->build_drop();
+					}
+					else {
+						ILBuilder::build_forget(nctx.scope, ILDataType::ptr);
+					}
+				}
+				else {
+					ILBuilder::build_forget(nctx.scope, ret_val.t->rvalue());
+				}
+			}
+			else {
+				if (ret_val.lvalue || ret_val.t->rvalue_stacked()) {
+					if (ret_val.t->has_special_destructor()) {
+						unsigned char* me = nctx.eval->pop_register_value<unsigned char*>();
+						ret_val.t->drop(nctx.eval, me);
+					}
+					else {
+						ILBuilder::eval_forget(nctx.eval, ILDataType::ptr);
+					}
+				} else {
+					ILBuilder::eval_forget(nctx.eval, ret_val.t->rvalue());
+				}
+			}
 		}
-		else {
-			ILBuilder::eval_forget(nctx.eval, ret_val.t->rvalue());
-		}
+
 		if (c.tok != RecognizedToken::Semicolon) {
 			throw_wrong_token_error(c, "';'");
 			return false;
@@ -78,15 +104,13 @@ namespace Corrosive {
 		Cursor err = c;
 		if (!Expression::parse(c, ret_val, CompileType::compile)) return false;
 		if (!Expression::rvalue(ret_val, CompileType::compile)) return false;
-
 		if (!Operand::cast(err, ret_val, nctx.function_returns, CompileType::compile,false)) return false;
 
+
 		if (nctx.function_returns->rvalue_stacked()) {
-			//if (cpt == CompileType::compile) {
-				ILBuilder::build_local(nctx.scope, 0);
-				ILBuilder::build_load(nctx.scope, ILDataType::ptr);
-				nctx.function_returns->build_move(true);
-			//}
+			ILBuilder::build_local(nctx.scope, 0);
+			ILBuilder::build_load(nctx.scope, ILDataType::ptr);
+			if (!Expression::move_from_rvalue(nctx.function_returns, CompileType::compile, false)) return false;
 		}
 
 
@@ -99,6 +123,57 @@ namespace Corrosive {
 		c.move();
 
 		res = ret_val;
+		return true;
+	}
+
+	bool Statement::parse_let(Cursor& c, CompileValue& res) {
+		CompileContext& nctx = CompileContext::get();
+
+		c.move();
+		if (c.tok != RecognizedToken::Symbol) {
+			throw_not_a_name_error(c);
+			return false;
+		}
+		Cursor name = c;
+		c.move();
+		if (c.tok != RecognizedToken::Equals) {
+			throw_wrong_token_error(c, "'='");
+			return false;
+		}
+		c.move();
+
+
+		Cursor err = c;
+		CompileValue val;
+		if (!Expression::parse(c, val, CompileType::compile)) return false;
+		if (!Expression::rvalue(val, CompileType::compile)) return false;
+
+		Type* new_t = val.t;
+
+		if (!new_t->compile()) return false;
+		if (new_t->context() != ILContext::both && nctx.scope_context != new_t->context()) {
+			throw_specific_error(err, "Type was not designed for this context");
+			return false;
+		}
+
+
+		uint32_t local_id = nctx.function->register_local(new_t->size());
+		nctx.runtime_stack->push_item(name.buffer, val, local_id, StackItemTag::regular);
+		if (new_t->has_special_constructor()) {
+			ILBuilder::build_local(nctx.scope, local_id);
+			new_t->build_construct();
+		}
+
+
+		ILBuilder::build_local(nctx.scope, local_id);
+
+		if (!Expression::copy_from_rvalue(new_t,CompileType::compile, false)) return false;
+
+		if (c.tok != RecognizedToken::Semicolon) {
+			throw_wrong_token_error(c, "';'");
+			return false;
+		}
+		c.move();
 		return true;
 	}
 
@@ -158,7 +233,6 @@ namespace Corrosive {
 			return false;
 		}
 		c.move();
-
 		return true;
 	}
 }

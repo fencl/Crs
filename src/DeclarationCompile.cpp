@@ -954,20 +954,9 @@ namespace Corrosive {
 					a->second->build_construct();
 				}
 				
-
 				ILBuilder::build_local(nctx.scope, argid);
-				if (a->second->has_special_copy()) {
-					ILBuilder::build_swap2(nctx.scope, a->second->rvalue(),ILDataType::ptr);
-					a->second->build_copy(true);
-				}
-				else {
-					if (a->second->rvalue_stacked()) {
-						ILBuilder::build_memcpy(nctx.scope, a->second->size());
-					}
-					else {
-						ILBuilder::build_store(nctx.scope, a->second->rvalue());
-					}
-				}
+
+				if (!Expression::copy_from_rvalue(a->second, CompileType::compile, false)) return false;
 
 				argid--;
 			}
@@ -1078,11 +1067,11 @@ namespace Corrosive {
 			for (auto&& m : member_vars) {
 				if (!m.first->compile()) return false;
 
-				if (m.first->has_special_constructor())
+				/*if (m.first->has_special_constructor())
 					has_special_constructor = true;
 
 				if (m.first->has_special_destructor())
-					has_special_destructor = true;
+					has_special_destructor = true;*/
 
 
 				/*uint32_t abss = size.absolute;
@@ -1106,29 +1095,29 @@ namespace Corrosive {
 			compile_state = 2;
 
 			
-
-			/*if (size.absolute <= 8) {
+			/*size_t abssize = size.eval(nctx.module->architecture);
+			if (abssize <= 8) {
 				structure_type = StructureInstanceType::compact_structure;
 
-				if (size.absolute == 1)
+				if (abssize == 1)
 					rvalue = ILDataType::u8;
-				else if (size.absolute == 2)
+				else if (abssize == 2)
 					rvalue = ILDataType::u16;
-				else if (size.absolute <= 4)
+				else if (abssize <= 4)
 					rvalue = ILDataType::u32;
-				else if (size.absolute <= 8)
+				else if (abssize <= 8)
 					rvalue = ILDataType::u64;
 			}
 			else {*/
 
-			structure_type = StructureInstanceType::normal_structure;
+				structure_type = StructureInstanceType::normal_structure;
 			
 			//}
 
-			if (has_special_constructor)
+			/*if (has_special_constructor)
 				build_automatic_constructor();
 			if (has_special_destructor)
-				build_automatic_destructor();
+				build_automatic_destructor();*/
 
 			if (impl_copy) {
 				if (!impl_copy->compile()) return false;

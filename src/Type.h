@@ -57,11 +57,12 @@ namespace Corrosive {
 
 		virtual void build_construct();
 		virtual void build_drop();
-		virtual void build_move(bool rvalue);
-		virtual void build_copy(bool rvalue);
-		virtual void build_compare(bool rvalue);
+		virtual void build_move();
+		virtual void build_copy();
+		virtual void build_compare();
 
 		virtual bool rvalue_stacked();
+
 		virtual void print(std::ostream& os);
 
 		TypeArray* generate_array(unsigned int count);
@@ -100,9 +101,9 @@ namespace Corrosive {
 
 		virtual void build_construct();
 		virtual void build_drop();
-		virtual void build_move(bool rvalue);
-		virtual void build_copy(bool rvalue);
-		virtual void build_compare(bool rvalue);
+		virtual void build_move();
+		virtual void build_copy();
+		virtual void build_compare();
 
 		virtual bool rvalue_stacked();
 		virtual void print(std::ostream& os);

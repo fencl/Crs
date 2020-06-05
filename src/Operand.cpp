@@ -1052,7 +1052,6 @@ namespace Corrosive {
 				Cursor err = c;
 				if (!Expression::parse(c, res, CompileType::eval)) return false;
 				if (!Expression::rvalue(res, CompileType::eval)) return false;
-
 				if (!Operand::cast(err, res, std::get<1>(*layout), CompileType::eval,false)) return false;
 
 				layout++;
@@ -1105,21 +1104,9 @@ namespace Corrosive {
 			unsigned char* data_place = nctx.eval->stack_ptr(sid);
 			nctx.compile_stack->push_item(std::get<0>(*act_layout).buffer, res, sid, StackItemTag::regular);
 
-			bool stacked = res.t->rvalue_stacked();
 
-			if (stacked) {
-				unsigned char* src = nctx.eval->pop_register_value<unsigned char*>();
-				if (res.t->has_special_constructor()) {
-					res.t->construct(nctx.eval, data_place);
-				}
-				res.t->copy(nctx.eval, data_place, src);
-			}
-			else {
-				void* src = nctx.eval->read_last_register_value_indirect(res.t->rvalue());
-				memcpy(data_place, src, res.t->size().eval(compiler_arch));
-				nctx.eval->discard_last_register_type(res.t->rvalue());
-			}
-
+			nctx.eval->write_register_value(data_place);
+			if (!Expression::copy_from_rvalue(res.t, CompileType::eval, false)) return false;
 
 			act_layout++;
 		}
@@ -1196,23 +1183,12 @@ namespace Corrosive {
 			unsigned char* data_place = eval->stack_ptr(local_id);
 			nctx.compile_stack->push_item(std::get<0>(*act_layout_it).buffer,res,local_id, StackItemTag::regular);
 
-			bool stacked = res.t->rvalue_stacked();
-			if (stacked) {
-				unsigned char* src = eval->pop_register_value<unsigned char*>();
-				if (res.t->has_special_constructor())
-					res.t->construct(eval, data_place);
-				res.t->copy(eval, data_place, src);
-			}
-			else {
-				void* src = eval->read_last_register_value_indirect(res.t->rvalue());
-				memcpy(data_place, src, res.t->size().eval(compiler_arch));
-				eval->discard_last_register_type(res.t->rvalue());
-			}
 
+			eval->write_register_value(data_place);
+			if (!Expression::copy_from_rvalue(res.t, CompileType::eval, false)) return false;
 
 			act_layout_it++;
 		}
-
 
 		if (gen_type->type() == TypeInstanceType::type_structure_template) {
 			StructureInstance* out = nullptr;
@@ -1224,7 +1200,6 @@ namespace Corrosive {
 			if (!((TypeTraitTemplate*)gen_type)->owner->generate(key_base, out)) return false;
 			eval->write_register_value(out->type.get());
 		}
-
 
 
 		// ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
@@ -1260,7 +1235,6 @@ namespace Corrosive {
 				Cursor err = c;
 				if (!Expression::parse(c, arg, cpt)) return false;
 				if (!Expression::rvalue(arg, cpt)) return false;
-
 				if (!Operand::cast(err, arg, nctx.default_types->argument_array_storage.get(ft->argument_array_id)[argi], cpt, true)) return false;
 				argi++;
 
@@ -1526,7 +1500,6 @@ namespace Corrosive {
 		CompileValue index;
 		if (!Expression::parse(c, index, cpt)) return false;
 		if (!Expression::rvalue(index, cpt)) return false;
-
 		if (!Operand::cast(err, index, nctx.default_types->t_size,cpt,true)) return false;
 
 		if (cpt == CompileType::compile) {
