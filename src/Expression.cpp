@@ -179,6 +179,10 @@ namespace Corrosive {
 				if (!ILBuilder::eval_load(Ctx::eval(), value.t->rvalue())) return false;
 			}
 		}
+		/*else if (!value.lvalue && value.t->type() == TypeInstanceType::type_reference) {
+			value.t = ((TypeReference*)value.t)->owner;
+			value.lvalue = true;
+		}*/
 
 		return true;
 	}

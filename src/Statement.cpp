@@ -227,6 +227,12 @@ namespace Corrosive {
 
 		if (c.buffer == "else") {
 			c.move();
+			
+			if (c.tok != RecognizedToken::OpenBrace) {
+				throw_wrong_token_error(c, "'{'");
+				return false;
+			}
+			c.move();
 
 			ILBlock* else_block = Ctx::workspace_function()->create_and_append_block();
 			else_block->alias = "false";
@@ -257,10 +263,11 @@ namespace Corrosive {
 		CompileValue ret_val;
 		Cursor err = c;
 		if (!Expression::parse(c, ret_val, CompileType::compile)) return false;
+		if (!Expression::rvalue(ret_val, CompileType::compile)) return false;
+
 		Type* to = Ctx::workspace_return();
 		if (!Operand::cast(err, ret_val, to, CompileType::compile,false)) return false;
 
-		if (!Expression::rvalue(ret_val, CompileType::compile)) return false;
 
 		if (Ctx::workspace_return()->rvalue_stacked()) {
 			ILBuilder::build_local(Ctx::scope(), 0);
@@ -280,6 +287,12 @@ namespace Corrosive {
 	bool Statement::parse_let(Cursor& c) {
 
 		c.move();
+		bool reference = false;
+		if (c.tok == RecognizedToken::And) {
+			reference = true;
+			c.move();
+		}
+
 		if (c.tok != RecognizedToken::Symbol) {
 			throw_not_a_name_error(c);
 			return false;
@@ -287,20 +300,37 @@ namespace Corrosive {
 		Cursor name = c;
 		c.move();
 
+		bool do_copy = true;
 
-		if (c.tok != RecognizedToken::Equals && c.tok!=RecognizedToken::BackArrow) {
-			throw_wrong_token_error(c, "'=' or '<-'");
-			return false;
+		if (!reference) {
+			if (c.tok != RecognizedToken::Equals && c.tok != RecognizedToken::BackArrow) {
+				throw_wrong_token_error(c, "'=' or '<-'");
+				return false;
+			}
+			c.tok == RecognizedToken::Equals;
 		}
-		bool do_copy = c.tok == RecognizedToken::Equals;
+		else {
+			if (c.tok != RecognizedToken::Equals) {
+				throw_wrong_token_error(c, "'='");
+				return false;
+			}
+		}
+		
 		c.move();
 
 
 		Cursor err = c;
 		CompileValue val;
 		if (!Expression::parse(c, val, CompileType::compile)) return false;
-		if (!Expression::rvalue(val, CompileType::compile)) return false;
-
+		if (!reference) {
+			if (!Expression::rvalue(val, CompileType::compile)) return false;
+		}
+		else {
+			if (!val.lvalue) {
+				throw_specific_error(err, "Cannot create reference to rvalue");
+				return false;
+			}
+		}
 		Type* new_t = val.t;
 
 		if (!new_t->compile()) return false;
@@ -309,6 +339,11 @@ namespace Corrosive {
 			return false;
 		}
 
+		if (reference) {
+			new_t = new_t->generate_reference();
+			val.t = new_t;
+			val.lvalue = true;
+		}
 
 		uint32_t local_id = Ctx::workspace_function()->register_local(new_t->size());
 		Ctx::stack()->push_item(name.buffer, val, local_id, StackItemTag::regular);

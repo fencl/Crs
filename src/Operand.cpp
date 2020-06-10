@@ -353,7 +353,7 @@ namespace Corrosive {
 					err = c;
 					CompileValue value;
 					if (!Operand::parse(c, value, cpt)) return false;
-					if (!Expression::rvalue(value, cpt)) return false;
+					//if (!Expression::rvalue(value, cpt)) return false;
 
 					if (!Operand::cast(err, value, to, cpt, false)) return false;
 
@@ -390,7 +390,7 @@ namespace Corrosive {
 			switch (c.tok) {
 				case RecognizedToken::Symbol: {
 					if (c.buffer == "cast") {
-						if (!Expression::rvalue(ret, cpt)) return false;
+						//if (!Expression::rvalue(ret, cpt)) return false;
 
 						c.move();
 						if (c.tok != RecognizedToken::OpenParenthesis) {
@@ -759,10 +759,8 @@ namespace Corrosive {
 
 			if (cpt == CompileType::compile && Ctx::stack()->find(c.buffer,sitm)) {
 				ILBuilder::build_local(Ctx::scope(), sitm.id);
-
 				ret = sitm.value;
 				ret.lvalue = true;
-
 				c.move();
 			}
 			else if (cpt != CompileType::compile && Ctx::eval_stack()->find(c.buffer, sitm)) {
@@ -1526,8 +1524,8 @@ namespace Corrosive {
 		}
 		c.move();
 
-		ret.lvalue = false;
-		ret.t = base_slice->generate_reference();
+		ret.lvalue = true;
+		ret.t = base_slice;
 
 		return true;
 	}
