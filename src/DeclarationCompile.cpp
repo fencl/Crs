@@ -962,11 +962,8 @@ namespace Corrosive {
 			
 
 			Cursor cb = block;
-			CompileValue cvres;
 			bool terminated;
-			if (!Statement::parse_inner_block(cb, cvres, terminated,true)) return false;
-
-
+			if (!Statement::parse_inner_block(cb, terminated, true)) return false;
 
 
 			func->dump();

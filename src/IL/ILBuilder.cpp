@@ -4,7 +4,7 @@
 #include <functional>
 
 namespace Corrosive {
-	bool ILBuilder::build_const_ibool (ILBlock* block, int8_t   value) { block->write_instruction(ILInstruction::value); block->write_const_type(ILDataType::ibool);  block->write_value(sizeof(int8_t),   (unsigned char*)&value); return true; }
+	bool ILBuilder::build_const_ibool (ILBlock* block, uint8_t  value) { block->write_instruction(ILInstruction::value); block->write_const_type(ILDataType::ibool);  block->write_value(sizeof(uint8_t),  (unsigned char*)&value); return true; }
 	bool ILBuilder::build_const_i8    (ILBlock* block, int8_t   value) { block->write_instruction(ILInstruction::value); block->write_const_type(ILDataType::i8);     block->write_value(sizeof(int8_t),   (unsigned char*)&value); return true; }
 	bool ILBuilder::build_const_i16   (ILBlock* block, int16_t  value) { block->write_instruction(ILInstruction::value); block->write_const_type(ILDataType::i16);    block->write_value(sizeof(int16_t),  (unsigned char*)&value); return true; }
 	bool ILBuilder::build_const_i32   (ILBlock* block, int32_t  value) { block->write_instruction(ILInstruction::value); block->write_const_type(ILDataType::i32);    block->write_value(sizeof(int32_t),  (unsigned char*)&value); return true; }
@@ -23,17 +23,17 @@ namespace Corrosive {
 
 	bool ILBuilder::build_accept(ILBlock* block, ILDataType type) {
 
-		/*if (type != ILDataType::none) {
+		if (type != ILDataType::none) {
 			block->write_instruction(ILInstruction::accept);
 			block->write_const_type(type);
-		}*/
+		}
 		block->accepts = type;
 		return true;
 	}
 
 	bool ILBuilder::build_discard(ILBlock* block, ILDataType type) {
 		if (type != ILDataType::none) {
-			block->write_instruction(ILInstruction::forget);
+			block->write_instruction(ILInstruction::discard);
 			block->write_const_type(type);
 		}
 		block->accepts = type;
@@ -41,10 +41,10 @@ namespace Corrosive {
 	}
 
 	bool ILBuilder::build_yield(ILBlock* block,ILDataType type) {
-		/*if (type != ILDataType::none) {
+		if (type != ILDataType::none) {
 			block->write_instruction(ILInstruction::yield);
 			block->write_const_type(type);
-		}*/
+		}
 		block->yields = type;
 		return true;
 	}
@@ -99,6 +99,12 @@ namespace Corrosive {
 	bool ILBuilder::build_load(ILBlock* block, ILDataType type) {
 
 		block->write_instruction(ILInstruction::load); 
+		block->write_const_type(type);
+		return true;
+	}
+
+	bool ILBuilder::build_isnotzero(ILBlock* block, ILDataType type) {
+		block->write_instruction(ILInstruction::isnotzero); 
 		block->write_const_type(type);
 		return true;
 	}
@@ -244,7 +250,7 @@ namespace Corrosive {
 
 	bool ILBuilder::build_add(ILBlock* block, ILDataType tl, ILDataType tr) {
 		
-		if ((tl > ILDataType::f64 || tr > ILDataType::f64)) {
+		if ((tl > ILDataType::ptr || tr > ILDataType::ptr)) {
 			throw_il_wrong_arguments_error();
 			return false;
 		}
@@ -259,7 +265,7 @@ namespace Corrosive {
 
 	bool ILBuilder::build_sub(ILBlock* block, ILDataType tl, ILDataType tr) {
 
-		if ((tl > ILDataType::f64 || tr > ILDataType::f64)) {
+		if ((tl > ILDataType::ptr || tr > ILDataType::ptr)) {
 			throw_il_wrong_arguments_error();
 			return false;
 		}
@@ -273,7 +279,7 @@ namespace Corrosive {
 
 	bool ILBuilder::build_div(ILBlock* block, ILDataType tl, ILDataType tr) {
 
-		if ((tl > ILDataType::f64 || tr > ILDataType::f64)) {
+		if ((tl > ILDataType::ptr || tr > ILDataType::ptr)) {
 			throw_il_wrong_arguments_error();
 			return false;
 		}
@@ -288,7 +294,7 @@ namespace Corrosive {
 
 	bool ILBuilder::build_rem(ILBlock* block, ILDataType tl, ILDataType tr) {
 
-		if ((tl > ILDataType::f64 || tr > ILDataType::f64)) {
+		if ((tl > ILDataType::ptr || tr > ILDataType::ptr)) {
 			throw_il_wrong_arguments_error();
 			return false;
 		}
@@ -302,7 +308,7 @@ namespace Corrosive {
 
 	bool ILBuilder::build_and(ILBlock* block, ILDataType tl, ILDataType tr) {
 
-		if ((tl > ILDataType::f64 || tr > ILDataType::f64)) {
+		if ((tl > ILDataType::ptr || tr > ILDataType::ptr)) {
 			throw_il_wrong_arguments_error();
 			return false;
 		}
@@ -316,7 +322,7 @@ namespace Corrosive {
 
 	bool ILBuilder::build_or(ILBlock* block, ILDataType tl, ILDataType tr) {
 
-		if ((tl > ILDataType::f64 || tr > ILDataType::f64)) {
+		if ((tl > ILDataType::ptr || tr > ILDataType::ptr)) {
 			throw_il_wrong_arguments_error();
 			return false;
 		}
@@ -330,7 +336,7 @@ namespace Corrosive {
 
 	bool ILBuilder::build_xor(ILBlock* block, ILDataType tl, ILDataType tr) {
 
-		if ((tl > ILDataType::f64 || tr > ILDataType::f64)) {
+		if ((tl > ILDataType::ptr || tr > ILDataType::ptr)) {
 			throw_il_wrong_arguments_error();
 			return false;
 		}
@@ -344,7 +350,7 @@ namespace Corrosive {
 
 	bool ILBuilder::build_mul(ILBlock* block, ILDataType tl, ILDataType tr) {
 
-		if ((tl > ILDataType::f64 || tr > ILDataType::f64)) {
+		if ((tl > ILDataType::ptr || tr > ILDataType::ptr)) {
 			throw_il_wrong_arguments_error();
 			return false;
 		}
@@ -358,7 +364,7 @@ namespace Corrosive {
 
 	bool ILBuilder::build_eq(ILBlock* block, ILDataType tl, ILDataType tr) {
 
-		if ((tl > ILDataType::f64 || tr > ILDataType::f64)) {
+		if ((tl > ILDataType::ptr || tr > ILDataType::ptr)) {
 			throw_il_wrong_arguments_error();
 			return false;
 		}
@@ -373,7 +379,7 @@ namespace Corrosive {
 
 	bool ILBuilder::build_ne(ILBlock* block, ILDataType tl, ILDataType tr) {
 
-		if ((tl > ILDataType::f64 || tr > ILDataType::f64)) {
+		if ((tl > ILDataType::ptr || tr > ILDataType::ptr)) {
 			throw_il_wrong_arguments_error();
 			return false;
 		}
@@ -387,7 +393,7 @@ namespace Corrosive {
 
 	bool ILBuilder::build_gt(ILBlock* block, ILDataType tl, ILDataType tr) {
 
-		if ((tl > ILDataType::f64 || tr > ILDataType::f64)) {
+		if ((tl > ILDataType::ptr || tr > ILDataType::ptr)) {
 			throw_il_wrong_arguments_error();
 			return false;
 		}
@@ -402,7 +408,7 @@ namespace Corrosive {
 
 	bool ILBuilder::build_ge(ILBlock* block, ILDataType tl, ILDataType tr) {
 
-		if ((tl > ILDataType::f64 || tr > ILDataType::f64)) {
+		if ((tl > ILDataType::ptr || tr > ILDataType::ptr)) {
 			throw_il_wrong_arguments_error();
 			return false;
 		}
@@ -418,7 +424,7 @@ namespace Corrosive {
 
 	bool ILBuilder::build_lt(ILBlock* block, ILDataType tl, ILDataType tr) {
 
-		if ((tl > ILDataType::f64 || tr > ILDataType::f64)) {
+		if ((tl > ILDataType::ptr || tr > ILDataType::ptr)) {
 			throw_il_wrong_arguments_error();
 			return false;
 		}
@@ -432,7 +438,7 @@ namespace Corrosive {
 
 
 	bool ILBuilder::build_le(ILBlock* block, ILDataType tl, ILDataType tr) {
-		if ((tl > ILDataType::f64 || tr > ILDataType::f64)) {
+		if ((tl > ILDataType::ptr || tr > ILDataType::ptr)) {
 			throw_il_wrong_arguments_error();
 			return false;
 		}
@@ -447,7 +453,7 @@ namespace Corrosive {
 
 
 	bool ILBuilder::build_cast(ILBlock* block, ILDataType tl, ILDataType tr) {
-		if ((tl > ILDataType::f64 || tr > ILDataType::f64)) {
+		if ((tl > ILDataType::ptr || tr > ILDataType::ptr)) {
 			throw_il_wrong_arguments_error();
 			return false;
 		}

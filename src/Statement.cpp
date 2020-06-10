@@ -8,19 +8,17 @@
 namespace Corrosive {
 
 
-	bool Statement::parse_inner_block(Cursor& c, CompileValue& res, bool& terminated, bool exit_returns) {	
+	bool Statement::parse_inner_block(Cursor& c, bool& terminated, bool exit_returns) {	
 
 		StackItem sitm;
 		ILBlock* b_exit = Ctx::workspace_function()->create_block();
 		b_exit->alias = "exit";
 		Ctx::push_scope_exit(b_exit);
 
-		res.t = Ctx::types()->t_void;
-		res.lvalue = false;
 
 		terminated = false;
 		while (c.tok != RecognizedToken::CloseBrace) {
-			if (!parse(c, res, CompileType::compile,terminated)) return false;
+			if (!parse(c, CompileType::compile,terminated)) return false;
 			if (terminated && c.tok != RecognizedToken::CloseBrace) {
 				throw_specific_error(c, "Instruction after the current branch has been terminated");
 				return false;
@@ -96,7 +94,7 @@ namespace Corrosive {
 		return true;
 	}
 
-	bool Statement::parse(Cursor& c, CompileValue& res, CompileType cmp, bool& terminated) {
+	bool Statement::parse(Cursor& c, CompileType cmp, bool& terminated) {
 
 		if (cmp == CompileType::eval) {
 			throw_specific_error(c, "Statement is used in compiletime context. Compiler should not allow it.");
@@ -108,12 +106,15 @@ namespace Corrosive {
 			{
 				if (c.buffer == "return") {
 					terminated = true;
-					return parse_return(c, res);
+					return parse_return(c);
 				}else if (c.buffer == "make") {
-					return parse_make(c, res);
+					return parse_make(c);
 				}
 				else if (c.buffer == "let") {
-					return parse_let(c, res);
+					return parse_let(c);
+				}
+				else if (c.buffer == "if") {
+					return parse_if(c, terminated);
 				}
 			}break;
 			case RecognizedToken::OpenBrace: {
@@ -132,7 +133,7 @@ namespace Corrosive {
 				Ctx::stack()->push_block();
 				ILBuilder::build_accept(Ctx::scope(), ILDataType::none);
 
-				bool result = parse_inner_block(c, res, terminated);
+				bool result = parse_inner_block(c, terminated);
 				Ctx::workspace_function()->append_block(continue_block);
 				return result;
 
@@ -184,8 +185,73 @@ namespace Corrosive {
 
 	}
 
+	bool Statement::parse_if(Cursor& c, bool& terminated) {
 
-	bool Statement::parse_return(Cursor& c, CompileValue& res) {
+
+		c.move();
+
+		CompileValue test_value;
+		Cursor err = c;
+
+		if (!Expression::parse(c, test_value, CompileType::compile)) return false;
+		if (!Operand::cast(err, test_value, Ctx::types()->t_bool, CompileType::compile, false)) return false;
+		if (!Expression::rvalue(test_value, CompileType::compile)) return false;
+
+
+		if (c.tok != RecognizedToken::OpenBrace) {
+			throw_wrong_token_error(c, "'{'");
+			return false;
+		}
+		c.move();
+
+		ILBlock* block_from = Ctx::scope();
+		ILBuilder::build_yield(block_from, ILDataType::none);
+
+
+
+		ILBlock* continue_block = Ctx::workspace_function()->create_block();
+
+		Ctx::pop_scope();
+		Ctx::push_scope(continue_block);
+
+
+		ILBlock* block = Ctx::workspace_function()->create_and_append_block();
+		block->alias = "true";
+		Ctx::push_scope(block);
+		Ctx::stack()->push_block();
+		ILBuilder::build_accept(Ctx::scope(), ILDataType::none);
+		bool term = false;
+		if (!parse_inner_block(c, term)) return false;
+
+
+
+		if (c.buffer == "else") {
+			c.move();
+
+			ILBlock* else_block = Ctx::workspace_function()->create_and_append_block();
+			else_block->alias = "false";
+			Ctx::push_scope(else_block);
+			Ctx::stack()->push_block();
+			ILBuilder::build_accept(Ctx::scope(), ILDataType::none);
+			bool term2 = false;
+			if (!parse_inner_block(c, term2)) return false;
+			if (term && term2) { terminated = true; }
+
+
+			ILBuilder::build_jmpz(block_from, else_block, block);
+		}
+		else {
+			ILBuilder::build_jmpz(block_from, continue_block, block);
+		}
+
+		Ctx::workspace_function()->append_block(continue_block);
+
+
+		return true;
+	}
+
+
+	bool Statement::parse_return(Cursor& c) {
 		
 		c.move();
 		CompileValue ret_val;
@@ -203,19 +269,15 @@ namespace Corrosive {
 		}
 
 
-		res.lvalue = false;
-		res.t = Ctx::types()->t_void;
 		if (c.tok != RecognizedToken::Semicolon) {
 			throw_wrong_token_error(c, "';'");
 			return false;
 		}
 		c.move();
-
-		res = ret_val;
 		return true;
 	}
 
-	bool Statement::parse_let(Cursor& c, CompileValue& res) {
+	bool Statement::parse_let(Cursor& c) {
 
 		c.move();
 		if (c.tok != RecognizedToken::Symbol) {
@@ -224,10 +286,13 @@ namespace Corrosive {
 		}
 		Cursor name = c;
 		c.move();
-		if (c.tok != RecognizedToken::Equals) {
-			throw_wrong_token_error(c, "'='");
+
+
+		if (c.tok != RecognizedToken::Equals && c.tok!=RecognizedToken::BackArrow) {
+			throw_wrong_token_error(c, "'=' or '<-'");
 			return false;
 		}
+		bool do_copy = c.tok == RecognizedToken::Equals;
 		c.move();
 
 
@@ -255,7 +320,12 @@ namespace Corrosive {
 
 		ILBuilder::build_local(Ctx::scope(), local_id);
 
-		if (!Expression::copy_from_rvalue(new_t,CompileType::compile, false)) return false;
+		if (do_copy) {
+			if (!Expression::copy_from_rvalue(new_t, CompileType::compile, false)) return false;
+		}
+		else {
+			if (!Expression::move_from_rvalue(new_t, CompileType::compile, false)) return false;
+		}
 
 		if (c.tok != RecognizedToken::Semicolon) {
 			throw_wrong_token_error(c, "';'");
@@ -265,7 +335,7 @@ namespace Corrosive {
 		return true;
 	}
 
-	bool Statement::parse_make(Cursor& c, CompileValue& res) {
+	bool Statement::parse_make(Cursor& c) {
 		c.move();
 		if (c.tok != RecognizedToken::Symbol) {
 			throw_not_a_name_error(c);

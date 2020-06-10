@@ -423,13 +423,16 @@ namespace Corrosive {
 
 		ILBlock* fallback = nullptr;
 		CompileValue value;
+		Cursor err = c;
 		if (!Expression::parse_operators(c, value, cpt)) return false;
 
 		while (c.tok == RecognizedToken::DoubleAnd) {
-			if (value.t != Ctx::types()->t_bool) {
+
+			if (!Operand::cast(err, value, Ctx::types()->t_bool, cpt, true)) return false;
+			/*if (value.t != Ctx::types()->t_bool) {
 				throw_specific_error(c, "Operation requires left operand to be boolean");
 				return false;
-			}
+			}*/
 
 			if (!Expression::rvalue(value, cpt)) return false;
 
@@ -465,13 +468,14 @@ namespace Corrosive {
 				ILBuilder::build_const_ibool(Ctx::scope(), false);
 				if (!ILBuilder::build_yield(Ctx::scope(), ILDataType::ibool)) return false;
 
-				if (!ILBuilder::build_jmpz(Ctx::scope(), fallback, positive_block)) return false;
+				if (!ILBuilder::build_jmpz(Ctx::scope(),fallback, positive_block)) return false;
 
 				Ctx::pop_scope();
 				Ctx::push_scope(positive_block);
 
+				err = c;
 				if (!Expression::parse_operators(c, value, cpt)) return false;
-				if (!Expression::rvalue(value, cpt)) return false;
+				//if (!Expression::rvalue(value, cpt)) return false;
 
 			}
 
@@ -508,13 +512,15 @@ namespace Corrosive {
 		ILBlock* fallback = nullptr;
 
 		CompileValue value;
+		Cursor err;
 		if (!Expression::parse_and(c, value, cpt)) return false;
 
 		while (c.tok == RecognizedToken::DoubleOr) {
-			if (value.t != Ctx::types()->t_bool) {
+			if (!Operand::cast(err, value, Ctx::types()->t_bool, cpt, true)) return false;
+			/*if (value.t != Ctx::types()->t_bool) {
 				throw_specific_error(c, "Operation requires left operand to be boolean");
 				return false;
-			}
+			}*/
 
 			if (!Expression::rvalue(value, cpt)) return false;
 
@@ -556,8 +562,8 @@ namespace Corrosive {
 				Ctx::pop_scope();
 				Ctx::push_scope(positive_block);
 
+				err = c;
 				if (!Expression::parse_and(c, value, cpt)) return false;
-				if (!Expression::rvalue(value, cpt)) return false;
 			}
 
 		}

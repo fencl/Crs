@@ -438,6 +438,26 @@ namespace Corrosive {
 					std::cout << "   null\n";
 				} break;
 
+				case ILInstruction::isnotzero: {
+					std::cout << "   isnotzero [";
+					dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
+				} break;
+
+				case ILInstruction::accept: {
+					std::cout << "   accept [";
+					dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
+				} break;
+
+				case ILInstruction::yield: {
+					std::cout << "   yield [";
+					dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
+				} break;
+
+				case ILInstruction::discard: {
+					std::cout << "   discard [";
+					dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
+				} break;
+
 				case ILInstruction::jmp: {
 					std::cout << "   jmp ";
 					auto address = read_data_type(uint32_t);
@@ -520,6 +540,7 @@ namespace Corrosive {
 				case ILInstruction::jmpz: {
 					std::cout << "   jmpz ";
 					auto address = read_data_type(uint32_t);
+					
 					std::cout << *address << " \"" << parent->blocks_memory[*address]->alias << "\" : ";
 					address = read_data_type(uint32_t);
 					std::cout << *address << " \"" << parent->blocks_memory[*address]->alias << "\"\n";

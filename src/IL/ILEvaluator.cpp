@@ -12,7 +12,7 @@ namespace Corrosive {
 		register_stack_pointer += size;
 	}
 
-	bool ILBuilder::eval_const_ibool(ILEvaluator* eval_ctx, int8_t   value) { eval_ctx->write_register_value_indirect(sizeof(int8_t), (unsigned char*)&value); return true; }
+	bool ILBuilder::eval_const_ibool(ILEvaluator* eval_ctx, uint8_t   value) { eval_ctx->write_register_value_indirect(sizeof(uint8_t), (unsigned char*)&value); return true; }
 	bool ILBuilder::eval_const_i8(ILEvaluator* eval_ctx, int8_t   value) { eval_ctx->write_register_value_indirect(sizeof(int8_t), (unsigned char*)&value); return true; }
 	bool ILBuilder::eval_const_i16(ILEvaluator* eval_ctx, int16_t  value) { eval_ctx->write_register_value_indirect(sizeof(int16_t), (unsigned char*)&value); return true; }
 	bool ILBuilder::eval_const_i32(ILEvaluator* eval_ctx, int32_t  value) { eval_ctx->write_register_value_indirect(sizeof(int32_t), (unsigned char*)&value); return true; }
@@ -55,6 +55,8 @@ namespace Corrosive {
 				return (T)eval_ctx->pop_register_value<double>();
 			case Corrosive::ILDataType::size:
 				return (T)eval_ctx->pop_register_value<size_t>();
+			case Corrosive::ILDataType::ptr:
+				return (T)(size_t)eval_ctx->pop_register_value<void*>();
 			default:
 				return 0;
 		}
@@ -74,7 +76,7 @@ namespace Corrosive {
 				if (!ILBuilder::eval_const_u8(eval_ctx, lval)) return false;
 			}break;
 			case ILDataType::ibool: {
-				int8_t lval = _il_evaluator_value_pop_into<int8_t>(eval_ctx, l);
+				uint8_t lval = _il_evaluator_value_pop_into<uint8_t>(eval_ctx, l);
 				if (!ILBuilder::eval_const_ibool(eval_ctx, lval)) return false;
 			}break;
 			case ILDataType::i16: {
@@ -110,6 +112,10 @@ namespace Corrosive {
 				if (!ILBuilder::eval_const_f64(eval_ctx, lval)) return false;
 			}break;
 			case ILDataType::size: {
+				size_t lval = _il_evaluator_value_pop_into<size_t>(eval_ctx, l);
+				if (!ILBuilder::eval_const_size(eval_ctx, lval)) return false;
+			}break;
+			case ILDataType::ptr: {
 				size_t lval = _il_evaluator_value_pop_into<size_t>(eval_ctx, l);
 				if (!ILBuilder::eval_const_size(eval_ctx, lval)) return false;
 			}break;
@@ -193,6 +199,12 @@ namespace Corrosive {
 				op<size_t> o;
 				if (!ILBuilder::eval_const_size(eval_ctx, o(lval, rval))) return false;
 			}break;
+			case ILDataType::ptr: {
+				size_t rval = _il_evaluator_value_pop_into<size_t>(eval_ctx, r);
+				size_t lval = _il_evaluator_value_pop_into<size_t>(eval_ctx, l);
+				op<size_t> o;
+				if (!ILBuilder::eval_const_size(eval_ctx, o(lval, rval))) return false;
+			}break;
 
 		}
 
@@ -257,6 +269,12 @@ namespace Corrosive {
 				if (!ILBuilder::eval_const_u64(eval_ctx, o(lval, rval))) return false;
 			}break;
 			case ILDataType::size: {
+				size_t rval = _il_evaluator_value_pop_into<size_t>(eval_ctx, r);
+				size_t lval = _il_evaluator_value_pop_into<size_t>(eval_ctx, l);
+				op<size_t> o;
+				if (!ILBuilder::eval_const_size(eval_ctx, o(lval, rval))) return false;
+			}break;
+			case ILDataType::ptr: {
 				size_t rval = _il_evaluator_value_pop_into<size_t>(eval_ctx, r);
 				size_t lval = _il_evaluator_value_pop_into<size_t>(eval_ctx, l);
 				op<size_t> o;
@@ -331,6 +349,12 @@ namespace Corrosive {
 				op<size_t> o;
 				if (!ILBuilder::eval_const_ibool(eval_ctx, o(lval, rval))) return false;
 			}break;
+			case ILDataType::ptr: {
+				size_t rval = _il_evaluator_value_pop_into<size_t>(eval_ctx, r);
+				size_t lval = _il_evaluator_value_pop_into<size_t>(eval_ctx, l);
+				op<size_t> o;
+				if (!ILBuilder::eval_const_ibool(eval_ctx, o(lval, rval))) return false;
+			}break;
 		}
 
 		return true;
@@ -386,6 +410,21 @@ namespace Corrosive {
 			default:
 				return 0;
 		}
+	}
+
+
+	bool ILBuilder::eval_discard(ILEvaluator* eval_ctx, ILDataType type) {
+		return true;
+	}
+	
+	bool ILBuilder::eval_yield(ILEvaluator* eval_ctx, ILDataType type) {
+		eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(type), &eval_ctx->yield_storage);
+		return true;
+	}
+
+	bool ILBuilder::eval_accept(ILEvaluator* eval_ctx, ILDataType type) {
+		eval_ctx->write_register_value_indirect(eval_ctx->compile_time_register_size(type), &eval_ctx->yield_storage);
+		return true;
 	}
 
 	bool ILBuilder::eval_load(ILEvaluator* eval_ctx, ILDataType type) {
@@ -463,8 +502,14 @@ namespace Corrosive {
 	}
 	
 	bool ILBuilder::eval_null(ILEvaluator* eval_ctx) {
-		void* null = nullptr;
-		eval_ctx->write_register_value((size_t)8);
+		eval_ctx->write_register_value((size_t)0);
+		return true;
+	}
+	
+	bool ILBuilder::eval_isnotzero(ILEvaluator* eval_ctx, ILDataType type) {
+		ilsize_t z = 0;
+		eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(type), &z);
+		eval_const_ibool(eval_ctx, (z == 0?0:1));
 		return true;
 	}
 
@@ -728,6 +773,18 @@ namespace Corrosive {
 						auto type = read_data_type(ILDataType);
 						if (!eval_store2(eval_ctx, *type)) return false;
 					} break;
+					case ILInstruction::yield: {
+						auto type = read_data_type(ILDataType);
+						if (!eval_yield(eval_ctx, *type)) return false;
+					} break;
+					case ILInstruction::accept: {
+						auto type = read_data_type(ILDataType);
+						if (!eval_accept(eval_ctx, *type)) return false;
+					} break;
+					case ILInstruction::discard: {
+						auto type = read_data_type(ILDataType);
+						if (!eval_discard(eval_ctx, *type)) return false;
+					} break;
 					case ILInstruction::start: {
 						if (!eval_callstart(eval_ctx)) return false;
 					} break;
@@ -773,15 +830,21 @@ namespace Corrosive {
 						if (!eval_malloc(eval_ctx)) return false;
 					} break;
 
+					case ILInstruction::isnotzero: {
+						auto type = read_data_type(ILDataType);
+						if (!eval_isnotzero(eval_ctx,*type)) return false;
+					} break;
+
 					case ILInstruction::forget: {
 						auto type = read_data_type(ILDataType);
 						if (!eval_forget(eval_ctx, *type)) return false;
 					} break;
 					case ILInstruction::jmpz: {
-
 						auto addressz = read_data_type(uint32_t);
 						auto addressnz = read_data_type(uint32_t);
-						int8_t z = eval_ctx->pop_register_value<int8_t>();
+
+						uint8_t z = eval_ctx->pop_register_value<uint8_t>();
+						
 						if (z) {
 							block = block->parent->blocks_memory[*addressnz].get();
 						}

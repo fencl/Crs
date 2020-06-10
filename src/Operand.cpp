@@ -113,12 +113,29 @@ namespace Corrosive {
 			res.t = to;
 			return true;
 		}
+		else if ((res.t == Ctx::types()->t_ptr || res.t->type() == TypeInstanceType::type_reference || (_crs_is_numeric_value(res.t) && res.t != Ctx::types()->t_bool)) && to == Ctx::types()->t_bool) {
+			if (!Expression::rvalue(res, cpt)) return false;
+			if (cpt == CompileType::eval) {
+				ILBuilder::eval_isnotzero(Ctx::eval(), res.t->rvalue());
+				res.t = to;
+				res.lvalue = false;
+				return true;
+			}
+			else {
+				ILBuilder::build_isnotzero(Ctx::scope(), res.t->rvalue());
+				res.t = to;
+				res.lvalue = false;
+				return true;
+			}
+		}
 		else if (_crs_is_numeric_value(res.t) && _crs_is_numeric_value(to)) {
+			if (!Expression::rvalue(res, cpt)) return false;
 			if (cpt == CompileType::eval) {
 				if (res.t->rvalue() != to->rvalue())
 					ILBuilder::eval_cast(Ctx::eval(), res.t->rvalue(), to->rvalue());
 
 				res.t = to;
+				res.lvalue = false;
 				return true;
 			}
 			else {
@@ -126,6 +143,7 @@ namespace Corrosive {
 					ILBuilder::build_cast(Ctx::scope(), res.t->rvalue(), to->rvalue());
 
 				res.t = to;
+				res.lvalue = false;
 				return true;
 			}
 		}
