@@ -1676,13 +1676,13 @@ namespace Corrosive {
 		if (ret.t->type() == TypeInstanceType::type_slice) {
 			c.move();
 			if (c.buffer == "size") {
-				if (!Expression::rvalue(ret, cpt)) return false;
-
-				size_t compile_pointer = ILSize::single_ptr.eval(compiler_arch);
-
+				
 				if (cpt == CompileType::compile) {
 
-					if (ret.t->rvalue_stacked()) {
+					if (ret.lvalue) {
+						ILBuilder::build_offset(Ctx::scope(), ILSize::single_ptr);
+					}
+					else if (ret.t->rvalue_stacked()) {
 						ILBuilder::build_offset(Ctx::scope(), ILSize::single_ptr);
 						ILBuilder::build_load(Ctx::scope(), ILDataType::size);
 					}
@@ -1691,7 +1691,11 @@ namespace Corrosive {
 					}
 				}
 				else {
-					if (ret.t->rvalue_stacked()) {
+					size_t compile_pointer = ILSize::single_ptr.eval(compiler_arch);
+					if (ret.lvalue) {
+						ILBuilder::eval_offset(Ctx::eval(), compile_pointer);
+					}
+					else if (ret.t->rvalue_stacked()) {
 						ILBuilder::eval_offset(Ctx::eval(), compile_pointer);
 						ILBuilder::eval_load(Ctx::eval(), ILDataType::size);
 					}
@@ -1702,8 +1706,38 @@ namespace Corrosive {
 
 
 				c.move();
-				ret.lvalue = false;
+
+				//ret.lvalue is the original: lvalue.x will be lvalue, rvalue.x will be rvalue
 				ret.t = Ctx::types()->t_size;
+				return true;
+			} else if (c.buffer == "ptr") {
+				if (!Expression::rvalue(ret, cpt)) return false;
+
+				if (cpt == CompileType::compile) {
+					if (ret.lvalue) {
+
+					} else if (ret.t->rvalue_stacked()) {
+						ILBuilder::build_load(Ctx::scope(), ILDataType::size);
+					}
+					else {
+						ILBuilder::build_cast(Ctx::scope(), ret.t->rvalue(), ILDataType::ptr);
+					}
+				}
+				else {
+					if (ret.lvalue) {
+
+					}
+					else if (ret.t->rvalue_stacked()) {
+						ILBuilder::eval_load(Ctx::eval(), ILDataType::size);
+					}
+					else {
+						ILBuilder::build_cast(Ctx::scope(), ret.t->rvalue(), ILDataType::ptr);
+					}
+				}
+
+				c.move();
+				//ret.lvalue is the original: lvalue.x will be lvalue, rvalue.x will be rvalue
+				ret.t = Ctx::types()->t_ptr;
 				return true;
 			}
 			else {
@@ -1960,14 +1994,26 @@ namespace Corrosive {
 					return false;
 				}
 
-				if (!ret.lvalue || ret.t->rvalue_stacked()) {
+				if (ret.lvalue)
+				{
 					if (cpt == CompileType::compile) {
 						ILBuilder::build_offset(Ctx::scope(), offset);
 					}
 					else if (cpt == CompileType::eval) {
 						ILBuilder::eval_offset(Ctx::eval(), offset.eval(compiler_arch));
 					}
-					ret.lvalue = true;
+
+				}else if (ret.t->rvalue_stacked()) {
+					if (cpt == CompileType::compile) {
+						ILBuilder::build_offset(Ctx::scope(), offset);
+						if (!mem_type->rvalue_stacked())
+							ILBuilder::build_load(Ctx::scope(), mem_type->rvalue());
+					}
+					else if (cpt == CompileType::eval) {
+						ILBuilder::eval_offset(Ctx::eval(), offset.eval(compiler_arch));
+						if (!mem_type->rvalue_stacked())
+							ILBuilder::eval_load(Ctx::eval(), mem_type->rvalue());
+					}
 				}
 				else {
 					if (cpt == CompileType::compile) {
@@ -1976,9 +2022,9 @@ namespace Corrosive {
 					else if (cpt == CompileType::eval) {
 						ILBuilder::eval_roffset(Ctx::eval(), ret.t->rvalue(), mem_type->rvalue(), (uint8_t)offset.eval(compiler_arch));
 					}
-					ret.lvalue = false;
 				}
 
+				// ret.lvalue stays the same
 				ret.t = mem_type;
 			}
 			else {

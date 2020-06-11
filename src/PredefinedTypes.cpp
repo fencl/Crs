@@ -73,7 +73,7 @@ namespace Corrosive {
 		primitives[(unsigned char)ILDataType::size] = t_size;
 
 		auto f_malloc_template = std::make_unique<FunctionTemplate>();
-		f_malloc_template->name.buffer = "_malloc";
+		f_malloc_template->name.buffer = "__malloc__";
 		f_malloc_template->is_generic = false;
 		f_malloc_template->parent = Ctx::global_namespace();
 		f_malloc_template->singe_instance = std::make_unique<FunctionInstance>();
@@ -86,7 +86,7 @@ namespace Corrosive {
 		f_malloc_template->compile_state = 2;
 		f_malloc_template->singe_instance->compile_state = 3;
 		f_malloc_template->singe_instance->func = Ctx::global_module()->create_function();
-		f_malloc_template->singe_instance->func->alias = "_malloc";
+		f_malloc_template->singe_instance->func->alias = "__malloc__";
 		std::vector<Type*> arg_array = {t_size};
 
 		TypeFunction* tf = load_or_register_function_type(std::move(arg_array), f_malloc_template->singe_instance->returns.second,ILContext::both);
@@ -97,7 +97,7 @@ namespace Corrosive {
 		ILBuilder::build_malloc(f_malloc_block);
 		ILBuilder::build_ret(f_malloc_block, ILDataType::ptr);
 
-		Ctx::global_namespace()->subfunctions["_malloc"] = std::move(f_malloc_template);
+		Ctx::global_namespace()->subfunctions["__malloc__"] = std::move(f_malloc_template);
 
 
 
@@ -106,7 +106,7 @@ namespace Corrosive {
 
 
 		auto f_free_template = std::make_unique<FunctionTemplate>();
-		f_free_template->name.buffer = "_free";
+		f_free_template->name.buffer = "__free__";
 		f_free_template->is_generic = false;
 		f_free_template->parent = Ctx::global_namespace();
 		f_free_template->singe_instance = std::make_unique<FunctionInstance>();
@@ -119,7 +119,7 @@ namespace Corrosive {
 		f_free_template->compile_state = 2;
 		f_free_template->singe_instance->compile_state = 3;
 		f_free_template->singe_instance->func = Ctx::global_module()->create_function();
-		f_free_template->singe_instance->func->alias = "_free";
+		f_free_template->singe_instance->func->alias = "__free__";
 		arg_array = { t_ptr };
 
 		tf = load_or_register_function_type(std::move(arg_array), f_free_template->singe_instance->returns.second, ILContext::both);
@@ -130,12 +130,14 @@ namespace Corrosive {
 		ILBuilder::build_free(f_free_block);
 		ILBuilder::build_ret(f_free_block, ILDataType::none);
 
-		Ctx::global_namespace()->subfunctions["_free"] = std::move(f_free_template);
+		Ctx::global_namespace()->subfunctions["__free__"] = std::move(f_free_template);
 
 
 
 
-		std_lib.load_data("trait Copy(T:type) {fn Copy: (&T);}\ntrait Move(T:type) {fn Move: (&T);}\ntrait Compare(T:type) {fn Compare: (&T) i8;}\ntrait Drop {fn Drop: ();}");
+		std_lib.load_data("trait Copy(T:type) {fn Copy: (&T);}\ntrait Move(T:type) {fn Move: (&T);}\ntrait Compare(T:type) {fn Compare: (&T) i8;}\ntrait Drop {fn Drop: ();}\n"
+			"fn allocate(T: type): (s: size) []T { make slce: []T; slce.ptr=__malloc__(s);slce.size=s; return slce; }\n"
+			"fn free(T: type): (slce: []T) {__free__(slce.ptr);}");
 		Cursor c = std_lib.read_first();
 		if (!Declaration::parse_global(c, Ctx::global_namespace())) return false;
 		
