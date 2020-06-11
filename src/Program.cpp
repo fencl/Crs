@@ -18,6 +18,8 @@ namespace Corrosive {
 	int crs_main() {
 		std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
+		ILEvaluator::register_sandbox();
+
 		bool alive = true;
 		auto start = std::chrono::system_clock::now();
 
@@ -46,6 +48,8 @@ namespace Corrosive {
 		m->insintric_function_name[(unsigned char)ILInsintric::build_slice] = "slice";
 		m->insintric_function[(unsigned char)ILInsintric::debug_cursor] = &DefaultTypes::priv_debug_cursor;
 		m->insintric_function_name[(unsigned char)ILInsintric::debug_cursor] = "debug";
+		m->insintric_function[(unsigned char)ILInsintric::type_size] = &Operand::priv_type_size;
+		m->insintric_function_name[(unsigned char)ILInsintric::type_size] = "type_size";
 
 		m->architecture = ILArchitecture::x86_64;
 		e->parent = m.get();
@@ -54,31 +58,39 @@ namespace Corrosive {
 
 		Ctx::init(m.get(), dt.get(), e.get(), gn.get(), rts.get(), cps.get(), tms.get());
 
-
-		if (Ctx::types()->setup()) {
+		try {
+			Ctx::types()->setup();
 
 			ILFunction* main = nullptr;
 
-			if (Declaration::parse_global(c, gn.get())) {
-				auto mainfun = gn->subfunctions.find("main");
-				if (mainfun != gn->subfunctions.end()) {
-					FunctionInstance* finst;
-					if (mainfun->second->generate(nullptr, finst)) {
-						if (finst->compile()) {
-							main = finst->func;
-						}
-					}
-				}
+			Declaration::parse_global(c, gn.get());
+			auto mainfun = gn->subfunctions.find("main");
+			if (mainfun != gn->subfunctions.end()) {
+				FunctionInstance* finst;
+				mainfun->second->generate(nullptr, finst);
+				finst->compile();
+				main = finst->func;
 			}
+			else {
+				std::cerr << "main not found\n";
+			}
+
 
 			if (main != nullptr) {
 				ILBuilder::eval_fnptr(Ctx::eval(), main);
 				ILBuilder::eval_callstart(Ctx::eval());
 				ILBuilder::eval_call(Ctx::eval(), ILDataType::u64, 0);
 				uint64_t ret_val = Ctx::eval()->pop_register_value<uint64_t>();
-				std::cout << "\n\n========= TEST =========\ntest result was: " << ret_val << "\n\n";
+				std::cout << "========= TEST =========\ntest result was: " << ret_val << "\n\n";
+			}
+			else {
+				std::cerr << "main was null\n";
 			}
 		}
+		catch (std::exception& e) {
+			std::cerr << e.what()<<"\n";
+		}
+		
 
 
 

@@ -9,37 +9,33 @@ namespace Corrosive {
 
 
 
-	bool Namespace::parse(Cursor& c, std::unique_ptr<Namespace>& into) {
+	void Namespace::parse(Cursor& c, std::unique_ptr<Namespace>& into) {
 		std::unique_ptr<Namespace> result = std::make_unique<Namespace>();
 		result->namespace_type = NamespaceType::t_namespace; 
 		if (c.tok != RecognizedToken::Symbol)
 		{
 			throw_not_a_name_error(c);
-			return false;
 		}
 		result->name = c;
 		c.move();
 
 		if (c.tok != RecognizedToken::OpenBrace) {
 			throw_wrong_token_error(c, "'{'");
-			return false;
 		}
 		c.move();
 
-		if (!parse_inner(c, result.get(),nullptr)) return false;
+		Namespace::parse_inner(c, result.get(), nullptr);
 
 		if (c.tok != RecognizedToken::CloseBrace) {
 			throw_wrong_token_error(c, "'}'");
-			return false;
 		}
 		c.move();
 
 		into = std::move(result);
-		return true;
 	}
 
 
-	bool Namespace::parse_inner(Cursor& c, Namespace* into, GenericInstance* gen_inst) {
+	void Namespace::parse_inner(Cursor& c, Namespace* into, GenericInstance* gen_inst) {
 		
 		while (c.tok != RecognizedToken::CloseBrace && c.tok!=RecognizedToken::Eof) {
 
@@ -48,12 +44,11 @@ namespace Corrosive {
 				Cursor nm = c;
 
 				std::unique_ptr<StructureTemplate> decl;
-				if (!StructureTemplate::parse(c, into,nullptr, decl)) return false;
+				StructureTemplate::parse(c, into, nullptr, decl);
 
 				decl->parent = into;
 				if (into->subtemplates.find(decl->name.buffer) != into->subtemplates.end()) {
 					throw_specific_error(nm, "this name already exists in current namespace");
-					return false;
 				}
 
 				into->subtemplates[decl->name.buffer] = std::move(decl);
@@ -63,12 +58,11 @@ namespace Corrosive {
 				Cursor nm = c;
 
 				std::unique_ptr<TraitTemplate> decl;
-				if (!TraitTemplate::parse(c, into,nullptr, decl)) return false;
+				TraitTemplate::parse(c, into, nullptr, decl);
 
 				decl->parent = into;
 				if (into->subtraits.find(decl->name.buffer) != into->subtraits.end()) {
 					throw_specific_error(nm, "this name already exists in current namespace");
-					return false;
 				}
 
 				into->subtraits[decl->name.buffer] = std::move(decl);
@@ -79,11 +73,10 @@ namespace Corrosive {
 				Cursor nm = c;
 
 				std::unique_ptr<Namespace> decl;
-				if (!Namespace::parse(c, decl)) return false;
+				Namespace::parse(c, decl);
 				decl->parent = into;
 				if (into->subnamespaces.find(decl->name.buffer) != into->subnamespaces.end()) {
 					throw_specific_error(nm, "this name already exists in current namespace");
-					return false;
 				}
 				into->subnamespaces[decl->name.buffer] = std::move(decl);
 			}
@@ -102,7 +95,6 @@ namespace Corrosive {
 
 				if (c.tok != RecognizedToken::Symbol) {
 					throw_not_a_name_error(c);
-					return false;
 				}
 
 				member.name = c;
@@ -119,7 +111,6 @@ namespace Corrosive {
 							case RecognizedToken::CloseParenthesis: lvl--; c.move(); break;
 							case RecognizedToken::Eof: {
 									throw_eof_error(c, "parsing of function generic annotation");
-									return false;
 								}
 							default: c.move(); break;
 						}
@@ -131,7 +122,6 @@ namespace Corrosive {
 
 				if (c.tok != RecognizedToken::Colon) {
 					throw_wrong_token_error(c, "':'");
-					return false;
 				}
 				c.move();
 				member.type = c;
@@ -139,7 +129,6 @@ namespace Corrosive {
 				while (c.tok != RecognizedToken::OpenBrace) {
 					if (c.tok == RecognizedToken::Eof) {
 						throw_eof_error(c, "parsing of structure member type");
-						return false;
 					}
 					c.move();
 				}
@@ -153,7 +142,6 @@ namespace Corrosive {
 						case RecognizedToken::CloseBrace: lvl--; c.move(); break;
 						case RecognizedToken::Eof: {
 								throw_eof_error(c, "parsing of function block");
-								return false;
 							}
 						default: c.move(); break;
 					}
@@ -175,7 +163,6 @@ namespace Corrosive {
 
 				if (into->subfunctions.find(member.name.buffer) != into->subfunctions.end()) {
 					throw_specific_error(member.name, "Function with the same name already exists in the namespace");
-					return false;
 				}
 
 				into->subfunctions[member.name.buffer] = std::move(ft);
@@ -183,15 +170,11 @@ namespace Corrosive {
 			}
 			else {
 				throw_specific_error(c, "Unexpected keyword found during parsing of namespace");
-				return false;
 			}
 		}
-
-
-		return true;
 	}
 
-	bool StructureTemplate::parse(Cursor& c, Namespace* parent, GenericInstance* gen_inst, std::unique_ptr<StructureTemplate>& into) {
+	void StructureTemplate::parse(Cursor& c, Namespace* parent, GenericInstance* gen_inst, std::unique_ptr<StructureTemplate>& into) {
 		std::unique_ptr<StructureTemplate> result = std::make_unique<StructureTemplate>();
 
 		result->parent = parent;
@@ -202,7 +185,7 @@ namespace Corrosive {
 		if (c.tok != RecognizedToken::Symbol)
 		{
 			throw_not_a_name_error(c);
-			return false;
+			
 		} 
 		result->name = c;
 		c.move();
@@ -220,7 +203,7 @@ namespace Corrosive {
 					case RecognizedToken::CloseParenthesis: lvl--; break;
 					case RecognizedToken::Eof:
 						throw_eof_error(c, "parsing generic declaration header");
-						return false;
+						
 				}
 				c.move();
 			}
@@ -228,7 +211,7 @@ namespace Corrosive {
 
 		if (c.tok != RecognizedToken::OpenBrace) {
 			throw_wrong_token_error(c, "'{'");
-			return false;
+			
 		}
 		c.move();
 
@@ -240,7 +223,7 @@ namespace Corrosive {
 				c.move();
 				if (c.tok != RecognizedToken::Colon) {
 					throw_wrong_token_error(c, "':'");
-					return false;
+					
 				}
 				c.move();
 				member.type = c;
@@ -248,7 +231,7 @@ namespace Corrosive {
 				while (c.tok != RecognizedToken::Semicolon) {
 					if (c.tok == RecognizedToken::Eof) {
 						throw_eof_error(c, "parsing of structure member type");
-						return false;
+						
 					}
 					c.move();
 				}
@@ -270,7 +253,7 @@ namespace Corrosive {
 
 				if (c.tok != RecognizedToken::Symbol) {
 					throw_not_a_name_error(c);
-					return false;
+					
 				}
 
 				member.name = c;
@@ -287,7 +270,7 @@ namespace Corrosive {
 							case RecognizedToken::CloseParenthesis: lvl--; c.move(); break;
 							case RecognizedToken::Eof: {
 									throw_eof_error(c, "parsing of function generic annotation");
-									return false;
+									
 								}
 							default: c.move(); break;
 						}
@@ -299,7 +282,7 @@ namespace Corrosive {
 
 				if (c.tok != RecognizedToken::Colon) {
 					throw_wrong_token_error(c, "':'");
-					return false;
+					
 				}
 				c.move();
 				member.type = c;
@@ -307,7 +290,7 @@ namespace Corrosive {
 				while (c.tok != RecognizedToken::OpenBrace) {
 					if (c.tok == RecognizedToken::Eof) {
 						throw_eof_error(c, "parsing of structure member type");
-						return false;
+						
 					}
 					c.move();
 				}
@@ -321,7 +304,7 @@ namespace Corrosive {
 						case RecognizedToken::CloseBrace: lvl--; c.move(); break;
 						case RecognizedToken::Eof: {
 								throw_eof_error(c, "parsing of function block");
-								return false;
+								
 							}
 						default: c.move(); break;
 					}
@@ -335,7 +318,7 @@ namespace Corrosive {
 				member.cursor = c;
 				if (c.tok != RecognizedToken::Symbol) {
 					throw_not_a_name_error(c);
-					return false;
+					
 				}
 
 				c.move();
@@ -352,7 +335,7 @@ namespace Corrosive {
 							case RecognizedToken::CloseParenthesis: lvl--; c.move(); break;
 							case RecognizedToken::Eof: {
 									throw_eof_error(c, "parsing of function block");
-									return false;
+									
 								}
 							default: c.move(); break;
 						}
@@ -361,7 +344,7 @@ namespace Corrosive {
 				
 				if (c.tok != RecognizedToken::OpenBrace) {
 					throw_wrong_token_error(c, "'{'");
-					return false;
+					
 				}
 				c.move();
 
@@ -373,7 +356,7 @@ namespace Corrosive {
 						case RecognizedToken::CloseBrace: lvl--; c.move(); break;
 						case RecognizedToken::Eof: {
 								throw_eof_error(c, "parsing of function block");
-								return false;
+								
 							}
 						default: c.move(); break;
 					}
@@ -389,7 +372,7 @@ namespace Corrosive {
 				while (c.tok != RecognizedToken::OpenBrace) {
 					if (c.tok == RecognizedToken::Eof) {
 						throw_eof_error(c, "parsing of structure member type");
-						return false;
+						
 					}
 					c.move();
 				}
@@ -412,7 +395,7 @@ namespace Corrosive {
 
 							if (c.tok != RecognizedToken::Symbol) {
 								throw_not_a_name_error(c);
-								return false;
+								
 							}
 
 							member.name = c;
@@ -420,7 +403,7 @@ namespace Corrosive {
 
 							if (c.tok != RecognizedToken::Colon) {
 								throw_wrong_token_error(c, "':'");
-								return false;
+								
 							}
 							c.move();
 							member.type = c;
@@ -428,7 +411,7 @@ namespace Corrosive {
 							while (c.tok != RecognizedToken::OpenBrace) {
 								if (c.tok == RecognizedToken::Eof) {
 									throw_eof_error(c, "parsing of structure member type");
-									return false;
+									
 								}
 								c.move();
 							}
@@ -442,7 +425,7 @@ namespace Corrosive {
 									case RecognizedToken::CloseBrace: lvl--; c.move(); break;
 									case RecognizedToken::Eof: {
 										throw_eof_error(c, "parsing of function block");
-										return false;
+										
 									}
 									default: c.move(); break;
 								}
@@ -458,24 +441,23 @@ namespace Corrosive {
 			}
 			else {
 				throw_specific_error(c,"unexpected keyword found during parsing of structure");
-				return false;
+				
 			}
 		}
 
 		if (c.tok != RecognizedToken::CloseBrace) {
 			throw_wrong_token_error(c, "'}'");
-			return false;
+			
 		}
 		c.move();
 
 
 		into = std::move(result);
-		return true;
 	}
 	
 
 
-	bool TraitTemplate::parse(Cursor& c, Namespace* parent, GenericInstance* gen_inst, std::unique_ptr<TraitTemplate>& into) {
+	void TraitTemplate::parse(Cursor& c, Namespace* parent, GenericInstance* gen_inst, std::unique_ptr<TraitTemplate>& into) {
 		std::unique_ptr<TraitTemplate> result = std::make_unique<TraitTemplate>();
 
 		result->parent = parent;
@@ -485,7 +467,7 @@ namespace Corrosive {
 		if (c.tok != RecognizedToken::Symbol)
 		{
 			throw_not_a_name_error(c);
-			return false;
+			
 		}
 		result->name = c;
 		c.move();
@@ -503,7 +485,7 @@ namespace Corrosive {
 					case RecognizedToken::CloseParenthesis: lvl--; break;
 					case RecognizedToken::Eof:
 						throw_eof_error(c, "parsing generic declaration header");
-						return false;
+						
 				}
 				c.move();
 			}
@@ -511,7 +493,7 @@ namespace Corrosive {
 
 		if (c.tok != RecognizedToken::OpenBrace) {
 			throw_wrong_token_error(c, "'{'");
-			return false;
+			
 		}
 		c.move();
 
@@ -532,7 +514,7 @@ namespace Corrosive {
 
 				if (c.tok != RecognizedToken::Symbol) {
 					throw_not_a_name_error(c);
-					return false;
+					
 				}
 
 				member.name = c;
@@ -540,7 +522,7 @@ namespace Corrosive {
 
 				if (c.tok != RecognizedToken::Colon) {
 					throw_wrong_token_error(c, "':'");
-					return false;
+					
 				}
 				c.move();
 				member.type = c;
@@ -548,7 +530,7 @@ namespace Corrosive {
 				while (c.tok != RecognizedToken::Semicolon) {
 					if (c.tok == RecognizedToken::Eof) {
 						throw_eof_error(c, "parsing of trait function");
-						return false;
+						
 					}
 					c.move();
 				}
@@ -558,32 +540,27 @@ namespace Corrosive {
 			}
 			else {
 				throw_specific_error(c, "unexpected keyword found during parsing of trait");
-				return false;
+				
 			}
 		}
 
 		if (c.tok != RecognizedToken::CloseBrace) {
 			throw_wrong_token_error(c, "'}'");
-			return false;
+			
 		}
 		c.move();
 
 
 		into = std::move(result);
-		return true;
 	}
 
 
-	bool Declaration::parse_global(Cursor &c, Namespace* global_namespace) {
+	void Declaration::parse_global(Cursor &c, Namespace* global_namespace) {
 		
-		if (!Namespace::parse_inner(c, global_namespace,nullptr)) return false; 
+		Namespace::parse_inner(c, global_namespace, nullptr);
 
 		if (c.tok != RecognizedToken::Eof) {
-			throw_wrong_token_error(c, "end of file");
-			return false;
+			throw_wrong_token_error(c, "end of file");	
 		}
-
-		return true;
-
 	}
 }

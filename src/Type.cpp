@@ -8,7 +8,7 @@
 namespace Corrosive {
 
 
-	int8_t Type::compare(unsigned char* me,  unsigned char* to) {
+	int8_t Type::compare(unsigned char* me, unsigned char* to) {
 		return (int8_t)memcmp(me,to,size().eval(compiler_arch));
 	}
 

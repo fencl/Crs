@@ -4,10 +4,22 @@
 #include "Source.h"
 #include <algorithm>
 #include <cctype>
+#include <sstream>
+#include <string>
 
 namespace Corrosive {
-	void throw_error_header(const Cursor& c) {
-		std::cerr << "\n | Error (" << (c.top+1) << "):\n | \t";
+
+	struct string_exception : public std::exception
+	{
+		std::string s;
+		inline string_exception(std::string msg) { s = std::move(msg); }
+		inline ~string_exception() throw () {}
+		const char* what() const throw() { return s.c_str(); }
+	};
+
+	std::stringstream throw_error_header(const Cursor& c) {
+		std::stringstream cerr;
+		cerr << "\n | Error (" << (c.top+1) << "):\n | \t";
 
 		Cursor cc = c;
 		if (cc.tok != RecognizedToken::Eof && cc.src!=nullptr) {
@@ -25,7 +37,7 @@ namespace Corrosive {
 			}
 			int req_offset = 4;
 			std::string_view line = data.substr(from, to - from);
-			std::cerr << "... ";
+			cerr << "... ";
 			bool remove_whitespace = true;
 			for (int i = 0; i < line.length(); i++) {
 
@@ -37,83 +49,86 @@ namespace Corrosive {
 				}
 
 				if (line[i] == '\t') {
-					std::cerr << "    ";
+					cerr << "    ";
 					if (i < cc.offset - from)
 						req_offset += 4;
 				}
 				else {
-					std::cerr << line[i];
+					cerr << line[i];
 					if (i < cc.offset - from)
 						req_offset += 1;
 				}
 			}
-			std::cerr << " ...\n | \t";
+			cerr << " ...\n | \t";
 
 			for (int i = 0; i < req_offset; i++)
-				std::cerr << " ";
+				cerr << " ";
 
 			for (int i = 0; i < cc.buffer.length(); i++)
-				std::cerr << "^";
+				cerr << "^";
 		}
 
-		std::cerr << "\n | \t";
+		cerr << "\n | \t";
+		return cerr;
 	}
 
 	void throw_specific_error(const Cursor& c, std::string_view text) {
-		throw_error_header(c);
-		std::cerr << text;
-		throw_exit();
+
+		std::stringstream cerr = throw_error_header(c);
+		cerr << text;
+		throw string_exception(std::move(cerr.str()));
 	}
 
 
 	void throw_cannot_cast_error(const Cursor& c, Type* from, Type* to) {
-		throw_error_header(c);
-		std::cerr << "Cannot cast from '";
-		from->print(std::cerr);
-		std::cerr << "' to '";
-		to->print(std::cerr);
-		std::cerr << "'";
 
-		throw_exit();
+		std::stringstream cerr = throw_error_header(c);
+		cerr << "Cannot cast from '";
+		from->print(std::cerr);
+		cerr << "' to '";
+		to->print(std::cerr);
+		cerr << "'";
+		throw string_exception(std::move(cerr.str()));
 	}
 
 
 	void throw_cannot_implicit_cast_error(const Cursor& c, Type* from, Type* to) {
-		throw_error_header(c);
-		std::cerr << "Cannot implicitly cast from '";
-		from->print(std::cerr);
-		std::cerr << "' to '";
-		to->print(std::cerr);
-		std::cerr << "'"<<std::endl << " |\tplease, use explicit cast(...) and be careful";
 
-		throw_exit();
+		std::stringstream cerr = throw_error_header(c);
+		cerr << "Cannot implicitly cast from '";
+		from->print(std::cerr);
+		cerr << "' to '";
+		to->print(std::cerr);
+		cerr << "'\n |\tplease, use explicit cast(...) and be careful";
+		throw string_exception(std::move(cerr.str()));
 	}
 
 
 	void throw_eof_error(const Cursor& c, std::string_view during) {
-		throw_error_header(c);
-		std::cerr << "End of file found during " << during;
-		throw_exit();
+
+		std::stringstream cerr = throw_error_header(c);
+		cerr << "End of file found during " << during;
+		throw string_exception(std::move(cerr.str()));
 	}
 	void throw_not_a_name_error(const Cursor& c) {
-		throw_error_header(c);
-		std::cerr << "Symbol '" << c.buffer << "' is not a valid name";
-		throw_exit();
+
+		std::stringstream cerr = throw_error_header(c);
+		cerr << "Symbol '" << c.buffer << "' is not a valid name";
+		throw string_exception(std::move(cerr.str()));
 	}
 
 	void throw_variable_not_found_error(const Cursor& c) {
-		throw_error_header(c);
-		std::cerr << "Variable with the name '" << c.buffer << "' was not found";
-		throw_exit();
+
+		std::stringstream cerr = throw_error_header(c);
+		cerr << "Variable with the name '" << c.buffer << "' was not found";
+		throw string_exception(std::move(cerr.str()));
 	}
 
 	void throw_wrong_token_error(const Cursor& c, std::string_view expected) {
-		throw_error_header(c);
-		std::cerr << "Token '" << c.buffer << "' found but parser expected " << expected;
-		throw_exit();
+
+		std::stringstream cerr = throw_error_header(c);
+		cerr << "Token '" << c.buffer << "' found but parser expected " << expected;
+		throw string_exception(std::move(cerr.str()));
 	}
 
-	void throw_exit() {
-		std::cerr << std::endl;
-	}
 }

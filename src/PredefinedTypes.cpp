@@ -5,10 +5,9 @@ namespace Corrosive {
 
 	const char* PredefinedNamespace = "corrosive";
 
-	bool DefaultTypes::priv_debug_cursor(ILEvaluator* eval_ctx) {
+	void DefaultTypes::priv_debug_cursor(ILEvaluator* eval_ctx) {
 		uint64_t c_id = eval_ctx->pop_register_value<uint64_t>();
 		Ctx::types()->debug_info = Ctx::types()->debug_cursor_storage.get((size_t)c_id);
-		return true;
 	}
 
 	void DefaultTypes::setup_type(std::string_view name,Type*& into, ILSize size, ILSize alignment,ILDataType ildt,ILContext context) {
@@ -41,7 +40,7 @@ namespace Corrosive {
 		return primitives[(unsigned char)rval];
 	}
 
-	bool DefaultTypes::setup() {
+	void DefaultTypes::setup() {
 		setup_type("void", t_void, { 0,0 }, { 0, 0 }, ILDataType::none, ILContext::both);
 		setup_type("i8", t_i8, { 1,0 }, { 1, 0 }, ILDataType::i8, ILContext::both);
 		setup_type("bool", t_bool, { 1,0 }, { 1, 0 }, ILDataType::ibool, ILContext::both);
@@ -136,17 +135,16 @@ namespace Corrosive {
 
 
 		std_lib.load_data("trait Copy(T:type) {fn Copy: (&T);}\ntrait Move(T:type) {fn Move: (&T);}\ntrait Compare(T:type) {fn Compare: (&T) i8;}\ntrait Drop {fn Drop: ();}\n"
-			"fn allocate(T: type): (s: size) []T { make slce: []T; slce.ptr=__malloc__(s);slce.size=s; return slce; }\n"
-			"fn free(T: type): (slce: []T) {__free__(slce.ptr);}");
+			"fn allocate(T: type): (s: size) []T { make slce: []T; slce.ptr=__malloc__(s*typesize(T));slce.size=s; return slce; }\n"
+			"fn free: (slce: ptr) {__free__(slce);}");
+
 		Cursor c = std_lib.read_first();
-		if (!Declaration::parse_global(c, Ctx::global_namespace())) return false;
+		Declaration::parse_global(c, Ctx::global_namespace());
 		
 		tr_copy = Ctx::global_namespace()->subtraits["Copy"].get();
 		tr_move = Ctx::global_namespace()->subtraits["Move"].get();
 		tr_compare = Ctx::global_namespace()->subtraits["Compare"].get();
 		tr_drop = Ctx::global_namespace()->subtraits["Drop"].get();
-
-		return true;
 	}
 
 

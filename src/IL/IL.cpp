@@ -5,24 +5,24 @@
 
 namespace Corrosive {
 	void throw_il_wrong_data_flow_error() {
-		std::cerr << "Compiler Error:\n\tWrong data flow inside compiler IL" << std::endl;
+		throw std::exception("Compiler Error, Wrong data flow inside compiler IL");
 	}
 
 	void throw_il_nothing_on_stack_error() {
-		std::cerr << "Compiler Error:\n\tInstruction requires more argumens than the number of arguments on the stack" << std::endl;
+		throw std::exception("Compiler Error, Instruction requires more argumens than the number of arguments on the stack");
 	}
 
 	void throw_il_wrong_type_error() {
-		std::cerr << "Compiler Error:\n\tPassed broken type" << std::endl;
+		throw std::exception("Compiler Error, Passed broken type");
 	}
 
 
 	void throw_il_remaining_stack_error() {
-		std::cerr << "Compiler Error:\n\tStack is not empty after terminator instruction" << std::endl;
+		throw std::exception("Compiler Error, Stack is not empty after terminator instruction");
 	}
 
 	void throw_il_wrong_arguments_error() {
-		std::cerr << "Compiler Error:\n\tInstruction cannot use argument(s) on the stack" << std::endl;
+		throw std::exception("Compiler Error, Instruction cannot use argument(s) on the stack");
 	}
 
 	ILFunction::~ILFunction() {}

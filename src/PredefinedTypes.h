@@ -72,7 +72,7 @@ namespace Corrosive {
 
 		Cursor debug_info;
 
-		static bool priv_debug_cursor(ILEvaluator* eval_ctx);
+		static void priv_debug_cursor(ILEvaluator* eval_ctx);
 
 		Type* primitives [256];
 
@@ -97,7 +97,7 @@ namespace Corrosive {
 		TraitTemplate* tr_compare;
 		TraitTemplate* tr_drop;
 
-		bool setup();
+		void setup();
 	private:
 		void setup_type(std::string_view name, Type*& into, ILSize size, ILSize alignment, ILDataType ildt,ILContext runtime);
 	};

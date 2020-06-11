@@ -8,7 +8,7 @@
 namespace Corrosive {
 
 
-	bool Statement::parse_inner_block(Cursor& c, bool& terminated, bool exit_returns) {	
+	void Statement::parse_inner_block(Cursor& c, bool& terminated, bool exit_returns) {	
 
 		StackItem sitm;
 		ILBlock* b_exit = Ctx::workspace_function()->create_block();
@@ -18,10 +18,10 @@ namespace Corrosive {
 
 		terminated = false;
 		while (c.tok != RecognizedToken::CloseBrace) {
-			if (!parse(c, CompileType::compile,terminated)) return false;
+			Statement::parse(c, CompileType::compile, terminated);
+
 			if (terminated && c.tok != RecognizedToken::CloseBrace) {
 				throw_specific_error(c, "Instruction after the current branch has been terminated");
-				return false;
 			}
 
 			while (Ctx::temp_stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) {
@@ -80,7 +80,6 @@ namespace Corrosive {
 			else {
 				if (Ctx::workspace_return() != Ctx::types()->t_void) {
 					throw_specific_error(c, "Function does not always return value");
-					return false;
 				}
 				else {
 					ILBuilder::build_ret(b_exit, ILDataType::none);
@@ -90,15 +89,12 @@ namespace Corrosive {
 
 		
 		Ctx::stack()->pop_block();
-
-		return true;
 	}
 
-	bool Statement::parse(Cursor& c, CompileType cmp, bool& terminated) {
+	void Statement::parse(Cursor& c, CompileType cmp, bool& terminated) {
 
 		if (cmp == CompileType::eval) {
 			throw_specific_error(c, "Statement is used in compiletime context. Compiler should not allow it.");
-			return false;
 		}
 
 		switch (c.tok) {
@@ -106,15 +102,19 @@ namespace Corrosive {
 			{
 				if (c.buffer == "return") {
 					terminated = true;
-					return parse_return(c);
+					parse_return(c);
+					return; 
 				}else if (c.buffer == "make") {
-					return parse_make(c);
+					parse_make(c);
+					return;
 				}
 				else if (c.buffer == "let") {
-					return parse_let(c);
+					parse_let(c);
+					return;
 				}
 				else if (c.buffer == "if") {
-					return parse_if(c, terminated);
+					parse_if(c, terminated);
+					return;
 				}
 			}break;
 			case RecognizedToken::OpenBrace: {
@@ -133,17 +133,16 @@ namespace Corrosive {
 				Ctx::stack()->push_block();
 				ILBuilder::build_accept(Ctx::scope(), ILDataType::none);
 
-				bool result = parse_inner_block(c, terminated);
+				parse_inner_block(c, terminated);
 				Ctx::workspace_function()->append_block(continue_block);
-				return result;
-
+				return;
 			}break;
 		}
 
 		//fallthrough if every other check fails, statement is plain expression
 
 		CompileValue ret_val;
-		if (!Expression::parse(c, ret_val, cmp, false)) return false;
+		Expression::parse(c, ret_val, cmp, false);
 
 		if (ret_val.t->rvalue() != ILDataType::none) {
 			if (cmp == CompileType::compile) {
@@ -177,15 +176,11 @@ namespace Corrosive {
 
 		if (c.tok != RecognizedToken::Semicolon) {
 			throw_wrong_token_error(c, "';'");
-			return false;
 		}
 		c.move();
-
-		return true;
-
 	}
 
-	bool Statement::parse_if(Cursor& c, bool& terminated) {
+	void Statement::parse_if(Cursor& c, bool& terminated) {
 
 
 		c.move();
@@ -193,14 +188,13 @@ namespace Corrosive {
 		CompileValue test_value;
 		Cursor err = c;
 
-		if (!Expression::parse(c, test_value, CompileType::compile)) return false;
-		if (!Operand::cast(err, test_value, Ctx::types()->t_bool, CompileType::compile, false)) return false;
-		if (!Expression::rvalue(test_value, CompileType::compile)) return false;
+		Expression::parse(c, test_value, CompileType::compile);
+		Operand::cast(err, test_value, Ctx::types()->t_bool, CompileType::compile, false);
+		Expression::rvalue(test_value, CompileType::compile);
 
 
 		if (c.tok != RecognizedToken::OpenBrace) {
 			throw_wrong_token_error(c, "'{'");
-			return false;
 		}
 		c.move();
 
@@ -221,7 +215,7 @@ namespace Corrosive {
 		Ctx::stack()->push_block();
 		ILBuilder::build_accept(Ctx::scope(), ILDataType::none);
 		bool term = false;
-		if (!parse_inner_block(c, term)) return false;
+		Statement::parse_inner_block(c, term);
 
 
 
@@ -230,7 +224,6 @@ namespace Corrosive {
 			
 			if (c.tok != RecognizedToken::OpenBrace) {
 				throw_wrong_token_error(c, "'{'");
-				return false;
 			}
 			c.move();
 
@@ -240,9 +233,8 @@ namespace Corrosive {
 			Ctx::stack()->push_block();
 			ILBuilder::build_accept(Ctx::scope(), ILDataType::none);
 			bool term2 = false;
-			if (!parse_inner_block(c, term2)) return false;
+			Statement::parse_inner_block(c, term2);
 			if (term && term2) { terminated = true; }
-
 
 			ILBuilder::build_jmpz(block_from, else_block, block);
 		}
@@ -251,40 +243,36 @@ namespace Corrosive {
 		}
 
 		Ctx::workspace_function()->append_block(continue_block);
-
-
-		return true;
 	}
 
 
-	bool Statement::parse_return(Cursor& c) {
+	void Statement::parse_return(Cursor& c) {
 		
 		c.move();
 		CompileValue ret_val;
 		Cursor err = c;
-		if (!Expression::parse(c, ret_val, CompileType::compile)) return false;
-		if (!Expression::rvalue(ret_val, CompileType::compile)) return false;
+		Expression::parse(c, ret_val, CompileType::compile);
+		Expression::rvalue(ret_val, CompileType::compile);
 
 		Type* to = Ctx::workspace_return();
-		if (!Operand::cast(err, ret_val, to, CompileType::compile,false)) return false;
+		Operand::cast(err, ret_val, to, CompileType::compile, false);
 
 
 		if (Ctx::workspace_return()->rvalue_stacked()) {
 			ILBuilder::build_local(Ctx::scope(), 0);
 			ILBuilder::build_load(Ctx::scope(), ILDataType::ptr);
-			if (!Expression::move_from_rvalue(Ctx::workspace_return(), CompileType::compile, false)) return false;
+			Expression::move_from_rvalue(Ctx::workspace_return(), CompileType::compile, false);
 		}
 
 
 		if (c.tok != RecognizedToken::Semicolon) {
 			throw_wrong_token_error(c, "';'");
-			return false;
 		}
+
 		c.move();
-		return true;
 	}
 
-	bool Statement::parse_let(Cursor& c) {
+	void Statement::parse_let(Cursor& c) {
 
 		c.move();
 		bool reference = false;
@@ -295,7 +283,6 @@ namespace Corrosive {
 
 		if (c.tok != RecognizedToken::Symbol) {
 			throw_not_a_name_error(c);
-			return false;
 		}
 		Cursor name = c;
 		c.move();
@@ -305,14 +292,11 @@ namespace Corrosive {
 		if (!reference) {
 			if (c.tok != RecognizedToken::Equals && c.tok != RecognizedToken::BackArrow) {
 				throw_wrong_token_error(c, "'=' or '<-'");
-				return false;
 			}
-			c.tok == RecognizedToken::Equals;
 		}
 		else {
 			if (c.tok != RecognizedToken::Equals) {
 				throw_wrong_token_error(c, "'='");
-				return false;
 			}
 		}
 		
@@ -321,22 +305,20 @@ namespace Corrosive {
 
 		Cursor err = c;
 		CompileValue val;
-		if (!Expression::parse(c, val, CompileType::compile)) return false;
+		Expression::parse(c, val, CompileType::compile);
 		if (!reference) {
-			if (!Expression::rvalue(val, CompileType::compile)) return false;
+			Expression::rvalue(val, CompileType::compile);
 		}
 		else {
 			if (!val.lvalue) {
 				throw_specific_error(err, "Cannot create reference to rvalue");
-				return false;
 			}
 		}
 		Type* new_t = val.t;
 
-		if (!new_t->compile()) return false;
+		new_t->compile();
 		if (new_t->context() != ILContext::both && Ctx::scope_context() != new_t->context()) {
 			throw_specific_error(err, "Type was not designed for this context");
-			return false;
 		}
 
 		if (reference) {
@@ -356,31 +338,27 @@ namespace Corrosive {
 		ILBuilder::build_local(Ctx::scope(), local_id);
 
 		if (do_copy) {
-			if (!Expression::copy_from_rvalue(new_t, CompileType::compile, false)) return false;
+			Expression::copy_from_rvalue(new_t, CompileType::compile, false);
 		}
 		else {
-			if (!Expression::move_from_rvalue(new_t, CompileType::compile, false)) return false;
+			Expression::move_from_rvalue(new_t, CompileType::compile, false);
 		}
 
 		if (c.tok != RecognizedToken::Semicolon) {
 			throw_wrong_token_error(c, "';'");
-			return false;
 		}
 		c.move();
-		return true;
 	}
 
-	bool Statement::parse_make(Cursor& c) {
+	void Statement::parse_make(Cursor& c) {
 		c.move();
 		if (c.tok != RecognizedToken::Symbol) {
 			throw_not_a_name_error(c);
-			return false;
 		}
 		Cursor name = c;
 		c.move();
 		if (c.tok != RecognizedToken::Colon) {
 			throw_wrong_token_error(c, "':'");
-			return false;
 		}
 		c.move();
 		Cursor err = c;
@@ -388,12 +366,11 @@ namespace Corrosive {
 
 		Ctx::push_scope_context(ILContext::compile);
 
-		if (!Expression::parse(c, val, CompileType::eval)) return false;
-		if (!Expression::rvalue(val, CompileType::eval)) return false;
+		Expression::parse(c, val, CompileType::eval);
+		Expression::rvalue(val, CompileType::eval);
 
 		if (val.t != Ctx::types()->t_type) {
 			throw_specific_error(err, "Exprected type");
-			return false;
 		}
 		Ctx::pop_scope_context();
 
@@ -401,11 +378,10 @@ namespace Corrosive {
 		val.lvalue = true;
 		val.t = new_t;
 
-		if (!new_t->compile()) return false;
+		new_t->compile();
 
 		if (new_t->context() != ILContext::both && Ctx::scope_context() != new_t->context()) {
 			throw_specific_error(err, "Type was not designed for this context");
-			return false;
 		}
 
 
@@ -420,9 +396,7 @@ namespace Corrosive {
 
 		if (c.tok != RecognizedToken::Semicolon) {
 			throw_wrong_token_error(c, "';'");
-			return false;
 		}
 		c.move();
-		return true;
 	}
 }

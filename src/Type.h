@@ -37,7 +37,7 @@ namespace Corrosive {
 
 		inline virtual TypeInstanceType type() { return TypeInstanceType::type_undefined; }
 
-		virtual bool compile();
+		virtual void compile();
 
 		virtual int8_t compare(unsigned char* me, unsigned char* p2);
 		virtual void move(unsigned char* me, unsigned char* from);
@@ -83,7 +83,7 @@ namespace Corrosive {
 		inline virtual TypeInstanceType type() { return TypeInstanceType::type_structure_instance; }
 
 		virtual ILContext context();
-		virtual bool compile();
+		virtual void compile();
 		virtual int8_t compare(unsigned char* me,  unsigned char* to);
 		virtual void move(unsigned char* me,  unsigned char* from);
 		virtual void copy(unsigned char* me, unsigned char* from);
@@ -115,7 +115,7 @@ namespace Corrosive {
 
 		StructureTemplate* owner;
 
-		virtual bool compile();
+		virtual void compile();
 		virtual void print(std::ostream& os);
 	};
 
@@ -125,7 +125,7 @@ namespace Corrosive {
 
 		FunctionTemplate* owner;
 
-		virtual bool compile();
+		virtual void compile();
 		virtual void print(std::ostream& os);
 	};
 
@@ -151,7 +151,7 @@ namespace Corrosive {
 
 		TraitTemplate* owner;
 
-		virtual bool compile();
+		virtual void compile();
 		virtual void print(std::ostream& os);
 	};
 
@@ -164,7 +164,7 @@ namespace Corrosive {
 		Type* owner;
 		uint32_t count;
 		virtual ILContext context();
-		virtual bool compile();
+		virtual void compile();
 		
 
 		virtual void construct(unsigned char* me);
