@@ -73,12 +73,12 @@ namespace Corrosive {
 		primitives[(unsigned char)ILDataType::size] = t_size;
 
 		auto f_malloc_template = std::make_unique<FunctionTemplate>();
-		f_malloc_template->name.buffer = "malloc";
+		f_malloc_template->name.buffer = "_malloc";
 		f_malloc_template->is_generic = false;
 		f_malloc_template->parent = Ctx::global_namespace();
 		f_malloc_template->singe_instance = std::make_unique<FunctionInstance>();
 		f_malloc_template->singe_instance->parent = Ctx::global_namespace();
-		f_malloc_template->singe_instance->returns.second = t_u8->generate_slice();
+		f_malloc_template->singe_instance->returns.second = t_ptr;
 		Cursor arg;
 		arg.buffer = "size";
 		f_malloc_template->singe_instance->arguments.push_back(std::make_pair(arg,t_size));
@@ -86,7 +86,7 @@ namespace Corrosive {
 		f_malloc_template->compile_state = 2;
 		f_malloc_template->singe_instance->compile_state = 3;
 		f_malloc_template->singe_instance->func = Ctx::global_module()->create_function();
-		f_malloc_template->singe_instance->func->alias = "malloc";
+		f_malloc_template->singe_instance->func->alias = "_malloc";
 		std::vector<Type*> arg_array = {t_size};
 
 		TypeFunction* tf = load_or_register_function_type(std::move(arg_array), f_malloc_template->singe_instance->returns.second,ILContext::both);
@@ -94,36 +94,43 @@ namespace Corrosive {
 
 		ILBlock* f_malloc_block = f_malloc_template->singe_instance->func->create_and_append_block();
 
-		uint16_t loc_ret_ptr = f_malloc_template->singe_instance->func->register_local(t_ptr->size());
-		uint16_t loc_size = f_malloc_template->singe_instance->func->register_local(t_size->size());
-
-		ILBuilder::build_local(f_malloc_block, loc_size);
-		ILBuilder::build_store(f_malloc_block, ILDataType::size);
-
-		ILBuilder::build_local(f_malloc_block, loc_ret_ptr);
-		ILBuilder::build_store(f_malloc_block, ILDataType::ptr);
-
-		ILBuilder::build_local(f_malloc_block, loc_size);
-		ILBuilder::build_load(f_malloc_block, ILDataType::size);
-		ILBuilder::build_duplicate(f_malloc_block, ILDataType::size);
-
 		ILBuilder::build_malloc(f_malloc_block);
-		ILBuilder::build_local(f_malloc_block, loc_ret_ptr);
-		ILBuilder::build_load(f_malloc_block, ILDataType::ptr);
-		ILBuilder::build_store(f_malloc_block, ILDataType::ptr);
+		ILBuilder::build_ret(f_malloc_block, ILDataType::ptr);
+
+		Ctx::global_namespace()->subfunctions["_malloc"] = std::move(f_malloc_template);
 
 
-		ILBuilder::build_local(f_malloc_block, loc_ret_ptr);
-		ILBuilder::build_load(f_malloc_block, ILDataType::ptr);
-		ILBuilder::build_offset(f_malloc_block, ILSize::single_ptr);
-		ILBuilder::build_store(f_malloc_block, ILDataType::size);
 
-		ILBuilder::build_ret(f_malloc_block, ILDataType::none);
 
-		f_malloc_template->singe_instance->func->dump();
-		std::cout << "\n";
 
-		Ctx::global_namespace()->subfunctions["malloc"] = std::move(f_malloc_template);
+
+
+		auto f_free_template = std::make_unique<FunctionTemplate>();
+		f_free_template->name.buffer = "_free";
+		f_free_template->is_generic = false;
+		f_free_template->parent = Ctx::global_namespace();
+		f_free_template->singe_instance = std::make_unique<FunctionInstance>();
+		f_free_template->singe_instance->parent = Ctx::global_namespace();
+		f_free_template->singe_instance->returns.second = t_void;
+
+		arg.buffer = "pointer";
+		f_free_template->singe_instance->arguments.push_back(std::make_pair(arg, t_ptr));
+
+		f_free_template->compile_state = 2;
+		f_free_template->singe_instance->compile_state = 3;
+		f_free_template->singe_instance->func = Ctx::global_module()->create_function();
+		f_free_template->singe_instance->func->alias = "_free";
+		arg_array = { t_ptr };
+
+		tf = load_or_register_function_type(std::move(arg_array), f_free_template->singe_instance->returns.second, ILContext::both);
+		f_free_template->singe_instance->type = tf;
+
+		ILBlock* f_free_block = f_free_template->singe_instance->func->create_and_append_block();
+
+		ILBuilder::build_free(f_free_block);
+		ILBuilder::build_ret(f_free_block, ILDataType::none);
+
+		Ctx::global_namespace()->subfunctions["_free"] = std::move(f_free_template);
 
 
 

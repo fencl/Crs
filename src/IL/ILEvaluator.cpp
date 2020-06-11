@@ -543,6 +543,12 @@ namespace Corrosive {
 		eval_const_ptr(eval_ctx, malloc(size));
 		return true;
 	}
+
+	bool ILBuilder::eval_free(ILEvaluator* eval_ctx) {
+		void* ptr = eval_ctx->pop_register_value<void*>();
+		free(ptr);
+		return true;
+	}
 	
 	bool ILBuilder::eval_memcpy2(ILEvaluator* eval_ctx, size_t size) {
 		void* src = eval_ctx->pop_register_value<void*>();
@@ -828,6 +834,10 @@ namespace Corrosive {
 
 					case ILInstruction::malloc: {
 						if (!eval_malloc(eval_ctx)) return false;
+					} break;
+						
+					case ILInstruction::free: {
+						if (!eval_free(eval_ctx)) return false;
 					} break;
 
 					case ILInstruction::isnotzero: {

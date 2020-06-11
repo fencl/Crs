@@ -33,7 +33,8 @@ namespace Corrosive {
 		fnptr, call, start, insintric, cast, 
 		roffset, offset, vtable, duplicate, swap, swap2,
 		memcpy, memcpy2, memcmp, memcmp2, rmemcmp, rmemcmp2,
-		malloc, rtoffset, rtoffset2, null, isnotzero, yield, discard, accept
+		malloc, free,
+		rtoffset, rtoffset2, null, isnotzero, yield, discard, accept
 	};
 
 	enum class ILDataType : unsigned char {
@@ -266,6 +267,8 @@ namespace Corrosive {
 		static bool eval_memcmp2(ILEvaluator* eval_ctx, size_t size);
 
 		static bool eval_malloc(ILEvaluator* eval_ctx);
+		static bool eval_free(ILEvaluator* eval_ctx);
+
 		static bool eval_null(ILEvaluator* eval_ctx);
 
 		static bool eval_rmemcmp(ILEvaluator* eval_ctx, ILDataType type);
@@ -342,6 +345,7 @@ namespace Corrosive {
 
 
 		static bool build_malloc(ILBlock* block);
+		static bool build_free(ILBlock* block);
 
 		static bool build_null(ILBlock* block);
 		static bool build_isnotzero(ILBlock* block, ILDataType type);

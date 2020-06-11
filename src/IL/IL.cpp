@@ -426,6 +426,10 @@ namespace Corrosive {
 					std::cout << "   malloc\n";
 				} break;
 
+				case ILInstruction::free: {
+					std::cout << "   free\n";
+				} break;
+
 				case ILInstruction::rtoffset: {
 					std::cout << "   rtoffset\n";
 				} break;

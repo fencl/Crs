@@ -966,8 +966,8 @@ namespace Corrosive {
 			if (!Statement::parse_inner_block(cb, terminated, true)) return false;
 
 
-			func->dump();
-			std::cout << std::endl;
+			//func->dump();
+			//std::cout << std::endl;
 
 			if (!func->assert_flow()) return false;
 

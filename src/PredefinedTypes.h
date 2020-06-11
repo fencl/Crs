@@ -90,9 +90,6 @@ namespace Corrosive {
 		TypeFunction* load_or_register_function_type(std::vector<Type*> arg_array, Type* return_type, ILContext ctx);
 		TypeTemplate* load_or_register_template_type(std::vector<Type*> arg_array);
 
-		ILFunction* f_slice;
-		FunctionTemplate* f_malloc;
-
 		Source std_lib;
 
 		TraitTemplate* tr_copy;
