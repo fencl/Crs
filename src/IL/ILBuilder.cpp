@@ -83,6 +83,12 @@ namespace Corrosive {
 		block->write_value(sizeof(uint32_t), (unsigned char*)&address->id);
 		
 	}
+	
+	void ILBuilder::build_debug(ILBlock* block, uint16_t file, uint16_t line) {
+		block->write_instruction(ILInstruction::debug);
+		block->write_value(sizeof(uint16_t), (unsigned char*)&file);
+		block->write_value(sizeof(uint16_t), (unsigned char*)&line);
+	}
 
 	void ILBuilder::build_jmpz(ILBlock* block, ILBlock* ifz, ILBlock* ifnz) {
 		ifz->predecessors.insert(block);

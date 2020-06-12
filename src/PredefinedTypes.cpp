@@ -5,11 +5,7 @@ namespace Corrosive {
 
 	const char* PredefinedNamespace = "corrosive";
 
-	void DefaultTypes::priv_debug_cursor(ILEvaluator* eval_ctx) {
-		uint64_t c_id = eval_ctx->pop_register_value<uint64_t>();
-		Ctx::types()->debug_info = Ctx::types()->debug_cursor_storage.get((size_t)c_id);
-	}
-
+	
 	void DefaultTypes::setup_type(std::string_view name,Type*& into, ILSize size, ILSize alignment,ILDataType ildt,ILContext context) {
 		std::unique_ptr<StructureTemplate> s = std::make_unique<StructureTemplate>();
 		Cursor c;
@@ -136,7 +132,8 @@ namespace Corrosive {
 
 		std_lib.load_data("trait Copy(T:type) {fn Copy: (&T);}\ntrait Move(T:type) {fn Move: (&T);}\ntrait Compare(T:type) {fn Compare: (&T) i8;}\ntrait Drop {fn Drop: ();}\n"
 			"fn allocate(T: type): (s: size) []T { make slce: []T; slce.ptr=__malloc__(s*typesize(T));slce.size=s; return slce; }\n"
-			"fn free: (slce: ptr) {__free__(slce);}");
+			"fn free: (slce: ptr) {__free__(slce);}","standard_library<buffer>");
+		std_lib.register_debug();
 
 		Cursor c = std_lib.read_first();
 		Declaration::parse_global(c, Ctx::global_namespace());
@@ -152,10 +149,6 @@ namespace Corrosive {
 
 	size_t DefaultTypes::load_or_register_argument_array(std::vector<Type*> arg_array) {
 		return argument_array_storage.register_or_load(std::move(arg_array));
-	}
-
-	size_t DefaultTypes::load_or_register_debug_cursor(Cursor c) {
-		return debug_cursor_storage.register_or_load(c);
 	}
 
 	TypeFunction* DefaultTypes::load_or_register_function_type(std::vector<Type*> arg_array, Type* return_type, ILContext ctx) {

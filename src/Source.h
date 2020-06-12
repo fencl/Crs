@@ -5,9 +5,14 @@
 namespace Corrosive {
 	class Source {
 	public:
+		uint16_t debug_id = UINT16_MAX;
+		void register_debug();
+
+		std::string name;
+
 		std::string_view const data() const;
 		void load(const char* file);
-		void load_data(const char* data);
+		void load_data(const char* data, const char* name);
 		void read(Cursor& out, size_t offset, unsigned int left, unsigned int top) const;
 		void read_after(Cursor& out, const Cursor& c) const;
 		Cursor read_first() const;

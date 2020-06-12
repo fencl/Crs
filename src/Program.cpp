@@ -10,6 +10,7 @@
 #include "Expression.h"
 #include "IL/IL.h"
 #include "StackManager.h"
+#include <memory>
 
 namespace Corrosive {
 
@@ -20,52 +21,50 @@ namespace Corrosive {
 
 		ILEvaluator::register_sandbox();
 
-		bool alive = true;
-		auto start = std::chrono::system_clock::now();
+		ILModule m;
+		DefaultTypes dt;
+		Namespace gn;
+		ILEvaluator e;
+		StackManager rts;
+		StackManager cps;
+		StackManager tms;
 
-		Source src;
-		src.load("..\\test\\test.crs");
+		m.insintric_function[(unsigned char)ILInsintric::build_array] = &Operand::priv_build_array;
+		m.insintric_function_name[(unsigned char)ILInsintric::build_array] = "array";
+		m.insintric_function[(unsigned char)ILInsintric::build_reference] = &Operand::priv_build_reference;
+		m.insintric_function_name[(unsigned char)ILInsintric::build_reference] = "reference";
+		m.insintric_function[(unsigned char)ILInsintric::push_template] = &Operand::priv_build_push_template;
+		m.insintric_function_name[(unsigned char)ILInsintric::push_template] = "push_template";
+		m.insintric_function[(unsigned char)ILInsintric::build_template] = &Operand::priv_build_build_template;
+		m.insintric_function_name[(unsigned char)ILInsintric::build_template] = "build_template";
+		m.insintric_function[(unsigned char)ILInsintric::template_cast] = &Operand::priv_type_template_cast;
+		m.insintric_function_name[(unsigned char)ILInsintric::template_cast] = "dynamic_cast";
+		m.insintric_function[(unsigned char)ILInsintric::build_slice] = &Operand::priv_build_slice;
+		m.insintric_function_name[(unsigned char)ILInsintric::build_slice] = "slice";
+		m.insintric_function[(unsigned char)ILInsintric::type_size] = &Operand::priv_type_size;
+		m.insintric_function_name[(unsigned char)ILInsintric::type_size] = "type_size";
 
-		std::unique_ptr<ILModule> m = std::make_unique<ILModule>();
-		std::unique_ptr<DefaultTypes> dt = std::make_unique<DefaultTypes>();
-		std::unique_ptr<Namespace> gn = std::make_unique<Namespace>();
-		std::unique_ptr<ILEvaluator> e = std::make_unique<ILEvaluator>();
-		std::unique_ptr<StackManager> rts = std::make_unique<StackManager>();
-		std::unique_ptr<StackManager> cps = std::make_unique<StackManager>();
-		std::unique_ptr<StackManager> tms = std::make_unique<StackManager>();
+		m.architecture = ILArchitecture::x86_64;
+		e.parent = &m;
 
-		m->insintric_function[(unsigned char)ILInsintric::build_array] = &Operand::priv_build_array;
-		m->insintric_function_name[(unsigned char)ILInsintric::build_array] = "array";
-		m->insintric_function[(unsigned char)ILInsintric::build_reference] = &Operand::priv_build_reference;
-		m->insintric_function_name[(unsigned char)ILInsintric::build_reference] = "reference";
-		m->insintric_function[(unsigned char)ILInsintric::push_template] = &Operand::priv_build_push_template;
-		m->insintric_function_name[(unsigned char)ILInsintric::push_template] = "push_template";
-		m->insintric_function[(unsigned char)ILInsintric::build_template] = &Operand::priv_build_build_template;
-		m->insintric_function_name[(unsigned char)ILInsintric::build_template] = "build_template";
-		m->insintric_function[(unsigned char)ILInsintric::template_cast] = &Operand::priv_type_template_cast;
-		m->insintric_function_name[(unsigned char)ILInsintric::template_cast] = "dynamic_cast";
-		m->insintric_function[(unsigned char)ILInsintric::build_slice] = &Operand::priv_build_slice;
-		m->insintric_function_name[(unsigned char)ILInsintric::build_slice] = "slice";
-		m->insintric_function[(unsigned char)ILInsintric::debug_cursor] = &DefaultTypes::priv_debug_cursor;
-		m->insintric_function_name[(unsigned char)ILInsintric::debug_cursor] = "debug";
-		m->insintric_function[(unsigned char)ILInsintric::type_size] = &Operand::priv_type_size;
-		m->insintric_function_name[(unsigned char)ILInsintric::type_size] = "type_size";
 
-		m->architecture = ILArchitecture::x86_64;
-		e->parent = m.get();
-
-		Cursor c = src.read_first();
-
-		Ctx::init(m.get(), dt.get(), e.get(), gn.get(), rts.get(), cps.get(), tms.get());
+		Ctx::init(&m, &dt, &e, &gn, &rts, &cps, &tms);
 
 		try {
+
+			Source src;
+			src.load("..\\test\\test.crs");
+			src.register_debug();
+			Cursor c = src.read_first();
+
+
 			Ctx::types()->setup();
 
 			ILFunction* main = nullptr;
 
-			Declaration::parse_global(c, gn.get());
-			auto mainfun = gn->subfunctions.find("main");
-			if (mainfun != gn->subfunctions.end()) {
+			Declaration::parse_global(c, &gn);
+			auto mainfun = gn.subfunctions.find("main");
+			if (mainfun != gn.subfunctions.end()) {
 				FunctionInstance* finst;
 				mainfun->second->generate(nullptr, finst);
 				finst->compile();

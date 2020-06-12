@@ -18,6 +18,16 @@ namespace Corrosive {
 
 		terminated = false;
 		while (c.tok != RecognizedToken::CloseBrace) {
+
+			if (c.src != nullptr) {
+				Source* src = (Source*)c.src;
+				ILBuilder::build_debug(Ctx::scope(),src->debug_id, c.top);
+			}
+			else {
+
+				ILBuilder::build_debug(Ctx::scope(), UINT16_MAX, c.top);
+			}
+
 			Statement::parse(c, CompileType::compile, terminated);
 
 			if (terminated && c.tok != RecognizedToken::CloseBrace) {

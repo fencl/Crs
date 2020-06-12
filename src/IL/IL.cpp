@@ -2,6 +2,7 @@
 #include "IL.h"
 #include <iostream>
 #include <algorithm>
+#include <sstream>
 
 namespace Corrosive {
 	void throw_il_wrong_data_flow_error() {
@@ -23,6 +24,53 @@ namespace Corrosive {
 
 	void throw_il_wrong_arguments_error() {
 		throw std::exception("Compiler Error, Instruction cannot use argument(s) on the stack");
+	}
+
+
+	void throw_runtime_exception(const ILEvaluator* eval, std::string_view message) {
+		std::stringstream cerr;
+
+		if (eval->debug_file < eval->debug_file_names.size()) {
+			cerr << "\n | Error (" << eval->debug_file_names[eval->debug_file] << ": " << (eval->debug_line + 1) << "):\n | \t";
+		}
+		else {
+			cerr << "\n | Error (" << (eval->debug_line + 1) << "):\n | \t";
+		}
+
+		cerr << message;
+		throw string_exception(std::move(cerr.str()));
+	}
+
+	void throw_segfault_exception(const ILEvaluator* eval, int signal) {
+		std::stringstream cerr;
+		if (eval->debug_file < eval->debug_file_names.size()) {
+			cerr << "\n | Error (" << eval->debug_file_names[eval->debug_file] << ": " << (eval->debug_line + 1) << "):\n | \t";
+		}
+		else {
+			cerr << "\n | Error (" << (eval->debug_line + 1) << "):\n | \t";
+		}
+
+		cerr << "Attempt to access protected memory range (Segmentation fault [" << signal << "])";
+		throw string_exception(std::move(cerr.str()));
+	}
+
+	void throw_interrupt_exception(const ILEvaluator* eval, int signal) {
+		std::stringstream cerr;
+		if (eval->debug_file < eval->debug_file_names.size()) {
+			cerr << "\n | Error (" << eval->debug_file_names[eval->debug_file] << ": " << (eval->debug_line + 1) << "):\n | \t";
+		}
+		else {
+			cerr << "\n | Error (" << (eval->debug_line + 1) << "):\n | \t";
+		}
+
+		cerr << "Interrupt exception (Interrupt [" << signal << "])";
+		throw string_exception(std::move(cerr.str()));
+	}
+
+
+	uint16_t ILEvaluator::register_debug_source(std::string name) {
+		debug_file_names.push_back(name);
+		return debug_file_names.size() - 1;
 	}
 
 	ILFunction::~ILFunction() {}
@@ -472,6 +520,12 @@ namespace Corrosive {
 					std::cout << "   local ";
 					auto offset = *read_data_type(uint16_t);
 					std::cout << offset << "\n";
+					break;
+				}
+				case ILInstruction::debug: {
+					// do not print
+					read_data_type(uint16_t);
+					read_data_type(uint16_t);
 					break;
 				}
 				case ILInstruction::offset: {

@@ -10,7 +10,11 @@
 
 namespace Corrosive {
 
-
+	void Source::register_debug() {
+		if (debug_id == UINT16_MAX) {
+			debug_id = Ctx::eval()->register_debug_source(name);
+		}
+	}
 
 	std::string_view const Source::data() const {
 		return std::string_view(buffer);
@@ -27,10 +31,18 @@ namespace Corrosive {
 			in.read(&buffer[0], buffer.size());
 			in.close();
 		}
+
+		name = file;
+		const size_t last_slash_idx = name.find_last_of("\\/");
+		if (std::string::npos != last_slash_idx)
+		{
+			name.erase(0, last_slash_idx + 1);
+		}
 	}
 
-	void Source::load_data(const char* data) {
+	void Source::load_data(const char* data, const char* nm) {
 		buffer = data;
+		name = nm;
 	}
 
 	void Source::read_after(Cursor& out, const Cursor& c) const {

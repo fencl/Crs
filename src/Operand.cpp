@@ -55,7 +55,42 @@ namespace Corrosive {
 	}
 
 	void Operand::priv_type_template_cast(ILEvaluator* eval) {
-		return priv_type_template_cast_crsr(eval, Ctx::types()->debug_info);
+		Type* template_cast = eval->pop_register_value<Type*>();
+		Type* template_type = eval->read_register_value<Type*>();
+
+		if (template_type->type() == TypeInstanceType::type_structure_template) {
+			TypeStructureTemplate* st = (TypeStructureTemplate*)template_type;
+			TypeTemplate* tt = (TypeTemplate*)template_cast;
+
+			if (st->owner->generic_ctx.generic_layout.size() != Ctx::types()->argument_array_storage.get(tt->argument_array_id).size()) {
+				throw_runtime_exception(Ctx::eval(), "Template cannot be casted to this generic type");
+			}
+			else {
+				for (size_t i = 0; i < st->owner->generic_ctx.generic_layout.size(); i++) {
+					if (std::get<1>(st->owner->generic_ctx.generic_layout[i]) != Ctx::types()->argument_array_storage.get(tt->argument_array_id)[i]) {
+						throw_runtime_exception(Ctx::eval(), "Template cannot be casted to this generic type");
+					}
+				}
+			}
+		}
+		else if (template_type->type() == TypeInstanceType::type_trait_template) {
+			TypeTraitTemplate* st = (TypeTraitTemplate*)template_type;
+			TypeTemplate* tt = (TypeTemplate*)template_cast;
+
+			if (st->owner->generic_ctx.generic_layout.size() != Ctx::types()->argument_array_storage.get(tt->argument_array_id).size()) {
+				throw_runtime_exception(Ctx::eval(), "Template cannot be casted to this generic type");
+			}
+			else {
+				for (size_t i = 0; i < st->owner->generic_ctx.generic_layout.size(); i++) {
+					if (std::get<1>(st->owner->generic_ctx.generic_layout[i]) != Ctx::types()->argument_array_storage.get(tt->argument_array_id)[i]) {
+						throw_runtime_exception(Ctx::eval(), "Template cannot be casted to this generic type");
+					}
+				}
+			}
+		}
+		else {
+			throw_runtime_exception(Ctx::eval(), "Template cannot be casted to this generic type");
+		}
 	}
 
 	bool _crs_is_numeric_value(Type* t) {
@@ -74,14 +109,8 @@ namespace Corrosive {
 			}
 			else {
 				ILBuilder::build_const_type(Ctx::scope(), to);
-
-				uint64_t dbg_c = Ctx::types()->load_or_register_debug_cursor(err);
-				ILBuilder::build_const_u64(Ctx::scope(), dbg_c);
-				ILBuilder::build_insintric(Ctx::scope(), ILInsintric::debug_cursor);
 				ILBuilder::build_insintric(Ctx::scope(), ILInsintric::template_cast);
-
 				res.t = to;
-				
 			}
 		}
 		else if (to == Ctx::types()->t_type && res.t->type() == TypeInstanceType::type_template) {
@@ -1795,19 +1824,13 @@ namespace Corrosive {
 
 				Expression::rvalue(ret, cpt);
 
-				uint64_t dbg_c = Ctx::types()->load_or_register_debug_cursor(c);
-
 				if (cpt == CompileType::compile) {
 					ILBuilder::build_const_type(Ctx::scope(), ret.t);
-					ILBuilder::build_const_u64(Ctx::scope(), dbg_c);
-					ILBuilder::build_insintric(Ctx::scope(), ILInsintric::debug_cursor);
 					ILBuilder::build_insintric(Ctx::scope(), ILInsintric::template_cast);
 					ILBuilder::build_insintric(Ctx::scope(), ILInsintric::push_template);
 				}
 				else {
 					ILBuilder::eval_const_type(Ctx::eval(), ret.t);
-					ILBuilder::eval_const_u64(Ctx::eval(), dbg_c);
-					ILBuilder::eval_insintric(Ctx::eval(), ILInsintric::debug_cursor);
 					ILBuilder::eval_insintric(Ctx::eval(), ILInsintric::template_cast);
 					ILBuilder::eval_insintric(Ctx::eval(), ILInsintric::push_template);
 				}

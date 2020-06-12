@@ -8,18 +8,14 @@
 #include <string>
 
 namespace Corrosive {
-
-	struct string_exception : public std::exception
-	{
-		std::string s;
-		inline string_exception(std::string msg) { s = std::move(msg); }
-		inline ~string_exception() throw () {}
-		const char* what() const throw() { return s.c_str(); }
-	};
-
 	std::stringstream throw_error_header(const Cursor& c) {
 		std::stringstream cerr;
-		cerr << "\n | Error (" << (c.top+1) << "):\n | \t";
+		if (c.src != nullptr) {
+			cerr << "\n | Error ("<<((Source*)c.src)->name<<": " << (c.top + 1) << "):\n | \t";
+		}
+		else {
+			cerr << "\n | Error (" << (c.top + 1) << "):\n | \t";
+		}
 
 		Cursor cc = c;
 		if (cc.tok != RecognizedToken::Eof && cc.src!=nullptr) {

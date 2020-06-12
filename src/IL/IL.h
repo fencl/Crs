@@ -11,12 +11,20 @@
 #include <variant>
 
 namespace Corrosive {
+	struct string_exception : public std::exception
+	{
+		std::string s;
+		inline string_exception(std::string msg) { s = std::move(msg); }
+		inline ~string_exception() throw () {}
+		const char* what() const throw() { return s.c_str(); }
+	};
 
 	void throw_il_wrong_data_flow_error();
 	void throw_il_nothing_on_stack_error();
 	void throw_il_remaining_stack_error();
 	void throw_il_wrong_arguments_error();
 	void throw_il_wrong_type_error();
+
 
 	class ILFunction;
 	class ILModule;
@@ -34,7 +42,8 @@ namespace Corrosive {
 		roffset, offset, vtable, duplicate, swap, swap2,
 		memcpy, memcpy2, memcmp, memcmp2, rmemcmp, rmemcmp2,
 		malloc, free,
-		rtoffset, rtoffset2, null, isnotzero, yield, discard, accept
+		rtoffset, rtoffset2, null, isnotzero, yield, discard, accept,
+		debug
 	};
 
 	enum class ILDataType : unsigned char {
@@ -147,7 +156,7 @@ namespace Corrosive {
 	using ilsize_t = uint64_t; // max size for all architectures
 
 	enum class ILInsintric : unsigned char {
-		build_array, build_reference, push_template, build_template, build_slice, debug_cursor, template_cast, type_size
+		build_array, build_reference, push_template, build_template, build_slice, template_cast, type_size
 	};
 
 	extern const ILArchitecture compiler_arch;
@@ -167,6 +176,12 @@ namespace Corrosive {
 		ilsize_t yield_storage;
 
 		ILFunction* callstack[1024];
+		
+		uint16_t debug_line = 0;
+		uint16_t debug_file = 0;
+
+		std::vector<std::string> debug_file_names;
+		uint16_t register_debug_source(std::string name);
 
 		uint16_t callstack_depth = 0;
 
@@ -210,7 +225,11 @@ namespace Corrosive {
 		}
 	};
 
-	
+
+	void throw_runtime_exception(const ILEvaluator* eval, std::string_view message);
+	void throw_segfault_exception(const ILEvaluator* eval, int signal);
+	void throw_interrupt_exception(const ILEvaluator* eval, int signal);
+	void throw_runtime_handler_exception(const ILEvaluator* eval);
 
 	class ILModule {
 	public:
@@ -260,6 +279,7 @@ namespace Corrosive {
 		static void build_const_type  (ILBlock* block, void*    value);
 		static void build_const_size  (ILBlock* block, ILSize   value);
 
+		static void eval_debug(ILEvaluator* eval_ctx, uint16_t file, uint16_t line);
 		static void eval_load(ILEvaluator* eval_ctx, ILDataType type);
 		static void eval_store(ILEvaluator* eval_ctx, ILDataType type);
 		static void eval_store2(ILEvaluator* eval_ctx, ILDataType type);
@@ -311,6 +331,8 @@ namespace Corrosive {
 
 		static ILDataType arith_result(ILDataType l,ILDataType r);
 
+
+		static void build_debug(ILBlock* block, uint16_t file, uint16_t line);
 		static void build_load(ILBlock* block, ILDataType type);
 		static void build_store(ILBlock* block, ILDataType type);
 		static void build_store2(ILBlock* block, ILDataType type);

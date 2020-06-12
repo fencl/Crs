@@ -11,28 +11,45 @@ namespace Corrosive {
 
 	
 	jmp_buf sandbox;
+	int sigint_value = INT_MIN;
+	int sigseg_value = INT_MIN;
 
-	void sandbox_sighandler(int signum)
-	{
+	void sandbox_siginthandler(int signum) {
+		sigseg_value = INT_MIN;
+		sigint_value = signum;
+		longjmp(sandbox, 1);
+	}
+
+	void sandbox_sigseghandler(int signum) {
+		sigseg_value = signum;
+		sigint_value = INT_MIN;
 		longjmp(sandbox, 1);
 	}
 
 	void ILEvaluator::register_sandbox() {
-		signal(SIGINT, sandbox_sighandler);
-		signal(SIGSEGV, sandbox_sighandler);
+		signal(SIGINT, sandbox_siginthandler);
+		signal(SIGSEGV, sandbox_sigseghandler);
+	}
+
+	void throw_runtime_handler_exception(const ILEvaluator* eval) {
+		if (sigint_value != INT_MIN) {
+			throw_interrupt_exception(eval,sigint_value);
+		}
+		else if (sigseg_value != INT_MIN){
+			throw_segfault_exception(eval,sigseg_value);
+		}
 	}
 
 
-
 	void ILEvaluator::write_register_value_indirect(size_t size, void* value) {
-		if (register_stack_pointer - register_stack + size >= stack_size) { throw std::exception("Stack overflow"); }
+		if (register_stack_pointer - register_stack + size >= stack_size) { throw_runtime_exception(this,"Stack overflow"); }
 
 		if (setjmp(sandbox) == 0) {
 			memcpy(register_stack_pointer, value, size);
 			register_stack_pointer += size;
 		}
 		else {
-			throw std::exception("Segfault");
+			throw_runtime_handler_exception(this);
 		}
 	}
 
@@ -392,13 +409,13 @@ namespace Corrosive {
 
 
 	void ILEvaluator::pop_register_value_indirect(size_t size, void* into) {
-		if (into == nullptr) { throw std::exception("Compiler error, pop register target null"); }
+		if (into == nullptr) { throw_runtime_exception(this, "Compiler error, pop register target null"); }
 		if (setjmp(sandbox) == 0) {
 			register_stack_pointer -= size;
 			memcpy(into, register_stack_pointer, size);
 		}
 		else {
-			throw std::exception("Segfault");
+			throw_runtime_handler_exception(this);
 		}
 	}
 
@@ -462,7 +479,7 @@ namespace Corrosive {
 			eval_ctx->write_register_value_indirect(eval_ctx->compile_time_register_size(type), ptr);
 		}
 		else {
-			throw std::exception("Segfault");
+			throw_runtime_handler_exception(eval_ctx);
 		}
 	}
 
@@ -472,6 +489,11 @@ namespace Corrosive {
 			mem += offset;
 			eval_ctx->write_register_value(mem);
 		}
+	}
+	
+	void ILBuilder::eval_debug(ILEvaluator* eval_ctx, uint16_t file, uint16_t line) {
+		eval_ctx->debug_file = file;
+		eval_ctx->debug_line = line;
 	}
 
 	void ILBuilder::eval_rtoffset(ILEvaluator* eval_ctx) {
@@ -510,7 +532,7 @@ namespace Corrosive {
 			memcpy(mem, &storage, regs);
 		}
 		else {
-			throw std::exception("Segfault");
+			throw_runtime_handler_exception(eval_ctx);
 		}
 	}
 
@@ -541,7 +563,7 @@ namespace Corrosive {
 
 	void ILBuilder::eval_callstart(ILEvaluator* eval_ctx) {
 		auto func = eval_ctx->pop_register_value<ILFunction*>();
-		if (eval_ctx->callstack_depth >= 1024) { throw std::exception("Callstack overflow"); }
+		if (eval_ctx->callstack_depth >= 1024) { throw_runtime_exception(eval_ctx, "Callstack overflow"); }
 		eval_ctx->callstack[eval_ctx->callstack_depth] = func;
 		eval_ctx->callstack_depth++;
 	}
@@ -562,7 +584,7 @@ namespace Corrosive {
 			memcpy(dst, src, size);
 		}
 		else {
-			throw std::exception("Segfault");
+			throw_runtime_handler_exception(eval_ctx);
 		}
 	}
 
@@ -571,12 +593,12 @@ namespace Corrosive {
 			auto size = eval_ctx->pop_register_value<size_t>();
 			void* mlc = malloc(size);
 			if (mlc == nullptr) {
-				throw std::exception("Failed to allocate memory");
+				throw_runtime_exception(eval_ctx, "Failed to allocate memory");
 			}
 			eval_const_ptr(eval_ctx, mlc);
 		}
 		else {
-			throw std::exception("Segfault");
+			throw_runtime_handler_exception(eval_ctx);
 		}
 	}
 
@@ -586,7 +608,7 @@ namespace Corrosive {
 			free(ptr);
 		}
 		else {
-			throw std::exception("Segfault");
+			throw_runtime_handler_exception(eval_ctx);
 		}
 	}
 	
@@ -597,7 +619,7 @@ namespace Corrosive {
 			memcpy(dst, src, size);
 		}
 		else {
-			throw std::exception("Segfault");
+			throw_runtime_handler_exception(eval_ctx);
 		}
 	}
 
@@ -609,7 +631,7 @@ namespace Corrosive {
 			return eval_ctx->write_register_value((int8_t)memcmp(dst, src, size));
 		}
 		else {
-			throw std::exception("Segfault");
+			throw_runtime_handler_exception(eval_ctx);
 		}
 	}
 
@@ -620,7 +642,7 @@ namespace Corrosive {
 			eval_ctx->write_register_value((int8_t)memcmp(dst, src, size));
 		}
 		else {
-			throw std::exception("Segfault");
+			throw_runtime_handler_exception(eval_ctx);
 		}
 	}
 
@@ -633,7 +655,7 @@ namespace Corrosive {
 			eval_ctx->write_register_value((int8_t)memcmp(&s1, &s2, reg_v));
 		}
 		else {
-			throw std::exception("Segfault");
+			throw_runtime_handler_exception(eval_ctx);
 		}
 	}
 
@@ -646,7 +668,7 @@ namespace Corrosive {
 			eval_ctx->write_register_value((int8_t)memcmp(&s1, &s2, reg_v));
 		}
 		else {
-			throw std::exception("Segfault");
+			throw_runtime_handler_exception(eval_ctx);
 		}
 	}
 
@@ -883,6 +905,12 @@ namespace Corrosive {
 							auto id = read_data_type(uint16_t);
 							auto& offsetdata = fun->local_offsets[*id];
 							eval_const_ptr(eval_ctx, lstack_base + offsetdata.eval(compiler_arch));
+						} break;
+							
+						case ILInstruction::debug: {
+							auto file = *read_data_type(uint16_t);
+							auto line = *read_data_type(uint16_t);
+							eval_debug(eval_ctx, file,line);
 						} break;
 
 						case ILInstruction::load: {

@@ -4,20 +4,39 @@
 #include "Declaration.h"
 #include "PredefinedTypes.h"
 #include "Utilities.h"
+#include <csetjmp>
 
 namespace Corrosive {
 
+	extern jmp_buf sandbox;
 
 	int8_t Type::compare(unsigned char* me, unsigned char* to) {
-		return (int8_t)memcmp(me,to,size().eval(compiler_arch));
+		if (setjmp(sandbox) == 0) {
+			return (int8_t)memcmp(me, to, size().eval(compiler_arch));
+		}
+		else {
+			throw_runtime_handler_exception(Ctx::eval());
+		}
+
+		return 0;
 	}
 
 	void Type::move(unsigned char* me, unsigned char* from) {
-		memcpy(me, from, size().eval(compiler_arch));
+		if (setjmp(sandbox) == 0) {
+			memcpy(me, from, size().eval(compiler_arch));
+		}
+		else {
+			throw_runtime_handler_exception(Ctx::eval());
+		}
 	}
 
 	void Type::copy(unsigned char* me, unsigned char* from) {
-		memcpy(me, from, size().eval(compiler_arch));
+		if (setjmp(sandbox) == 0) {
+			memcpy(me, from, size().eval(compiler_arch));
+		}
+		else {
+			throw_runtime_handler_exception(Ctx::eval());
+		}
 	}
 
 

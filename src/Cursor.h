@@ -13,13 +13,14 @@ namespace Corrosive {
 		Or, DoubleOr, And, DoubleAnd, Open, At, Xor, Backslash, BackArrow, Percent, Arrow
 	};
 
+	class Source;
 	class Cursor {
 	public:
 		Cursor next() const;
 		void move();
 
 
-		const void* src;
+		const Source* src;
 		RecognizedToken tok;
 		std::string_view buffer;
 		unsigned int top = 0;
