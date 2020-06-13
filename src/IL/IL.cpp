@@ -188,9 +188,16 @@ namespace Corrosive {
 
 
 	uint16_t ILFunction::register_local(ILSize size) {
-		local_offsets.push_back(stack_size);
-		stack_size = stack_size+  size;
+		local_offsets.push_back(std::make_pair(stack_size,size));
+		stack_size = stack_size + size;
+		if (max_stack_size.absolute < stack_size.absolute) max_stack_size.absolute = stack_size.absolute;
+		if (max_stack_size.pointers < stack_size.pointers) max_stack_size.pointers = stack_size.pointers;
 		return (uint16_t)(local_offsets.size() - 1);
+	}
+
+
+	void ILFunction::drop_local(uint16_t id) {
+		stack_size = stack_size - local_offsets[id].second;
 	}
 
 
@@ -251,49 +258,13 @@ namespace Corrosive {
 		return alignment == 0 ? value : ((value % alignment == 0) ? value : value + (alignment - (value % alignment)));
 	}
 
-	size_t alignment_value(ILArchitecture arch, ILAlignment align) {
-		ILAlignment al = ILAlignment::none;
-		switch (arch)
-		{
-			case Corrosive::ILArchitecture::x86_64: al = std::max(align, ILAlignment::__4word__);
-				break;
-			case Corrosive::ILArchitecture::i386: al = std::max(align, ILAlignment::__8word__);
-				break;
-		}
-		if (al != ILAlignment::none) {
-			switch (al)
-			{
-				case Corrosive::ILAlignment::none:
-					return 1;
-				case Corrosive::ILAlignment::two:
-					return 2;
-				case Corrosive::ILAlignment::four:
-					return 4;
-				case Corrosive::ILAlignment::__4word__:
-					return 4;
-				case Corrosive::ILAlignment::eight:
-					return 8;
-				case Corrosive::ILAlignment::__8word__:
-					return 8;
-				default:
-					return 0;
-			}
-		}
-		else {
-			return 1;
-		}
-	}
-
-	size_t ILSize::eval(ILArchitecture arch, ILAlignment align) const {
-
-		size_t align_val = alignment_value(arch, align);
-
+	size_t ILSize::eval(ILArchitecture arch) const {
 		switch (arch)
 		{
 			case ILArchitecture::i386:
-				return _align_up((size_t)absolute + (size_t)pointers * 4, align_val);
+				return (size_t)absolute + (size_t)pointers * 4;
 			case ILArchitecture::x86_64:
-				return _align_up((size_t)absolute + (size_t)pointers * 8, align_val);
+				return (size_t)absolute + (size_t)pointers * 8;
 			default:
 				return 0;
 		}

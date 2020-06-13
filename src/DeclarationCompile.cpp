@@ -475,18 +475,22 @@ namespace Corrosive {
 					
 					if (tt->owner->generic_inst.generator == &Ctx::types()->tr_copy->generic_ctx) {
 						new_inst->impl_copy = trait.begin()->get();
+						new_inst->impl_copy->parent = new_inst;
 					}
 
 					if (tt->owner->generic_inst.generator == &Ctx::types()->tr_move->generic_ctx) {
 						new_inst->impl_move = trait.begin()->get();
+						new_inst->impl_move->parent = new_inst;
 					}
 
 					if (tt->owner->generic_inst.generator == &Ctx::types()->tr_compare->generic_ctx) {
 						new_inst->impl_compare = trait.begin()->get();
+						new_inst->impl_compare->parent = new_inst;
 					}
 
 					if (tt->owner->generic_inst.generator == &Ctx::types()->tr_drop->generic_ctx) {
 						new_inst->impl_drop = trait.begin()->get();
+						new_inst->impl_drop->parent = new_inst;
 					}
 
 					new_inst->traitfunctions[tt->owner] = std::move(trait);
@@ -885,7 +889,7 @@ namespace Corrosive {
 				argid--;
 			}
 
-			if (returns.second->rvalue_stacked()) {
+			if (ret_rval_stack) {
 				ILBuilder::build_local(Ctx::scope(), return_ptr_local_id);
 				ILBuilder::build_store(Ctx::scope(), ILDataType::ptr);
 			}
@@ -899,8 +903,10 @@ namespace Corrosive {
 
 			Cursor cb = block;
 			bool terminated;
-			Statement::parse_inner_block(cb, terminated, true);
+			Statement::parse_inner_block(cb, terminated, true, &name);
 
+			if (ret_rval_stack)
+				func->drop_local(return_ptr_local_id);
 
 			//func->dump();
 			//std::cout << std::endl;

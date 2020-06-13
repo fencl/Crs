@@ -543,10 +543,8 @@ namespace Corrosive {
 			eval_ctx->pop_register_value_indirect(regs, &storage);
 			auto mem = eval_ctx->pop_register_value<unsigned char*>();
 			memcpy(mem, &storage, regs);
-			
 		}
 		else {
-			
 			throw_runtime_handler_exception(eval_ctx);
 		}
 	}
@@ -744,8 +742,12 @@ namespace Corrosive {
 			bool running = true;
 
 			eval_ctx->stack_push();
-			eval_ctx->local_stack_size.back() = fun->stack_size.eval(compiler_arch);
+			eval_ctx->local_stack_size.back() = fun->max_stack_size.eval(compiler_arch);
 			unsigned char* lstack_base = eval_ctx->local_stack_base.back();
+
+			if (fun->alias == "drop") {
+				//std::cout << "adf";
+			}
 
 			size_t instr = 0;
 
@@ -944,7 +946,7 @@ namespace Corrosive {
 
 						case ILInstruction::local: {
 							auto id = read_data_type(uint16_t);
-							auto& offsetdata = fun->local_offsets[*id];
+							auto& offsetdata = fun->local_offsets[*id].first;
 							eval_const_ptr(eval_ctx, lstack_base + offsetdata.eval(compiler_arch));
 						} break;
 							

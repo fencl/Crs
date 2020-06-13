@@ -54,9 +54,6 @@ namespace Corrosive {
 		none,x86_64,i386
 	};
 
-	enum class ILAlignment : unsigned char {
-		none,two,four,__4word__,eight,__8word__,word
-	};
 
 	
 	struct ILSize {
@@ -65,7 +62,7 @@ namespace Corrosive {
 		uint32_t absolute;
 		uint16_t pointers;
 
-		size_t eval(ILArchitecture arch, ILAlignment align= ILAlignment::none) const;
+		size_t eval(ILArchitecture arch) const;
 		static const ILSize single_ptr;
 		static const ILSize double_ptr;
 	};
@@ -137,8 +134,10 @@ namespace Corrosive {
 
 		std::vector<ILDataType>						arguments;
 		ILDataType									returns;
-		std::vector<ILSize>							local_offsets;
-		ILSize stack_size;
+		std::vector<std::pair<ILSize,ILSize>>		local_offsets;
+
+		ILSize stack_size = {0,0};
+		ILSize max_stack_size = { 0,0 };
 
 		std::vector<ILBlock*>						blocks;
 		std::vector<std::unique_ptr<ILBlock>>		blocks_memory;
@@ -151,6 +150,7 @@ namespace Corrosive {
 		bool		 assert_flow();
 
 		uint16_t register_local(ILSize size);
+		void drop_local(uint16_t id);
 	};
 
 	using ilsize_t = uint64_t; // max size for all architectures

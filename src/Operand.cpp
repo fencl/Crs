@@ -1771,13 +1771,15 @@ namespace Corrosive {
 					}
 				}
 
-				if (cpt == CompileType::compile) {
-					ILBuilder::build_const_size(Ctx::scope(), ts->owner->size());
-					ILBuilder::build_div(Ctx::scope(), ILDataType::size, ILDataType::size);
-				}
-				else {
-					ILBuilder::eval_const_size(Ctx::eval(), ts->owner->size().eval(compiler_arch));
-					ILBuilder::eval_div(Ctx::eval(), ILDataType::size, ILDataType::size);
+				if (ts->owner->size().absolute > 1 || ts->owner->size().pointers > 0) {
+					if (cpt == CompileType::compile) {
+						ILBuilder::build_const_size(Ctx::scope(), ts->owner->size());
+						ILBuilder::build_div(Ctx::scope(), ILDataType::size, ILDataType::size);
+					}
+					else {
+						ILBuilder::eval_const_size(Ctx::eval(), ts->owner->size().eval(compiler_arch));
+						ILBuilder::eval_div(Ctx::eval(), ILDataType::size, ILDataType::size);
+					}
 				}
 
 				c.move();

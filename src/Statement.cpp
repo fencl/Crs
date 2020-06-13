@@ -8,13 +8,13 @@
 namespace Corrosive {
 
 
-	void Statement::parse_inner_block(Cursor& c, bool& terminated, bool exit_returns) {	
+	void Statement::parse_inner_block(Cursor& c, bool& terminated, bool exit_returns, Cursor* err) {
 
 		StackItem sitm;
 		ILBlock* b_exit = Ctx::workspace_function()->create_block();
 		b_exit->alias = "exit";
 		Ctx::push_scope_exit(b_exit);
-
+		std::vector<uint16_t> tmp_local_drop;
 
 		terminated = false;
 		while (c.tok != RecognizedToken::CloseBrace) {
@@ -39,6 +39,7 @@ namespace Corrosive {
 					ILBuilder::build_local(Ctx::scope(), sitm.id);
 					sitm.value.t->build_drop();
 				}
+				tmp_local_drop.push_back(sitm.id);
 			}
 		}
 		c.move();
@@ -60,11 +61,16 @@ namespace Corrosive {
 
 
 		Ctx::push_scope(Ctx::scope_exit());
+		for (auto tmp_local_drop_id = tmp_local_drop.begin(); tmp_local_drop_id != tmp_local_drop.end(); ++tmp_local_drop_id) {
+			Ctx::workspace_function()->drop_local(*tmp_local_drop_id);
+		}
+
 		while (Ctx::stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) {
 			if (sitm.value.t->has_special_destructor()) {
 				ILBuilder::build_local(Ctx::scope(), sitm.id);
 				sitm.value.t->build_drop();
 			}
+			Ctx::workspace_function()->drop_local(sitm.id);
 		}
 		Ctx::pop_scope();
 
@@ -89,7 +95,12 @@ namespace Corrosive {
 			}
 			else {
 				if (Ctx::workspace_return() != Ctx::types()->t_void) {
-					throw_specific_error(c, "Function does not always return value");
+					if (err != nullptr) {
+						throw_specific_error(*err, "Function does not always return value");
+					}
+					else {
+						throw std::exception("Compiler error, Function does not always return value, error cursor not provided");
+					}
 				}
 				else {
 					ILBuilder::build_ret(b_exit, ILDataType::none);
