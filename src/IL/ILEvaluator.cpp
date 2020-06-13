@@ -9,7 +9,7 @@
 
 namespace Corrosive {
 
-	
+
 	jmp_buf sandbox;
 	int sigint_value = INT_MIN;
 	int sigseg_value = INT_MIN;
@@ -18,6 +18,7 @@ namespace Corrosive {
 		sigseg_value = INT_MIN;
 		sigint_value = signum;
 		longjmp(sandbox, 1);
+		
 	}
 
 	void sandbox_sigseghandler(int signum) {
@@ -26,9 +27,14 @@ namespace Corrosive {
 		longjmp(sandbox, 1);
 	}
 
-	void ILEvaluator::register_sandbox() {
+	void ILEvaluator::sandbox_begin() {
 		signal(SIGINT, sandbox_siginthandler);
 		signal(SIGSEGV, sandbox_sigseghandler);
+	}	
+	
+	void ILEvaluator::sandbox_end() {
+		signal(SIGINT, SIG_DFL);
+		signal(SIGSEGV, SIG_DFL);
 	}
 
 	void throw_runtime_handler_exception(const ILEvaluator* eval) {
@@ -410,11 +416,14 @@ namespace Corrosive {
 
 	void ILEvaluator::pop_register_value_indirect(size_t size, void* into) {
 		if (into == nullptr) { throw_runtime_exception(this, "Compiler error, pop register target null"); }
+
+		
 		if (setjmp(sandbox) == 0) {
 			register_stack_pointer -= size;
 			memcpy(into, register_stack_pointer, size);
 		}
 		else {
+			
 			throw_runtime_handler_exception(this);
 		}
 	}
@@ -474,11 +483,14 @@ namespace Corrosive {
 	}
 
 	void ILBuilder::eval_load(ILEvaluator* eval_ctx, ILDataType type) {
+		
 		if (setjmp(sandbox) == 0) {
 			auto ptr = eval_ctx->pop_register_value<unsigned char*>();
 			eval_ctx->write_register_value_indirect(eval_ctx->compile_time_register_size(type), ptr);
+			
 		}
 		else {
+			
 			throw_runtime_handler_exception(eval_ctx);
 		}
 	}
@@ -524,14 +536,17 @@ namespace Corrosive {
 	}
 	
 	void ILBuilder::eval_store2(ILEvaluator* eval_ctx, ILDataType type) {
+		
 		if (setjmp(sandbox) == 0) {
 			ilsize_t storage;
 			size_t regs = eval_ctx->compile_time_register_size(type);
 			eval_ctx->pop_register_value_indirect(regs, &storage);
 			auto mem = eval_ctx->pop_register_value<unsigned char*>();
 			memcpy(mem, &storage, regs);
+			
 		}
 		else {
+			
 			throw_runtime_handler_exception(eval_ctx);
 		}
 	}
@@ -578,17 +593,21 @@ namespace Corrosive {
 
 
 	void ILBuilder::eval_memcpy(ILEvaluator* eval_ctx, size_t size) {
+		
 		if (setjmp(sandbox) == 0) {
 			auto dst = eval_ctx->pop_register_value<void*>();
 			auto src = eval_ctx->pop_register_value<void*>();
 			memcpy(dst, src, size);
+			
 		}
 		else {
+			
 			throw_runtime_handler_exception(eval_ctx);
 		}
 	}
 
 	void ILBuilder::eval_malloc(ILEvaluator* eval_ctx) {
+		
 		if (setjmp(sandbox) == 0) {
 			auto size = eval_ctx->pop_register_value<size_t>();
 			void* mlc = malloc(size);
@@ -596,78 +615,98 @@ namespace Corrosive {
 				throw_runtime_exception(eval_ctx, "Failed to allocate memory");
 			}
 			eval_const_ptr(eval_ctx, mlc);
+			
 		}
 		else {
+			
 			throw_runtime_handler_exception(eval_ctx);
 		}
 	}
 
 	void ILBuilder::eval_free(ILEvaluator* eval_ctx) {
+		
 		if (setjmp(sandbox) == 0) {
 			auto ptr = eval_ctx->pop_register_value<void*>();
 			free(ptr);
+			
 		}
 		else {
+			
 			throw_runtime_handler_exception(eval_ctx);
 		}
 	}
 	
 	void ILBuilder::eval_memcpy2(ILEvaluator* eval_ctx, size_t size) {
+		
 		if (setjmp(sandbox) == 0) {
 			auto src = eval_ctx->pop_register_value<void*>();
 			auto dst = eval_ctx->pop_register_value<void*>();
 			memcpy(dst, src, size);
+			
 		}
 		else {
+			
 			throw_runtime_handler_exception(eval_ctx);
 		}
 	}
 
 
 	void ILBuilder::eval_memcmp(ILEvaluator* eval_ctx, size_t size) {
+		
 		if (setjmp(sandbox) == 0) {
 			auto dst = eval_ctx->pop_register_value<void*>();
 			auto src = eval_ctx->pop_register_value<void*>();
-			return eval_ctx->write_register_value((int8_t)memcmp(dst, src, size));
+			eval_ctx->write_register_value((int8_t)memcmp(dst, src, size));
+			
 		}
 		else {
+			
 			throw_runtime_handler_exception(eval_ctx);
 		}
 	}
 
 	void ILBuilder::eval_memcmp2(ILEvaluator* eval_ctx, size_t size) {
+		
 		if (setjmp(sandbox) == 0) {
 			auto src = eval_ctx->pop_register_value<void*>();
 			auto dst = eval_ctx->pop_register_value<void*>();
 			eval_ctx->write_register_value((int8_t)memcmp(dst, src, size));
+			
 		}
 		else {
+			
 			throw_runtime_handler_exception(eval_ctx);
 		}
 	}
 
 	void ILBuilder::eval_rmemcmp(ILEvaluator* eval_ctx, ILDataType type) {
+		
 		if (setjmp(sandbox) == 0) {
 			size_t reg_v = eval_ctx->compile_time_register_size(type);
 			ilsize_t s1, s2;
 			eval_ctx->pop_register_value_indirect(reg_v, &s1);
 			eval_ctx->pop_register_value_indirect(reg_v, &s2);
 			eval_ctx->write_register_value((int8_t)memcmp(&s1, &s2, reg_v));
+			
 		}
 		else {
+			
 			throw_runtime_handler_exception(eval_ctx);
 		}
 	}
 
 	void ILBuilder::eval_rmemcmp2(ILEvaluator* eval_ctx, ILDataType type) {
+		
 		if (setjmp(sandbox) == 0) {
 			size_t reg_v = eval_ctx->compile_time_register_size(type);
 			ilsize_t s1, s2;
 			eval_ctx->pop_register_value_indirect(reg_v, &s2);
 			eval_ctx->pop_register_value_indirect(reg_v, &s1);
 			eval_ctx->write_register_value((int8_t)memcmp(&s1, &s2, reg_v));
+			
 		}
 		else {
+			
 			throw_runtime_handler_exception(eval_ctx);
 		}
 	}
@@ -696,6 +735,8 @@ namespace Corrosive {
 #define read_data_size(S) (block->read_data((S),mempool,memoff))
 	void ILBuilder::eval_call(ILEvaluator* eval_ctx, ILDataType rett, uint16_t argc) {
 
+
+		
 		if (setjmp(sandbox) == 0) {
 			ILFunction* fun = eval_ctx->callstack[eval_ctx->callstack_depth - 1];
 
@@ -978,15 +1019,17 @@ namespace Corrosive {
 			}
 
 
-
+			
 			throw_il_wrong_data_flow_error();
 		returned:
 
 			eval_ctx->stack_pop();
 			eval_ctx->callstack_depth--;
+			
 		}
 		else {
-			throw std::exception("Segfault");
+			
+			throw_runtime_handler_exception(eval_ctx);
 		}
 	}
 

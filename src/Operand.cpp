@@ -365,6 +365,7 @@ namespace Corrosive {
 					}
 
 					auto to = Ctx::eval()->pop_register_value<Type*>();
+					to->compile();
 
 					if (c.tok != RecognizedToken::CloseParenthesis) {
 						throw_wrong_token_error(c, "')'");
@@ -437,6 +438,7 @@ namespace Corrosive {
 						}
 
 						auto to = Ctx::eval()->pop_register_value<Type*>();
+						to->compile();
 
 						if (c.tok != RecognizedToken::CloseParenthesis) {
 							throw_wrong_token_error(c, "')'");
@@ -672,6 +674,7 @@ namespace Corrosive {
 			}
 
 			auto tp = Ctx::eval()->pop_register_value<Type*>();
+			tp->compile();
 			Ctx::pop_scope_context();
 
 			if (cpt == CompileType::compile) {
@@ -899,7 +902,7 @@ namespace Corrosive {
 					else {
 						StructureInstance* inst;
 						struct_inst->generate(nullptr, inst);
-
+						
 						if (cpt == CompileType::eval) {
 							ILBuilder::eval_const_type(Ctx::eval(), inst->type.get());
 						}
@@ -1221,6 +1224,7 @@ namespace Corrosive {
 
 	void Operand::priv_build_build_template(ILEvaluator* eval) {
 		Type* gen_type = template_stack[template_sp - 1];
+		gen_type->compile();
 
 		Ctx::eval_stack()->push();
 		eval->stack_push();
@@ -1576,10 +1580,16 @@ namespace Corrosive {
 		Expression::rvalue(index, cpt);
 		Operand::cast(err, index, Ctx::types()->t_size,cpt,true);
 
+
+
 		if (cpt == CompileType::compile) {
+			ILBuilder::build_const_size(Ctx::scope(), base_slice->size());
+			ILBuilder::build_mul(Ctx::scope(), ILDataType::size, ILDataType::size);
 			ILBuilder::build_rtoffset(Ctx::scope());
 		}
 		else {
+			ILBuilder::eval_const_size(Ctx::eval(), base_slice->size().eval(compiler_arch));
+			ILBuilder::eval_mul(Ctx::eval(), ILDataType::size, ILDataType::size);
 			ILBuilder::eval_rtoffset(Ctx::eval());
 		}
 
@@ -1738,8 +1748,44 @@ namespace Corrosive {
 
 	void Operand::parse_dot_operator(CompileValue& ret, Cursor& c, CompileType cpt) {
 		if (ret.t->type() == TypeInstanceType::type_slice) {
+			TypeSlice* ts = (TypeSlice*)ret.t;
 			c.move();
-			if (c.buffer == "size") {
+			if (c.buffer == "count") {
+				if (cpt == CompileType::compile) {
+					if (ret.lvalue || ret.t->rvalue_stacked()) {
+						ILBuilder::build_offset(Ctx::scope(), ILSize::single_ptr);
+						ILBuilder::build_load(Ctx::scope(), ILDataType::size);
+					}
+					else {
+						ILBuilder::build_roffset(Ctx::scope(), ret.t->rvalue(), ILDataType::size, ILSmallSize(0, 1));
+					}
+				}
+				else {
+					size_t compile_pointer = ILSize::single_ptr.eval(compiler_arch);
+					if (ret.lvalue || ret.t->rvalue_stacked()) {
+						ILBuilder::eval_offset(Ctx::eval(), compile_pointer);
+						ILBuilder::eval_load(Ctx::eval(), ILDataType::size);
+					}
+					else {
+						ILBuilder::eval_roffset(Ctx::eval(), ret.t->rvalue(), ILDataType::size, (uint8_t)compile_pointer);
+					}
+				}
+
+				if (cpt == CompileType::compile) {
+					ILBuilder::build_const_size(Ctx::scope(), ts->owner->size());
+					ILBuilder::build_div(Ctx::scope(), ILDataType::size, ILDataType::size);
+				}
+				else {
+					ILBuilder::eval_const_size(Ctx::eval(), ts->owner->size().eval(compiler_arch));
+					ILBuilder::eval_div(Ctx::eval(), ILDataType::size, ILDataType::size);
+				}
+
+				c.move();
+
+				ret.lvalue = false;
+				ret.t = Ctx::types()->t_size;
+
+			}else if (c.buffer == "size") {
 				
 				if (cpt == CompileType::compile) {
 

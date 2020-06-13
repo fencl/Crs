@@ -70,7 +70,7 @@ namespace Corrosive {
 
 	uint16_t ILEvaluator::register_debug_source(std::string name) {
 		debug_file_names.push_back(name);
-		return debug_file_names.size() - 1;
+		return (uint16_t)debug_file_names.size() - 1;
 	}
 
 	ILFunction::~ILFunction() {}

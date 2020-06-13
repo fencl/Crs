@@ -126,6 +126,10 @@ namespace Corrosive {
 					parse_if(c, terminated);
 					return;
 				}
+				else if (c.buffer == "while") {
+					parse_while(c, terminated);
+					return;
+				}
 			}break;
 			case RecognizedToken::OpenBrace: {
 				c.move();
@@ -191,8 +195,6 @@ namespace Corrosive {
 	}
 
 	void Statement::parse_if(Cursor& c, bool& terminated) {
-
-
 		c.move();
 
 		CompileValue test_value;
@@ -232,21 +234,30 @@ namespace Corrosive {
 		if (c.buffer == "else") {
 			c.move();
 			
-			if (c.tok != RecognizedToken::OpenBrace) {
-				throw_wrong_token_error(c, "'{'");
+			if (c.tok == RecognizedToken::OpenBrace) {
+				c.move();
+
+				ILBlock* else_block = Ctx::workspace_function()->create_and_append_block();
+				else_block->alias = "false";
+				Ctx::push_scope(else_block);
+				Ctx::stack()->push_block();
+				ILBuilder::build_accept(Ctx::scope(), ILDataType::none);
+				bool term2 = false;
+				Statement::parse_inner_block(c, term2);
+				if (term && term2) { terminated = true; }
+
+				ILBuilder::build_jmpz(block_from, else_block, block);
 			}
-			c.move();
+			else if (c.buffer == "if") {
+				bool term2 = false;
+				parse_if(c, term2);
+				if (term && term2) { terminated = true; }
 
-			ILBlock* else_block = Ctx::workspace_function()->create_and_append_block();
-			else_block->alias = "false";
-			Ctx::push_scope(else_block);
-			Ctx::stack()->push_block();
-			ILBuilder::build_accept(Ctx::scope(), ILDataType::none);
-			bool term2 = false;
-			Statement::parse_inner_block(c, term2);
-			if (term && term2) { terminated = true; }
-
-			ILBuilder::build_jmpz(block_from, else_block, block);
+				ILBuilder::build_jmpz(block_from, continue_block, block);
+			}
+			else {
+				throw_specific_error(c,"else can be followed only by { or if");
+			}
 		}
 		else {
 			ILBuilder::build_jmpz(block_from, continue_block, block);
@@ -254,6 +265,59 @@ namespace Corrosive {
 
 		Ctx::workspace_function()->append_block(continue_block);
 	}
+
+
+	void Statement::parse_while(Cursor& c, bool& terminated) {
+		c.move();
+
+
+		ILBlock* test_block = Ctx::workspace_function()->create_and_append_block();
+		ILBuilder::build_yield(Ctx::scope(), ILDataType::none);
+		ILBuilder::build_jmp(Ctx::scope(), test_block);
+		Ctx::pop_scope();
+		Ctx::push_scope(test_block);
+		ILBuilder::build_accept(Ctx::scope(), ILDataType::none);
+
+		CompileValue test_value;
+		Cursor err = c;
+
+		Expression::parse(c, test_value, CompileType::compile);
+		Operand::cast(err, test_value, Ctx::types()->t_bool, CompileType::compile, false);
+		Expression::rvalue(test_value, CompileType::compile);
+
+
+		if (c.tok != RecognizedToken::OpenBrace) {
+			throw_wrong_token_error(c, "'{'");
+		}
+		c.move();
+
+		ILBuilder::build_yield(test_block, ILDataType::none);
+		ILBlock* continue_block = Ctx::workspace_function()->create_block();
+
+
+
+		ILBlock* block = Ctx::workspace_function()->create_and_append_block();
+		block->alias = "while";
+		Ctx::push_scope(block);
+		Ctx::stack()->push_block();
+		ILBuilder::build_accept(block, ILDataType::none);
+		bool term = false;
+		Statement::parse_inner_block(c, term);
+
+
+
+		ILBuilder::build_jmpz(test_block, continue_block, block);
+
+		ILBuilder::build_accept(continue_block, ILDataType::none);
+		
+
+		Ctx::pop_scope();
+		Ctx::push_scope(continue_block);
+
+		Ctx::workspace_function()->append_block(continue_block);
+	}
+
+
 
 
 	void Statement::parse_return(Cursor& c) {
@@ -316,7 +380,11 @@ namespace Corrosive {
 		Cursor err = c;
 		CompileValue val;
 		Expression::parse(c, val, CompileType::compile);
+
 		if (!reference) {
+			if (!val.lvalue) 
+				do_copy = false;
+			
 			Expression::rvalue(val, CompileType::compile);
 		}
 		else {
@@ -325,8 +393,8 @@ namespace Corrosive {
 			}
 		}
 		Type* new_t = val.t;
-
 		new_t->compile();
+
 		if (new_t->context() != ILContext::both && Ctx::scope_context() != new_t->context()) {
 			throw_specific_error(err, "Type was not designed for this context");
 		}
@@ -387,7 +455,6 @@ namespace Corrosive {
 		Type* new_t = Ctx::eval()->pop_register_value<Type*>();
 		val.lvalue = true;
 		val.t = new_t;
-
 		new_t->compile();
 
 		if (new_t->context() != ILContext::both && Ctx::scope_context() != new_t->context()) {

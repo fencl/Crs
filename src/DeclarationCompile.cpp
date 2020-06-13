@@ -344,28 +344,32 @@ namespace Corrosive {
 						ft->compile_state = 0;
 						ft->generic_inst.generator = nullptr;
 						ft->generic_inst.key = nullptr;
-						ft->context = f.ctx;
 
+						Cursor err;
 						ft->block = f.block;
-						ft->name = f.name;
+						if (f.name.buffer == "<s>") {
+							ft->name = tt->owner->member_funcs.back().name;
+							err = m.type;
+						}
+						else {
+							ft->name = f.name;
+							err = ft->name;
+						}
 						ft->parent = (Namespace*)this;
 
-						auto ttid = tt->owner->member_table.find(f.name.buffer);
+						auto ttid = tt->owner->member_table.find(ft->name.buffer);
 
 						if (ttid == tt->owner->member_table.end()) {
-							throw_specific_error(f.name, "Implemented trait has no function with this name");
+							throw_specific_error(err, "Implemented trait has no function with this name");
 						}
 						else if (trait[ttid->second]!=nullptr) {
-							throw_specific_error(f.name, "Funtion with the same name already exists in the implementation");
+							throw_specific_error(err, "Funtion with the same name already exists in the implementation");
 						}
 
 
 						func_count += 1;
 						auto& fundecl = tt->owner->member_funcs[ttid->second];
-
-						if (fundecl.ctx != f.ctx) {
-							throw_specific_error(f.name, "Implemented function cannot use different context than the declaration");
-						}
+						ft->context = fundecl.ctx;
 
 						auto& args = Ctx::types()->argument_array_storage.get(fundecl.type->argument_array_id);
 
@@ -868,7 +872,6 @@ namespace Corrosive {
 
 			uint16_t argid = (uint16_t)(arguments.size()-(ret_rval_stack?0:1));
 			for (auto a = arguments.rbegin(); a != arguments.rend(); a++) {
-
 				
 				if (a->second->has_special_constructor()) {
 					ILBuilder::build_local(Ctx::scope(), argid);
@@ -952,7 +955,6 @@ namespace Corrosive {
 	void StructureInstance::compile() {
 		if (compile_state == 0) {
 			compile_state = 1;
-
 
 			size = { 0,0 };
 			alignment = { 1,0 };
@@ -1061,12 +1063,6 @@ namespace Corrosive {
 				CompileValue res;
 				res.lvalue = true;
 				res.t = std::get<1>(*key_l);
-
-				/*uint16_t sid = Ctx::eval()->push_local(res.t->size());
-				unsigned char* data_place = Ctx::eval()->stack_ptr(sid);
-				nctx.compile_stack->push_item(std::get<0>(*key_l).buffer, res, sid);
-
-				res.t->copy(eval, data_place, key_ptr);*/
 
 				uint16_t sid = Ctx::eval()->mask_local(key_ptr);
 				Ctx::eval_stack()->push_item(std::get<0>(*key_l).buffer, res, sid, StackItemTag::alias);

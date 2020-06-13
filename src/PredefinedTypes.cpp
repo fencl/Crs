@@ -130,18 +130,18 @@ namespace Corrosive {
 
 
 
-		std_lib.load_data("trait Copy(T:type) {fn Copy: (&T);}\ntrait Move(T:type) {fn Move: (&T);}\ntrait Compare(T:type) {fn Compare: (&T) i8;}\ntrait Drop {fn Drop: ();}\n"
-			"fn allocate(T: type): (s: size) []T { make slce: []T; slce.ptr=__malloc__(s*typesize(T));slce.size=s; return slce; }\n"
+		std_lib.load_data("trait copy(T:type) {fn copy: (&T);}\ntrait move(T:type) {fn move: (&T);}\ntrait compare(T:type) {fn compare: (&T) i8;}\ntrait drop {fn drop: ();}\n"
+			"fn allocate(T: type): (s: size) []T { make slce: []T; slce.size=s*typesize(T); slce.ptr=__malloc__(slce.size); return slce; }\n"
 			"fn free: (slce: ptr) {__free__(slce);}","standard_library<buffer>");
 		std_lib.register_debug();
 
 		Cursor c = std_lib.read_first();
 		Declaration::parse_global(c, Ctx::global_namespace());
 		
-		tr_copy = Ctx::global_namespace()->subtraits["Copy"].get();
-		tr_move = Ctx::global_namespace()->subtraits["Move"].get();
-		tr_compare = Ctx::global_namespace()->subtraits["Compare"].get();
-		tr_drop = Ctx::global_namespace()->subtraits["Drop"].get();
+		tr_copy = Ctx::global_namespace()->subtraits["copy"].get();
+		tr_move = Ctx::global_namespace()->subtraits["move"].get();
+		tr_compare = Ctx::global_namespace()->subtraits["compare"].get();
+		tr_drop = Ctx::global_namespace()->subtraits["drop"].get();
 	}
 
 

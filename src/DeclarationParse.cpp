@@ -369,73 +369,109 @@ namespace Corrosive {
 				c.move();
 				impl.type = c;
 
-				while (c.tok != RecognizedToken::OpenBrace) {
+				while (c.tok != RecognizedToken::OpenBrace && c.tok != RecognizedToken::Colon) {
 					if (c.tok == RecognizedToken::Eof) {
 						throw_eof_error(c, "parsing of structure member type");
 						
 					}
 					c.move();
 				}
+				bool single = c.tok == RecognizedToken::Colon;
 				c.move();
 
-				if (c.tok != RecognizedToken::CloseBrace) {
-					while (c.tok != RecognizedToken::CloseBrace) {
-						if (c.buffer == "fn") {
+				if (!single) {
+					if (c.tok != RecognizedToken::CloseBrace) {
+						while (c.tok != RecognizedToken::CloseBrace) {
+							if (c.buffer == "fn") {
 
-							StructureTemplateImplFunc member;
-							c.move();
-							if (c.buffer == "compile") {
-								member.ctx = ILContext::compile;
+								StructureTemplateImplFunc member;
 								c.move();
-							}
-							else if (c.buffer == "runtime") {
-								member.ctx = ILContext::runtime;
+								/*if (c.buffer == "compile") {
+									member.ctx = ILContext::compile;
+									c.move();
+								}
+								else if (c.buffer == "runtime") {
+									member.ctx = ILContext::runtime;
+									c.move();
+								}*/
+
+								if (c.tok != RecognizedToken::Symbol) {
+									throw_not_a_name_error(c);
+
+								}
+
+								member.name = c;
 								c.move();
-							}
 
-							if (c.tok != RecognizedToken::Symbol) {
-								throw_not_a_name_error(c);
-								
-							}
+								if (c.tok != RecognizedToken::Colon) {
+									throw_wrong_token_error(c, "':'");
 
-							member.name = c;
-							c.move();
-
-							if (c.tok != RecognizedToken::Colon) {
-								throw_wrong_token_error(c, "':'");
-								
-							}
-							c.move();
-							member.type = c;
-
-							while (c.tok != RecognizedToken::OpenBrace) {
-								if (c.tok == RecognizedToken::Eof) {
-									throw_eof_error(c, "parsing of structure member type");
-									
 								}
 								c.move();
-							}
-							c.move();
-							member.block = c;
-							int lvl = 1;
-							while (lvl > 0) {
-								switch (c.tok)
-								{
-									case RecognizedToken::OpenBrace: lvl++; c.move(); break;
-									case RecognizedToken::CloseBrace: lvl--; c.move(); break;
-									case RecognizedToken::Eof: {
-										throw_eof_error(c, "parsing of function block");
-										
+								member.type = c;
+
+								while (c.tok != RecognizedToken::OpenBrace) {
+									if (c.tok == RecognizedToken::Eof) {
+										throw_eof_error(c, "parsing of structure member type");
+
 									}
-									default: c.move(); break;
+									c.move();
 								}
-							}
+								c.move();
+								member.block = c;
+								int lvl = 1;
+								while (lvl > 0) {
+									switch (c.tok)
+									{
+										case RecognizedToken::OpenBrace: lvl++; c.move(); break;
+										case RecognizedToken::CloseBrace: lvl--; c.move(); break;
+										case RecognizedToken::Eof: {
+											throw_eof_error(c, "parsing of function block");
 
-							impl.functions.push_back(member);
+										}
+										default: c.move(); break;
+									}
+								}
+
+								impl.functions.push_back(member);
+							}
 						}
 					}
+					c.move();
 				}
-				c.move();
+				else {
+					StructureTemplateImplFunc member;
+					Cursor noname;		
+					noname.buffer = "<s>";
+					member.name = noname;
+
+					member.type = c;
+
+					while (c.tok != RecognizedToken::OpenBrace) {
+						if (c.tok == RecognizedToken::Eof) {
+							throw_eof_error(c, "parsing of structure member type");
+
+						}
+						c.move();
+					}
+					c.move();
+					member.block = c;
+					int lvl = 1;
+					while (lvl > 0) {
+						switch (c.tok)
+						{
+							case RecognizedToken::OpenBrace: lvl++; c.move(); break;
+							case RecognizedToken::CloseBrace: lvl--; c.move(); break;
+							case RecognizedToken::Eof: {
+								throw_eof_error(c, "parsing of function block");
+
+							}
+							default: c.move(); break;
+						}
+					}
+
+					impl.functions.push_back(member);
+				}
 
 				result->member_implementation.push_back(impl);
 			}

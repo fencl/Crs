@@ -427,12 +427,11 @@ namespace Corrosive {
 
 				Ctx::eval()->pop_register_value<uint8_t>();
 				CompileValue right;
+				err = c;
 				Expression::parse_operators(c, right, cpt);
 				Expression::rvalue(right, cpt);
+				Operand::cast(err, right, Ctx::types()->t_bool, cpt, true);
 
-				if (right.t != Ctx::types()->t_bool) {
-					throw_specific_error(c, "Operation requires right operand to be boolean");
-				}
 				uint8_t rv = Ctx::eval()->pop_register_value<uint8_t>();
 				ILBuilder::eval_const_ibool(Ctx::eval(), v & rv);
 			}
@@ -465,9 +464,8 @@ namespace Corrosive {
 		}
 
 		if (fallback != nullptr && cpt == CompileType::compile) {
-			if (value.t != Ctx::types()->t_bool) {
-				throw_specific_error(c, "Operation requires right operand to be boolean");
-			}
+
+			Operand::cast(err, value, Ctx::types()->t_bool, cpt, true);
 
 			Expression::rvalue(value, cpt);
 			ILBuilder::build_yield(Ctx::scope(), ILDataType::ibool);
@@ -515,10 +513,8 @@ namespace Corrosive {
 				CompileValue right;
 				Expression::parse_and(c, right, cpt);
 				Expression::rvalue(right, cpt);
+				Operand::cast(err, right, Ctx::types()->t_bool, cpt, true);
 
-				if (right.t != Ctx::types()->t_bool) {
-					throw_specific_error(c, "Operation requires right operand to be boolean");
-				}
 				uint8_t rv = Ctx::eval()->pop_register_value<uint8_t>();
 				ILBuilder::eval_const_ibool(Ctx::eval(), v | rv);
 			}
@@ -549,9 +545,8 @@ namespace Corrosive {
 		}
 
 		if (fallback != nullptr && cpt == CompileType::compile) {
-			if (value.t != Ctx::types()->t_bool) {
-				throw_specific_error(c, "Operation requires right operand to be boolean");
-			}
+
+			Operand::cast(err, value, Ctx::types()->t_bool, cpt, true);
 
 			Expression::rvalue(value, cpt);
 

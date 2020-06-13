@@ -197,7 +197,8 @@ namespace Corrosive {
 		void stack_pop();
 		unsigned char* stack_ptr(uint16_t id);
 
-		static void register_sandbox();
+		static void sandbox_begin();
+		static void sandbox_end();
 
 		void	write_register_value_indirect(size_t size, void* value);
 		void	pop_register_value_indirect(size_t size, void* into);

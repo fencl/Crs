@@ -13,18 +13,15 @@
 #include <memory>
 
 namespace Corrosive {
-
 	const ILArchitecture compiler_arch = ILArchitecture::x86_64;
 
 	int crs_main() {
 		std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
-		ILEvaluator::register_sandbox();
-
 		ILModule m;
 		DefaultTypes dt;
 		Namespace gn;
-		ILEvaluator e;
+		std::unique_ptr<ILEvaluator> e = std::make_unique<ILEvaluator>();
 		StackManager rts;
 		StackManager cps;
 		StackManager tms;
@@ -45,12 +42,15 @@ namespace Corrosive {
 		m.insintric_function_name[(unsigned char)ILInsintric::type_size] = "type_size";
 
 		m.architecture = ILArchitecture::x86_64;
-		e.parent = &m;
+		e->parent = &m;
 
 
-		Ctx::init(&m, &dt, &e, &gn, &rts, &cps, &tms);
+		Ctx::init(&m, &dt, e.get(), &gn, &rts, &cps, &tms);
+
+		Ctx::eval()->sandbox_begin();
 
 		try {
+			
 
 			Source src;
 			src.load("..\\test\\test.crs");
@@ -89,8 +89,8 @@ namespace Corrosive {
 		catch (std::exception& e) {
 			std::cerr << e.what()<<"\n";
 		}
-		
 
+		Ctx::eval()->sandbox_end();
 
 
 		std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
