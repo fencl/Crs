@@ -14,7 +14,6 @@ namespace Corrosive {
 		ILBlock* b_exit = Ctx::workspace_function()->create_block();
 		b_exit->alias = "exit";
 		Ctx::push_scope_exit(b_exit);
-		std::vector<uint16_t> tmp_local_drop;
 
 		terminated = false;
 		while (c.tok != RecognizedToken::CloseBrace) {
@@ -39,7 +38,7 @@ namespace Corrosive {
 					ILBuilder::build_local(Ctx::scope(), sitm.id);
 					sitm.value.t->build_drop();
 				}
-				tmp_local_drop.push_back(sitm.id);
+				Ctx::workspace_function()->drop_temp_local(sitm.id);
 			}
 		}
 		c.move();
@@ -61,9 +60,6 @@ namespace Corrosive {
 
 
 		Ctx::push_scope(Ctx::scope_exit());
-		for (auto tmp_local_drop_id = tmp_local_drop.begin(); tmp_local_drop_id != tmp_local_drop.end(); ++tmp_local_drop_id) {
-			Ctx::workspace_function()->drop_local(*tmp_local_drop_id);
-		}
 
 		while (Ctx::stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) {
 			if (sitm.value.t->has_special_destructor()) {

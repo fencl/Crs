@@ -26,44 +26,52 @@ namespace Corrosive {
 		throw std::exception("Compiler Error, Instruction cannot use argument(s) on the stack");
 	}
 
-
-	void throw_runtime_exception(const ILEvaluator* eval, std::string_view message) {
-		std::stringstream cerr;
-
+	void throw_runtime_exception_header(const ILEvaluator* eval, std::stringstream& cerr) {
 		if (eval->debug_file < eval->debug_file_names.size()) {
 			cerr << "\n | Error (" << eval->debug_file_names[eval->debug_file] << ": " << (eval->debug_line + 1) << "):\n | \t";
 		}
 		else {
-			cerr << "\n | Error (" << (eval->debug_line + 1) << "):\n | \t";
+			cerr << "\n | Error (?):\n | \t";
 		}
+	}
+
+	void throw_runtime_exception_footer(const ILEvaluator* eval, std::stringstream& cerr) {
+		cerr << "\n |\n";
+		for (auto t = eval->callstack_debug.rbegin(); t!=eval->callstack_debug.rend(); t++) {
+			if (std::get<1>(*t) < eval->debug_file_names.size()) {
+				cerr << "\n | At (" << eval->debug_file_names[std::get<1>(*t)] << ": " << (std::get<0>(*t) + 1) << ") "<< std::get<2>(*t);
+			}
+			else {
+				cerr << "\n | At (?) " << std::get<2>(*t);
+			}
+		}
+	}
+
+	void throw_runtime_exception(const ILEvaluator* eval, std::string_view message) {
+		std::stringstream cerr;
+		throw_runtime_exception_header(eval, cerr);
+		
 
 		cerr << message;
+		throw_runtime_exception_footer(eval, cerr);
 		throw string_exception(std::move(cerr.str()));
 	}
 
 	void throw_segfault_exception(const ILEvaluator* eval, int signal) {
 		std::stringstream cerr;
-		if (eval->debug_file < eval->debug_file_names.size()) {
-			cerr << "\n | Error (" << eval->debug_file_names[eval->debug_file] << ": " << (eval->debug_line + 1) << "):\n | \t";
-		}
-		else {
-			cerr << "\n | Error (" << (eval->debug_line + 1) << "):\n | \t";
-		}
+		throw_runtime_exception_header(eval, cerr);
 
 		cerr << "Attempt to access protected memory range (Segmentation fault [" << signal << "])";
+		throw_runtime_exception_footer(eval, cerr);
 		throw string_exception(std::move(cerr.str()));
 	}
 
 	void throw_interrupt_exception(const ILEvaluator* eval, int signal) {
 		std::stringstream cerr;
-		if (eval->debug_file < eval->debug_file_names.size()) {
-			cerr << "\n | Error (" << eval->debug_file_names[eval->debug_file] << ": " << (eval->debug_line + 1) << "):\n | \t";
-		}
-		else {
-			cerr << "\n | Error (" << (eval->debug_line + 1) << "):\n | \t";
-		}
+		throw_runtime_exception_header(eval, cerr);
 
 		cerr << "Interrupt exception (Interrupt [" << signal << "])";
+		throw_runtime_exception_footer(eval, cerr);
 		throw string_exception(std::move(cerr.str()));
 	}
 
@@ -188,8 +196,9 @@ namespace Corrosive {
 
 
 	uint16_t ILFunction::register_local(ILSize size) {
-		local_offsets.push_back(std::make_pair(stack_size,size));
+		local_offsets.push_back(std::make_tuple(stack_size,size,1));
 		stack_size = stack_size + size;
+
 		if (max_stack_size.absolute < stack_size.absolute) max_stack_size.absolute = stack_size.absolute;
 		if (max_stack_size.pointers < stack_size.pointers) max_stack_size.pointers = stack_size.pointers;
 		return (uint16_t)(local_offsets.size() - 1);
@@ -197,7 +206,21 @@ namespace Corrosive {
 
 
 	void ILFunction::drop_local(uint16_t id) {
-		stack_size = stack_size - local_offsets[id].second;
+		stack_size = stack_size - std::get<1>(local_offsets[id]);
+	}
+
+	uint16_t ILFunction::register_temp_local(ILSize size) {
+		local_offsets.push_back(std::make_tuple(temp_stack_size,size,2));
+		temp_stack_size = temp_stack_size + size;
+
+		if (max_temp_stack_size.absolute < temp_stack_size.absolute) max_temp_stack_size.absolute = temp_stack_size.absolute;
+		if (max_temp_stack_size.pointers < temp_stack_size.pointers) max_temp_stack_size.pointers = temp_stack_size.pointers;
+		return (uint16_t)(local_offsets.size() - 1);
+	}
+
+
+	void ILFunction::drop_temp_local(uint16_t id) {
+		temp_stack_size = temp_stack_size - std::get<1>(local_offsets[id]);
 	}
 
 
@@ -753,7 +776,10 @@ namespace Corrosive {
 
 
 	void ILEvaluator::discard_last_register_type(ILDataType rs) {
-		register_stack_pointer -= compile_time_register_size(rs);
+		size_t s = compile_time_register_size(rs);
+		register_stack_pointer -= s;
+
+		std::cout << "-" << s << "\n";
 	}
 
 	/*

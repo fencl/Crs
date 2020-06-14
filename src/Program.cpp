@@ -54,6 +54,7 @@ namespace Corrosive {
 
 			Source src;
 			src.load("..\\test\\test.crs");
+			src.pair_braces();
 			src.register_debug();
 			Cursor c = src.read_first();
 
@@ -76,6 +77,8 @@ namespace Corrosive {
 
 
 			if (main != nullptr) {
+				Ctx::eval()->debug_file = UINT16_MAX;
+				Ctx::eval()->debug_line = UINT16_MAX;
 				ILBuilder::eval_fnptr(Ctx::eval(), main);
 				ILBuilder::eval_callstart(Ctx::eval());
 				ILBuilder::eval_call(Ctx::eval(), ILDataType::u64, 0);

@@ -7,6 +7,7 @@
 #include <string_view>
 #include "Utilities.h"
 #include "CompileContext.h"
+#include "Error.h"
 
 namespace Corrosive {
 
@@ -303,5 +304,45 @@ namespace Corrosive {
 			out.buffer = "<eof>";
 		}
 
+	}
+
+	void Cursor::move_matching() {
+		if (src != nullptr && tok == RecognizedToken::OpenBrace) {
+			src->move_matching(*this);
+		}
+	}
+
+	void Source::move_matching(Cursor& c) const {
+		c = brace_pair.find(c.offset)->second;
+	}
+
+	void Source::pair_braces() {
+		Cursor c = read_first();
+		int level = 0;
+		std::vector<Cursor> open_braces;
+
+		while (c.tok != RecognizedToken::Eof) {
+			
+			if (c.tok == RecognizedToken::OpenBrace) {
+				open_braces.push_back(c);
+				level++;
+			}
+			else if (c.tok == RecognizedToken::CloseBrace) {
+				if (level > 0) {
+					brace_pair[open_braces.back().offset] = c;
+					open_braces.pop_back();
+					level--;
+				}
+				else {
+					throw_specific_error(c, "There was no '{' to match this brace");
+				}
+			}
+
+			c.move();
+		}
+
+		if (level != 0) {
+			throw_specific_error(open_braces.back(), "There was no '}' to close this block");
+		}
 	}
 }

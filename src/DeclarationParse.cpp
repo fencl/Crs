@@ -132,20 +132,10 @@ namespace Corrosive {
 					}
 					c.move();
 				}
-				c.move();
 				member.block = c;
-				int lvl = 1;
-				while (lvl > 0) {
-					switch (c.tok)
-					{
-						case RecognizedToken::OpenBrace: lvl++; c.move(); break;
-						case RecognizedToken::CloseBrace: lvl--; c.move(); break;
-						case RecognizedToken::Eof: {
-								throw_eof_error(c, "parsing of function block");
-							}
-						default: c.move(); break;
-					}
-				}
+				member.block.move();
+				c.move_matching();
+				c.move();
 
 				std::unique_ptr<FunctionTemplate> ft = std::make_unique<FunctionTemplate>();
 				ft->name = member.name;
@@ -294,9 +284,12 @@ namespace Corrosive {
 					}
 					c.move();
 				}
-				c.move();
+				//c.move();
 				member.block = c;
-				int lvl = 1;
+				member.block.move();
+				c.move_matching();
+				c.move();
+				/*int lvl = 1;
 				while (lvl > 0) {
 					switch (c.tok)
 					{
@@ -308,7 +301,7 @@ namespace Corrosive {
 							}
 						default: c.move(); break;
 					}
-				}
+				}*/
 
 				result->member_funcs.push_back(member);
 			}
@@ -346,9 +339,10 @@ namespace Corrosive {
 					throw_wrong_token_error(c, "'{'");
 					
 				}
+				c.move_matching();
 				c.move();
 
-				int lvl = 1;
+				/*int lvl = 1;
 				while (lvl > 0) {
 					switch (c.tok)
 					{
@@ -360,7 +354,7 @@ namespace Corrosive {
 							}
 						default: c.move(); break;
 					}
-				}
+				}*/
 
 				result->member_templates.push_back(member);
 			}
@@ -417,9 +411,12 @@ namespace Corrosive {
 									}
 									c.move();
 								}
-								c.move();
+								//c.move();
 								member.block = c;
-								int lvl = 1;
+								member.block.move();
+								c.move_matching();
+								c.move();
+								/*int lvl = 1;
 								while (lvl > 0) {
 									switch (c.tok)
 									{
@@ -431,7 +428,7 @@ namespace Corrosive {
 										}
 										default: c.move(); break;
 									}
-								}
+								}*/
 
 								impl.functions.push_back(member);
 							}
@@ -454,9 +451,12 @@ namespace Corrosive {
 						}
 						c.move();
 					}
-					c.move();
+					//c.move();
 					member.block = c;
-					int lvl = 1;
+					member.block.move();
+					c.move_matching();
+					c.move();
+					/*int lvl = 1;
 					while (lvl > 0) {
 						switch (c.tok)
 						{
@@ -468,7 +468,7 @@ namespace Corrosive {
 							}
 							default: c.move(); break;
 						}
-					}
+					}*/
 
 					impl.functions.push_back(member);
 				}

@@ -26,6 +26,8 @@ namespace Corrosive {
 		unsigned int top = 0;
 		unsigned int left = 0;
 		size_t offset = 0;
+
+		void move_matching();
 	};
 
 	bool operator < (const Cursor& c1, const Cursor& c2);

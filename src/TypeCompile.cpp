@@ -34,22 +34,22 @@ namespace Corrosive {
 
 	// ===================================================================================== GENERIC BUILD COPY/MOVE/CMP/CTOR/DROP
 	
+
+	/*
+	Avoid previous mistakes:
+		type drop and construct has to be done on lvalue or stacked rvalue currently
+		If i ever implement faster rvalue structures, this will have to change.
+
+		If structure is allowed to have register rvalue, 
+		it cannot have its own specific constructor/destructor
+	*/
+
 	void Type::build_drop() {
-		if (rvalue_stacked()) {
-			ILBuilder::build_forget(Ctx::scope(), ILDataType::ptr);
-		}
-		else {
-			ILBuilder::build_forget(Ctx::scope(), rvalue());
-		}
+		ILBuilder::build_forget(Ctx::scope(), ILDataType::ptr);
 	}
 
 	void Type::build_construct() {
-		if (rvalue_stacked()) {
-			ILBuilder::build_forget(Ctx::scope(), ILDataType::ptr);
-		}
-		else {
-			ILBuilder::build_forget(Ctx::scope(), rvalue());
-		}
+		ILBuilder::build_forget(Ctx::scope(), ILDataType::ptr);
 	}
 
 

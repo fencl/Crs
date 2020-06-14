@@ -9,6 +9,7 @@
 #include <string_view>
 #include <map>
 #include <variant>
+#include <iostream>
 
 namespace Corrosive {
 	struct string_exception : public std::exception
@@ -132,12 +133,15 @@ namespace Corrosive {
 
 		std::string alias;
 
-		std::vector<ILDataType>						arguments;
-		ILDataType									returns;
-		std::vector<std::pair<ILSize,ILSize>>		local_offsets;
+		std::vector<ILDataType>							arguments;
+		ILDataType										returns;
+		std::vector<std::tuple<ILSize,ILSize,uint8_t>>	local_offsets;
 
 		ILSize stack_size = {0,0};
 		ILSize max_stack_size = { 0,0 };
+
+		ILSize temp_stack_size = { 0,0 };
+		ILSize max_temp_stack_size = { 0,0 };
 
 		std::vector<ILBlock*>						blocks;
 		std::vector<std::unique_ptr<ILBlock>>		blocks_memory;
@@ -150,7 +154,9 @@ namespace Corrosive {
 		bool		 assert_flow();
 
 		uint16_t register_local(ILSize size);
+		uint16_t register_temp_local(ILSize size);
 		void drop_local(uint16_t id);
+		void drop_temp_local(uint16_t id);
 	};
 
 	using ilsize_t = uint64_t; // max size for all architectures
@@ -175,15 +181,14 @@ namespace Corrosive {
 
 		ilsize_t yield_storage;
 
-		ILFunction* callstack[1024];
+		std::vector<ILFunction*> callstack;
+		std::vector<std::tuple<uint16_t, uint16_t,std::string_view>> callstack_debug;
 		
 		uint16_t debug_line = 0;
 		uint16_t debug_file = 0;
 
 		std::vector<std::string> debug_file_names;
 		uint16_t register_debug_source(std::string name);
-
-		uint16_t callstack_depth = 0;
 
 		std::vector<size_t> local_stack_size;
 		std::vector<unsigned char*> local_stack_base;
@@ -216,6 +221,8 @@ namespace Corrosive {
 		template<typename T> inline T pop_register_value() {
 			if (register_stack_pointer - register_stack < sizeof(T)) { throw std::exception("Compiler error, register stack smaller than requested data"); }
 			register_stack_pointer -= sizeof(T);
+
+			//std::cout << "-" << sizeof(T) << "\n";
 			return *((T*)register_stack_pointer);
 		}
 
@@ -223,6 +230,7 @@ namespace Corrosive {
 			if (register_stack_pointer - register_stack + sizeof(T) > stack_size) { throw std::exception("Register stack overflow"); }
 			*((T*)register_stack_pointer) = v;
 			register_stack_pointer += sizeof(T);
+			//std::cout << "+" << sizeof(T) << "\n";
 		}
 	};
 

@@ -30,11 +30,15 @@ namespace Corrosive {
 	void ILEvaluator::sandbox_begin() {
 		signal(SIGINT, sandbox_siginthandler);
 		signal(SIGSEGV, sandbox_sigseghandler);
-	}	
+		signal(SIGILL, sandbox_siginthandler);
+		signal(SIGFPE, sandbox_siginthandler);
+	}
 	
 	void ILEvaluator::sandbox_end() {
 		signal(SIGINT, SIG_DFL);
 		signal(SIGSEGV, SIG_DFL);
+		signal(SIGILL, SIG_DFL);
+		signal(SIGFPE, SIG_DFL);
 	}
 
 	void throw_runtime_handler_exception(const ILEvaluator* eval) {
@@ -48,10 +52,11 @@ namespace Corrosive {
 
 
 	void ILEvaluator::write_register_value_indirect(size_t size, void* value) {
-		if (register_stack_pointer - register_stack + size >= stack_size) { throw_runtime_exception(this,"Stack overflow"); }
+		if (register_stack_pointer - register_stack + size >= stack_size) { throw_runtime_exception(this, "Stack overflow"); }
 
 		if (setjmp(sandbox) == 0) {
 			memcpy(register_stack_pointer, value, size);
+			//std::cout << "+" << size << "\n";
 			register_stack_pointer += size;
 		}
 		else {
@@ -414,13 +419,13 @@ namespace Corrosive {
 
 
 
-	void ILEvaluator::pop_register_value_indirect(size_t size, void* into) {
-		if (into == nullptr) { throw_runtime_exception(this, "Compiler error, pop register target null"); }
-
-		
+	void ILEvaluator::pop_register_value_indirect(size_t size, void* into) {		
 		if (setjmp(sandbox) == 0) {
+
+			//std::cout << "-" << size << "\n";
 			register_stack_pointer -= size;
-			memcpy(into, register_stack_pointer, size);
+			if (into!=nullptr)
+				memcpy(into, register_stack_pointer, size);
 		}
 		else {
 			
@@ -485,19 +490,17 @@ namespace Corrosive {
 	void ILBuilder::eval_load(ILEvaluator* eval_ctx, ILDataType type) {
 		
 		if (setjmp(sandbox) == 0) {
-			auto ptr = eval_ctx->pop_register_value<unsigned char*>();
+			auto ptr = eval_ctx->pop_register_value<void*>();
 			eval_ctx->write_register_value_indirect(eval_ctx->compile_time_register_size(type), ptr);
-			
 		}
 		else {
-			
 			throw_runtime_handler_exception(eval_ctx);
 		}
 	}
 
 	void ILBuilder::eval_offset(ILEvaluator* eval_ctx, size_t offset) {
 		if (offset > 0) {
-			auto mem = eval_ctx->pop_register_value<unsigned char*>();
+			auto mem = eval_ctx->pop_register_value<size_t>();
 			mem += offset;
 			eval_ctx->write_register_value(mem);
 		}
@@ -531,8 +534,8 @@ namespace Corrosive {
 
 
 	void ILBuilder::eval_store(ILEvaluator* eval_ctx, ILDataType type) {
-		auto mem = eval_ctx->pop_register_value<unsigned char*>();
-		eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(type), (void*)mem);
+		auto mem = eval_ctx->pop_register_value<void*>();
+		eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(type), mem);
 	}
 	
 	void ILBuilder::eval_store2(ILEvaluator* eval_ctx, ILDataType type) {
@@ -576,9 +579,7 @@ namespace Corrosive {
 
 	void ILBuilder::eval_callstart(ILEvaluator* eval_ctx) {
 		auto func = eval_ctx->pop_register_value<ILFunction*>();
-		if (eval_ctx->callstack_depth >= 1024) { throw_runtime_exception(eval_ctx, "Callstack overflow"); }
-		eval_ctx->callstack[eval_ctx->callstack_depth] = func;
-		eval_ctx->callstack_depth++;
+		eval_ctx->callstack.push_back(func);
 	}
 
 	void ILBuilder::eval_insintric(ILEvaluator* eval_ctx, ILInsintric fun) {
@@ -732,22 +733,19 @@ namespace Corrosive {
 #define read_data_type(T) ((T*)block->read_data(sizeof(T),mempool,memoff))
 #define read_data_size(S) (block->read_data((S),mempool,memoff))
 	void ILBuilder::eval_call(ILEvaluator* eval_ctx, ILDataType rett, uint16_t argc) {
-
-
 		
 		if (setjmp(sandbox) == 0) {
-			ILFunction* fun = eval_ctx->callstack[eval_ctx->callstack_depth - 1];
+			ILFunction* fun = eval_ctx->callstack.back();
+			eval_ctx->callstack.pop_back();
+
+			eval_ctx->callstack_debug.push_back(std::make_tuple(eval_ctx->debug_line, eval_ctx->debug_file,std::string_view(fun->alias)));
 
 			ILBlock* block = fun->blocks[0];
 			bool running = true;
 
 			eval_ctx->stack_push();
-			eval_ctx->local_stack_size.back() = fun->max_stack_size.eval(compiler_arch);
+			eval_ctx->local_stack_size.back() = fun->max_stack_size.eval(compiler_arch) + fun->max_temp_stack_size.eval(compiler_arch);
 			unsigned char* lstack_base = eval_ctx->local_stack_base.back();
-
-			if (fun->alias == "drop") {
-				//std::cout << "adf";
-			}
 
 			size_t instr = 0;
 
@@ -772,19 +770,19 @@ namespace Corrosive {
 						} break;
 						case ILInstruction::memcpy: {
 							auto size = read_data_type(ILSize);
-							eval_memcpy(eval_ctx, size->eval(eval_ctx->parent->architecture));
+							eval_memcpy(eval_ctx, size->eval(compiler_arch));
 						} break;
 						case ILInstruction::memcpy2: {
 							auto size = read_data_type(ILSize);
-							eval_memcpy2(eval_ctx, size->eval(eval_ctx->parent->architecture));
+							eval_memcpy2(eval_ctx, size->eval(compiler_arch));
 						} break;
 						case ILInstruction::memcmp: {
 							auto size = read_data_type(ILSize);
-							eval_memcmp(eval_ctx, size->eval(eval_ctx->parent->architecture));
+							eval_memcmp(eval_ctx, size->eval(compiler_arch));
 						} break;
 						case ILInstruction::memcmp2: {
 							auto size = read_data_type(ILSize);
-							eval_memcmp2(eval_ctx, size->eval(eval_ctx->parent->architecture));
+							eval_memcmp2(eval_ctx, size->eval(compiler_arch));
 						} break;
 						case ILInstruction::fnptr: {
 							auto id = read_data_type(uint32_t);
@@ -929,7 +927,7 @@ namespace Corrosive {
 						}break;
 						case ILInstruction::offset: {
 							auto size = read_data_type(ILSize);
-							eval_offset(eval_ctx, size->eval(eval_ctx->parent->architecture));
+							eval_offset(eval_ctx, size->eval(compiler_arch));
 						} break;
 						case ILInstruction::rtoffset: {
 							eval_rtoffset(eval_ctx);
@@ -941,13 +939,21 @@ namespace Corrosive {
 							auto from_t = *read_data_type(ILDataType);
 							auto to_t = *read_data_type(ILDataType);
 							auto size = read_data_type(ILSmallSize);
-							eval_roffset(eval_ctx, from_t, to_t, size->eval(eval_ctx->parent->architecture));
+							eval_roffset(eval_ctx, from_t, to_t, size->eval(compiler_arch));
 						} break;
 
 						case ILInstruction::local: {
 							auto id = read_data_type(uint16_t);
-							auto& offsetdata = fun->local_offsets[*id].first;
-							eval_const_ptr(eval_ctx, lstack_base + offsetdata.eval(compiler_arch));
+							auto& offset = fun->local_offsets[*id];
+							auto stack = std::get<2>(offset);
+							if (stack == 1) {
+								auto& offsetdata = std::get<0>(offset);
+								eval_const_ptr(eval_ctx, lstack_base + offsetdata.eval(compiler_arch));
+							}
+							else if (stack == 2) {
+								auto& offsetdata = std::get<0>(offset);
+								eval_const_ptr(eval_ctx, lstack_base + (fun->max_stack_size.eval(compiler_arch) + offsetdata.eval(compiler_arch)));
+							}
 						} break;
 							
 						case ILInstruction::debug: {
@@ -1010,7 +1016,7 @@ namespace Corrosive {
 								case ILDataType::f32:    eval_const_f32(eval_ctx, *read_data_type(float)); break;
 								case ILDataType::f64:    eval_const_f64(eval_ctx, *read_data_type(double)); break;
 								case ILDataType::ptr:    eval_const_ptr(eval_ctx, *read_data_type(void*)); break;
-								case ILDataType::size:   eval_const_size(eval_ctx, read_data_type(ILSize)->eval(eval_ctx->parent->architecture)); break;
+								case ILDataType::size:   eval_const_size(eval_ctx, read_data_type(ILSize)->eval(compiler_arch)); break;
 							}
 						} break;
 					}
@@ -1025,9 +1031,8 @@ namespace Corrosive {
 			throw_il_wrong_data_flow_error();
 		returned:
 
+			eval_ctx->callstack_debug.pop_back();
 			eval_ctx->stack_pop();
-			eval_ctx->callstack_depth--;
-			
 		}
 		else {
 			

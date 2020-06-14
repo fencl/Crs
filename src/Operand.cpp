@@ -203,7 +203,7 @@ namespace Corrosive {
 					
 					uint16_t sid = Ctx::eval()->push_local(to->size());
 					unsigned char* memory_place = Ctx::eval()->stack_ptr(sid);
-					Ctx::temp_stack()->push_item("$tmp", val, sid, StackItemTag::regular);
+					Ctx::eval_stack()->push_item("$tmp", val, sid, StackItemTag::regular);
 
 					ILBuilder::eval_const_ptr(Ctx::eval(), memory_place);
 					ILBuilder::eval_store(Ctx::eval(), ILDataType::ptr);
@@ -222,7 +222,8 @@ namespace Corrosive {
 					CompileValue val;
 					val.t = to;
 					val.lvalue = false;
-					uint32_t local_id = Ctx::workspace_function()->register_local(to->size());
+					to->compile();
+					uint32_t local_id = Ctx::workspace_function()->register_temp_local(to->size());
 					Ctx::temp_stack()->push_item("$tmp", val, local_id, StackItemTag::regular);
 					
 					ILBuilder::build_local(Ctx::scope(), local_id);
@@ -611,7 +612,6 @@ namespace Corrosive {
 	void Operand::parse_expression(CompileValue& ret, Cursor& c, CompileType cpt) {
 		c.move();
 		Expression::parse(c, ret, cpt);
-		Expression::rvalue(ret, cpt);
 
 		if (c.tok != RecognizedToken::CloseParenthesis) {
 			throw_wrong_token_error(c, "')'");
@@ -686,6 +686,84 @@ namespace Corrosive {
 
 			ret.lvalue = false;
 			ret.t = Ctx::types()->t_size;
+		}
+		else if (c.buffer == "default") {
+			c.move();
+
+			CompileValue type_val;
+			Cursor err = c;
+			Operand::parse(c, type_val, cpt);
+
+			if (type_val.t->type() == TypeInstanceType::type_structure_instance && type_val.lvalue) {
+				type_val.t->compile();
+
+				if (cpt == CompileType::compile) {
+					//ILBuilder::build_duplicate(Ctx::scope(), ILDataType::ptr);
+					type_val.t->build_construct();
+				}
+				else {
+					type_val.t->construct(Ctx::eval()->pop_register_value<unsigned char*>());
+				}
+			}
+			else if (type_val.t->type() == TypeInstanceType::type_reference) {
+				TypeReference* tr = (TypeReference*)type_val.t;
+				tr->owner->compile();
+				Expression::rvalue(type_val, cpt);
+
+				if (cpt == CompileType::compile) {
+					//ILBuilder::build_duplicate(Ctx::scope(), ILDataType::ptr);
+					tr->owner->build_construct();
+				}
+				else {
+					tr->owner->construct(Ctx::eval()->pop_register_value<unsigned char*>());
+				}
+
+			}
+			else {
+				throw_specific_error(err, "Expected lvalue of structure or equivalent reference");
+			}
+
+			ret.t = Ctx::types()->t_void;
+			ret.lvalue = false;
+		}
+		else if (c.buffer == "drop") {
+			c.move();
+
+			CompileValue type_val;
+			Cursor err = c;
+			Operand::parse(c, type_val, cpt);
+
+			if (type_val.t->type() == TypeInstanceType::type_structure_instance && type_val.lvalue) {
+
+				type_val.t->compile();
+
+				if (cpt == CompileType::compile) {
+					type_val.t->build_drop();
+				}
+				else {
+					type_val.t->drop(Ctx::eval()->pop_register_value<unsigned char*>());
+				}
+
+			}
+			else if (type_val.t->type() == TypeInstanceType::type_reference) {
+				TypeReference* tr = (TypeReference*)type_val.t;
+				tr->owner->compile();
+				tr->compile();
+				Expression::rvalue(type_val, cpt);
+
+				if (cpt == CompileType::compile) {
+					tr->owner->build_drop();
+				}
+				else {
+					tr->owner->drop(Ctx::eval()->pop_register_value<unsigned char*>());
+				}
+			}
+			else {
+				throw_specific_error(err, "Expected lvalue of structure or equivalent reference");
+			}
+
+			ret.t = Ctx::types()->t_void;
+			ret.lvalue = false;
 		}
 		else if (c.buffer == "type") {
 
@@ -1167,9 +1245,9 @@ namespace Corrosive {
 		std::vector<std::tuple<Cursor, Type*>>::reverse_iterator act_layout;
 		size_t act_layout_size = 0;
 
-		if (generating->generic_ctx.generator != nullptr) {
-			generating->generic_ctx.generator->insert_key_on_stack(Ctx::eval());
-		}
+		//if (generating->generic_ctx.generator != nullptr) {
+		//	generating->generic_ctx.generator->insert_key_on_stack(Ctx::eval());
+		//}
 
 		act_layout = generating->generic_ctx.generic_layout.rbegin();
 		act_layout_size = generating->generic_ctx.generic_layout.size();
@@ -1235,16 +1313,16 @@ namespace Corrosive {
 		size_t gen_types = 0;
 
 		if (gen_type->type() == TypeInstanceType::type_structure_template) {
-			if (((TypeStructureTemplate*)gen_type)->owner->generic_ctx.generator != nullptr) {
+			/*if (((TypeStructureTemplate*)gen_type)->owner->generic_ctx.generator != nullptr) {
 				((TypeStructureTemplate*)gen_type)->owner->generic_ctx.generator->insert_key_on_stack(eval);
-			}
+			}*/
 			act_layout = ((TypeStructureTemplate*)gen_type)->owner->generic_ctx.generic_layout.rbegin();
 			gen_types = ((TypeStructureTemplate*)gen_type)->owner->generic_ctx.generic_layout.size();
 		}
 		else if (gen_type->type() == TypeInstanceType::type_trait_template) {
-			if (((TypeTraitTemplate*)gen_type)->owner->generic_ctx.generator != nullptr) {
+			/*if (((TypeTraitTemplate*)gen_type)->owner->generic_ctx.generator != nullptr) {
 				((TypeTraitTemplate*)gen_type)->owner->generic_ctx.generator->insert_key_on_stack(eval);
-			}
+			}*/
 			act_layout = ((TypeTraitTemplate*)gen_type)->owner->generic_ctx.generic_layout.rbegin();
 			gen_types = ((TypeTraitTemplate*)gen_type)->owner->generic_ctx.generic_layout.size();
 		}
@@ -1406,7 +1484,7 @@ namespace Corrosive {
 			CompileValue retval;
 			retval.t = ft->return_type;
 			retval.lvalue = true;
-
+			ft->return_type->compile();
 
 			if (cpt == CompileType::compile) {
 
@@ -1415,7 +1493,7 @@ namespace Corrosive {
 
 				ILBuilder::build_callstart(Ctx::scope());
 				if (ft->return_type->rvalue_stacked()) {
-					local_return_id = Ctx::workspace_function()->register_local(retval.t->size());
+					local_return_id = Ctx::workspace_function()->register_temp_local(retval.t->size());
 					Ctx::temp_stack()->push_item("$tmp", retval, local_return_id, StackItemTag::regular);
 
 					if (retval.t->has_special_constructor()) {
@@ -1429,8 +1507,7 @@ namespace Corrosive {
 				_crs_read_arguments(c, argi, ft, cpt);
 
 				if (argi != Ctx::types()->argument_array_storage.get(ft->argument_array_id).size()) {
-					throw_specific_error(c, "Wrong number of arguments");
-					
+					throw_specific_error(c, "Wrong number of arguments");					
 				}
 
 				c.move();
@@ -1711,8 +1788,8 @@ namespace Corrosive {
 				Ctx::eval_stack()->push();
 				Ctx::eval()->stack_push();
 
-				if (tplt->generic_ctx.generator)
-					tplt->generic_ctx.generator->insert_key_on_stack(Ctx::eval());
+				/*if (tplt->generic_ctx.generator)
+					tplt->generic_ctx.generator->insert_key_on_stack(Ctx::eval());*/
 
 
 				tplt->compile();

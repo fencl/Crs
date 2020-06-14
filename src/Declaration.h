@@ -129,7 +129,6 @@ namespace Corrosive {
 		Cursor name;
 		Cursor type;
 		Cursor block;
-		//ILContext ctx = ILContext::both;
 	};
 
 	struct StructureTemplateSubtemplate {

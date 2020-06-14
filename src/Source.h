@@ -2,6 +2,9 @@
 #ifndef _source_crs_h
 #define _source_crs_h
 #include "Cursor.h"
+#include <unordered_map> 
+
+
 namespace Corrosive {
 	class Source {
 	public:
@@ -16,8 +19,13 @@ namespace Corrosive {
 		void read(Cursor& out, size_t offset, unsigned int left, unsigned int top) const;
 		void read_after(Cursor& out, const Cursor& c) const;
 		Cursor read_first() const;
+
+		void pair_braces();
+		void move_matching(Cursor& c) const;
 	private:
 		std::string buffer;
+		std::unordered_map<size_t, Cursor> brace_pair;
+
 	};
 
 }
