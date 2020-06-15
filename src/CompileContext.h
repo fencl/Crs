@@ -17,6 +17,7 @@ namespace Corrosive {
 	class DefaultTypes;
 	class FunctionInstance;
 	class StackManager;
+	class ConstantManager;
 
 	class Ctx {
 	public:
@@ -34,8 +35,9 @@ namespace Corrosive {
 		static StackManager* stack();
 		static StackManager* temp_stack();
 		static StackManager* eval_stack();
+		static ConstantManager* const_mgr();
 
-		static void init(ILModule* global_mod, DefaultTypes* def_types, ILEvaluator* evaluator, Namespace* global_nspc, StackManager* rt_stack, StackManager* cp_stack, StackManager* tmp_stack);
+		static void init(ILModule* global_mod, DefaultTypes* def_types, ILEvaluator* evaluator, Namespace* global_nspc, StackManager* rt_stack, StackManager* cp_stack, StackManager* tmp_stack, ConstantManager* cmgr);
 
 		static void push_workspace(Namespace* workspace);
 		static void pop_workspace();
@@ -59,6 +61,7 @@ namespace Corrosive {
 		static StackManager* runtime_stack;
 		static StackManager* temporary_stack;
 		static StackManager* compile_stack;
+		static ConstantManager* constant_mgr;
 
 		static std::vector<Namespace*> inside;
 		static std::vector<ILFunction*> il_function;

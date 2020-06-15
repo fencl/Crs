@@ -10,6 +10,7 @@
 #include "Expression.h"
 #include "IL/IL.h"
 #include "StackManager.h"
+#include "ConstantManager.h"
 #include <memory>
 
 namespace Corrosive {
@@ -25,6 +26,7 @@ namespace Corrosive {
 		StackManager rts;
 		StackManager cps;
 		StackManager tms;
+		ConstantManager cmgr;
 
 		m.insintric_function[(unsigned char)ILInsintric::build_array] = &Operand::priv_build_array;
 		m.insintric_function_name[(unsigned char)ILInsintric::build_array] = "array";
@@ -45,7 +47,7 @@ namespace Corrosive {
 		e->parent = &m;
 
 
-		Ctx::init(&m, &dt, e.get(), &gn, &rts, &cps, &tms);
+		Ctx::init(&m, &dt, e.get(), &gn, &rts, &cps, &tms,&cmgr);
 
 		Ctx::eval()->sandbox_begin();
 
@@ -84,7 +86,10 @@ namespace Corrosive {
 				ILBuilder::eval_call(Ctx::eval(), ILDataType::u64, 0);
 				uint64_t ret_val = Ctx::eval()->pop_register_value<uint64_t>();
 				std::cout << "========= TEST =========\ntest result was: " << ret_val << "\n\n";
-				std::cout << "leaked registers: " << (size_t)(Ctx::eval()->register_stack_pointer - Ctx::eval()->register_stack) << "\n";
+
+				auto lr = (size_t)(Ctx::eval()->register_stack_pointer - Ctx::eval()->register_stack);
+				if (lr>0)
+					std::cout << "leaked registers: " << lr << "\n";
 			}
 			else {
 				std::cerr << "main was null\n";

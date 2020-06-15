@@ -389,6 +389,11 @@ namespace Corrosive {
 					auto ind = read_data_type(uint32_t);
 					std::cout << *ind << "\n";
 				} break;
+				case ILInstruction::constref: {
+					std::cout << "   constref ";
+					auto ind = read_data_type(uint32_t);
+					std::cout << *ind << "\n";
+				} break;
 				case ILInstruction::duplicate: {
 					std::cout << "   duplicate ";
 					auto type = read_data_type(ILDataType);

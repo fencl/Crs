@@ -34,9 +34,9 @@ namespace Corrosive {
 			}
 
 			while (Ctx::temp_stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) {
-				if (sitm.value.t->has_special_destructor()) {
+				if (sitm.type->has_special_destructor()) {
 					ILBuilder::build_local(Ctx::scope(), sitm.id);
-					sitm.value.t->build_drop();
+					sitm.type->build_drop();
 				}
 				Ctx::workspace_function()->drop_temp_local(sitm.id);
 			}
@@ -62,9 +62,9 @@ namespace Corrosive {
 		Ctx::push_scope(Ctx::scope_exit());
 
 		while (Ctx::stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) {
-			if (sitm.value.t->has_special_destructor()) {
+			if (sitm.type->has_special_destructor()) {
 				ILBuilder::build_local(Ctx::scope(), sitm.id);
-				sitm.value.t->build_drop();
+				sitm.type->build_drop();
 			}
 			Ctx::workspace_function()->drop_local(sitm.id);
 		}
@@ -408,12 +408,10 @@ namespace Corrosive {
 
 		if (reference) {
 			new_t = new_t->generate_reference();
-			val.t = new_t;
-			val.lvalue = true;
 		}
 
 		uint32_t local_id = Ctx::workspace_function()->register_local(new_t->size());
-		Ctx::stack()->push_item(name.buffer, val, local_id, StackItemTag::regular);
+		Ctx::stack()->push_item(name.buffer, new_t, local_id, StackItemTag::regular);
 		if (new_t->has_special_constructor()) {
 			ILBuilder::build_local(Ctx::scope(), local_id);
 			new_t->build_construct();
@@ -460,8 +458,6 @@ namespace Corrosive {
 		Ctx::pop_scope_context();
 
 		Type* new_t = Ctx::eval()->pop_register_value<Type*>();
-		val.lvalue = true;
-		val.t = new_t;
 		new_t->compile();
 
 		if (new_t->context() != ILContext::both && Ctx::scope_context() != new_t->context()) {
@@ -471,7 +467,7 @@ namespace Corrosive {
 
 		ILSize s = new_t->size();
 		uint32_t local_id = Ctx::workspace_function()->register_local(s);
-		Ctx::stack()->push_item(name.buffer, val, local_id, StackItemTag::regular);
+		Ctx::stack()->push_item(name.buffer, new_t, local_id, StackItemTag::regular);
 
 		if (new_t->has_special_constructor()) {
 			ILBuilder::build_local(Ctx::scope(), local_id);

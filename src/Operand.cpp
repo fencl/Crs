@@ -4,6 +4,7 @@
 #include "PredefinedTypes.h"
 #include "Expression.h"
 #include "StackManager.h"
+#include "ConstantManager.h"
 
 #include <iostream>
 
@@ -196,14 +197,10 @@ namespace Corrosive {
 			if (cpt == CompileType::eval) {
 
 				
-				if (to->rvalue_stacked()) {
-					CompileValue val;
-					val.t = to;
-					val.lvalue = false;
-					
+				if (to->rvalue_stacked()) {					
 					uint16_t sid = Ctx::eval()->push_local(to->size());
 					unsigned char* memory_place = Ctx::eval()->stack_ptr(sid);
-					Ctx::eval_stack()->push_item("$tmp", val, sid, StackItemTag::regular);
+					Ctx::eval_stack()->push_item("$tmp", to, sid, StackItemTag::regular);
 
 					ILBuilder::eval_const_ptr(Ctx::eval(), memory_place);
 					ILBuilder::eval_store(Ctx::eval(), ILDataType::ptr);
@@ -219,12 +216,9 @@ namespace Corrosive {
 			}
 			else {
 				if (to->rvalue_stacked()) {
-					CompileValue val;
-					val.t = to;
-					val.lvalue = false;
 					to->compile();
 					uint32_t local_id = Ctx::workspace_function()->register_temp_local(to->size());
-					Ctx::temp_stack()->push_item("$tmp", val, local_id, StackItemTag::regular);
+					Ctx::temp_stack()->push_item("$tmp", to, local_id, StackItemTag::regular);
 					
 					ILBuilder::build_local(Ctx::scope(), local_id);
 					ILBuilder::build_store(Ctx::scope(), ILDataType::ptr);
@@ -405,6 +399,11 @@ namespace Corrosive {
 			case RecognizedToken::DoubleNumber: {
 				Operand::parse_float_number(ret, c, cpt);
 			}break;
+
+			case RecognizedToken::String: {
+				Operand::parse_string_literal(ret, c, cpt);
+			}break;
+
 
 			default: {
 				throw_specific_error(c, "Expected to parse operand");
@@ -892,7 +891,7 @@ namespace Corrosive {
 
 			if (cpt == CompileType::compile && Ctx::stack()->find(c.buffer,sitm)) {
 				ILBuilder::build_local(Ctx::scope(), sitm.id);
-				ret = sitm.value;
+				ret.t = sitm.type;
 				ret.lvalue = true;
 				c.move();
 			}
@@ -901,7 +900,7 @@ namespace Corrosive {
 				//std::cout <<sitm.id<<": 0x"<<std::hex << (size_t)Ctx::eval()->stack_ptr(sitm.id) << "\n";
 
 				ILBuilder::eval_local(Ctx::eval(), sitm.id);
-				ret = sitm.value;
+				ret.t = sitm.type;
 				ret.lvalue = true;
 				c.move();
 			}
@@ -1257,17 +1256,15 @@ namespace Corrosive {
 
 		for (size_t arg_i = act_layout_size - 1; arg_i >= 0 && arg_i < act_layout_size; arg_i--) {
 
-			CompileValue res;
-			res.t = std::get<1>(*act_layout);
-			res.lvalue = true;
+			Type* type = std::get<1>(*act_layout);
 
-			uint16_t sid = Ctx::eval()->push_local(res.t->size());
+			uint16_t sid = Ctx::eval()->push_local(type->size());
 			unsigned char* data_place = Ctx::eval()->stack_ptr(sid);
-			Ctx::eval_stack()->push_item(std::get<0>(*act_layout).buffer, res, sid, StackItemTag::regular);
+			Ctx::eval_stack()->push_item(std::get<0>(*act_layout).buffer, type, sid, StackItemTag::regular);
 
 
 			Ctx::eval()->write_register_value(data_place);
-			Expression::copy_from_rvalue(res.t, CompileType::eval, false);
+			Expression::copy_from_rvalue(type, CompileType::eval, false);
 
 			act_layout++;
 		}
@@ -1279,10 +1276,8 @@ namespace Corrosive {
 
 		StackItem sitm;
 		while (Ctx::eval_stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) {
-			CompileValue res = sitm.value;
-
-			if (res.t->has_special_destructor()) {
-				res.t->drop(Ctx::eval()->stack_ptr(sitm.id));
+			if (sitm.type->has_special_destructor()) {
+				sitm.type->drop(Ctx::eval()->stack_ptr(sitm.id));
 			}
 		}
 
@@ -1336,17 +1331,15 @@ namespace Corrosive {
 		act_layout_it = act_layout;
 		for (size_t arg_i = gen_types - 1; arg_i >= 0 && arg_i < gen_types; arg_i--) {
 
-			CompileValue res;
-			res.t = std::get<1>((*act_layout_it));
-			res.lvalue = true;
+			Type* type = std::get<1>((*act_layout_it));
 
-			uint16_t local_id = eval->push_local(res.t->size());
+			uint16_t local_id = eval->push_local(type->size());
 			unsigned char* data_place = eval->stack_ptr(local_id);
-			Ctx::eval_stack()->push_item(std::get<0>(*act_layout_it).buffer,res,local_id, StackItemTag::regular);
+			Ctx::eval_stack()->push_item(std::get<0>(*act_layout_it).buffer, type,local_id, StackItemTag::regular);
 
 
 			eval->write_register_value(data_place);
-			Expression::copy_from_rvalue(res.t, CompileType::eval, false);
+			Expression::copy_from_rvalue(type, CompileType::eval, false);
 
 			act_layout_it++;
 		}
@@ -1366,10 +1359,8 @@ namespace Corrosive {
 		// ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
 		StackItem sitm;
 		while (Ctx::eval_stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) {
-			CompileValue res = sitm.value;
-
-			if (res.t->has_special_destructor()) {
-				res.t->drop(eval->stack_ptr(sitm.id));
+			if (sitm.type->has_special_destructor()) {
+				sitm.type->drop(eval->stack_ptr(sitm.id));
 			}
 		}
 		// ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
@@ -1494,7 +1485,7 @@ namespace Corrosive {
 				ILBuilder::build_callstart(Ctx::scope());
 				if (ft->return_type->rvalue_stacked()) {
 					local_return_id = Ctx::workspace_function()->register_temp_local(retval.t->size());
-					Ctx::temp_stack()->push_item("$tmp", retval, local_return_id, StackItemTag::regular);
+					Ctx::temp_stack()->push_item("$tmp", retval.t, local_return_id, StackItemTag::regular);
 
 					if (retval.t->has_special_constructor()) {
 						ILBuilder::build_local(Ctx::scope(), local_return_id);
@@ -1534,7 +1525,7 @@ namespace Corrosive {
 					uint16_t sid = Ctx::eval()->push_local(retval.t->size());
 					unsigned char* memory_place = Ctx::eval()->stack_ptr(sid);
 
-					Ctx::eval_stack()->push_item("$tmp", retval, sid, StackItemTag::regular);
+					Ctx::eval_stack()->push_item("$tmp", retval.t, sid, StackItemTag::regular);
 
 					if (retval.t->has_special_constructor()) {
 						retval.t->construct(memory_place);
@@ -2259,5 +2250,42 @@ namespace Corrosive {
 		}
 
 		
+	}
+
+
+	void Operand::parse_string_literal(CompileValue& ret, Cursor& c, CompileType cpt) {
+		std::string_view lit = c.buffer.substr(1, c.buffer.length() - 2);
+		uint32_t cid = Ctx::const_mgr()->register_string_literal(lit);
+
+		Type* slice = Ctx::types()->t_u8->generate_slice();
+
+		if (cpt == CompileType::compile) {
+			uint32_t local_id = Ctx::workspace_function()->register_temp_local(slice->size());
+			Ctx::temp_stack()->push_item("$tmp", slice, local_id, StackItemTag::regular);
+			ILBuilder::build_constref(Ctx::scope(), cid);
+			ILBuilder::build_local(Ctx::scope(), local_id);
+			ILBuilder::build_store(Ctx::scope(), ILDataType::ptr);
+			ILBuilder::build_const_size(Ctx::scope(), ILSize(lit.length(), 0));
+			ILBuilder::build_local(Ctx::scope(), local_id);
+			ILBuilder::build_offset(Ctx::scope(), ILSize::single_ptr);
+			ILBuilder::build_store(Ctx::scope(), ILDataType::size);
+			ILBuilder::build_local(Ctx::scope(), local_id);
+		}
+		else {
+			uint32_t local_id = Ctx::eval()->push_local(slice->size());
+			Ctx::eval_stack()->push_item("$tmp", slice, local_id, StackItemTag::regular);
+			ILBuilder::eval_constref(Ctx::eval(), cid);
+			ILBuilder::eval_local(Ctx::eval(), local_id);
+			ILBuilder::eval_store(Ctx::eval(), ILDataType::ptr);
+			ILBuilder::eval_const_size(Ctx::eval(), lit.length());
+			ILBuilder::eval_local(Ctx::eval(), local_id);
+			ILBuilder::eval_offset(Ctx::eval(), ILSize::single_ptr.eval(compiler_arch));
+			ILBuilder::eval_store(Ctx::eval(), ILDataType::size);
+			ILBuilder::eval_local(Ctx::eval(), local_id);
+		}
+
+		c.move();
+		ret.t = slice;
+		ret.lvalue = false;
 	}
 }

@@ -910,14 +910,11 @@ namespace Corrosive {
 					throw_specific_error(err, "Type is marked for compile time use only");
 				}
 
-				CompileValue argval;
-				argval.t = a.second;
-				argval.lvalue = true;
-				argval.t->compile();
-				uint16_t id = func->register_local(argval.t->size());
+				a.second->compile();
+				uint16_t id = func->register_local(a.second->size());
 				func->arguments.push_back(a.second->rvalue());
 
-				Ctx::stack()->push_item(a.first.buffer,argval,id,StackItemTag::regular);
+				Ctx::stack()->push_item(a.first.buffer, a.second,id,StackItemTag::regular);
 			}
 
 			
@@ -1123,14 +1120,10 @@ namespace Corrosive {
 			unsigned char* key_ptr = key;
 			for (auto key_l = generator->generic_layout.rbegin(); key_l != generator->generic_layout.rend(); key_l++) {
 
-				CompileValue res;
-				res.lvalue = true;
-				res.t = std::get<1>(*key_l);
-
 				uint16_t sid = Ctx::eval()->mask_local(key_ptr);
-				Ctx::eval_stack()->push_item(std::get<0>(*key_l).buffer, res, sid, StackItemTag::alias);
+				Ctx::eval_stack()->push_item(std::get<0>(*key_l).buffer, std::get<1>(*key_l), sid, StackItemTag::alias);
 
-				key_ptr += res.t->size().eval(compiler_arch);
+				key_ptr += std::get<1>(*key_l)->size().eval(compiler_arch);
 			}
 
 			

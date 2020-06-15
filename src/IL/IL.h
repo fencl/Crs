@@ -44,7 +44,7 @@ namespace Corrosive {
 		memcpy, memcpy2, memcmp, memcmp2, rmemcmp, rmemcmp2,
 		malloc, free,
 		rtoffset, rtoffset2, null, isnotzero, yield, discard, accept,
-		debug
+		debug, constref
 	};
 
 	enum class ILDataType : unsigned char {
@@ -291,6 +291,7 @@ namespace Corrosive {
 		static void build_const_type  (ILBlock* block, void*    value);
 		static void build_const_size  (ILBlock* block, ILSize   value);
 
+		static void eval_constref(ILEvaluator* eval_ctx, uint32_t constid);
 		static void eval_debug(ILEvaluator* eval_ctx, uint16_t file, uint16_t line);
 		static void eval_load(ILEvaluator* eval_ctx, ILDataType type);
 		static void eval_store(ILEvaluator* eval_ctx, ILDataType type);
@@ -343,7 +344,7 @@ namespace Corrosive {
 
 		static ILDataType arith_result(ILDataType l,ILDataType r);
 
-
+		static void build_constref(ILBlock* block, uint32_t constid);
 		static void build_debug(ILBlock* block, uint16_t file, uint16_t line);
 		static void build_load(ILBlock* block, ILDataType type);
 		static void build_store(ILBlock* block, ILDataType type);

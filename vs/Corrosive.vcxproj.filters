@@ -60,6 +60,9 @@
     <ClInclude Include="..\src\Statement.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\ConstantManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\Declaration.cpp">
@@ -111,6 +114,12 @@
       <Filter>Source Files\IL</Filter>
     </ClCompile>
     <ClCompile Include="..\src\Statement.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ConstantManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\CompileContext.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

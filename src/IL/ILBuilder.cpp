@@ -67,7 +67,11 @@ namespace Corrosive {
 	void ILBuilder::build_fnptr(ILBlock* block, ILFunction* fun) {
 		block->write_instruction(ILInstruction::fnptr);
 		block->write_value(sizeof(uint32_t), (unsigned char*)&(fun->id));
-		
+	}
+
+	void ILBuilder::build_constref(ILBlock* block, uint32_t constid) {
+		block->write_instruction(ILInstruction::constref);
+		block->write_value(sizeof(uint32_t), (unsigned char*)&constid);
 	}
 
 	void ILBuilder::build_call(ILBlock* block, ILDataType type,uint16_t argc) {
