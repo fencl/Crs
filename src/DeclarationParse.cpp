@@ -38,8 +38,19 @@ namespace Corrosive {
 	void Namespace::parse_inner(Cursor& c, Namespace* into, GenericInstance* gen_inst) {
 		
 		while (c.tok != RecognizedToken::CloseBrace && c.tok!=RecognizedToken::Eof) {
+			if (c.buffer == "require") {
+				c.move();
+				if (c.tok != RecognizedToken::String) {
+					throw_specific_error(c, "Expected string"); // TODO better message
+				}
+				std::cout <<"require: "<< c.buffer << "\n";
 
-			if (c.buffer == "struct") {
+				c.move();
+				if (c.tok != RecognizedToken::Semicolon) {
+					throw_wrong_token_error(c, "';'");
+				}
+				c.move();
+			}else if (c.buffer == "struct") {
 				c.move();
 				Cursor nm = c;
 

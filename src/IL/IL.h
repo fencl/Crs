@@ -242,6 +242,7 @@ namespace Corrosive {
 
 	class ILModule {
 	public:
+		std::vector<std::unique_ptr<unsigned char[]>> constant_memory;
 		std::vector<std::unique_ptr<ILFunction>> functions;
 		std::vector<std::unique_ptr<void*[]>> vtable_data;
 
@@ -253,6 +254,8 @@ namespace Corrosive {
 
 		ILArchitecture architecture = ILArchitecture::x86_64;
 		ILFunction* create_function();
+		
+		uint32_t register_constant(unsigned char* memory, size_t size);
 	};
 
 

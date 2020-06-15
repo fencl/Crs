@@ -84,6 +84,7 @@ namespace Corrosive {
 				ILBuilder::eval_call(Ctx::eval(), ILDataType::u64, 0);
 				uint64_t ret_val = Ctx::eval()->pop_register_value<uint64_t>();
 				std::cout << "========= TEST =========\ntest result was: " << ret_val << "\n\n";
+				std::cout << "leaked registers: " << (size_t)(Ctx::eval()->register_stack_pointer - Ctx::eval()->register_stack) << "\n";
 			}
 			else {
 				std::cerr << "main was null\n";

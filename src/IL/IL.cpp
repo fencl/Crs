@@ -195,6 +195,14 @@ namespace Corrosive {
 	}
 
 
+	uint32_t ILModule::register_constant(unsigned char* memory, size_t size) {
+		auto data = std::make_unique<unsigned char[]>(size);
+		memcpy(data.get(), memory, size);
+		constant_memory.push_back(std::move(data));
+		return constant_memory.size() - 1;
+	}
+
+
 	uint16_t ILFunction::register_local(ILSize size) {
 		local_offsets.push_back(std::make_tuple(stack_size,size,1));
 		stack_size = stack_size + size;

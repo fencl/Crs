@@ -207,6 +207,46 @@ namespace Corrosive {
 
 
 				return;
+			} else if (buffer[offset] == '"') {
+				size_t start = offset;
+				unsigned int sleft = left;
+
+
+				bool escaped = false;
+				while (true) {
+					offset++;
+
+					if (offset >= buffer.size() || buffer[offset] == '\n') {
+						out.src = this;
+						out.offset = start;
+						out.left = sleft;
+						out.top = top;
+						out.buffer = data().substr(start, offset - start);
+						throw_specific_error(out, "String literal not closed");
+					}
+					else if (buffer[offset] == '"' && !escaped) {
+						break;
+					}
+
+					if (buffer[offset] == '\\' && !escaped) {
+						escaped = true;
+					}
+					else {
+						escaped = false;
+					}
+
+				}
+
+				offset++;
+
+				left += (unsigned int)(offset - start);
+
+				out.tok = RecognizedToken::String;
+				out.src = this;
+				out.offset = start;
+				out.left = sleft;
+				out.top = top;
+				out.buffer = data().substr(start, offset - start);
 			}
 			else
 			{
