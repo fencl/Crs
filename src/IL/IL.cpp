@@ -277,7 +277,6 @@ namespace Corrosive {
 						stack_sizes.pop_back();
 					}break;
 					case ILLifetimeEvent::append: {
-						calculated_local_offsets[lid++] = stack_size;
 						ILSizeType ptr_t = *(ILSizeType*)(ptr++);
 						uint32_t ptr_val = (((uint32_t)*(ptr++))<<24) | (((uint32_t)*(ptr++))<<16) | (((uint32_t)*(ptr++))<<8) | (((uint32_t)*(ptr++)));
 
@@ -286,6 +285,7 @@ namespace Corrosive {
 						calculated_local_stack_alignment = std::max(elem_align, calculated_local_stack_alignment);
 
 						stack_size = _align_up(stack_size, elem_align);
+						calculated_local_offsets[lid++] = stack_size;
 						size_t sz = ptr_s.eval(parent, arch);
 						stack_size += sz;
 						calculated_local_stack_size = std::max(calculated_local_stack_size, stack_size);
