@@ -257,6 +257,7 @@ namespace Corrosive {
 	void ILFunction::calculate_stack(ILArchitecture arch) {
 		if (arch != calculated_for) {
 			calculated_local_stack_size = 0;
+			calculated_local_stack_alignment = 0;
 			size_t stack_size = 0;
 			std::vector<size_t> stack_sizes;
 			stack_sizes.push_back(0);
@@ -281,6 +282,10 @@ namespace Corrosive {
 						uint32_t ptr_val = (((uint32_t)*(ptr++))<<24) | (((uint32_t)*(ptr++))<<16) | (((uint32_t)*(ptr++))<<8) | (((uint32_t)*(ptr++)));
 
 						ILSize ptr_s = ILSize(ptr_t, ptr_val);
+						size_t elem_align = ptr_s.alignment(parent, arch);
+						calculated_local_stack_alignment = std::max(elem_align, calculated_local_stack_alignment);
+
+						stack_size = _align_up(stack_size, elem_align);
 						size_t sz = ptr_s.eval(parent, arch);
 						stack_size += sz;
 						calculated_local_stack_size = std::max(calculated_local_stack_size, stack_size);
@@ -326,12 +331,16 @@ namespace Corrosive {
 	}
 
 
-	void ILEvaluator::stack_push() {
+	void ILEvaluator::stack_push(size_t align) {
 		if (local_stack_base.size() == 0) {
-			local_stack_base.push_back(memory_stack);
+			size_t new_base = (size_t)(memory_stack);
+			new_base = _align_up(new_base, align);
+			local_stack_base.push_back((unsigned char*)new_base);
 		}
 		else {
-			local_stack_base.push_back(local_stack_base.back() + local_stack_size.back());
+			size_t new_base = (size_t)(local_stack_base.back() + local_stack_size.back());
+			new_base = _align_up(new_base, align);
+			local_stack_base.push_back((unsigned char*)new_base);
 		}
 
 		local_stack_size.push_back(0);
@@ -392,15 +401,27 @@ namespace Corrosive {
 		return 0;
 	}
 
+	uint32_t _upper_power_of_two(uint32_t v)
+	{
+		v--;
+		v |= v >> 1;
+		v |= v >> 2;
+		v |= v >> 4;
+		v |= v >> 8;
+		v |= v >> 16;
+		v++;
+		return v;
+	}
+
 	size_t ILSize::alignment(ILModule* mod, ILArchitecture arch) const {
 		switch (type) {
 			case ILSizeType::absolute: {
 				switch (arch)
 				{
 					case ILArchitecture::i386:
-						return std::max<size_t>((size_t)value, 4);
+						return (size_t)_upper_power_of_two((uint32_t)std::max<size_t>((size_t)value, 4));
 					case ILArchitecture::x86_64:
-						return std::max<size_t>((size_t)value, 8);
+						return (size_t)_upper_power_of_two((uint32_t)std::max<size_t>((size_t)value, 8));
 					default:
 						return 0;
 				}
@@ -437,7 +458,6 @@ namespace Corrosive {
 	const ILSize ILSize::single_ptr = { ILSizeType::word,1 };
 	const ILSize ILSize::double_ptr = { ILSizeType::word,2 };
 
-
 	void ILStructTable::calculate(ILModule* mod, ILArchitecture arch) {
 		if (arch != calculated_for) {
 			calculated_size = 0;
@@ -453,6 +473,7 @@ namespace Corrosive {
 				calculated_alignment = std::max(calculated_alignment, elem_align);
 			}
 
+			calculated_size = _align_up(calculated_size, calculated_alignment);
 			calculated_for = arch;
 		}
 	}

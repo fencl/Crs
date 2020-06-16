@@ -8,6 +8,7 @@
 #include "Type.h"
 #include <algorithm>
 #include "Statement.h"
+#include "Utilities.h"
 
 namespace Corrosive {
 
@@ -565,7 +566,7 @@ namespace Corrosive {
 					return false;
 				}*/
 
-				new_inst->member_vars.push_back(m_t);
+				new_inst->member_vars.push_back(std::make_pair(m_t,0));
 			}
 
 			if (new_inst->context == ILContext::runtime) {
@@ -1012,13 +1013,14 @@ namespace Corrosive {
 			Ctx::eval_stack()->push();
 			generic_inst.insert_key_on_stack(Ctx::eval());
 			
-			uint32_t stid = Ctx::global_module()->register_structure_table();
-			ILStructTable& table = Ctx::global_module()->structure_tables[stid];
+			ILStructTable table;
 
-			size = ILSize(ILSizeType::table, stid);
+			size = ILSize(ILSizeType::absolute, 0);
+
+			uint32_t max_align = 0;
 
 			for (auto&& m : member_vars) {
-				m->compile();
+				m.first->compile();
 
 				/*if (m.first->has_special_constructor())
 					has_special_constructor = true;
@@ -1026,15 +1028,56 @@ namespace Corrosive {
 				if (m.first->has_special_destructor())
 					has_special_destructor = true;*/
 
+				ILSize m_s = m.first->size();
 
-				/*uint32_t abss = size.absolute;
-				abss = _align_up(abss, malign);
-				size.absolute = abss;*/
+				if (m_s.type == ILSizeType::absolute && m_s.value<=4) { // up to 4 bytes always aligned to 4 bytes or less
+					if (size.type == ILSizeType::absolute) {
+						max_align = std::max(m_s.value, max_align);
+						size.value = (uint32_t)align_up(size.value, upper_power_of_two(m_s.value));
+						m.second = size.value;
+						size.value += m_s.value;
+					}
+					else {
+						size.type = ILSizeType::table;
+					}
+				}
+				else if (m_s.type == ILSizeType::word) { // wors are automatically aligned
+					if (size.type == ILSizeType::absolute && size.value == 0) size.type = ILSizeType::word;
 
-				table.elements.push_back(m->size());
+					if (size.type == ILSizeType::word) {
+						m.second = size.value; // aligned to single word
+						size.value += m_s.value;
+					}
+					else {
+
+						size.type = ILSizeType::table;
+					}
+				}
+				else {
+					size.type = ILSizeType::table;
+				}
+				
+
+				table.elements.push_back(m_s);
+
 
 				//absolute_alignment = std::max(absolute_alignment, malign);
 				
+			}
+
+
+			if (size.type == ILSizeType::table) {
+				if (table.elements.size() > 0) {
+					size.value = Ctx::global_module()->register_structure_table();
+					Ctx::global_module()->structure_tables[size.value] = std::move(table);
+				}
+				else {
+					size = table.elements.back();
+					wrapper = true;
+				}
+			}
+			else if (size.type == ILSizeType::absolute) {
+				size.value = (uint32_t)align_up(size.value, max_align);
 			}
 
 
@@ -1042,8 +1085,6 @@ namespace Corrosive {
 				m.second->compile();
 			}
 
-			//size = _align_up(size, alignment);
-			//compile_size = _align_up(compile_size, compile_alignment);
 			compile_state = 2;
 
 			

@@ -177,6 +177,7 @@ namespace Corrosive {
 
 		std::vector<size_t>			calculated_local_offsets;
 		size_t						calculated_local_stack_size;
+		size_t						calculated_local_stack_alignment;
 		ILArchitecture				calculated_for = ILArchitecture::none;
 		ILLifetime					local_stack_lifetime;
 
@@ -233,7 +234,7 @@ namespace Corrosive {
 		void pop_mask_local();
 		uint16_t push_local(ILSize size);
 		void pop_local(ILSize size);
-		void stack_push();
+		void stack_push(size_t align = 1);
 		void stack_pop();
 		unsigned char* stack_ptr(uint16_t id);
 

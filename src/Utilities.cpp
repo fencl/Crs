@@ -29,3 +29,15 @@ double svtod(std::string_view sv)
 size_t align_up(size_t value, size_t alignment) {
 	return alignment == 0 ? value : ((value % alignment == 0) ? value : value + (alignment - (value % alignment)));
 }
+
+uint32_t upper_power_of_two(uint32_t v)
+{
+	v--;
+	v |= v >> 1;
+	v |= v >> 2;
+	v |= v >> 4;
+	v |= v >> 8;
+	v |= v >> 16;
+	v++;
+	return v;
+}

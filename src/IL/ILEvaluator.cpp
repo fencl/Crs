@@ -806,7 +806,7 @@ namespace Corrosive {
 			ILBlock* block = fun->blocks[0];
 			bool running = true;
 
-			eval_ctx->stack_push();
+			eval_ctx->stack_push(fun->calculated_local_stack_alignment);
 			eval_ctx->local_stack_size.back() = fun->calculated_local_stack_size;
 			unsigned char* lstack_base = eval_ctx->local_stack_base.back();
 

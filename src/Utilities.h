@@ -6,4 +6,5 @@ unsigned long long svtoi(std::string_view sv);
 double svtod(std::string_view sv);
 size_t rot(size_t n, int c);
 size_t align_up(size_t value, size_t alignment);
+uint32_t upper_power_of_two(uint32_t v);
 #endif

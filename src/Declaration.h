@@ -65,10 +65,11 @@ namespace Corrosive {
 		primitive_structure, compact_structure, normal_structure
 	};
 
+
 	class StructureInstance : public Namespace {
 	public:
 		std::map<std::string_view, uint16_t> member_table;
-		std::vector<Type*> member_vars;
+		std::vector<std::pair<Type*,uint32_t>> member_vars;
 
 		std::map<TraitInstance*, std::vector<std::unique_ptr<FunctionInstance>>> traitfunctions;
 
@@ -76,6 +77,7 @@ namespace Corrosive {
 		ILDataType rvalue = ILDataType::ptr;
 
 		ILSize size;
+		bool wrapper = false;
 
 		ILContext context = ILContext::both;
 		

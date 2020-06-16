@@ -2223,11 +2223,24 @@ namespace Corrosive {
 				Type* mem_type = nullptr;
 
 				StructureInstance* si = ti->owner;
+
+
+				ILSize elem_size(si->size.type,0);
+
 				auto table_element = si->member_table.find(c.buffer);
 				if (table_element != si->member_table.end()) {
+
 					auto& member = si->member_vars[table_element->second];
-					elem_id = table_element->second;
-					mem_type = member;
+
+					if (si->size.type == ILSizeType::table) {
+						elem_id = table_element->second;
+						elem_size.value = si->size.value;	
+					}
+					else {
+						elem_size.value = member.second;
+					}
+
+					mem_type = member.first;
 					c.move();
 				}
 				else {
@@ -2238,20 +2251,43 @@ namespace Corrosive {
 				if (ret.lvalue)
 				{
 					if (cpt == CompileType::compile) {
-						ILBuilder::build_tableoffset(Ctx::scope(), si->size.value, elem_id);
+						if (!si->wrapper) {
+							if (elem_size.type == ILSizeType::table)
+								ILBuilder::build_tableoffset(Ctx::scope(), elem_size.value, elem_id);
+							else
+								ILBuilder::build_offset(Ctx::scope(), elem_size);
+						}
 					}
 					else if (cpt == CompileType::eval) {
-						ILBuilder::eval_tableoffset(Ctx::eval(), si->size.value, elem_id);
+						if (!si->wrapper) {
+							if (elem_size.type == ILSizeType::table)
+								ILBuilder::eval_tableoffset(Ctx::eval(), elem_size.value, elem_id);
+							else
+								ILBuilder::eval_offset(Ctx::eval(), elem_size.eval(Ctx::global_module(), compiler_arch));
+						}
 					}
 				} else if (ret.t->rvalue_stacked()) {
 					if (cpt == CompileType::compile) {
-						ILBuilder::build_tableoffset(Ctx::scope(), si->size.value, elem_id);
+						if (!si->wrapper) {
+							if (elem_size.type == ILSizeType::table)
+								ILBuilder::build_tableoffset(Ctx::scope(), elem_size.value, elem_id);
+							else
+								ILBuilder::build_offset(Ctx::scope(), elem_size);
+						}
+
 						if (!mem_type->rvalue_stacked()) {
 							ILBuilder::build_load(Ctx::scope(), mem_type->rvalue());
 						}
 					}
 					else if (cpt == CompileType::eval) {
-						ILBuilder::eval_tableoffset(Ctx::eval(), si->size.value, elem_id);
+
+						if (!si->wrapper) {
+							if (elem_size.type == ILSizeType::table)
+								ILBuilder::eval_tableoffset(Ctx::eval(), elem_size.value, elem_id);
+							else
+								ILBuilder::eval_offset(Ctx::eval(), elem_size.eval(Ctx::global_module(), compiler_arch));
+						}
+
 						if (!mem_type->rvalue_stacked()) {
 							ILBuilder::eval_load(Ctx::eval(), mem_type->rvalue());
 						}
