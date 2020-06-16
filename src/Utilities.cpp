@@ -24,3 +24,8 @@ double svtod(std::string_view sv)
 	auto result = std::from_chars(sv.data(), sv.data() + sv.size(), dbl);
 	return dbl;
 }
+
+
+size_t align_up(size_t value, size_t alignment) {
+	return alignment == 0 ? value : ((value % alignment == 0) ? value : value + (alignment - (value % alignment)));
+}

@@ -39,6 +39,8 @@ namespace Corrosive {
 		static void parse_dot_operator(CompileValue& ret, Cursor& c, CompileType copm_type);
 		static void parse_double_colon_operator(CompileValue& ret, Cursor& c, CompileType copm_type);
 		static void parse_string_literal(CompileValue& ret, Cursor& c, CompileType copm_type);
+
+		static bool is_numeric_value(Type* type);
 	};
 }
 

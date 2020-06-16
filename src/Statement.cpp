@@ -26,20 +26,26 @@ namespace Corrosive {
 
 				ILBuilder::build_debug(Ctx::scope(), UINT16_MAX, c.top);
 			}
-
 			Statement::parse(c, CompileType::compile, terminated);
 
 			if (terminated && c.tok != RecognizedToken::CloseBrace) {
 				throw_specific_error(c, "Instruction after the current branch has been terminated");
 			}
 
+			int d = 0;
 			while (Ctx::temp_stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) {
 				if (sitm.type->has_special_destructor()) {
 					ILBuilder::build_local(Ctx::scope(), sitm.id);
 					sitm.type->build_drop();
 				}
-				Ctx::workspace_function()->drop_temp_local(sitm.id);
+				d++;
 			}
+
+			if (d>0)
+				Ctx::workspace_function()->local_stack_lifetime.pop();
+			else
+				Ctx::workspace_function()->local_stack_lifetime.discard_push();
+			
 		}
 		c.move();
 
@@ -60,17 +66,15 @@ namespace Corrosive {
 
 
 		Ctx::push_scope(Ctx::scope_exit());
-
 		while (Ctx::stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) {
 			if (sitm.type->has_special_destructor()) {
 				ILBuilder::build_local(Ctx::scope(), sitm.id);
 				sitm.type->build_drop();
 			}
-			Ctx::workspace_function()->drop_local(sitm.id);
 		}
 		Ctx::pop_scope();
 
-
+		Ctx::workspace_function()->local_stack_lifetime.pop();
 
 		Ctx::pop_scope();
 		Ctx::pop_scope_exit();
@@ -118,11 +122,14 @@ namespace Corrosive {
 			case RecognizedToken::Symbol:
 			{
 				if (c.buffer == "return") {
+					Ctx::workspace_function()->local_stack_lifetime.push();// temp lifetime push
 					terminated = true;
 					parse_return(c);
 					return; 
 				}else if (c.buffer == "make") {
 					parse_make(c);
+
+					Ctx::workspace_function()->local_stack_lifetime.push();// temp lifetime push
 					return;
 				}
 				else if (c.buffer == "let") {
@@ -130,15 +137,18 @@ namespace Corrosive {
 					return;
 				}
 				else if (c.buffer == "if") {
+					Ctx::workspace_function()->local_stack_lifetime.push();// temp lifetime push
 					parse_if(c, terminated);
 					return;
 				}
 				else if (c.buffer == "while") {
+					Ctx::workspace_function()->local_stack_lifetime.push();// temp lifetime push
 					parse_while(c, terminated);
 					return;
 				}
 			}break;
 			case RecognizedToken::OpenBrace: {
+				Ctx::workspace_function()->local_stack_lifetime.push(); // temp lifetime push
 				c.move();
 				ILBlock* block = Ctx::workspace_function()->create_and_append_block();
 
@@ -150,7 +160,7 @@ namespace Corrosive {
 				Ctx::pop_scope();
 				Ctx::push_scope(continue_block);
 				Ctx::push_scope(block);
-
+				Ctx::workspace_function()->local_stack_lifetime.push(); // block lifetime push
 				Ctx::stack()->push_block();
 				ILBuilder::build_accept(Ctx::scope(), ILDataType::none);
 
@@ -162,6 +172,7 @@ namespace Corrosive {
 
 		//fallthrough if every other check fails, statement is plain expression
 
+		Ctx::workspace_function()->local_stack_lifetime.push();// temp lifetime push
 		CompileValue ret_val;
 		Expression::parse(c, ret_val, cmp, false);
 
@@ -231,6 +242,7 @@ namespace Corrosive {
 		ILBlock* block = Ctx::workspace_function()->create_and_append_block();
 		block->alias = "true";
 		Ctx::push_scope(block);
+		Ctx::workspace_function()->local_stack_lifetime.push();// block lifetime push
 		Ctx::stack()->push_block();
 		ILBuilder::build_accept(Ctx::scope(), ILDataType::none);
 		bool term = false;
@@ -247,6 +259,7 @@ namespace Corrosive {
 				ILBlock* else_block = Ctx::workspace_function()->create_and_append_block();
 				else_block->alias = "false";
 				Ctx::push_scope(else_block);
+				Ctx::workspace_function()->local_stack_lifetime.push();// block lifetime push
 				Ctx::stack()->push_block();
 				ILBuilder::build_accept(Ctx::scope(), ILDataType::none);
 				bool term2 = false;
@@ -306,6 +319,7 @@ namespace Corrosive {
 		ILBlock* block = Ctx::workspace_function()->create_and_append_block();
 		block->alias = "while";
 		Ctx::push_scope(block);
+		Ctx::workspace_function()->local_stack_lifetime.push();// block lifetime push
 		Ctx::stack()->push_block();
 		ILBuilder::build_accept(block, ILDataType::none);
 		bool term = false;
@@ -383,6 +397,10 @@ namespace Corrosive {
 		
 		c.move();
 
+		size_t let_holder;
+		uint32_t local_id = Ctx::workspace_function()->local_stack_lifetime.append_unknown(let_holder);
+
+		Ctx::workspace_function()->local_stack_lifetime.push(); // temp lifetime push
 
 		Cursor err = c;
 		CompileValue val;
@@ -410,7 +428,8 @@ namespace Corrosive {
 			new_t = new_t->generate_reference();
 		}
 
-		uint32_t local_id = Ctx::workspace_function()->register_local(new_t->size());
+		Ctx::workspace_function()->local_stack_lifetime.resolve_unknown(let_holder,new_t->size());
+
 		Ctx::stack()->push_item(name.buffer, new_t, local_id, StackItemTag::regular);
 		if (new_t->has_special_constructor()) {
 			ILBuilder::build_local(Ctx::scope(), local_id);
@@ -466,7 +485,7 @@ namespace Corrosive {
 
 
 		ILSize s = new_t->size();
-		uint32_t local_id = Ctx::workspace_function()->register_local(s);
+		uint32_t local_id = Ctx::workspace_function()->local_stack_lifetime.append(s);
 		Ctx::stack()->push_item(name.buffer, new_t, local_id, StackItemTag::regular);
 
 		if (new_t->has_special_constructor()) {

@@ -269,14 +269,27 @@ namespace Corrosive {
 					case '}': out.tok = (RecognizedToken::CloseBrace); break;
 					case '(': out.tok = (RecognizedToken::OpenParenthesis); break;
 					case ')': out.tok = (RecognizedToken::CloseParenthesis); break;
-					case '+': out.tok = (RecognizedToken::Plus); break;
+					case '+': switch (nc)
+					{
+						case '=': offset++; out.tok = (RecognizedToken::PlusEquals); break;
+						default: out.tok = (RecognizedToken::Plus); break;
+					} break;
 					case '-': switch (nc)
 					{
+						case '=': offset++; out.tok = (RecognizedToken::MinusEquals); break;
 						case '>': offset++; out.tok = (RecognizedToken::Arrow); break;
 						default: out.tok = (RecognizedToken::Minus); break;
 					}break;
-					case '*': out.tok = (RecognizedToken::Star); break;
-					case '/': out.tok = (RecognizedToken::Slash); break;
+					case '*': switch (nc)
+					{
+						case '=': offset++; out.tok = (RecognizedToken::StarEquals); break;
+						default: out.tok = (RecognizedToken::Star); break;
+					} break;
+					case '/': switch (nc)
+					{
+						case '=': offset++; out.tok = (RecognizedToken::SlashEquals); break;
+						default: out.tok = (RecognizedToken::Slash); break;
+					} break;
 					case ';': out.tok = (RecognizedToken::Semicolon); break;
 					case ',': out.tok = (RecognizedToken::Comma); break;
 					case '.': out.tok = (RecognizedToken::Dot); break;

@@ -66,7 +66,7 @@ namespace Corrosive {
 
 				if (me_top) {
 					if (me->rvalue_stacked()) {
-						ILBuilder::eval_memcpy2(Ctx::eval(), me->size().eval(compiler_arch));
+						ILBuilder::eval_memcpy2(Ctx::eval(), me->size().eval(Ctx::global_module(), compiler_arch));
 					}
 					else {
 						ILBuilder::eval_store2(Ctx::eval(), me->rvalue());
@@ -74,7 +74,7 @@ namespace Corrosive {
 				}
 				else {
 					if (me->rvalue_stacked()) {
-						ILBuilder::eval_memcpy(Ctx::eval(), me->size().eval(compiler_arch));
+						ILBuilder::eval_memcpy(Ctx::eval(), me->size().eval(Ctx::global_module(), compiler_arch));
 					}
 					else {
 						ILBuilder::eval_store(Ctx::eval(), me->rvalue());
@@ -140,7 +140,7 @@ namespace Corrosive {
 
 				if (me_top) {
 					if (me->rvalue_stacked()) {
-						ILBuilder::eval_memcpy2(Ctx::eval(), me->size().eval(compiler_arch));
+						ILBuilder::eval_memcpy2(Ctx::eval(), me->size().eval(Ctx::global_module(), compiler_arch));
 					}
 					else {
 						ILBuilder::eval_store2(Ctx::eval(), me->rvalue());
@@ -148,7 +148,7 @@ namespace Corrosive {
 				}
 				else {
 					if (me->rvalue_stacked()) {
-						ILBuilder::eval_memcpy(Ctx::eval(), me->size().eval(compiler_arch));
+						ILBuilder::eval_memcpy(Ctx::eval(), me->size().eval(Ctx::global_module(), compiler_arch));
 					}
 					else {
 						ILBuilder::eval_store(Ctx::eval(), me->rvalue());
@@ -178,29 +178,26 @@ namespace Corrosive {
 		}*/
 	}
 
-	ILDataType _crs_expr_arith_val(CompileValue v) {
-		if (v.t->type() != TypeInstanceType::type_structure_instance) {
+	ILDataType Expression::arithmetic_type(Type* type) {
+		if (type->type() != TypeInstanceType::type_structure_instance) {
 			return ILDataType::none;
 		}
 
-		TypeStructureInstance* si = (TypeStructureInstance*)v.t;
+		TypeStructureInstance* si = (TypeStructureInstance*)type;
 		if (si->owner->structure_type != StructureInstanceType::primitive_structure) {
 			return ILDataType::none;
 		}
 
-		return v.t->rvalue();
+		return type->rvalue();
 	}
 
-	bool _crs_expr_arith_res(CompileValue left, CompileValue right, CompileValue& ret) {
-		ILDataType lv = _crs_expr_arith_val(left);
-		ILDataType rv = _crs_expr_arith_val(right);
-		if (lv == ILDataType::none || rv == ILDataType::none) return false;
-
+	Type* Expression::arithmetic_result(Type* type_left, Type* type_right) {
+		ILDataType lv = Expression::arithmetic_type(type_left);
+		ILDataType rv = Expression::arithmetic_type(type_right);
+		if (lv == ILDataType::none || rv == ILDataType::none) return nullptr;
 
 		ILDataType rsv = ILBuilder::arith_result(lv, rv);
-		ret.lvalue = false;
-		ret.t = Ctx::types()->get_type_from_rvalue(rsv);
-		return true;
+		return Ctx::types()->get_type_from_rvalue(rsv);
 	}
 
 
@@ -208,15 +205,13 @@ namespace Corrosive {
 	void Expression::emit(Cursor& c, CompileValue& res, int l, int op, CompileValue left, CompileValue right, CompileType cpt, int next_l, int next_op) {
 		bool isf = false;
 		bool sig = false;
-
-		CompileValue ret;
-		if (!_crs_expr_arith_res(left, right, ret)) {
+		Type* result_type = nullptr;
+		if (!(result_type = Expression::arithmetic_result(left.t, right.t))) {
 			throw_specific_error(c, "Operation is not defined on top of specified types");
 		}
 
-		ret.lvalue = false;
 		if (l == 1 || l == 2)
-			ret.t = Ctx::types()->t_bool;
+			result_type = Ctx::types()->t_bool;
 
 		if (cpt == CompileType::compile) {
 			switch (l) {
@@ -351,7 +346,8 @@ namespace Corrosive {
 			}
 		}
 
-		res = ret;
+		res.t = result_type;
+		res.lvalue = false;
 	}
 
 	void Expression::parse(Cursor& c, CompileValue& res, CompileType cpt, bool require_output) {
@@ -361,7 +357,6 @@ namespace Corrosive {
 		if (c.tok == RecognizedToken::Equals || c.tok == RecognizedToken::BackArrow) {
 			bool do_copy = c.tok == RecognizedToken::Equals;
 
-			CompileValue val2;
 			if (!val.lvalue) {
 				throw_specific_error(c, "Left assignment must be modifiable lvalue");
 			}
@@ -378,6 +373,7 @@ namespace Corrosive {
 			c.move();
 			Cursor err = c;
 
+			CompileValue val2;
 			Expression::parse(c, val2, cpt);
 			Operand::cast(err, val2, val.t, cpt, true);
 
@@ -392,6 +388,88 @@ namespace Corrosive {
 			}
 			else {
 				Expression::move_from_rvalue(val.t, cpt);
+			}
+
+			if (!require_output) {
+				val.lvalue = false;
+				val.t = Ctx::types()->t_void;
+			}
+		}
+		else if (c.tok == RecognizedToken::PlusEquals || c.tok == RecognizedToken::MinusEquals || c.tok == RecognizedToken::StarEquals || c.tok == RecognizedToken::SlashEquals) {
+			unsigned char op = 0;
+			if (c.tok == RecognizedToken::PlusEquals) {
+				op = 1;
+			}
+			else if (c.tok == RecognizedToken::MinusEquals) {
+				op = 2;
+			}
+			else if (c.tok == RecognizedToken::StarEquals) {
+				op = 3;
+			}
+			else {
+				op = 4;
+			}
+
+			if (!Operand::is_numeric_value(val.t)) {
+				throw_specific_error(c, "Left assignment must be numeric type");
+			}
+
+			if (!val.lvalue) {
+				throw_specific_error(c, "Left assignment must be modifiable lvalue");
+			}
+
+			if (require_output) {
+				if (cpt == CompileType::compile) {
+					ILBuilder::build_duplicate(Ctx::scope(), ILDataType::ptr);
+				}
+				else {
+					ILBuilder::eval_duplicate(Ctx::eval(), ILDataType::ptr);
+				}
+			}
+			
+			if (cpt == CompileType::compile) {
+				ILBuilder::build_duplicate(Ctx::scope(), ILDataType::ptr);
+			}
+			else {
+				ILBuilder::eval_duplicate(Ctx::eval(), ILDataType::ptr);
+			}
+			Expression::rvalue(val, cpt);
+
+			c.move();
+			Cursor err = c;
+
+			CompileValue val2;
+			Expression::parse(c, val2, cpt);
+			Expression::rvalue(val2, cpt);
+			if (!Operand::is_numeric_value(val2.t)) {
+				throw_specific_error(err, "Expected numeric value");
+			}
+
+			if (cpt == CompileType::compile) {
+				if (op==1)
+					ILBuilder::build_add(Ctx::scope(), val.t->rvalue(), val2.t->rvalue());
+				else if(op==2)
+					ILBuilder::build_sub(Ctx::scope(), val.t->rvalue(), val2.t->rvalue());
+				else if (op==3)
+					ILBuilder::build_mul(Ctx::scope(), val.t->rvalue(), val2.t->rvalue());
+				else
+					ILBuilder::build_div(Ctx::scope(), val.t->rvalue(), val2.t->rvalue());
+
+				ILBuilder::build_cast(Ctx::scope(), ILBuilder::arith_result(val.t->rvalue(), val2.t->rvalue()), val.t->rvalue());
+				ILBuilder::build_store2(Ctx::scope(), val.t->rvalue());
+			}
+			else {
+				if (op == 1)
+					ILBuilder::eval_add(Ctx::eval(), val.t->rvalue(), val2.t->rvalue());
+				else if (op == 2)
+					ILBuilder::eval_sub(Ctx::eval(), val.t->rvalue(), val2.t->rvalue());
+				else if (op == 3)
+					ILBuilder::eval_mul(Ctx::eval(), val.t->rvalue(), val2.t->rvalue());
+				else
+					ILBuilder::eval_div(Ctx::eval(), val.t->rvalue(), val2.t->rvalue());
+
+				ILBuilder::eval_cast(Ctx::eval(), ILBuilder::arith_result(val.t->rvalue(), val2.t->rvalue()), val.t->rvalue());
+				ILBuilder::eval_store2(Ctx::eval(), val.t->rvalue());
 			}
 
 			if (!require_output) {

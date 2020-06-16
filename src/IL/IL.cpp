@@ -47,6 +47,10 @@ namespace Corrosive {
 		}
 	}
 
+	size_t _align_up(size_t value, size_t alignment) {
+		return alignment == 0 ? value : ((value % alignment == 0) ? value : value + (alignment - (value % alignment)));
+	}
+
 	void throw_runtime_exception(const ILEvaluator* eval, std::string_view message) {
 		std::stringstream cerr;
 		throw_runtime_exception_header(eval, cerr);
@@ -195,40 +199,99 @@ namespace Corrosive {
 	}
 
 
+	void ILLifetime::push() {
+		lifetime.push_back((unsigned char)ILLifetimeEvent::push);
+	}
+	
+	void ILLifetime::pop() {
+		lifetime.push_back((unsigned char)ILLifetimeEvent::pop);
+	}
+
+	void ILLifetime::discard_push() {
+		lifetime.pop_back();
+	}
+
+	uint32_t ILLifetime::append(ILSize s) {
+		lifetime.push_back((unsigned char)ILLifetimeEvent::append);
+		
+		
+		lifetime.push_back( (unsigned char)s.type );
+		lifetime.push_back( (s.value>>24) & 0xFF );
+		lifetime.push_back( (s.value>>16) & 0xFF );
+		lifetime.push_back( (s.value>>8) & 0xFF );
+		lifetime.push_back( (s.value) & 0xFF );
+
+		return id++;
+	}
+
+
+	uint32_t ILLifetime::append_unknown(size_t& holder) {
+		lifetime.push_back((unsigned char)ILLifetimeEvent::append);
+		holder = lifetime.size();
+		lifetime.push_back(0);
+		lifetime.push_back(0);
+		lifetime.push_back(0);
+		lifetime.push_back(0);
+		lifetime.push_back(0);
+		return id++;
+	}
+
+	void ILLifetime::resolve_unknown(size_t holder, ILSize s) {
+
+		lifetime[holder] =   (unsigned char)s.type;
+		lifetime[holder+1] = (s.value >> 24) & (unsigned char)0xFF;
+		lifetime[holder+2] = (s.value >> 16) & (unsigned char)0xFF;
+		lifetime[holder+3] = (s.value >> 8) & (unsigned char)0xFF;
+		lifetime[holder+4] = (s.value) & (unsigned char)0xFF;
+	}
+
 	uint32_t ILModule::register_constant(unsigned char* memory, size_t size) {
 		auto data = std::make_unique<unsigned char[]>(size);
 		memcpy(data.get(), memory, size);
 		constant_memory.push_back(std::move(data));
-		return constant_memory.size() - 1;
+		return (uint32_t)constant_memory.size() - 1;
 	}
 
 
-	uint16_t ILFunction::register_local(ILSize size) {
-		local_offsets.push_back(std::make_tuple(stack_size,size,1));
-		stack_size = stack_size + size;
 
-		if (max_stack_size.absolute < stack_size.absolute) max_stack_size.absolute = stack_size.absolute;
-		if (max_stack_size.pointers < stack_size.pointers) max_stack_size.pointers = stack_size.pointers;
-		return (uint16_t)(local_offsets.size() - 1);
-	}
+	void ILFunction::calculate_stack(ILArchitecture arch) {
+		if (arch != calculated_for) {
+			calculated_local_stack_size = 0;
+			size_t stack_size = 0;
+			std::vector<size_t> stack_sizes;
+			stack_sizes.push_back(0);
+			calculated_local_offsets.resize(local_stack_lifetime.id);
+
+			size_t lid = 0;
+			unsigned char* ptr = local_stack_lifetime.lifetime.data();
+			unsigned char* end = ptr + local_stack_lifetime.lifetime.size();
+			while (ptr != end) {
+				switch (*(ILLifetimeEvent*)(ptr++))
+				{
+					case ILLifetimeEvent::push: {
+						stack_sizes.push_back(stack_size);
+					}break;
+					case ILLifetimeEvent::pop: {
+						stack_size = stack_sizes.back();
+						stack_sizes.pop_back();
+					}break;
+					case ILLifetimeEvent::append: {
+						calculated_local_offsets[lid++] = stack_size;
+						ILSizeType ptr_t = *(ILSizeType*)(ptr++);
+						uint32_t ptr_val = (((uint32_t)*(ptr++))<<24) | (((uint32_t)*(ptr++))<<16) | (((uint32_t)*(ptr++))<<8) | (((uint32_t)*(ptr++)));
+
+						ILSize ptr_s = ILSize(ptr_t, ptr_val);
+						size_t sz = ptr_s.eval(parent, arch);
+						stack_size += sz;
+						calculated_local_stack_size = std::max(calculated_local_stack_size, stack_size);
+					}break;
+				}
+			}
 
 
-	void ILFunction::drop_local(uint16_t id) {
-		stack_size = stack_size - std::get<1>(local_offsets[id]);
-	}
 
-	uint16_t ILFunction::register_temp_local(ILSize size) {
-		local_offsets.push_back(std::make_tuple(temp_stack_size,size,2));
-		temp_stack_size = temp_stack_size + size;
-
-		if (max_temp_stack_size.absolute < temp_stack_size.absolute) max_temp_stack_size.absolute = temp_stack_size.absolute;
-		if (max_temp_stack_size.pointers < temp_stack_size.pointers) max_temp_stack_size.pointers = temp_stack_size.pointers;
-		return (uint16_t)(local_offsets.size() - 1);
-	}
-
-
-	void ILFunction::drop_temp_local(uint16_t id) {
-		temp_stack_size = temp_stack_size - std::get<1>(local_offsets[id]);
+			calculated_for = arch;
+		}
 	}
 
 
@@ -247,7 +310,7 @@ namespace Corrosive {
 		auto& lsb = local_stack_base.back();
 		auto& ls = local_stack_offsets.back();
 		
-		size_t sz = size.eval(compiler_arch);
+		size_t sz = size.eval(parent, compiler_arch);
 
 		ls.push_back(lsb + lss);
 		lss += sz;
@@ -257,7 +320,7 @@ namespace Corrosive {
 
 	void ILEvaluator::pop_local(ILSize size) {
 		auto& lss = local_stack_size.back();
-		size_t sz = size.eval(compiler_arch);
+		size_t sz = size.eval(parent, compiler_arch);
 		lss -= sz;
 		local_stack_offsets.pop_back();
 	}
@@ -285,47 +348,138 @@ namespace Corrosive {
 		return local_stack_offsets.back()[id];
 	}
 
-	size_t _align_up(size_t value, size_t alignment) {
-		return alignment == 0 ? value : ((value % alignment == 0) ? value : value + (alignment - (value % alignment)));
+
+	uint32_t ILModule::register_structure_table() {
+		structure_tables.push_back(ILStructTable());
+		return (uint32_t)(structure_tables.size() - 1);
+	}
+	uint32_t ILModule::register_array_table() {
+		array_tables.push_back(ILArrayTable());
+		return (uint32_t)(array_tables.size() - 1);
 	}
 
-	size_t ILSize::eval(ILArchitecture arch) const {
-		switch (arch)
-		{
-			case ILArchitecture::i386:
-				return (size_t)absolute + (size_t)pointers * 4;
-			case ILArchitecture::x86_64:
-				return (size_t)absolute + (size_t)pointers * 8;
-			default:
-				return 0;
+	size_t ILSize::eval(ILModule* mod, ILArchitecture arch) const {
+		switch (type) {
+			case ILSizeType::absolute: {
+				return (size_t)value;
+			}
+
+			case ILSizeType::word: {
+				switch (arch)
+				{
+					case ILArchitecture::i386:
+						return (size_t)value * 4;
+					case ILArchitecture::x86_64:
+						return (size_t)value * 8;
+					default:
+						return 0;
+				}
+			}
+
+			case ILSizeType::table: {
+				auto& stable = mod->structure_tables[value];
+				stable.calculate(mod,arch);				
+				return stable.calculated_size;
+			}
+
+			case ILSizeType::array: {
+				auto& stable = mod->array_tables[value];
+				stable.calculate(mod,arch);				
+				return stable.calculated_size;
+			}
+		}
+
+		return 0;
+	}
+
+	size_t ILSize::alignment(ILModule* mod, ILArchitecture arch) const {
+		switch (type) {
+			case ILSizeType::absolute: {
+				switch (arch)
+				{
+					case ILArchitecture::i386:
+						return std::max<size_t>((size_t)value, 4);
+					case ILArchitecture::x86_64:
+						return std::max<size_t>((size_t)value, 8);
+					default:
+						return 0;
+				}
+			}
+
+			case ILSizeType::word: {
+				switch (arch)
+				{
+					case ILArchitecture::i386:
+						return 4;
+					case ILArchitecture::x86_64:
+						return 8;
+					default:
+						return 0;
+				}
+			}
+
+			case ILSizeType::table: {
+				auto& stable = mod->structure_tables[value];
+				stable.calculate(mod, arch);
+				return stable.calculated_alignment;
+			}
+
+			case ILSizeType::array: {
+				auto& stable = mod->array_tables[value];
+				stable.calculate(mod, arch);
+				return stable.calculated_alignment;
+			}
+		}
+
+		return 0;
+	}
+
+	const ILSize ILSize::single_ptr = { ILSizeType::word,1 };
+	const ILSize ILSize::double_ptr = { ILSizeType::word,2 };
+
+
+	void ILStructTable::calculate(ILModule* mod, ILArchitecture arch) {
+		if (arch != calculated_for) {
+			calculated_size = 0;
+			calculated_alignment = 1;
+			calculated_offsets.resize(elements.size());
+
+			size_t id = 0;
+			for (auto elem = elements.begin(); elem != elements.end(); elem++) {
+				size_t elem_align = elem->alignment(mod, arch);
+				calculated_size = _align_up(calculated_size, elem_align);
+				calculated_offsets[id++] = calculated_size;
+				calculated_size += elem->eval(mod,arch);
+				calculated_alignment = std::max(calculated_alignment, elem_align);
+			}
+
+			calculated_for = arch;
 		}
 	}
 
-
-	const ILSize ILSize::single_ptr = { 0,1 };
-	const ILSize ILSize::double_ptr = { 0,2 };
-
-
-	ILSize operator* (const ILSize& l, const uint32_t& r) {
-		return { l.absolute * r, (uint16_t)(l.pointers * r) };
+	void ILArrayTable::calculate(ILModule* mod, ILArchitecture arch) {
+		if (arch != calculated_for) {
+			calculated_alignment = element.alignment(mod, arch);
+			calculated_size = _align_up(element.eval(mod, arch), calculated_alignment) * count;
+			calculated_for = arch;
+		}
 	}
 
-	ILSize operator+ (const ILSize& l, const uint32_t& r) {
-		return { l.absolute + r, l.pointers };
-	}
+	void ILSize::print() {
+		switch (type) {
+			case ILSizeType::absolute: {
+				std::cout << value;
+			}break;
 
-	ILSize operator+ (const ILSize& l, const ILSize& r) {
-		return { l.absolute + r.absolute, (uint16_t)(l.pointers+r.pointers) };
-	}
+			case ILSizeType::word: {
+				std::cout << value << "*w";
+			}break;
 
-	ILSize operator- (const ILSize& l, const uint32_t& r) {
-		return { l.absolute - r, l.pointers };
+			case ILSizeType::table: {
+				std::cout <<"["<< value<<"]";
+			}break;
+		}
 	}
-
-	ILSize operator- (const ILSize& l, const ILSize& r) {
-		return { l.absolute - r.absolute, (uint16_t)(l.pointers-r.pointers) };
-	}
-
 
 
 	size_t ILSmallSize::eval(ILArchitecture arch) const {
@@ -341,8 +495,8 @@ namespace Corrosive {
 	}
 
 
-	ILSize::ILSize() : absolute(0), pointers(0) {}
-	ILSize::ILSize(uint32_t a, uint16_t p) : absolute(a), pointers(p){}
+	ILSize::ILSize() : type(ILSizeType::absolute), value(0) {}
+	ILSize::ILSize(ILSizeType t, uint32_t v) : type(t), value(v){}
 
 	ILSmallSize::ILSmallSize() : combined(0) {}
 	ILSmallSize::ILSmallSize(uint8_t a, uint8_t p) : combined((a&0x0f) + (p<<4)){}
@@ -371,6 +525,12 @@ namespace Corrosive {
 					dump_data_type(*type);
 					std::cout << "]\n";
 				} break;
+				case ILInstruction::negative: {
+					std::cout << "   negative [";
+					auto type = read_data_type(ILDataType);
+					dump_data_type(*type);
+					std::cout << "]\n";
+				} break;
 				case ILInstruction::call: {
 					std::cout << "   call [";
 					auto type = read_data_type(ILDataType);
@@ -393,6 +553,12 @@ namespace Corrosive {
 					std::cout << "   constref ";
 					auto ind = read_data_type(uint32_t);
 					std::cout << *ind << "\n";
+				} break;
+				case ILInstruction::tableoffset: {
+					std::cout << "   tableoffset ";
+					auto table = *read_data_type(uint32_t);
+					auto id = *read_data_type(uint16_t);
+					std::cout << table <<":" << id << "\n";
 				} break;
 				case ILInstruction::duplicate: {
 					std::cout << "   duplicate ";
@@ -493,6 +659,10 @@ namespace Corrosive {
 					std::cout << "   rtoffset2\n";
 				} break;
 					
+				case ILInstruction::negate: {
+					std::cout << "   negate\n";
+				} break;
+					
 				case ILInstruction::null: {
 					std::cout << "   null\n";
 				} break;
@@ -538,19 +708,22 @@ namespace Corrosive {
 				case ILInstruction::offset: {
 					std::cout << "   offset ";
 					auto off = read_data_type(ILSize);
-					std::cout << off->absolute << " + " << off->pointers << "p\n";
+					off->print();
+					std::cout << "\n";
 					break;
 				}
 				case ILInstruction::memcpy: {
 					std::cout << "   memcpy ";
 					auto off = read_data_type(ILSize);
-					std::cout << off->absolute << " + " << off->pointers << "p\n";
+					off->print();
+					std::cout << "\n";
 					break;
 				}
 				case ILInstruction::memcpy2: {
 					std::cout << "   memcpy2 ";
 					auto off = read_data_type(ILSize);
-					std::cout << off->absolute << " + " << off->pointers << "p\n";
+					off->print();
+					std::cout << "\n";
 					break;
 				}
 
@@ -636,7 +809,7 @@ namespace Corrosive {
 						case ILDataType::ptr: std::cout << *read_data_type(void*); break;
 						case ILDataType::size: {
 							auto off = read_data_type(ILSize);
-							std::cout << off->absolute << " + " << off->pointers;
+							off->print();
 						}break;
 					}
 					std::cout << "\n";

@@ -683,6 +683,14 @@ namespace Corrosive {
 		}
 	}
 
+	void ILBuilder::eval_tableoffset(ILEvaluator* eval_ctx, uint32_t tableid, uint16_t itemid) {
+		auto& table = eval_ctx->parent->structure_tables[tableid];
+		table.calculate(eval_ctx->parent, compiler_arch);
+		auto ptr = eval_ctx->pop_register_value<unsigned char*>();
+		ptr += table.calculated_offsets[itemid];
+		eval_ctx->write_register_value(ptr);
+	}
+
 	void ILBuilder::eval_rmemcmp(ILEvaluator* eval_ctx, ILDataType type) {
 		
 		if (setjmp(sandbox) == 0) {
@@ -724,6 +732,55 @@ namespace Corrosive {
 		eval_ctx->write_register_value_indirect(reg_v, &s1);
 		eval_ctx->write_register_value_indirect(reg_v, &s2);
 	}
+	
+
+
+	void ILBuilder::eval_negative(ILEvaluator* eval_ctx, ILDataType type) {
+		
+		switch (type) {
+			case ILDataType::ibool:
+			case ILDataType::u8:
+				eval_ctx->write_register_value(-eval_ctx->pop_register_value<uint8_t>());
+				break;
+			case ILDataType::i8:
+				eval_ctx->write_register_value(-eval_ctx->pop_register_value<int8_t>());
+				break;
+			case ILDataType::u16:
+			case ILDataType::i16:
+				eval_ctx->write_register_value(-eval_ctx->pop_register_value<int16_t>());
+				break;
+			case ILDataType::u32:
+			case ILDataType::i32:
+				eval_ctx->write_register_value(-eval_ctx->pop_register_value<int32_t>());
+				break;
+			case ILDataType::u64:
+			case ILDataType::i64:
+				eval_ctx->write_register_value(-eval_ctx->pop_register_value<int64_t>());
+				break;
+			case ILDataType::f32:
+				eval_ctx->write_register_value(-eval_ctx->pop_register_value<float>());
+				break;
+			case ILDataType::f64:
+				eval_ctx->write_register_value(-eval_ctx->pop_register_value<double>());
+				break;
+			case ILDataType::ptr:
+			case ILDataType::size:
+				eval_ctx->write_register_value((SIZE_MAX^eval_ctx->pop_register_value<size_t>())-1);
+				break;
+		}
+	}
+
+
+	void ILBuilder::eval_negate(ILEvaluator* eval_ctx) {
+		if (eval_ctx->pop_register_value<uint8_t>()) {
+			eval_ctx->write_register_value<uint8_t>(0);
+		}
+		else {
+			eval_ctx->write_register_value<uint8_t>(1);
+		}
+	}
+
+	
 
 	void ILBuilder::eval_swap2(ILEvaluator* eval_ctx, ILDataType type1, ILDataType type2) {
 		size_t reg_v_1 = eval_ctx->compile_time_register_size(type1);
@@ -742,14 +799,15 @@ namespace Corrosive {
 		if (setjmp(sandbox) == 0) {
 			ILFunction* fun = eval_ctx->callstack.back();
 			eval_ctx->callstack.pop_back();
-
 			eval_ctx->callstack_debug.push_back(std::make_tuple(eval_ctx->debug_line, eval_ctx->debug_file,std::string_view(fun->alias)));
+
+			fun->calculate_stack(compiler_arch);
 
 			ILBlock* block = fun->blocks[0];
 			bool running = true;
 
 			eval_ctx->stack_push();
-			eval_ctx->local_stack_size.back() = fun->max_stack_size.eval(compiler_arch) + fun->max_temp_stack_size.eval(compiler_arch);
+			eval_ctx->local_stack_size.back() = fun->calculated_local_stack_size;
 			unsigned char* lstack_base = eval_ctx->local_stack_base.back();
 
 			size_t instr = 0;
@@ -775,19 +833,19 @@ namespace Corrosive {
 						} break;
 						case ILInstruction::memcpy: {
 							auto size = read_data_type(ILSize);
-							eval_memcpy(eval_ctx, size->eval(compiler_arch));
+							eval_memcpy(eval_ctx, size->eval(eval_ctx->parent, compiler_arch));
 						} break;
 						case ILInstruction::memcpy2: {
 							auto size = read_data_type(ILSize);
-							eval_memcpy2(eval_ctx, size->eval(compiler_arch));
+							eval_memcpy2(eval_ctx, size->eval(eval_ctx->parent, compiler_arch));
 						} break;
 						case ILInstruction::memcmp: {
 							auto size = read_data_type(ILSize);
-							eval_memcmp(eval_ctx, size->eval(compiler_arch));
+							eval_memcmp(eval_ctx, size->eval(eval_ctx->parent, compiler_arch));
 						} break;
 						case ILInstruction::memcmp2: {
 							auto size = read_data_type(ILSize);
-							eval_memcmp2(eval_ctx, size->eval(compiler_arch));
+							eval_memcmp2(eval_ctx, size->eval(eval_ctx->parent, compiler_arch));
 						} break;
 						case ILInstruction::fnptr: {
 							auto id = read_data_type(uint32_t);
@@ -932,7 +990,7 @@ namespace Corrosive {
 						}break;
 						case ILInstruction::offset: {
 							auto size = read_data_type(ILSize);
-							eval_offset(eval_ctx, size->eval(compiler_arch));
+							eval_offset(eval_ctx, size->eval(eval_ctx->parent,compiler_arch));
 						} break;
 						case ILInstruction::constref: {
 							auto cid = *read_data_type(uint32_t);
@@ -953,16 +1011,14 @@ namespace Corrosive {
 
 						case ILInstruction::local: {
 							auto id = read_data_type(uint16_t);
-							auto& offset = fun->local_offsets[*id];
-							auto stack = std::get<2>(offset);
-							if (stack == 1) {
-								auto& offsetdata = std::get<0>(offset);
-								eval_const_ptr(eval_ctx, lstack_base + offsetdata.eval(compiler_arch));
-							}
-							else if (stack == 2) {
-								auto& offsetdata = std::get<0>(offset);
-								eval_const_ptr(eval_ctx, lstack_base + (fun->max_stack_size.eval(compiler_arch) + offsetdata.eval(compiler_arch)));
-							}
+							auto& offset = fun->calculated_local_offsets[*id];
+							eval_const_ptr(eval_ctx, lstack_base + offset);
+						} break;
+
+						case ILInstruction::tableoffset: {
+							auto tableid = *read_data_type(uint32_t);
+							auto id = *read_data_type(uint16_t);
+							eval_tableoffset(eval_ctx, tableid,id);
 						} break;
 							
 						case ILInstruction::debug: {
@@ -987,6 +1043,15 @@ namespace Corrosive {
 						case ILInstruction::isnotzero: {
 							auto type = read_data_type(ILDataType);
 							eval_isnotzero(eval_ctx, *type);
+						} break;
+
+						case ILInstruction::negative: {
+							auto type = read_data_type(ILDataType);
+							eval_negative(eval_ctx, *type);
+						} break;
+
+						case ILInstruction::negate: {
+							eval_negate(eval_ctx);
 						} break;
 
 						case ILInstruction::forget: {
@@ -1025,7 +1090,7 @@ namespace Corrosive {
 								case ILDataType::f32:    eval_const_f32(eval_ctx, *read_data_type(float)); break;
 								case ILDataType::f64:    eval_const_f64(eval_ctx, *read_data_type(double)); break;
 								case ILDataType::ptr:    eval_const_ptr(eval_ctx, *read_data_type(void*)); break;
-								case ILDataType::size:   eval_const_size(eval_ctx, read_data_type(ILSize)->eval(compiler_arch)); break;
+								case ILDataType::size:   eval_const_size(eval_ctx, read_data_type(ILSize)->eval(eval_ctx->parent, compiler_arch)); break;
 							}
 						} break;
 					}

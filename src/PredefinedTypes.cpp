@@ -6,7 +6,7 @@ namespace Corrosive {
 	const char* PredefinedNamespace = "corrosive";
 
 	
-	void DefaultTypes::setup_type(std::string_view name,Type*& into, ILSize size, ILSize alignment,ILDataType ildt,ILContext context) {
+	void DefaultTypes::setup_type(std::string_view name,Type*& into, ILSize size, ILDataType ildt,ILContext context) {
 		std::unique_ptr<StructureTemplate> s = std::make_unique<StructureTemplate>();
 		Cursor c;
 		c.buffer = name;
@@ -22,7 +22,6 @@ namespace Corrosive {
 
 		sinst->context = context;
 		sinst->size = size;
-		sinst->alignment = alignment;
 		sinst->rvalue = ildt;
 		sinst->structure_type = StructureInstanceType::primitive_structure;
 
@@ -37,22 +36,22 @@ namespace Corrosive {
 	}
 
 	void DefaultTypes::setup() {
-		setup_type("void", t_void, { 0,0 }, { 0, 0 }, ILDataType::none, ILContext::both);
-		setup_type("i8", t_i8, { 1,0 }, { 1, 0 }, ILDataType::i8, ILContext::both);
-		setup_type("bool", t_bool, { 1,0 }, { 1, 0 }, ILDataType::ibool, ILContext::both);
-		setup_type("i16", t_i16, { 2,0 }, { 2, 0 }, ILDataType::i16, ILContext::both);
-		setup_type("i32", t_i32, { 4,0 }, { 4, 0 }, ILDataType::i32, ILContext::both);
-		setup_type("u8",  t_u8, { 1,0 }, { 1, 0 }, ILDataType::u8, ILContext::both);
-		setup_type("u16", t_u16, { 2,0 }, { 2, 0 }, ILDataType::u16, ILContext::both);
-		setup_type("u32", t_u32, { 4,0 }, { 4, 0 }, ILDataType::u32, ILContext::both);
-		setup_type("f32", t_f32, { 4,0 }, { 4, 0 }, ILDataType::f32, ILContext::both);
+		setup_type("void", t_void, { ILSizeType::absolute,0 }, ILDataType::none, ILContext::both);
+		setup_type("i8",   t_i8,   { ILSizeType::absolute,1 }, ILDataType::i8, ILContext::both);
+		setup_type("bool", t_bool, { ILSizeType::absolute,1 }, ILDataType::ibool, ILContext::both);
+		setup_type("i16",  t_i16,  { ILSizeType::absolute,2 }, ILDataType::i16, ILContext::both);
+		setup_type("i32",  t_i32,  { ILSizeType::absolute,4 }, ILDataType::i32, ILContext::both);
+		setup_type("u8",   t_u8,   { ILSizeType::absolute,1 }, ILDataType::u8, ILContext::both);
+		setup_type("u16",  t_u16,  { ILSizeType::absolute,2 }, ILDataType::u16, ILContext::both);
+		setup_type("u32",  t_u32,  { ILSizeType::absolute,4 }, ILDataType::u32, ILContext::both);
+		setup_type("f32",  t_f32,  { ILSizeType::absolute,4 }, ILDataType::f32, ILContext::both);
 
-		setup_type("f64", t_f64, { 8,0 }, { 0, 1 }, ILDataType::f64, ILContext::both);
-		setup_type("i64", t_i64, { 8,0 }, { 0, 1 }, ILDataType::i64, ILContext::both);
-		setup_type("u64", t_u64, { 8,0 }, { 0, 1 }, ILDataType::u64, ILContext::both);
-		setup_type("ptr", t_ptr, { 0,1 }, { 0, 1 }, ILDataType::ptr, ILContext::both);
-		setup_type("size", t_size, { 0,1 }, { 0, 1 }, ILDataType::size, ILContext::both);
-		setup_type("type", t_type, { 0,1 }, { 0, 1 }, ILDataType::ptr, ILContext::compile);
+		setup_type("f64",  t_f64,  { ILSizeType::absolute,8 }, ILDataType::f64, ILContext::both);
+		setup_type("i64",  t_i64,  { ILSizeType::absolute,8 }, ILDataType::i64, ILContext::both);
+		setup_type("u64",  t_u64,  { ILSizeType::absolute,8 }, ILDataType::u64, ILContext::both);
+		setup_type("ptr",  t_ptr,  { ILSizeType::word,1 }, ILDataType::ptr, ILContext::both);
+		setup_type("size", t_size, { ILSizeType::word,1 }, ILDataType::size, ILContext::both);
+		setup_type("type", t_type, { ILSizeType::word,1 }, ILDataType::ptr, ILContext::compile);
 
 		primitives[(unsigned char)ILDataType::ibool] = t_bool;
 		primitives[(unsigned char)ILDataType::u8] = t_u8;

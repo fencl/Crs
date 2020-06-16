@@ -46,7 +46,7 @@ namespace Corrosive {
 
 					t->compile();
 
-					generic_ctx.generate_heap_size += t->size().eval(compiler_arch);
+					generic_ctx.generate_heap_size += t->size().eval(Ctx::global_module(), compiler_arch);
 					generic_ctx.generic_layout.push_back(std::make_tuple(name, t));
 
 
@@ -124,7 +124,7 @@ namespace Corrosive {
 
 					t->compile();
 					
-					generic_ctx.generate_heap_size += t->size().eval(compiler_arch);
+					generic_ctx.generate_heap_size += t->size().eval(Ctx::global_module(), compiler_arch);
 					generic_ctx.generic_layout.push_back(std::make_tuple(name,t));
 
 
@@ -205,7 +205,7 @@ namespace Corrosive {
 
 					t->compile();
 					
-					generic_ctx.generate_heap_size += t->size().eval(compiler_arch);
+					generic_ctx.generate_heap_size += t->size().eval(Ctx::global_module(), compiler_arch);
 					generic_ctx.generic_layout.push_back(std::make_tuple(name, t));
 
 
@@ -271,7 +271,7 @@ namespace Corrosive {
 
 				for (auto l = generic_ctx.generic_layout.rbegin(); l != generic_ctx.generic_layout.rend(); l++) {
 					std::get<1>(*l)->move(new_offset,old_offset);
-					size_t c_size = std::get<1>(*l)->size().eval(compiler_arch);
+					size_t c_size = std::get<1>(*l)->size().eval(Ctx::global_module(), compiler_arch);
 					old_offset += c_size;
 					new_offset += c_size;
 				}
@@ -554,7 +554,7 @@ namespace Corrosive {
 					}
 				}
 
-				new_inst->member_table[m.name.buffer] = new_inst->member_vars.size();
+				new_inst->member_table[m.name.buffer] = (uint16_t)new_inst->member_vars.size();
 				
 				// TODO BETTER CHECK
 				/*if (m_t->size().absolute == 0 && m_t->size().pointers == 0) {
@@ -565,7 +565,7 @@ namespace Corrosive {
 					return false;
 				}*/
 
-				new_inst->member_vars.push_back(std::make_pair(m_t, ILSize()));
+				new_inst->member_vars.push_back(m_t);
 			}
 
 			if (new_inst->context == ILContext::runtime) {
@@ -624,7 +624,7 @@ namespace Corrosive {
 
 				for (auto l = generic_ctx.generic_layout.rbegin(); l != generic_ctx.generic_layout.rend(); l++) {
 					std::get<1>(*l)->move(new_offset, old_offset);
-					size_t c_size = std::get<1>(*l)->size().eval(compiler_arch);
+					size_t c_size = std::get<1>(*l)->size().eval(Ctx::global_module(), compiler_arch);
 					old_offset += c_size;
 					new_offset += c_size;
 				}
@@ -763,7 +763,7 @@ namespace Corrosive {
 
 				for (auto l = generic_ctx.generic_layout.rbegin(); l != generic_ctx.generic_layout.rend(); l++) {
 					std::get<1>(*l)->move(new_offset, old_offset);
-					size_t c_size = std::get<1>(*l)->size().eval(compiler_arch);
+					size_t c_size = std::get<1>(*l)->size().eval(Ctx::global_module(), compiler_arch);
 					old_offset += c_size;
 					new_offset += c_size;
 				}
@@ -882,6 +882,8 @@ namespace Corrosive {
 
 			Ctx::stack()->push();
 			Ctx::temp_stack()->push();
+
+			Ctx::workspace_function()->local_stack_lifetime.push();
 			Ctx::stack()->push_block();
 			Ctx::temp_stack()->push_block();
 			ILBuilder::build_accept(Ctx::scope(), ILDataType::none);
@@ -890,10 +892,11 @@ namespace Corrosive {
 			uint16_t return_ptr_local_id = 0;
 
 			returns.second->compile();
+			func->local_stack_lifetime.push();
 
 			if (returns.second->rvalue_stacked()) {
 				ret_rval_stack = true;
-				return_ptr_local_id = func->register_local(Ctx::types()->t_ptr->size());
+				return_ptr_local_id = func->local_stack_lifetime.append(Ctx::types()->t_ptr->size());
 				func->returns = ILDataType::none;
 			}
 			else {
@@ -911,7 +914,7 @@ namespace Corrosive {
 				}
 
 				a.second->compile();
-				uint16_t id = func->register_local(a.second->size());
+				uint16_t id = func->local_stack_lifetime.append(a.second->size());
 				func->arguments.push_back(a.second->rvalue());
 
 				Ctx::stack()->push_item(a.first.buffer, a.second,id,StackItemTag::regular);
@@ -951,8 +954,6 @@ namespace Corrosive {
 			bool terminated;
 			Statement::parse_inner_block(cb, terminated, true, &name);
 
-			if (ret_rval_stack)
-				func->drop_local(return_ptr_local_id);
 
 			//func->dump();
 			//std::cout << std::endl;
@@ -1011,13 +1012,13 @@ namespace Corrosive {
 			Ctx::eval_stack()->push();
 			generic_inst.insert_key_on_stack(Ctx::eval());
 			
+			uint32_t stid = Ctx::global_module()->register_structure_table();
+			ILStructTable& table = Ctx::global_module()->structure_tables[stid];
 
-			size = { 0,0 };
-			alignment = { 1,0 };
-
+			size = ILSize(ILSizeType::table, stid);
 
 			for (auto&& m : member_vars) {
-				m.first->compile();
+				m->compile();
 
 				/*if (m.first->has_special_constructor())
 					has_special_constructor = true;
@@ -1030,8 +1031,7 @@ namespace Corrosive {
 				abss = _align_up(abss, malign);
 				size.absolute = abss;*/
 
-				m.second = size;
-				size = size + m.first->size();
+				table.elements.push_back(m->size());
 
 				//absolute_alignment = std::max(absolute_alignment, malign);
 				
@@ -1123,7 +1123,7 @@ namespace Corrosive {
 				uint16_t sid = Ctx::eval()->mask_local(key_ptr);
 				Ctx::eval_stack()->push_item(std::get<0>(*key_l).buffer, std::get<1>(*key_l), sid, StackItemTag::alias);
 
-				key_ptr += std::get<1>(*key_l)->size().eval(compiler_arch);
+				key_ptr += std::get<1>(*key_l)->size().eval(Ctx::global_module(),compiler_arch);
 			}
 
 			

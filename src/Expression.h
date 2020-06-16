@@ -14,6 +14,9 @@ namespace Corrosive {
 		static void copy_from_rvalue(Type* me, CompileType cpt, bool me_top = true);
 		static void move_from_rvalue(Type* me, CompileType cpt, bool me_top = true);
 
+		static ILDataType arithmetic_type(Type* type);
+		static Type* arithmetic_result(Type* type_left, Type* type_right);
+
 	private:
 		static void parse_and(Cursor& c, CompileValue& res, CompileType comp_type);
 		static void parse_or(Cursor& c, CompileValue& res, CompileType comp_type);

@@ -125,7 +125,7 @@ namespace Corrosive {
 		Type* t_void;
 		Type* t_size;
 
-		Type* primitives [256];
+		Type* primitives [(unsigned char)ILDataType::undefined];
 
 		Type* get_type_from_rvalue(ILDataType rval);
 
@@ -148,7 +148,7 @@ namespace Corrosive {
 
 		void setup();
 	private:
-		void setup_type(std::string_view name, Type*& into, ILSize size, ILSize alignment, ILDataType ildt,ILContext runtime);
+		void setup_type(std::string_view name, Type*& into, ILSize size, ILDataType ildt,ILContext runtime);
 	};
 }
 

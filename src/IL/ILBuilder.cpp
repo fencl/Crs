@@ -64,6 +64,15 @@ namespace Corrosive {
 		
 	}
 
+	void ILBuilder::build_negative(ILBlock* block, ILDataType type) {
+		block->write_instruction(ILInstruction::negative);
+		block->write_const_type(type);
+		
+	}
+	void ILBuilder::build_negate(ILBlock* block) {
+		block->write_instruction(ILInstruction::negate);		
+	}
+
 	void ILBuilder::build_fnptr(ILBlock* block, ILFunction* fun) {
 		block->write_instruction(ILInstruction::fnptr);
 		block->write_value(sizeof(uint32_t), (unsigned char*)&(fun->id));
@@ -171,14 +180,12 @@ namespace Corrosive {
 	void ILBuilder::build_store(ILBlock* block, ILDataType type) {
 		block->write_instruction(ILInstruction::store);
 		block->write_const_type(type);
-		
 	}
 	
 
 	void ILBuilder::build_store2(ILBlock* block, ILDataType type) {
 		block->write_instruction(ILInstruction::store2);
 		block->write_const_type(type);
-		
 	}
 
 
@@ -191,27 +198,29 @@ namespace Corrosive {
 	void ILBuilder::build_vtable(ILBlock* block, uint32_t id) {
 		block->write_instruction(ILInstruction::vtable);
 		block->write_value(sizeof(uint32_t), (unsigned char*)&id);
-		
+	}
+
+	void ILBuilder::build_tableoffset(ILBlock* block, uint32_t tableid, uint16_t itemid) {
+		block->write_instruction(ILInstruction::tableoffset);
+		block->write_value(sizeof(uint32_t), (unsigned char*)&tableid);
+		block->write_value(sizeof(uint16_t), (unsigned char*)&itemid);
 	}
 
 
 	void ILBuilder::build_insintric(ILBlock* block, ILInsintric fun) {
 		block->write_instruction(ILInstruction::insintric);
 		block->write_value(sizeof(uint8_t), (unsigned char*)&fun);
-		
 	}
 
 
 	void ILBuilder::build_duplicate(ILBlock* block, ILDataType type) {
 		block->write_instruction(ILInstruction::duplicate);
 		block->write_const_type(type);
-		
 	}
 	
 	void ILBuilder::build_swap(ILBlock* block, ILDataType type) {
 		block->write_instruction(ILInstruction::swap);
 		block->write_const_type(type);
-		
 	}
 
 	void ILBuilder::build_swap2(ILBlock* block, ILDataType type1, ILDataType type2) {
@@ -225,12 +234,11 @@ namespace Corrosive {
 		
 	}
 	
-	void ILBuilder::build_offset(ILBlock* block,ILSize offset) {
-		if (offset.absolute > 0 || offset.pointers > 0) {
+	void ILBuilder::build_offset(ILBlock* block, ILSize offset) {
+		if (offset.type == ILSizeType::table || offset.value > 0) {
 			block->write_instruction(ILInstruction::offset);
 			block->write_value(sizeof(ILSize), (unsigned char*)&offset);
 		}
-		
 	}
 	
 	void ILBuilder::build_rtoffset(ILBlock* block) {
@@ -456,11 +464,11 @@ namespace Corrosive {
 		if ((tl > ILDataType::ptr || tr > ILDataType::ptr)) {
 			throw_il_wrong_arguments_error();
 		}
-
-		block->write_instruction(ILInstruction::cast);
-		block->write_const_type(tl);
-		block->write_const_type(tr);
-		
+		if (tl != tr) {
+			block->write_instruction(ILInstruction::cast);
+			block->write_const_type(tl);
+			block->write_const_type(tr);
+		}
 	}
 
 	

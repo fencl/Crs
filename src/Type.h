@@ -53,7 +53,6 @@ namespace Corrosive {
 		virtual bool has_special_compare();
 
 		virtual ILSize size();
-		virtual ILSize alignment();
 
 		virtual void build_construct();
 		virtual void build_drop();
@@ -91,7 +90,6 @@ namespace Corrosive {
 		virtual void drop(unsigned char* me);
 
 		virtual ILSize size();
-		virtual ILSize alignment();
 
 		virtual bool has_special_constructor();
 		virtual bool has_special_destructor();
@@ -139,7 +137,6 @@ namespace Corrosive {
 
 		virtual ILContext context();
 		virtual ILSize size();
-		virtual ILSize alignment();
 
 		virtual bool rvalue_stacked();
 		virtual void print(std::ostream& os);
@@ -162,10 +159,10 @@ namespace Corrosive {
 		virtual ILDataType rvalue();
 
 		Type* owner;
-		uint32_t count;
+		uint32_t table;
+
 		virtual ILContext context();
 		virtual void compile();
-		
 
 		virtual void construct(unsigned char* me);
 		virtual void drop(unsigned char* me);
@@ -174,7 +171,6 @@ namespace Corrosive {
 		virtual void copy(unsigned char* me, unsigned char* from);
 
 		virtual ILSize size();
-		virtual ILSize alignment();
 		virtual void print(std::ostream& os);
 
 
@@ -194,7 +190,6 @@ namespace Corrosive {
 		Type* owner;
 		virtual ILContext context();
 		virtual ILSize size();
-		virtual ILSize alignment();
 		virtual void print(std::ostream& os);
 	};
 
@@ -209,7 +204,6 @@ namespace Corrosive {
 
 		virtual ILContext context();
 		virtual ILSize size();
-		virtual ILSize alignment();
 		virtual void print(std::ostream& os);
 	};
 
@@ -226,7 +220,6 @@ namespace Corrosive {
 		Type* return_type;
 		virtual ILContext context();
 		virtual ILSize size();
-		virtual ILSize alignment();
 		virtual void print(std::ostream& os);
 	};
 
@@ -237,7 +230,6 @@ namespace Corrosive {
 		DefaultTypes* owner;
 		size_t argument_array_id;
 		virtual ILSize size();
-		virtual ILSize alignment();
 		virtual void print(std::ostream& os);
 	};
 }

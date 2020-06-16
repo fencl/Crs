@@ -12,7 +12,7 @@ namespace Corrosive {
 
 	int8_t Type::compare(unsigned char* me, unsigned char* to) {
 		if (setjmp(sandbox) == 0) {
-			return (int8_t)memcmp(me, to, size().eval(compiler_arch));
+			return (int8_t)memcmp(me, to, size().eval(Ctx::global_module(), compiler_arch));
 		}
 		else {
 			throw_runtime_handler_exception(Ctx::eval());
@@ -23,7 +23,7 @@ namespace Corrosive {
 
 	void Type::move(unsigned char* me, unsigned char* from) {
 		if (setjmp(sandbox) == 0) {
-			memcpy(me, from, size().eval(compiler_arch));
+			memcpy(me, from, size().eval(Ctx::global_module(), compiler_arch));
 		}
 		else {
 			throw_runtime_handler_exception(Ctx::eval());
@@ -32,7 +32,7 @@ namespace Corrosive {
 
 	void Type::copy(unsigned char* me, unsigned char* from) {
 		if (setjmp(sandbox) == 0) {
-			memcpy(me, from, size().eval(compiler_arch));
+			memcpy(me, from, size().eval(Ctx::global_module(), compiler_arch));
 		}
 		else {
 			throw_runtime_handler_exception(Ctx::eval());
@@ -122,28 +122,38 @@ namespace Corrosive {
 
 	void TypeArray::construct(unsigned char* me) {
 		if (has_special_constructor()) {
+			size_t count = Ctx::global_module()->array_tables[table].count;
+			size_t elem_stride = align_up(owner->size().eval(Ctx::global_module(), compiler_arch), owner->size().alignment(Ctx::global_module(), compiler_arch));
+
 			for (uint32_t i = 0; i < count; i++) {
 				owner->construct(me);
-				me += owner->size().eval(compiler_arch);
+				me += elem_stride;
 			}
 		}
 	}
 
 	void TypeArray::drop(unsigned char* me) {
 		if (has_special_constructor()) {
+			size_t count = Ctx::global_module()->array_tables[table].count; 
+			size_t elem_stride = align_up(owner->size().eval(Ctx::global_module(), compiler_arch), owner->size().alignment(Ctx::global_module(), compiler_arch));
+
 			for (uint32_t i = 0; i < count; i++) {
 				owner->drop(me);
-				me += owner->size().eval(compiler_arch);
+				me += elem_stride;
 			}
 		}
 	}
 
 	void TypeArray::move(unsigned char* me, unsigned char* from) {
 		if (has_special_move()) {
+
+			size_t count = Ctx::global_module()->array_tables[table].count;
+			size_t elem_stride = align_up(owner->size().eval(Ctx::global_module(), compiler_arch), owner->size().alignment(Ctx::global_module(), compiler_arch));
+
 			for (uint32_t i = 0; i < count; i++) {
 				owner->move(me, from);
-				me += owner->size().eval(compiler_arch);
-				from += owner->size().eval(compiler_arch);
+				me += elem_stride;
+				from += elem_stride;
 			}
 		}
 		else {
@@ -153,10 +163,13 @@ namespace Corrosive {
 
 	void TypeArray::copy(unsigned char* me, unsigned char* from) {
 		if (has_special_copy()) {
+			size_t count = Ctx::global_module()->array_tables[table].count;
+			size_t elem_stride = align_up(owner->size().eval(Ctx::global_module(), compiler_arch), owner->size().alignment(Ctx::global_module(), compiler_arch));
+
 			for (uint32_t i = 0; i < count; i++) {
 				owner->copy(me, from);
-				me += owner->size().eval(compiler_arch);
-				from += owner->size().eval(compiler_arch);
+				me += elem_stride;
+				from += elem_stride;
 			}
 		}
 		else {
@@ -166,11 +179,14 @@ namespace Corrosive {
 
 	int8_t TypeArray::compare(unsigned char* me, unsigned char* to) {
 		if (has_special_compare()) {
+			size_t count = Ctx::global_module()->array_tables[table].count;
+			size_t elem_stride = align_up(owner->size().eval(Ctx::global_module(), compiler_arch), owner->size().alignment(Ctx::global_module(), compiler_arch));
+
 			for (uint32_t i = 0; i < count; i++) {
 				int8_t cmpval = owner->compare(me, to);
 				if (cmpval != 0) return cmpval;
-				me += owner->size().eval(compiler_arch);
-				to += owner->size().eval(compiler_arch);
+				me += elem_stride;
+				to += elem_stride;
 			}
 
 			return 0;
@@ -262,7 +278,10 @@ namespace Corrosive {
 		if (f == arrays.end()) {
 			std::unique_ptr<TypeArray> ti = std::make_unique<TypeArray>();
 			ti->owner = this;
-			ti->count = count;
+			
+			ti->table = Ctx::global_module()->register_array_table();
+			Ctx::global_module()->array_tables[ti->table].count = count;
+			Ctx::global_module()->array_tables[ti->table].element = size();
 			TypeArray* rt = ti.get();
 			arrays[count] = std::move(ti);
 			return rt;
@@ -311,7 +330,7 @@ namespace Corrosive {
 	}
 
 	void TypeArray::print(std::ostream& os) {
-		os << "[" << count << "]";
+		os << "[" << Ctx::global_module()->array_tables[table].count << "]";
 		owner->print(os);
 	}
 
@@ -348,26 +367,16 @@ namespace Corrosive {
 	// ==============================================================================================  SIZE/ALIGNMENT
 
 	ILSize Type::size() {
-		return { 0,0 };
-	}
-	ILSize Type::alignment() {
-		return { 0,0 };
+		return { ILSizeType::absolute,0 };
 	}
 
 
 	ILSize TypeStructureInstance::size() {
 		return owner->size;
 	}
-	ILSize TypeStructureInstance::alignment() {
-		return owner->alignment;
-	}
 
 	ILSize TypeTraitInstance::size() {
 		return ILSize::double_ptr;
-	}
-
-	ILSize TypeTraitInstance::alignment() {
-		return ILSize::single_ptr;
 	}
 
 
@@ -375,41 +384,20 @@ namespace Corrosive {
 		return ILSize::single_ptr;
 	}
 
-	ILSize TypeReference::alignment() {
-		return ILSize::single_ptr;
-	}
-
 	ILSize TypeSlice::size() {
 		return ILSize::double_ptr;
-	}
-
-	ILSize TypeSlice::alignment() {
-		return ILSize::single_ptr;
 	}
 
 
 	ILSize TypeFunction::size() {
 		return ILSize::single_ptr;
 	}
-
-	ILSize TypeFunction::alignment() {
-		return ILSize::single_ptr;
-	}
-
 	ILSize TypeTemplate::size() {
 		return ILSize::single_ptr;
 	}
 
-	ILSize TypeTemplate::alignment() {
-		return ILSize::single_ptr;
-	}
-
 	ILSize TypeArray::size() {
-		return  owner->size() * count;
-	}
-
-	ILSize TypeArray::alignment() {
-		return owner->alignment();
+		return  ILSize(ILSizeType::array, table);
 	}
 
 
