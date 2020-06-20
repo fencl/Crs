@@ -503,24 +503,10 @@ namespace Corrosive {
 	}
 
 
-	size_t ILSmallSize::eval(ILArchitecture arch) const {
-		switch (arch)
-		{
-			case ILArchitecture::i386:
-				return (combined & 0x0f) + (combined >> 4) * 4;
-			case ILArchitecture::x86_64:
-				return (combined & 0x0f) + (combined >> 4) * 8;
-			default:
-				return 0;
-		}
-	}
-
 
 	ILSize::ILSize() : type(ILSizeType::absolute), value(0) {}
 	ILSize::ILSize(ILSizeType t, uint32_t v) : type(t), value(v){}
 
-	ILSmallSize::ILSmallSize() : combined(0) {}
-	ILSmallSize::ILSmallSize(uint8_t a, uint8_t p) : combined((a&0x0f) + (p<<4)){}
 
 
 #define read_data_type(T) ((T*)read_data(sizeof(T),mempool,memoff))
@@ -574,6 +560,18 @@ namespace Corrosive {
 					std::cout << "   constref ";
 					auto ind = read_data_type(uint32_t);
 					std::cout << *ind << "\n";
+				} break;
+				case ILInstruction::tableroffset: {
+					std::cout << "   tableroffset [";
+					auto src_type = *read_data_type(ILDataType);
+					dump_data_type(src_type);
+					std::cout << "] -> [";
+					auto dst_type = *read_data_type(ILDataType);
+					dump_data_type(dst_type);
+					std::cout << "] ";
+					auto table = *read_data_type(uint32_t);
+					auto id = *read_data_type(uint16_t);
+					std::cout << table <<":" << id << "\n";
 				} break;
 				case ILInstruction::tableoffset: {
 					std::cout << "   tableoffset ";
@@ -768,19 +766,49 @@ namespace Corrosive {
 				}
 
 				case ILInstruction::roffset: {
-					std::cout << "   R offset ";
+					std::cout << "   R offset [";
 					auto from_t = *read_data_type(ILDataType);
 					auto to_t = *read_data_type(ILDataType);
-					auto off = read_data_type(ILSmallSize);
-
-					std::cout << (uint16_t)(off->combined & 0x0f) << " + " << (uint16_t)(off->combined >> 4) << "p\n";
+					auto off = read_data_type(ILSize);
 
 					dump_data_type(from_t);
-					std::cout << " -> ";
+					std::cout << "] -> [";
 					dump_data_type(to_t);
 					std::cout << "]\n";
+
+
+					off->print();
 					break;
 				}
+
+				case ILInstruction::memcmp: {
+					std::cout << "   memcmp ";
+					auto size = read_data_type(ILSize);
+					size->print();
+					std::cout << "\n";
+				} break;
+
+				case ILInstruction::memcmp2: {
+					std::cout << "   memcmp2 ";
+					auto size = read_data_type(ILSize);
+					size->print();
+					std::cout << "\n";
+				} break;
+				
+				case ILInstruction::rmemcmp: {
+					std::cout << "   rmemcmp [";
+					auto t = *read_data_type(ILDataType);
+					dump_data_type(t);
+					std::cout << "]\n";
+				} break;
+
+				case ILInstruction::rmemcmp2: {
+					std::cout << "   rmemcmp2 [";
+					auto t = *read_data_type(ILDataType);
+					dump_data_type(t);
+					std::cout << "]\n";
+				} break;
+
 				case ILInstruction::load: {
 					std::cout << "   load [";
 					auto type = read_data_type(ILDataType);

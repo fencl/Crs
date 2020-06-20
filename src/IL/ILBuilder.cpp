@@ -127,11 +127,11 @@ namespace Corrosive {
 		
 	}
 
-	void ILBuilder::build_roffset(ILBlock* block, ILDataType from, ILDataType to, ILSmallSize offset) {
+	void ILBuilder::build_roffset(ILBlock* block, ILDataType from, ILDataType to, ILSize offset) {
 		block->write_instruction(ILInstruction::roffset);
 		block->write_const_type(from);
 		block->write_const_type(to);
-		block->write_value(sizeof(ILSmallSize), (unsigned char*)&offset);
+		block->write_value(sizeof(ILSize), (unsigned char*)&offset);
 		
 	}
 
@@ -208,6 +208,15 @@ namespace Corrosive {
 		}
 	}
 
+	void ILBuilder::build_tableroffset(ILBlock* block, ILDataType src, ILDataType dst, uint32_t tableid, uint16_t itemid) {
+		if (itemid != 0) {
+			block->write_instruction(ILInstruction::tableroffset);
+			block->write_const_type(src);
+			block->write_const_type(dst);
+			block->write_value(sizeof(uint32_t), (unsigned char*)&tableid);
+			block->write_value(sizeof(uint16_t), (unsigned char*)&itemid);
+		}
+	}
 
 	void ILBuilder::build_insintric(ILBlock* block, ILInsintric fun) {
 		block->write_instruction(ILInstruction::insintric);

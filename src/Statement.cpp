@@ -8,14 +8,17 @@
 namespace Corrosive {
 
 
-	void Statement::parse_inner_block(Cursor& c, bool& terminated, bool exit_returns, Cursor* err) {
+	void Statement::parse_inner_block(Cursor& c, BlockTermination& termination, bool exit_returns, Cursor* err) {
 
 		StackItem sitm;
 		ILBlock* b_exit = Ctx::workspace_function()->create_block();
 		b_exit->alias = "exit";
 		Ctx::push_scope_exit(b_exit);
 
-		terminated = false;
+
+		termination = BlockTermination::no_exit;
+
+		BlockTermination term;
 		while (c.tok != RecognizedToken::CloseBrace) {
 
 			if (c.src != nullptr) {
@@ -26,11 +29,20 @@ namespace Corrosive {
 
 				ILBuilder::build_debug(Ctx::scope(), UINT16_MAX, c.top);
 			}
-			Statement::parse(c, CompileType::compile, terminated);
 
-			if (terminated && c.tok != RecognizedToken::CloseBrace) {
+			Statement::parse(c, CompileType::compile, term);
+
+			if (term == BlockTermination::terminated && c.tok != RecognizedToken::CloseBrace) {
 				throw_specific_error(c, "Instruction after the current branch has been terminated");
 			}
+
+			if (term == BlockTermination::terminated) {
+				termination = BlockTermination::terminated;
+			}
+			else if (term == BlockTermination::needs_exit) {
+				termination = BlockTermination::needs_exit;
+			}
+
 
 			int d = 0;
 			while (Ctx::temp_stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) {
@@ -49,37 +61,42 @@ namespace Corrosive {
 		}
 		c.move();
 
-		Ctx::workspace_function()->append_block(b_exit);
 
-		if (terminated) {
-			ILBuilder::build_yield(Ctx::scope(), Ctx::workspace_function()->returns);
-			ILBuilder::build_jmp(Ctx::scope(), b_exit);
-
-			ILBuilder::build_accept(Ctx::scope_exit(), Ctx::workspace_function()->returns);
-		}
-		else {
-			ILBuilder::build_yield(Ctx::scope(), ILDataType::none);
-			ILBuilder::build_jmp(Ctx::scope(), b_exit);
-
-			ILBuilder::build_accept(Ctx::scope_exit(), ILDataType::none);
-		}
+		ILBuilder::build_accept(b_exit, Ctx::workspace_function()->returns);
 
 
-		Ctx::push_scope(Ctx::scope_exit());
+
 		while (Ctx::stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) {
 			if (sitm.type->has_special_destructor()) {
-				ILBuilder::build_local(Ctx::scope(), sitm.id);
-				sitm.type->build_drop();
+
+				if (termination != BlockTermination::terminated) {
+					ILBuilder::build_local(Ctx::scope(), sitm.id);
+					sitm.type->build_drop();
+				}
+
+				if (termination != BlockTermination::no_exit) {
+					Ctx::push_scope(Ctx::scope_exit());
+					ILBuilder::build_local(Ctx::scope(), sitm.id);
+					sitm.type->build_drop();
+					Ctx::pop_scope();
+				}
 			}
 		}
-		Ctx::pop_scope();
 
 		Ctx::workspace_function()->local_stack_lifetime.pop();
 
+
+		auto prev_scope = Ctx::scope();
 		Ctx::pop_scope();
 		Ctx::pop_scope_exit();
 
-		if (terminated) {
+		if (termination == BlockTermination::terminated) {
+
+			Ctx::workspace_function()->append_block(b_exit);
+
+			ILBuilder::build_yield(prev_scope, Ctx::workspace_function()->returns);
+			ILBuilder::build_jmp(prev_scope, b_exit);
+
 			if (!exit_returns) {
 				ILBuilder::build_yield(b_exit, Ctx::workspace_function()->returns);
 				ILBuilder::build_jmp(b_exit, Ctx::scope_exit());
@@ -88,10 +105,18 @@ namespace Corrosive {
 				ILBuilder::build_ret(b_exit, Ctx::workspace_function()->returns);
 			}
 		}
-		else {
+		else if (termination == BlockTermination::needs_exit) {
+
+			Ctx::workspace_function()->append_block(b_exit);
+
+			ILBuilder::build_yield(Ctx::scope(), ILDataType::none);
+
 			if (!exit_returns) {
-				ILBuilder::build_yield(b_exit, ILDataType::none);
-				ILBuilder::build_jmp(b_exit, Ctx::scope());
+				ILBuilder::build_jmp(prev_scope, Ctx::scope());
+
+
+				ILBuilder::build_yield(b_exit, Ctx::workspace_function()->returns);
+				ILBuilder::build_jmp(b_exit, Ctx::scope_exit());
 			}
 			else {
 				if (Ctx::workspace_return() != Ctx::types()->t_void) {
@@ -103,7 +128,29 @@ namespace Corrosive {
 					}
 				}
 				else {
+
+					ILBuilder::build_ret(prev_scope, ILDataType::none);
 					ILBuilder::build_ret(b_exit, ILDataType::none);
+				}
+			}
+		}
+		else if (termination == BlockTermination::no_exit) {
+			ILBuilder::build_yield(Ctx::scope(), ILDataType::none);
+
+			if (!exit_returns) {
+				ILBuilder::build_jmp(prev_scope, Ctx::scope());
+			}
+			else {
+				if (Ctx::workspace_return() != Ctx::types()->t_void) {
+					if (err != nullptr) {
+						throw_specific_error(*err, "Function does not always return value");
+					}
+					else {
+						throw std::exception("Compiler error, Function does not always return value, error cursor not provided");
+					}
+				}
+				else {
+					ILBuilder::build_ret(prev_scope, ILDataType::none);
 				}
 			}
 		}
@@ -112,7 +159,7 @@ namespace Corrosive {
 		Ctx::stack()->pop_block();
 	}
 
-	void Statement::parse(Cursor& c, CompileType cmp, bool& terminated) {
+	void Statement::parse(Cursor& c, CompileType cmp, BlockTermination& termination) {
 
 		if (cmp == CompileType::eval) {
 			throw_specific_error(c, "Statement is used in compiletime context. Compiler should not allow it.");
@@ -123,7 +170,7 @@ namespace Corrosive {
 			{
 				if (c.buffer == "return") {
 					Ctx::workspace_function()->local_stack_lifetime.push();// temp lifetime push
-					terminated = true;
+					termination = BlockTermination::terminated;
 					parse_return(c);
 					return; 
 				}else if (c.buffer == "make") {
@@ -138,12 +185,12 @@ namespace Corrosive {
 				}
 				else if (c.buffer == "if") {
 					Ctx::workspace_function()->local_stack_lifetime.push();// temp lifetime push
-					parse_if(c, terminated);
+					parse_if(c, termination);
 					return;
 				}
 				else if (c.buffer == "while") {
 					Ctx::workspace_function()->local_stack_lifetime.push();// temp lifetime push
-					parse_while(c, terminated);
+					parse_while(c, termination);
 					return;
 				}
 			}break;
@@ -164,7 +211,7 @@ namespace Corrosive {
 				Ctx::stack()->push_block();
 				ILBuilder::build_accept(Ctx::scope(), ILDataType::none);
 
-				parse_inner_block(c, terminated);
+				parse_inner_block(c, termination);
 				Ctx::workspace_function()->append_block(continue_block);
 				return;
 			}break;
@@ -212,7 +259,7 @@ namespace Corrosive {
 		c.move();
 	}
 
-	void Statement::parse_if(Cursor& c, bool& terminated) {
+	void Statement::parse_if(Cursor& c, BlockTermination& termination) {
 		c.move();
 
 		CompileValue test_value;
@@ -245,7 +292,7 @@ namespace Corrosive {
 		Ctx::workspace_function()->local_stack_lifetime.push();// block lifetime push
 		Ctx::stack()->push_block();
 		ILBuilder::build_accept(Ctx::scope(), ILDataType::none);
-		bool term = false;
+		BlockTermination term = BlockTermination::no_exit;
 		Statement::parse_inner_block(c, term);
 
 
@@ -262,16 +309,21 @@ namespace Corrosive {
 				Ctx::workspace_function()->local_stack_lifetime.push();// block lifetime push
 				Ctx::stack()->push_block();
 				ILBuilder::build_accept(Ctx::scope(), ILDataType::none);
-				bool term2 = false;
+				BlockTermination term2 = BlockTermination::no_exit;
 				Statement::parse_inner_block(c, term2);
-				if (term && term2) { terminated = true; }
+				if (term== BlockTermination::no_exit && term2== BlockTermination::no_exit) { termination = BlockTermination::no_exit; }
+				else if (term == BlockTermination::terminated && term2 == BlockTermination::terminated) { termination = BlockTermination::terminated; }
+				else { termination = BlockTermination::needs_exit; }
 
 				ILBuilder::build_jmpz(block_from, else_block, block);
 			}
 			else if (c.buffer == "if") {
-				bool term2 = false;
+				BlockTermination term2 = BlockTermination::no_exit;
 				parse_if(c, term2);
-				if (term && term2) { terminated = true; }
+
+				if (term == BlockTermination::no_exit && term2 == BlockTermination::no_exit) { termination = BlockTermination::no_exit; }
+				else if (term == BlockTermination::terminated && term2 == BlockTermination::terminated) { termination = BlockTermination::terminated; }
+				else { termination = BlockTermination::needs_exit; }
 
 				ILBuilder::build_jmpz(block_from, continue_block, block);
 			}
@@ -287,7 +339,7 @@ namespace Corrosive {
 	}
 
 
-	void Statement::parse_while(Cursor& c, bool& terminated) {
+	void Statement::parse_while(Cursor& c, BlockTermination& termination) {
 		c.move();
 
 
@@ -323,7 +375,7 @@ namespace Corrosive {
 		Ctx::stack()->push_block();
 		ILBuilder::build_accept(block, ILDataType::none);
 		bool term = false;
-		Statement::parse_inner_block(c, term);
+		Statement::parse_inner_block(c, termination);
 
 
 

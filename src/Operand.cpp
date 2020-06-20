@@ -282,10 +282,12 @@ namespace Corrosive {
 			}
 			else {
 				if (cpt == CompileType::compile) {
-					ILBuilder::build_roffset(Ctx::scope(), res.t->rvalue(), ILDataType::ptr,ILSmallSize(0,0));
+					ILBuilder::build_cast(Ctx::scope(), res.t->rvalue(), ILDataType::ptr);
+					//ILBuilder::build_roffset(Ctx::scope(), res.t->rvalue(), ILDataType::ptr,ILSize(ILSizeType::absolute,0));
 				}
 				else {
-					ILBuilder::eval_roffset(Ctx::eval(), res.t->rvalue(), ILDataType::ptr, 0);
+					ILBuilder::build_cast(Ctx::scope(), res.t->rvalue(), ILDataType::ptr);
+					//ILBuilder::eval_roffset(Ctx::eval(), res.t->rvalue(), ILDataType::ptr, 0);
 				}
 			}
 			res.t = to;
@@ -1856,7 +1858,7 @@ namespace Corrosive {
 						ILBuilder::build_load(Ctx::scope(), ILDataType::size);
 					}
 					else {
-						ILBuilder::build_roffset(Ctx::scope(), ret.t->rvalue(), ILDataType::size, ILSmallSize(0, 1));
+						ILBuilder::build_roffset(Ctx::scope(), ret.t->rvalue(), ILDataType::size, ILSize::single_ptr);
 					}
 				}
 				else {
@@ -1898,7 +1900,7 @@ namespace Corrosive {
 						ILBuilder::build_load(Ctx::scope(), ILDataType::size);
 					}
 					else {
-						ILBuilder::build_roffset(Ctx::scope(), ret.t->rvalue(), ILDataType::size, ILSmallSize(0,1));
+						ILBuilder::build_roffset(Ctx::scope(), ret.t->rvalue(), ILDataType::size, ILSize::single_ptr);
 					}
 				}
 				else {
@@ -2294,14 +2296,25 @@ namespace Corrosive {
 					}
 				}
 				else {
-					/*if (cpt == CompileType::compile) {
-						ILBuilder::build_roffset(Ctx::scope(), ret.t->rvalue(), mem_type->rvalue(),ILSmallSize((uint8_t)offset.absolute, (uint8_t)offset.pointers));
+					if (cpt == CompileType::compile) {
+						if (!si->wrapper) {
+							if (elem_size.type == ILSizeType::table)
+								ILBuilder::build_tableroffset(Ctx::scope(), ret.t->rvalue(), mem_type->rvalue(),elem_size.value, elem_id);
+							else
+								ILBuilder::build_roffset(Ctx::scope(), ret.t->rvalue(), mem_type->rvalue(),elem_size);
+						}
+
 					}
 					else if (cpt == CompileType::eval) {
-						ILBuilder::eval_roffset(Ctx::eval(), ret.t->rvalue(), mem_type->rvalue(), (uint8_t)offset.eval(Ctx::global_module(), compiler_arch));
-					}*/
 
-					//TODO resolve
+						if (!si->wrapper) {
+							if (elem_size.type == ILSizeType::table)
+								ILBuilder::eval_tableroffset(Ctx::eval(), ret.t->rvalue(), mem_type->rvalue(), elem_size.value, elem_id);
+							else
+								ILBuilder::eval_roffset(Ctx::eval(), ret.t->rvalue(), mem_type->rvalue(),elem_size.eval(Ctx::global_module(), compiler_arch));
+						}
+
+					}
 
 				}
 

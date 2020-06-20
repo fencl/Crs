@@ -952,8 +952,8 @@ namespace Corrosive {
 			compile_state = 3;
 
 			Cursor cb = block;
-			bool terminated;
-			Statement::parse_inner_block(cb, terminated, true, &name);
+			BlockTermination term;
+			Statement::parse_inner_block(cb, term, true, &name);
 
 
 			//func->dump();

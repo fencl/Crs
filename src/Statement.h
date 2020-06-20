@@ -6,14 +6,18 @@
 
 namespace Corrosive {
 
+	enum class BlockTermination {
+		terminated, needs_exit, no_exit
+	};
+
 	class Statement {
 	public:
 
-		static void parse(Cursor& c, CompileType copm_type,bool& terminated);
-		static void parse_inner_block(Cursor& c, bool& terminated, bool exit_returns = false, Cursor* err = nullptr);
+		static void parse(Cursor& c, CompileType copm_type, BlockTermination& termination);
+		static void parse_inner_block(Cursor& c, BlockTermination& termination, bool exit_returns = false, Cursor* err = nullptr);
 
-		static void parse_if(Cursor& c, bool& terminated);
-		static void parse_while(Cursor& c, bool& terminated);
+		static void parse_if(Cursor& c, BlockTermination& termination);
+		static void parse_while(Cursor& c, BlockTermination& termination);
 
 		static void parse_return(Cursor& c);
 		static void parse_make(Cursor& c);

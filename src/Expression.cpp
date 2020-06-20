@@ -206,148 +206,264 @@ namespace Corrosive {
 		bool isf = false;
 		bool sig = false;
 		Type* result_type = nullptr;
+
 		if (!(result_type = Expression::arithmetic_result(left.t, right.t))) {
-			throw_specific_error(c, "Operation is not defined on top of specified types");
-		}
+			if ((l==1 || l==2) && left.t == right.t) {
+				int8_t eval_value = 0;
 
-		if (l == 1 || l == 2)
-			result_type = Ctx::types()->t_bool;
+				if (left.t->has_special_compare()) {
+					if (left.lvalue || left.t->rvalue_stacked()) {
+						if (cpt == CompileType::compile) {
+							left.t->build_compare();
+						}
+						else {
+							unsigned char* cmp_to = Ctx::eval()->pop_register_value<unsigned char*>();
+							unsigned char* cmp_what = Ctx::eval()->pop_register_value<unsigned char*>();
+							eval_value = left.t->compare(cmp_what,cmp_to);
+						}
+					}
+					else {
+						throw_specific_error(c, "Compiler error, type should not be rvalue with specific compare function");
+					}
+				}
+				else {
 
-		if (cpt == CompileType::compile) {
-			switch (l) {
-				case 0: {
-					switch (op) {
-						case 0: {
-							ILBuilder::build_and(Ctx::scope(), left.t->rvalue(), right.t->rvalue());
-						}break;
+					if (cpt == CompileType::compile) {
+						if (left.lvalue || left.t->rvalue_stacked()) {
+							ILBuilder::build_memcmp(Ctx::scope(), left.t->size());
+						}
+						else {
+							ILBuilder::build_rmemcmp(Ctx::scope(), left.t->rvalue());
+						}
+					}
+					else {
+						if (left.lvalue || left.t->rvalue_stacked()) {
+							ILBuilder::eval_memcmp(Ctx::eval(), left.t->size().eval(Ctx::global_module(), compiler_arch));
+						}
+						else {
+							ILBuilder::eval_rmemcmp(Ctx::eval(), left.t->rvalue());
+						}
+						eval_value = Ctx::eval()->pop_register_value<int8_t>();
+					}
+
+				}
+
+				if (cpt == CompileType::compile) {
+					switch (l) {
 						case 1: {
-							ILBuilder::build_or(Ctx::scope(), left.t->rvalue(), right.t->rvalue());
+							switch (op) {
+								case 0: {
+									ILBuilder::build_const_i8(Ctx::scope(), 0);
+									ILBuilder::build_eq(Ctx::scope(), ILDataType::i8, ILDataType::i8);
+								}break;
+								case 1: {
+									ILBuilder::build_const_i8(Ctx::scope(), 0);
+									ILBuilder::build_ne(Ctx::scope(), ILDataType::i8, ILDataType::i8);
+								}break;
+							}
 						}break;
 						case 2: {
-							ILBuilder::build_xor(Ctx::scope(), left.t->rvalue(), right.t->rvalue());
+							switch (op) {
+								case 0: {
+									ILBuilder::build_const_i8(Ctx::scope(), 1);
+									ILBuilder::build_eq(Ctx::scope(), ILDataType::i8, ILDataType::i8);
+								}break;
+								case 1: {
+									ILBuilder::build_const_i8(Ctx::scope(), -1);
+									ILBuilder::build_eq(Ctx::scope(), ILDataType::i8, ILDataType::i8);
+								} break;
+								case 2: {
+									ILBuilder::build_const_i8(Ctx::scope(), -1);
+									ILBuilder::build_ne(Ctx::scope(), ILDataType::i8, ILDataType::i8);
+								}break;
+								case 3: {
+									ILBuilder::build_const_i8(Ctx::scope(), 1);
+									ILBuilder::build_ne(Ctx::scope(), ILDataType::i8, ILDataType::i8);
+								}break;
+							}
 						}break;
 					}
-				}break;
-				case 1: {
-					switch (op) {
-						case 0: {
-							ILBuilder::build_eq(Ctx::scope(), left.t->rvalue(), right.t->rvalue());
-						}break;
+				}
+				else {
+					switch (l) {
 						case 1: {
-							ILBuilder::build_ne(Ctx::scope(), left.t->rvalue(), right.t->rvalue());
+							switch (op) {
+								case 0: {
+									ILBuilder::eval_const_ibool(Ctx::eval(), eval_value == 0 ? 1 : 0);
+								}break;
+								case 1: {
+									ILBuilder::eval_const_ibool(Ctx::eval(), eval_value == 0 ? 0 : 1);
+								}break;
+							}
 						}break;
-					}
-				}break;
-				case 2: {
-					switch (op) {
-						case 0: {
-							ILBuilder::build_gt(Ctx::scope(), left.t->rvalue(), right.t->rvalue());
-						}break;
-						case 1: {
-							ILBuilder::build_lt(Ctx::scope(), left.t->rvalue(), right.t->rvalue());
-						} break;
 						case 2: {
-							ILBuilder::build_ge(Ctx::scope(), left.t->rvalue(), right.t->rvalue());
-						}break;
-						case 3: {
-							ILBuilder::build_le(Ctx::scope(), left.t->rvalue(), right.t->rvalue());
-						}break;
-					}
-				}break;
-				case 3: {
-					switch (op) {
-						case 0: {
-							ILBuilder::build_add(Ctx::scope(), left.t->rvalue(), right.t->rvalue());
-						}break;
-						case 1: {
-							ILBuilder::build_sub(Ctx::scope(), left.t->rvalue(), right.t->rvalue());
-						}break;
-					}
-				}break;
-				case 4: {
-					switch (op) {
-						case 0: {
-							ILBuilder::build_mul(Ctx::scope(), left.t->rvalue(), right.t->rvalue());
-						}break;
-						case 1: {
-							ILBuilder::build_div(Ctx::scope(), left.t->rvalue(), right.t->rvalue());
-						} break;
-						case 2: {
-							ILBuilder::build_rem(Ctx::scope(), left.t->rvalue(), right.t->rvalue());
+							switch (op) {
+								case 0: {
+									ILBuilder::eval_const_ibool(Ctx::eval(), eval_value == 1 ? 1 : 0);
+								}break;
+								case 1: {
+									ILBuilder::eval_const_ibool(Ctx::eval(), eval_value == -1 ? 1 : 0);
+								} break;
+								case 2: {
+									ILBuilder::eval_const_ibool(Ctx::eval(), eval_value == -1 ? 0 : 1);
+								}break;
+								case 3: {
+									ILBuilder::eval_const_ibool(Ctx::eval(), eval_value == 1 ? 0 : 1);
+								}break;
+							}
 						}break;
 					}
-				}break;
+				}
+
+
+				res.t = Ctx::types()->t_bool;
+				res.lvalue = false;
+			}
+			else {
+				throw_specific_error(c, "Operation is not defined on top of specified types");
 			}
 		}
-		else if (cpt == CompileType::eval) {
-			switch (l) {
-				case 0: {
-					switch (op) {
-						case 0: {
-							ILBuilder::eval_and(Ctx::eval(), left.t->rvalue(), right.t->rvalue());
-						}break;
-						case 1: {
-							ILBuilder::eval_or(Ctx::eval(), left.t->rvalue(), right.t->rvalue());
-						}break;
-						case 2: {
-							ILBuilder::eval_xor(Ctx::eval(), left.t->rvalue(), right.t->rvalue());
-						}break;
-					}
-				}break;
-				case 1: {
-					switch (op) {
-						case 0: {
-							ILBuilder::eval_eq(Ctx::eval(), left.t->rvalue(), right.t->rvalue());
-						}break;
-						case 1: {
-							ILBuilder::eval_ne(Ctx::eval(), left.t->rvalue(), right.t->rvalue());
-						}break;
-					}
-				}break;
-				case 2: {
-					switch (op) {
-						case 0: {
-							ILBuilder::eval_gt(Ctx::eval(), left.t->rvalue(), right.t->rvalue());
-						}break;
-						case 1: {
-							ILBuilder::eval_lt(Ctx::eval(), left.t->rvalue(), right.t->rvalue());
-						} break;
-						case 2: {
-							ILBuilder::eval_ge(Ctx::eval(), left.t->rvalue(), right.t->rvalue());
-						}break;
-						case 3: {
-							ILBuilder::eval_le(Ctx::eval(), left.t->rvalue(), right.t->rvalue());
-						}break;
-					}
-				}break;
-				case 3: {
-					switch (op) {
-						case 0: {
-							ILBuilder::eval_add(Ctx::eval(), left.t->rvalue(), right.t->rvalue());
-						}break;
-						case 1: {
-							ILBuilder::eval_sub(Ctx::eval(), left.t->rvalue(), right.t->rvalue());
-						}break;
-					}
-				}break;
-				case 4: {
-					switch (op) {
-						case 0: {
-							ILBuilder::eval_mul(Ctx::eval(), left.t->rvalue(), right.t->rvalue());
-						}break;
-						case 1: {
-							ILBuilder::eval_div(Ctx::eval(), left.t->rvalue(), right.t->rvalue());
-						} break;
-						case 2: {
-							ILBuilder::eval_rem(Ctx::eval(), left.t->rvalue(), right.t->rvalue());
-						}break;
-					}
-				}break;
-			}
-		}
+		else {
 
-		res.t = result_type;
-		res.lvalue = false;
+			if (l == 1 || l == 2)
+				result_type = Ctx::types()->t_bool;
+
+			if (cpt == CompileType::compile) {
+				switch (l) {
+					case 0: {
+						switch (op) {
+							case 0: {
+								ILBuilder::build_and(Ctx::scope(), left.t->rvalue(), right.t->rvalue());
+							}break;
+							case 1: {
+								ILBuilder::build_or(Ctx::scope(), left.t->rvalue(), right.t->rvalue());
+							}break;
+							case 2: {
+								ILBuilder::build_xor(Ctx::scope(), left.t->rvalue(), right.t->rvalue());
+							}break;
+						}
+					}break;
+					case 1: {
+						switch (op) {
+							case 0: {
+								ILBuilder::build_eq(Ctx::scope(), left.t->rvalue(), right.t->rvalue());
+							}break;
+							case 1: {
+								ILBuilder::build_ne(Ctx::scope(), left.t->rvalue(), right.t->rvalue());
+							}break;
+						}
+					}break;
+					case 2: {
+						switch (op) {
+							case 0: {
+								ILBuilder::build_gt(Ctx::scope(), left.t->rvalue(), right.t->rvalue());
+							}break;
+							case 1: {
+								ILBuilder::build_lt(Ctx::scope(), left.t->rvalue(), right.t->rvalue());
+							} break;
+							case 2: {
+								ILBuilder::build_ge(Ctx::scope(), left.t->rvalue(), right.t->rvalue());
+							}break;
+							case 3: {
+								ILBuilder::build_le(Ctx::scope(), left.t->rvalue(), right.t->rvalue());
+							}break;
+						}
+					}break;
+					case 3: {
+						switch (op) {
+							case 0: {
+								ILBuilder::build_add(Ctx::scope(), left.t->rvalue(), right.t->rvalue());
+							}break;
+							case 1: {
+								ILBuilder::build_sub(Ctx::scope(), left.t->rvalue(), right.t->rvalue());
+							}break;
+						}
+					}break;
+					case 4: {
+						switch (op) {
+							case 0: {
+								ILBuilder::build_mul(Ctx::scope(), left.t->rvalue(), right.t->rvalue());
+							}break;
+							case 1: {
+								ILBuilder::build_div(Ctx::scope(), left.t->rvalue(), right.t->rvalue());
+							} break;
+							case 2: {
+								ILBuilder::build_rem(Ctx::scope(), left.t->rvalue(), right.t->rvalue());
+							}break;
+						}
+					}break;
+				}
+			}
+			else if (cpt == CompileType::eval) {
+				switch (l) {
+					case 0: {
+						switch (op) {
+							case 0: {
+								ILBuilder::eval_and(Ctx::eval(), left.t->rvalue(), right.t->rvalue());
+							}break;
+							case 1: {
+								ILBuilder::eval_or(Ctx::eval(), left.t->rvalue(), right.t->rvalue());
+							}break;
+							case 2: {
+								ILBuilder::eval_xor(Ctx::eval(), left.t->rvalue(), right.t->rvalue());
+							}break;
+						}
+					}break;
+					case 1: {
+						switch (op) {
+							case 0: {
+								ILBuilder::eval_eq(Ctx::eval(), left.t->rvalue(), right.t->rvalue());
+							}break;
+							case 1: {
+								ILBuilder::eval_ne(Ctx::eval(), left.t->rvalue(), right.t->rvalue());
+							}break;
+						}
+					}break;
+					case 2: {
+						switch (op) {
+							case 0: {
+								ILBuilder::eval_gt(Ctx::eval(), left.t->rvalue(), right.t->rvalue());
+							}break;
+							case 1: {
+								ILBuilder::eval_lt(Ctx::eval(), left.t->rvalue(), right.t->rvalue());
+							} break;
+							case 2: {
+								ILBuilder::eval_ge(Ctx::eval(), left.t->rvalue(), right.t->rvalue());
+							}break;
+							case 3: {
+								ILBuilder::eval_le(Ctx::eval(), left.t->rvalue(), right.t->rvalue());
+							}break;
+						}
+					}break;
+					case 3: {
+						switch (op) {
+							case 0: {
+								ILBuilder::eval_add(Ctx::eval(), left.t->rvalue(), right.t->rvalue());
+							}break;
+							case 1: {
+								ILBuilder::eval_sub(Ctx::eval(), left.t->rvalue(), right.t->rvalue());
+							}break;
+						}
+					}break;
+					case 4: {
+						switch (op) {
+							case 0: {
+								ILBuilder::eval_mul(Ctx::eval(), left.t->rvalue(), right.t->rvalue());
+							}break;
+							case 1: {
+								ILBuilder::eval_div(Ctx::eval(), left.t->rvalue(), right.t->rvalue());
+							} break;
+							case 2: {
+								ILBuilder::eval_rem(Ctx::eval(), left.t->rvalue(), right.t->rvalue());
+							}break;
+						}
+					}break;
+				}
+			}
+
+			res.t = result_type;
+			res.lvalue = false;
+		}
 	}
 
 	void Expression::parse(Cursor& c, CompileValue& res, CompileType cpt, bool require_output) {

@@ -690,6 +690,15 @@ namespace Corrosive {
 		ptr += table.calculated_offsets[itemid];
 		eval_ctx->write_register_value(ptr);
 	}
+	
+	void ILBuilder::eval_tableroffset(ILEvaluator* eval_ctx, ILDataType src, ILDataType dst ,uint32_t tableid, uint16_t itemid) {
+		auto& table = eval_ctx->parent->structure_tables[tableid];
+		table.calculate(eval_ctx->parent, compiler_arch);
+		ilsize_t storage;
+		eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(src),&storage);
+		storage >>= table.calculated_offsets[itemid];
+		eval_ctx->write_register_value_indirect(eval_ctx->compile_time_register_size(dst), &storage);
+	}
 
 	void ILBuilder::eval_rmemcmp(ILEvaluator* eval_ctx, ILDataType type) {
 		
@@ -1005,8 +1014,8 @@ namespace Corrosive {
 						case ILInstruction::roffset: {
 							auto from_t = *read_data_type(ILDataType);
 							auto to_t = *read_data_type(ILDataType);
-							auto size = read_data_type(ILSmallSize);
-							eval_roffset(eval_ctx, from_t, to_t, size->eval(compiler_arch));
+							auto size = read_data_type(ILSize);
+							eval_roffset(eval_ctx, from_t, to_t, size->eval(eval_ctx->parent,compiler_arch));
 						} break;
 
 						case ILInstruction::local: {
@@ -1019,6 +1028,14 @@ namespace Corrosive {
 							auto tableid = *read_data_type(uint32_t);
 							auto id = *read_data_type(uint16_t);
 							eval_tableoffset(eval_ctx, tableid,id);
+						} break;
+
+						case ILInstruction::tableroffset: {
+							auto from_t = *read_data_type(ILDataType);
+							auto to_t = *read_data_type(ILDataType);
+							auto tableid = *read_data_type(uint32_t);
+							auto id = *read_data_type(uint16_t);
+							eval_tableroffset(eval_ctx,from_t,to_t, tableid,id);
 						} break;
 							
 						case ILInstruction::debug: {

@@ -46,7 +46,7 @@ namespace Corrosive {
 		memcpy, memcpy2, memcmp, memcmp2, rmemcmp, rmemcmp2,
 		malloc, free,
 		rtoffset, rtoffset2, null, isnotzero, yield, discard, accept,
-		debug, constref, negative, negate, tableoffset
+		debug, constref, negative, negate, tableoffset, tableroffset
 	};
 
 	enum class ILDataType : unsigned char {
@@ -95,14 +95,6 @@ namespace Corrosive {
 		void calculate(ILModule* mod, ILArchitecture arch);
 	};
 
-	
-
-	struct ILSmallSize {
-		ILSmallSize();
-		ILSmallSize(uint8_t a, uint8_t p);
-		uint8_t combined;
-		size_t eval(ILArchitecture arch) const;
-	};
 
 	struct ILBlockData {
 		unsigned int size = 0;
@@ -336,6 +328,7 @@ namespace Corrosive {
 		static void build_const_size  (ILBlock* block, ILSize   value);
 
 		static void eval_tableoffset(ILEvaluator* eval_ctx, uint32_t tableid, uint16_t itemid);
+		static void eval_tableroffset(ILEvaluator* eval_ctx, ILDataType src, ILDataType dst, uint32_t tableid, uint16_t itemid);
 		static void eval_constref(ILEvaluator* eval_ctx, uint32_t constid);
 		static void eval_debug(ILEvaluator* eval_ctx, uint16_t file, uint16_t line);
 		static void eval_load(ILEvaluator* eval_ctx, ILDataType type);
@@ -391,6 +384,7 @@ namespace Corrosive {
 
 		static ILDataType arith_result(ILDataType l,ILDataType r);
 
+		static void build_tableroffset(ILBlock* block, ILDataType src, ILDataType dst, uint32_t tableid, uint16_t itemid);
 		static void build_tableoffset(ILBlock* block, uint32_t tableid, uint16_t itemid);
 		static void build_constref(ILBlock* block, uint32_t constid);
 		static void build_debug(ILBlock* block, uint16_t file, uint16_t line);
@@ -403,7 +397,7 @@ namespace Corrosive {
 		static void build_memcmp(ILBlock* block, ILSize size);
 		static void build_memcmp2(ILBlock* block, ILSize size);
 		static void build_offset(ILBlock* block, ILSize offest);
-		static void build_roffset(ILBlock* block, ILDataType src, ILDataType dst, ILSmallSize offset);
+		static void build_roffset(ILBlock* block, ILDataType src, ILDataType dst, ILSize offset);
 		static void build_rtoffset(ILBlock* block);
 		static void build_rtoffset2(ILBlock* block);
 		static void build_rmemcmp(ILBlock* block, ILDataType type);
