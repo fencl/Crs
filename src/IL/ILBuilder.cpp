@@ -208,6 +208,14 @@ namespace Corrosive {
 		}
 	}
 
+	void ILBuilder::build_tableoffset2(ILBlock* block, uint32_t tableid, uint16_t itemid) {
+		if (itemid != 0) {
+			block->write_instruction(ILInstruction::tableoffset2);
+			block->write_value(sizeof(uint32_t), (unsigned char*)&tableid);
+			block->write_value(sizeof(uint16_t), (unsigned char*)&itemid);
+		}
+	}
+
 	void ILBuilder::build_tableroffset(ILBlock* block, ILDataType src, ILDataType dst, uint32_t tableid, uint16_t itemid) {
 		if (itemid != 0) {
 			block->write_instruction(ILInstruction::tableroffset);
@@ -302,6 +310,19 @@ namespace Corrosive {
 	void ILBuilder::build_woffset(ILBlock* block, uint32_t offset) {
 		if (offset) {
 			block->write_instruction(ILInstruction::woffset);
+			block->write_value(sizeof(uint32_t), (unsigned char*)&offset);
+		}
+	}
+	void ILBuilder::build_aoffset2(ILBlock* block, uint32_t offset) {
+		if (offset) {
+			block->write_instruction(ILInstruction::aoffset2);
+			block->write_value(sizeof(uint32_t), (unsigned char*)&offset);
+		}
+	}
+
+	void ILBuilder::build_woffset2(ILBlock* block, uint32_t offset) {
+		if (offset) {
+			block->write_instruction(ILInstruction::woffset2);
 			block->write_value(sizeof(uint32_t), (unsigned char*)&offset);
 		}
 	}

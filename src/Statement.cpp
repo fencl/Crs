@@ -440,6 +440,8 @@ namespace Corrosive {
 			if (c.tok != RecognizedToken::Equals && c.tok != RecognizedToken::BackArrow) {
 				throw_wrong_token_error(c, "'=' or '<-'");
 			}
+
+			do_copy = c.tok != RecognizedToken::BackArrow;
 		}
 		else {
 			if (c.tok != RecognizedToken::Equals) {

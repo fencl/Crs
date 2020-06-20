@@ -579,6 +579,12 @@ namespace Corrosive {
 					auto id = *read_data_type(uint16_t);
 					std::cout << table <<":" << id << "\n";
 				} break;
+				case ILInstruction::tableoffset2: {
+					std::cout << "   tableoffset2 ";
+					auto table = *read_data_type(uint32_t);
+					auto id = *read_data_type(uint16_t);
+					std::cout << table <<":" << id << "\n";
+				} break;
 				case ILInstruction::duplicate: {
 					std::cout << "   duplicate [";
 					dump_data_type(*read_data_type(ILDataType));
@@ -751,6 +757,14 @@ namespace Corrosive {
 				}
 				case ILInstruction::woffset: {
 					std::cout << "   woffset " << *read_data_type(uint32_t)<< "\n";
+					break;
+				}
+				case ILInstruction::aoffset2: {
+					std::cout << "   aoffset2 " << *read_data_type(uint32_t)<< "\n";
+					break;
+				}
+				case ILInstruction::woffset2: {
+					std::cout << "   woffset2 " << *read_data_type(uint32_t)<< "\n";
 					break;
 				}
 				case ILInstruction::memcpy: {

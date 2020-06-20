@@ -515,12 +515,35 @@ namespace Corrosive {
 			eval_ctx->write_register_value(mem);
 		}
 	}
+
+	void ILBuilder::eval_aoffset2(ILEvaluator* eval_ctx, uint32_t offset) {
+		if (offset > 0) {
+			auto mem2 = eval_ctx->pop_register_value<size_t>();
+			auto mem1 = eval_ctx->pop_register_value<size_t>();
+			mem1 += offset;
+			mem2 += offset;
+			eval_ctx->write_register_value(mem1);
+			eval_ctx->write_register_value(mem2);
+		}
+	}
 	
 	void ILBuilder::eval_woffset(ILEvaluator* eval_ctx, uint32_t offset) {
 		if (offset > 0) {
 			auto mem = eval_ctx->pop_register_value<size_t>();
 			mem += offset * eval_ctx->compile_time_register_size(ILDataType::ptr);
 			eval_ctx->write_register_value(mem);
+		}
+	}
+	
+
+	void ILBuilder::eval_woffset2(ILEvaluator* eval_ctx, uint32_t offset) {
+		if (offset > 0) {
+			auto mem2 = eval_ctx->pop_register_value<size_t>();
+			auto mem1 = eval_ctx->pop_register_value<size_t>();
+			mem2 += offset * eval_ctx->compile_time_register_size(ILDataType::ptr);
+			mem1 += offset * eval_ctx->compile_time_register_size(ILDataType::ptr);
+			eval_ctx->write_register_value(mem1);
+			eval_ctx->write_register_value(mem2);
 		}
 	}
 
@@ -754,6 +777,17 @@ namespace Corrosive {
 		auto ptr = eval_ctx->pop_register_value<unsigned char*>();
 		ptr += table.calculated_offsets[itemid];
 		eval_ctx->write_register_value(ptr);
+	}
+
+	void ILBuilder::eval_tableoffset2(ILEvaluator* eval_ctx, uint32_t tableid, uint16_t itemid) {
+		auto& table = eval_ctx->parent->structure_tables[tableid];
+		table.calculate(eval_ctx->parent, compiler_arch);
+		auto ptr2 = eval_ctx->pop_register_value<unsigned char*>();
+		auto ptr1 = eval_ctx->pop_register_value<unsigned char*>();
+		ptr1 += table.calculated_offsets[itemid];
+		ptr2 += table.calculated_offsets[itemid];
+		eval_ctx->write_register_value(ptr1);
+		eval_ctx->write_register_value(ptr2);
 	}
 	
 	void ILBuilder::eval_tableroffset(ILEvaluator* eval_ctx, ILDataType src, ILDataType dst ,uint32_t tableid, uint16_t itemid) {
@@ -1088,6 +1122,14 @@ namespace Corrosive {
 							auto size = *read_data_type(uint32_t);
 							eval_woffset(eval_ctx, size);
 						} break;
+						case ILInstruction::aoffset2: {
+							auto size = *read_data_type(uint32_t);
+							eval_aoffset2(eval_ctx, size);
+						} break;
+						case ILInstruction::woffset2: {
+							auto size = *read_data_type(uint32_t);
+							eval_woffset2(eval_ctx, size);
+						} break;
 						case ILInstruction::constref: {
 							auto cid = *read_data_type(uint32_t);
 							eval_constref(eval_ctx, cid);
@@ -1129,6 +1171,11 @@ namespace Corrosive {
 							auto tableid = *read_data_type(uint32_t);
 							auto id = *read_data_type(uint16_t);
 							eval_tableoffset(eval_ctx, tableid,id);
+						} break;
+						case ILInstruction::tableoffset2: {
+							auto tableid = *read_data_type(uint32_t);
+							auto id = *read_data_type(uint16_t);
+							eval_tableoffset2(eval_ctx, tableid,id);
 						} break;
 
 						case ILInstruction::tableroffset: {
