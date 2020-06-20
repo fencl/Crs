@@ -42,12 +42,12 @@ namespace Corrosive {
 		eq, ne, gt, ge, lt, le, 
 		local, forget, 
 		fnptr, call, start, insintric, cast, 
-		roffset, offset, vtable, duplicate, swap, swap2,
+		roffset, offset, vtable, duplicate, duplicate2, swap, swap2,
 		memcpy, memcpy2, memcmp, memcmp2, rmemcmp, rmemcmp2,
 		malloc, free,
 		rtoffset, rtoffset2, null, isnotzero, yield, discard, accept,
 		debug, constref, negative, negate, tableoffset, tableroffset,
-		aoffset, woffset, aroffset, wroffset, clone
+		aoffset, woffset, aroffset, wroffset, clone, clone2
 	};
 
 	enum class ILDataType : unsigned char {
@@ -382,6 +382,8 @@ namespace Corrosive {
 		static void eval_call(ILEvaluator* eval_ctx, ILDataType rett, uint16_t argc);
 		static void eval_duplicate(ILEvaluator* eval_ctx, ILDataType type);
 		static void eval_clone(ILEvaluator* eval_ctx, ILDataType type, uint16_t times);
+		static void eval_duplicate2(ILEvaluator* eval_ctx, ILDataType type);
+		static void eval_clone2(ILEvaluator* eval_ctx, ILDataType type, uint16_t times);
 		static void eval_swap(ILEvaluator* eval_ctx, ILDataType type);
 		static void eval_swap2(ILEvaluator* eval_ctx, ILDataType type1, ILDataType type2);
 
@@ -389,6 +391,8 @@ namespace Corrosive {
 
 		static void build_duplicate(ILBlock* block, ILDataType type);
 		static void build_clone(ILBlock* block, ILDataType type, uint16_t times);
+		static void build_duplicate2(ILBlock* block, ILDataType type);
+		static void build_clone2(ILBlock* block, ILDataType type, uint16_t times);
 		static void build_swap(ILBlock* block, ILDataType type);
 		static void build_swap2(ILBlock* block, ILDataType type1, ILDataType type2);
 		static void build_tableroffset(ILBlock* block, ILDataType src, ILDataType dst, uint32_t tableid, uint16_t itemid);

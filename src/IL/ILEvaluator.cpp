@@ -606,6 +606,31 @@ namespace Corrosive {
 			eval_ctx->write_register_value_indirect(reg_s, lv);
 		}
 	}
+	void ILBuilder::eval_duplicate2(ILEvaluator* eval_ctx, ILDataType type) {
+		size_t reg_s = eval_ctx->compile_time_register_size(type);
+
+		ilsize_t storage1, storage2;
+		eval_ctx->pop_register_value_indirect(reg_s, &storage1);
+		eval_ctx->pop_register_value_indirect(reg_s, &storage2);
+
+		eval_ctx->write_register_value_indirect(reg_s, &storage1);
+		eval_ctx->write_register_value_indirect(reg_s, &storage2);
+		eval_ctx->write_register_value_indirect(reg_s, &storage1);
+		eval_ctx->write_register_value_indirect(reg_s, &storage2);
+	}
+
+	void ILBuilder::eval_clone2(ILEvaluator* eval_ctx, ILDataType type, uint16_t times) {
+		size_t reg_s = eval_ctx->compile_time_register_size(type);
+
+		ilsize_t storage1, storage2;
+		eval_ctx->pop_register_value_indirect(reg_s, &storage1);
+		eval_ctx->pop_register_value_indirect(reg_s, &storage2);
+
+		for (uint16_t i = 0; i < times; ++i) {
+			eval_ctx->write_register_value_indirect(reg_s, &storage1);
+			eval_ctx->write_register_value_indirect(reg_s, &storage2);
+		}
+	}
 
 	void ILBuilder::eval_fnptr(ILEvaluator* eval_ctx, ILFunction* fun) {
 		eval_ctx->write_register_value(fun);
@@ -912,6 +937,15 @@ namespace Corrosive {
 							auto type = *read_data_type(ILDataType);
 							auto times = *read_data_type(uint16_t);
 							eval_clone(eval_ctx, type, times);
+						} break;
+						case ILInstruction::duplicate2: {
+							auto type = *read_data_type(ILDataType);
+							eval_duplicate2(eval_ctx, type);
+						} break;
+						case ILInstruction::clone2: {
+							auto type = *read_data_type(ILDataType);
+							auto times = *read_data_type(uint16_t);
+							eval_clone2(eval_ctx, type, times);
 						} break;
 						case ILInstruction::swap: {
 							auto type = *read_data_type(ILDataType);

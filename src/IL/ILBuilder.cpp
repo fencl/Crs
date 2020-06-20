@@ -245,6 +245,29 @@ namespace Corrosive {
 			block->write_value(sizeof(uint16_t), (unsigned char*)&times);
 		}
 	}
+
+	void ILBuilder::build_duplicate2(ILBlock* block, ILDataType type) {
+		block->write_instruction(ILInstruction::duplicate2);
+		block->write_const_type(type);
+	}
+
+	void ILBuilder::build_clone2(ILBlock* block, ILDataType type, uint16_t times) {
+		if (times == 2) {
+			build_duplicate2(block, type);
+		}
+		else if (times == 0) {
+			build_forget(block, type);
+			build_forget(block, type);
+		}
+		else if (times == 1) {
+
+		}
+		else {
+			block->write_instruction(ILInstruction::clone2);
+			block->write_const_type(type);
+			block->write_value(sizeof(uint16_t), (unsigned char*)&times);
+		}
+	}
 	
 	void ILBuilder::build_swap(ILBlock* block, ILDataType type) {
 		block->write_instruction(ILInstruction::swap);

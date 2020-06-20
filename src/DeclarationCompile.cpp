@@ -956,8 +956,8 @@ namespace Corrosive {
 			Statement::parse_inner_block(cb, term, true, &name);
 
 
-			func->dump();
-			std::cout << std::endl;
+			//func->dump();
+			//std::cout << std::endl;
 
 			func->assert_flow();
 
@@ -1036,21 +1036,89 @@ namespace Corrosive {
 
 		auto_destructor = func;
 		Ctx::pop_scope();
-
-		func->dump();
-		std::cout << std::endl;
 	}
 
 	void StructureInstance::build_automatic_move() {
-		//TODO
+		ILFunction* func = Ctx::global_module()->create_function();
+		func->alias = "auto_move";
+
+		ILBlock* block = func->create_and_append_block();
+		block->alias = "entry";
+		Ctx::push_scope(block);
+
+		ILBuilder::build_accept(block, ILDataType::none);
+				
+
+		if (member_vars.size() > 1) {
+			ILBuilder::build_clone2(block, ILDataType::ptr, member_vars.size());
+		}
+
+		size_t ind = 0;
+		for (ind = 0; ind < member_vars.size(); ++ind) {
+			auto& c_var = member_vars[ind];
+
+
+			if (size.type == ILSizeType::table) {
+				ILBuilder::build_tableoffset(block, size.value, (uint16_t)ind);
+			}
+			else if (size.type == ILSizeType::absolute) {
+				ILBuilder::build_aoffset(block, c_var.second);
+			}
+			else if (size.type == ILSizeType::word) {
+				ILBuilder::build_woffset(block, c_var.second);
+			}
+
+			c_var.first->build_move();
+		}
+
+		ILBuilder::build_yield(block, ILDataType::none);
+		ILBuilder::build_ret(block, ILDataType::none);
+
+		auto_move = func;
+		Ctx::pop_scope();
 	}
 
 	void StructureInstance::build_automatic_copy() {
-		//TODO
+		ILFunction* func = Ctx::global_module()->create_function();
+		func->alias = "auto_copy";
+
+		ILBlock* block = func->create_and_append_block();
+		block->alias = "entry";
+		Ctx::push_scope(block);
+
+		ILBuilder::build_accept(block, ILDataType::none);
+
+		if (member_vars.size() > 1) {
+			ILBuilder::build_clone2(block, ILDataType::ptr, member_vars.size());
+		}
+
+		size_t ind = 0;
+		for (ind = 0; ind < member_vars.size(); ++ind) {
+			auto& c_var = member_vars[ind];
+
+			if (size.type == ILSizeType::table) {
+				ILBuilder::build_tableoffset(block, size.value, (uint16_t)ind);
+			}
+			else if (size.type == ILSizeType::absolute) {
+				ILBuilder::build_aoffset(block, c_var.second);
+			}
+			else if (size.type == ILSizeType::word) {
+				ILBuilder::build_woffset(block, c_var.second);
+			}
+
+			c_var.first->build_copy();
+			
+		}
+
+		ILBuilder::build_yield(block, ILDataType::none);
+		ILBuilder::build_ret(block, ILDataType::none);
+
+		auto_move = func;
+		Ctx::pop_scope();
 	}
 
 	void StructureInstance::build_automatic_compare() {
-		//TODO
+		// TODO
 	}
 
 	void StructureInstance::compile() {
@@ -1070,11 +1138,12 @@ namespace Corrosive {
 			for (auto&& m : member_vars) {
 				m.first->compile();
 
-				/*if (m.first->has_special_constructor())
-					has_special_constructor = true;*/
-
 				if (m.first->has_special_destructor())
 					has_special_destructor = true;
+				if (m.first->has_special_copy())
+					has_special_copy = true;
+				if (m.first->has_special_move())
+					has_special_move = true;
 
 				ILSize m_s = m.first->size();
 
@@ -1132,40 +1201,29 @@ namespace Corrosive {
 			compile_state = 2;
 
 			
-			/*size_t abssize = size.eval(nctx.module->architecture);
-			if (abssize <= 8) {
-				structure_type = StructureInstanceType::compact_structure;
-
-				if (abssize == 1)
-					rvalue = ILDataType::u8;
-				else if (abssize == 2)
-					rvalue = ILDataType::u16;
-				else if (abssize <= 4)
-					rvalue = ILDataType::u32;
-				else if (abssize <= 8)
-					rvalue = ILDataType::u64;
-			}
-			else {*/
-
-				structure_type = StructureInstanceType::normal_structure;
 			
-			//}
-
-			/*if (has_special_constructor)
-				build_automatic_constructor();
-			if (has_special_destructor)
-				build_automatic_destructor();*/
+			structure_type = StructureInstanceType::normal_structure;
+			
+			
 
 			if (impl_copy) {
 				impl_copy->compile();
 				auto_copy = impl_copy->func;
 				has_special_copy = true;
 			}
+			else {
+				if (has_special_copy)
+					build_automatic_copy();
+			}
 
 			if (impl_move) {
 				impl_move->compile();
 				auto_move = impl_move->func;
 				has_special_move = true;
+			}
+			else {
+				if (has_special_move)
+					build_automatic_move();
 			}
 
 			if (impl_compare) {

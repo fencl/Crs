@@ -589,6 +589,16 @@ namespace Corrosive {
 					dump_data_type(*read_data_type(ILDataType));
 					std::cout << "] "<< *read_data_type(uint16_t)<<"\n";
 				} break;
+				case ILInstruction::duplicate2: {
+					std::cout << "   duplicate2 [";
+					dump_data_type(*read_data_type(ILDataType));
+					std::cout << "]\n";
+				} break;
+				case ILInstruction::clone2: {
+					std::cout << "   clone2 [";
+					dump_data_type(*read_data_type(ILDataType));
+					std::cout << "] "<< *read_data_type(uint16_t)<<"\n";
+				} break;
 				case ILInstruction::insintric: {
 					std::cout << "   insintric \"";
 					auto type = read_data_type(uint8_t);
