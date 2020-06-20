@@ -228,6 +228,23 @@ namespace Corrosive {
 		block->write_instruction(ILInstruction::duplicate);
 		block->write_const_type(type);
 	}
+
+	void ILBuilder::build_clone(ILBlock* block, ILDataType type, uint16_t times) {
+		if (times == 2) {
+			build_duplicate(block, type);
+		}
+		else if (times == 0) {
+			build_forget(block, type);
+		}
+		else if (times == 1) {
+
+		}
+		else {
+			block->write_instruction(ILInstruction::clone);
+			block->write_const_type(type);
+			block->write_value(sizeof(uint16_t), (unsigned char*)&times);
+		}
+	}
 	
 	void ILBuilder::build_swap(ILBlock* block, ILDataType type) {
 		block->write_instruction(ILInstruction::swap);
@@ -249,6 +266,37 @@ namespace Corrosive {
 		if (offset.type == ILSizeType::table || offset.value > 0) {
 			block->write_instruction(ILInstruction::offset);
 			block->write_value(sizeof(ILSize), (unsigned char*)&offset);
+		}
+	}
+
+	void ILBuilder::build_aoffset(ILBlock* block, uint32_t offset) {
+		if (offset) {
+			block->write_instruction(ILInstruction::aoffset);
+			block->write_value(sizeof(uint32_t), (unsigned char*)&offset);
+		}
+	}
+
+	void ILBuilder::build_woffset(ILBlock* block, uint32_t offset) {
+		if (offset) {
+			block->write_instruction(ILInstruction::woffset);
+			block->write_value(sizeof(uint32_t), (unsigned char*)&offset);
+		}
+	}
+	void ILBuilder::build_aroffset(ILBlock* block, ILDataType from, ILDataType to, uint8_t offset) {
+		if (offset || from!=to) {
+			block->write_instruction(ILInstruction::aroffset);
+			block->write_const_type(from);
+			block->write_const_type(to);
+			block->write_value(sizeof(uint8_t), (unsigned char*)&offset);
+		}
+	}
+
+	void ILBuilder::build_wroffset(ILBlock* block, ILDataType from, ILDataType to, uint8_t offset) {
+		if (offset || from != to) {
+			block->write_instruction(ILInstruction::wroffset);
+			block->write_const_type(from);
+			block->write_const_type(to);
+			block->write_value(sizeof(uint8_t), (unsigned char*)&offset);
 		}
 	}
 	

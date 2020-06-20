@@ -956,8 +956,8 @@ namespace Corrosive {
 			Statement::parse_inner_block(cb, term, true, &name);
 
 
-			//func->dump();
-			//std::cout << std::endl;
+			func->dump();
+			std::cout << std::endl;
 
 			func->assert_flow();
 
@@ -990,7 +990,55 @@ namespace Corrosive {
 	}
 
 	void StructureInstance::build_automatic_destructor() {
-		//TODO
+		ILFunction* func = Ctx::global_module()->create_function();
+		func->alias = "auto_drop";
+
+		ILBlock* block = func->create_and_append_block();
+		block->alias = "entry";
+		Ctx::push_scope(block);
+
+		ILBuilder::build_accept(block, ILDataType::none);
+
+		uint16_t clones = 0;
+
+		for (size_t i = 0; i < member_vars.size(); ++i) {
+			if (member_vars[i].first->has_special_destructor()) {
+				clones++;
+			}
+		}
+
+		if (clones > 1) {
+			ILBuilder::build_clone(block, ILDataType::ptr, clones);
+		}
+
+		size_t ind = 0;
+		for (ind = 0; ind < member_vars.size(); ++ind) {
+			auto& c_var = member_vars[ind];
+
+			if (c_var.first->has_special_destructor()) {
+				
+				if (size.type == ILSizeType::table) {
+					ILBuilder::build_tableoffset(block, size.value, (uint16_t)ind);
+				}
+				else if (size.type == ILSizeType::absolute){
+					ILBuilder::build_aoffset(block, c_var.second);
+				}
+				else if (size.type == ILSizeType::word){
+					ILBuilder::build_woffset(block, c_var.second);
+				}
+				
+				c_var.first->build_drop();
+			}
+		}
+
+		ILBuilder::build_yield(block, ILDataType::none);
+		ILBuilder::build_ret(block, ILDataType::none);
+
+		auto_destructor = func;
+		Ctx::pop_scope();
+
+		func->dump();
+		std::cout << std::endl;
 	}
 
 	void StructureInstance::build_automatic_move() {
@@ -1023,10 +1071,10 @@ namespace Corrosive {
 				m.first->compile();
 
 				/*if (m.first->has_special_constructor())
-					has_special_constructor = true;
+					has_special_constructor = true;*/
 
 				if (m.first->has_special_destructor())
-					has_special_destructor = true;*/
+					has_special_destructor = true;
 
 				ILSize m_s = m.first->size();
 
@@ -1041,7 +1089,7 @@ namespace Corrosive {
 						size.type = ILSizeType::table;
 					}
 				}
-				else if (m_s.type == ILSizeType::word) { // wors are automatically aligned
+				else if (m_s.type == ILSizeType::word) { // words are automatically aligned
 					if (size.type == ILSizeType::absolute && size.value == 0) size.type = ILSizeType::word;
 
 					if (size.type == ILSizeType::word) {
@@ -1059,10 +1107,6 @@ namespace Corrosive {
 				
 
 				table.elements.push_back(m_s);
-
-
-				//absolute_alignment = std::max(absolute_alignment, malign);
-				
 			}
 
 
@@ -1134,6 +1178,10 @@ namespace Corrosive {
 				impl_drop->compile();
 				auto_destructor = impl_drop->func;
 				has_special_destructor = true;
+			}
+			else {
+				if (has_special_destructor)
+					build_automatic_destructor();
 			}
 
 

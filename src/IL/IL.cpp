@@ -580,10 +580,14 @@ namespace Corrosive {
 					std::cout << table <<":" << id << "\n";
 				} break;
 				case ILInstruction::duplicate: {
-					std::cout << "   duplicate ";
-					auto type = read_data_type(ILDataType);
-					dump_data_type(*type);
-					std::cout << "\n";
+					std::cout << "   duplicate [";
+					dump_data_type(*read_data_type(ILDataType));
+					std::cout << "]\n";
+				} break;
+				case ILInstruction::clone: {
+					std::cout << "   clone [";
+					dump_data_type(*read_data_type(ILDataType));
+					std::cout << "] "<< *read_data_type(uint16_t)<<"\n";
 				} break;
 				case ILInstruction::insintric: {
 					std::cout << "   insintric \"";
@@ -731,6 +735,14 @@ namespace Corrosive {
 					std::cout << "\n";
 					break;
 				}
+				case ILInstruction::aoffset: {
+					std::cout << "   aoffset " << *read_data_type(uint32_t)<< "\n";
+					break;
+				}
+				case ILInstruction::woffset: {
+					std::cout << "   woffset " << *read_data_type(uint32_t)<< "\n";
+					break;
+				}
 				case ILInstruction::memcpy: {
 					std::cout << "   memcpy ";
 					auto off = read_data_type(ILSize);
@@ -766,7 +778,7 @@ namespace Corrosive {
 				}
 
 				case ILInstruction::roffset: {
-					std::cout << "   R offset [";
+					std::cout << "   roffset [";
 					auto from_t = *read_data_type(ILDataType);
 					auto to_t = *read_data_type(ILDataType);
 					auto off = read_data_type(ILSize);
@@ -778,6 +790,33 @@ namespace Corrosive {
 
 
 					off->print();
+					break;
+				}
+				case ILInstruction::aroffset: {
+					std::cout << "   aroffset [";
+					auto from_t = *read_data_type(ILDataType);
+					auto to_t = *read_data_type(ILDataType);
+					auto off = *read_data_type(uint8_t);
+
+					dump_data_type(from_t);
+					std::cout << "] -> [";
+					dump_data_type(to_t);
+					std::cout << "] "<<off<<"\n";
+
+					break;
+				}
+
+				case ILInstruction::wroffset: {
+					std::cout << "   wroffset [";
+					auto from_t = *read_data_type(ILDataType);
+					auto to_t = *read_data_type(ILDataType);
+					auto off = *read_data_type(uint8_t);
+
+					dump_data_type(from_t);
+					std::cout << "] -> [";
+					dump_data_type(to_t);
+					std::cout << "] "<<off<<"\n";
+
 					break;
 				}
 
