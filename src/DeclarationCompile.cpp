@@ -9,6 +9,7 @@
 #include <algorithm>
 #include "Statement.h"
 #include "Utilities.h"
+#include "Operand.h"
 
 namespace Corrosive {
 
@@ -1068,10 +1069,14 @@ namespace Corrosive {
 				ILBuilder::build_woffset2(block, c_var.second);
 			}
 
-			c_var.first->build_move();
+			if (c_var.first->has_special_move()) {
+				c_var.first->build_move();
+			}
+			else {
+				ILBuilder::build_memcpy2(Ctx::scope(), c_var.first->size());
+			}
 		}
 
-		ILBuilder::build_yield(block, ILDataType::none);
 		ILBuilder::build_ret(block, ILDataType::none);
 
 		auto_move = func;
@@ -1106,12 +1111,14 @@ namespace Corrosive {
 				ILBuilder::build_woffset2(block, c_var.second);
 			}
 
-
-			c_var.first->build_copy();
-			
+			if (c_var.first->has_special_copy()) {
+				c_var.first->build_copy();
+			}
+			else {
+				ILBuilder::build_memcpy2(Ctx::scope(), c_var.first->size());
+			}			
 		}
 
-		ILBuilder::build_yield(block, ILDataType::none);
 		ILBuilder::build_ret(block, ILDataType::none);
 
 		auto_copy = func;
@@ -1119,7 +1126,68 @@ namespace Corrosive {
 	}
 
 	void StructureInstance::build_automatic_compare() {
-		// TODO
+		ILFunction* func = Ctx::global_module()->create_function();
+		func->alias = "auto_compare";
+
+		ILBlock* block = func->create_and_append_block();
+		ILBlock* block_return = func->create_block();
+		block_return->alias = "exit";
+		ILBuilder::build_accept(block_return, ILDataType::i8);
+		ILBuilder::build_ret(block_return,ILDataType::i8);
+
+		block->alias = "entry";
+		Ctx::push_scope(block);
+
+		ILBuilder::build_accept(block, ILDataType::none);
+
+		if (member_vars.size() > 1) {
+			ILBuilder::build_clone2(block, ILDataType::ptr, (uint16_t)member_vars.size());
+		}
+
+		size_t ind = 0;
+		for (ind = 0; ind < member_vars.size(); ++ind) {
+			auto& c_var = member_vars[ind];
+
+			if (size.type == ILSizeType::table) {
+				ILBuilder::build_tableoffset2(Ctx::scope(), size.value, (uint16_t)ind);
+			}
+			else if (size.type == ILSizeType::absolute) {
+				ILBuilder::build_aoffset2(Ctx::scope(), c_var.second);
+			}
+			else if (size.type == ILSizeType::word) {
+				ILBuilder::build_woffset2(Ctx::scope(), c_var.second);
+			}
+
+			
+			if (c_var.first->has_special_compare()) {
+				c_var.first->build_compare();
+			}
+			else {
+				ILBuilder::build_memcmp2(Ctx::scope(), c_var.first->size());
+			}
+
+			if (ind < member_vars.size() - 1) {
+				ILBlock* continue_block = func->create_and_append_block();
+			
+				ILBuilder::build_discard(continue_block, ILDataType::i8);
+				ILBuilder::build_duplicate(Ctx::scope(), ILDataType::i8);
+				ILBuilder::build_yield(Ctx::scope(), ILDataType::i8);
+				ILBuilder::build_jmpz(Ctx::scope(), continue_block, block_return);
+				Ctx::pop_scope();
+				Ctx::push_scope(continue_block);
+			}
+			else {
+				ILBuilder::build_yield(Ctx::scope(), ILDataType::i8);
+				ILBuilder::build_jmp(Ctx::scope(),block_return);
+			}
+
+		}
+
+
+		func->append_block(block_return);
+		//func->dump();
+		auto_compare = func;
+		Ctx::pop_scope();
 	}
 
 	void StructureInstance::compile() {
@@ -1145,6 +1213,8 @@ namespace Corrosive {
 					has_special_copy = true;
 				if (m.first->has_special_move())
 					has_special_move = true;
+				if (m.first->has_special_compare())
+					has_special_compare = true;
 
 				ILSize m_s = m.first->size();
 
@@ -1231,6 +1301,10 @@ namespace Corrosive {
 				impl_compare->compile();
 				auto_compare = impl_compare->func;
 				has_special_compare = true;
+			}
+			else {
+				if (has_special_compare)
+					build_automatic_compare();
 			}
 
 			if (impl_drop) {
