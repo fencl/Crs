@@ -142,7 +142,7 @@ namespace Corrosive {
 		tr_move = Ctx::global_namespace()->subtraits["Move"].get();
 		tr_compare = Ctx::global_namespace()->subtraits["Compare"].get();
 		tr_drop = Ctx::global_namespace()->subtraits["Drop"].get();
-		tr_ctor = Ctx::global_namespace()->subtraits["Ctor"].get();
+		tr_ctor = Ctx::global_namespace()->subtraits["Default"].get();
 	}
 
 
