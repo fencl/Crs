@@ -1426,6 +1426,7 @@ namespace Corrosive {
 			FunctionInstance* finst = f_table[id].get();
 			finst->compile();
 			vtable[id] = finst->func;
+			++id;
 		}
 
 		void** vt = vtable.get();

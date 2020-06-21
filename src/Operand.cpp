@@ -2203,7 +2203,9 @@ namespace Corrosive {
 			if (c.tok == RecognizedToken::OpenParenthesis) {
 				if (cpt == CompileType::compile) {
 					if (ret.t->rvalue_stacked()) {
+
 						ILBuilder::build_duplicate(Ctx::scope(), ILDataType::ptr);
+
 						ILBuilder::build_woffset(Ctx::scope(), 1);
 						ILBuilder::build_load(Ctx::scope(), ILDataType::ptr);
 						ILBuilder::build_woffset(Ctx::scope(), (uint32_t)off);
@@ -2211,25 +2213,26 @@ namespace Corrosive {
 						ILBuilder::build_callstart(Ctx::scope());
 
 						ILBuilder::build_load(Ctx::scope(), ILDataType::ptr);
-						// todo run the function
 					}
 					else {
-						std::cout << "???"; // not invented yet
+						throw_specific_error(c, "Compiler error, trait object was placed inside register, but register trait call was not implemented");
 					}
 				}
 				else {
-					if (ret.t->rvalue_stacked()) {	
+					if (ret.t->rvalue_stacked()) {
+
 						ILBuilder::eval_duplicate(Ctx::eval(), ILDataType::ptr);
-						ILBuilder::eval_load(Ctx::eval(), ILDataType::ptr);
+
 						ILBuilder::eval_woffset(Ctx::eval(), 1);
 						ILBuilder::eval_load(Ctx::eval(), ILDataType::ptr);
 						ILBuilder::eval_woffset(Ctx::eval(), (uint32_t)off);
 						ILBuilder::eval_load(Ctx::eval(), ILDataType::ptr);
 						ILBuilder::eval_callstart(Ctx::eval());
+
 						ILBuilder::eval_load(Ctx::eval(), ILDataType::ptr);
 					}
 					else {
-						std::cout << "???"; // not invented yet
+						throw_specific_error(c, "Compiler error, trait object was placed inside register, but register trait call was not implemented");
 					}
 				}
 

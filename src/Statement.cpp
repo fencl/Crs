@@ -399,10 +399,10 @@ namespace Corrosive {
 		CompileValue ret_val;
 		Cursor err = c;
 		Expression::parse(c, ret_val, CompileType::compile);
-		Expression::rvalue(ret_val, CompileType::compile);
-
 		Type* to = Ctx::workspace_return();
 		Operand::cast(err, ret_val, to, CompileType::compile, false);
+		Expression::rvalue(ret_val, CompileType::compile);
+
 
 
 		if (Ctx::workspace_return()->rvalue_stacked()) {
