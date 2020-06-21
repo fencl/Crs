@@ -100,6 +100,7 @@ namespace Corrosive {
 		FunctionInstance* impl_move = nullptr;
 		FunctionInstance* impl_compare = nullptr;
 		FunctionInstance* impl_drop = nullptr;
+		FunctionInstance* impl_ctor = nullptr;
 
 		void build_automatic_constructor();
 		void build_automatic_destructor();
@@ -189,7 +190,7 @@ namespace Corrosive {
 		ILContext ctx = ILContext::both;
 	};
 
-	class TraitInstance  {
+	class TraitInstance {
 	public:
 		std::map<std::string_view, size_t> member_table;
 		std::vector<TraitInstanceMemberRecord> member_funcs;

@@ -224,7 +224,6 @@ namespace Corrosive {
 				c.move();
 				if (c.tok != RecognizedToken::Colon) {
 					throw_wrong_token_error(c, "':'");
-					
 				}
 				c.move();
 				member.type = c;
@@ -232,11 +231,12 @@ namespace Corrosive {
 				while (c.tok != RecognizedToken::Semicolon) {
 					if (c.tok == RecognizedToken::Eof) {
 						throw_eof_error(c, "parsing of structure member type");
-						
 					}
 					c.move();
 				}
+
 				c.move();
+
 				result->member_vars.push_back(member);
 			}
 			else if (c.buffer == "fn") {

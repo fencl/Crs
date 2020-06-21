@@ -1640,15 +1640,7 @@ namespace Corrosive {
 			}
 			else if (ftempl) {
 				ftempl->compile();
-				if (!ftempl->is_generic) {
-					FunctionInstance* finst;
-					ftempl->generate(nullptr, finst);
-					finst->compile();
-					eval->write_register_value<void*>(finst->type);
-				}
-				else {
-					eval->write_register_value<void*>(ftempl->type.get());
-				}
+				eval->write_register_value<void*>(ftempl->type.get());
 			}
 			else if (trait) {
 				trait->compile();

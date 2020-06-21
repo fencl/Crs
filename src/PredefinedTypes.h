@@ -145,6 +145,7 @@ namespace Corrosive {
 		TraitTemplate* tr_move;
 		TraitTemplate* tr_compare;
 		TraitTemplate* tr_drop;
+		TraitTemplate* tr_ctor;
 
 		void setup();
 	private:

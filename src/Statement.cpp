@@ -508,6 +508,12 @@ namespace Corrosive {
 
 	void Statement::parse_make(Cursor& c) {
 		c.move();
+		bool construct = true;
+		if (c.tok == RecognizedToken::ExclamationMark) {
+			construct = false;
+			c.move();
+		}
+
 		if (c.tok != RecognizedToken::Symbol) {
 			throw_not_a_name_error(c);
 		}
@@ -542,7 +548,7 @@ namespace Corrosive {
 		uint32_t local_id = Ctx::workspace_function()->local_stack_lifetime.append(s);
 		Ctx::stack()->push_item(name.buffer, new_t, local_id, StackItemTag::regular);
 
-		if (new_t->has_special_constructor()) {
+		if (construct && new_t->has_special_constructor()) {
 			ILBuilder::build_local(Ctx::scope(), local_id);
 			new_t->build_construct();
 		}

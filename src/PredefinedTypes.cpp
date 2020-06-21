@@ -129,7 +129,7 @@ namespace Corrosive {
 
 
 
-		std_lib.load_data("trait Copy(T:type) {fn Copy: (&T);}\ntrait Move(T:type) {fn Move: (&T);}\ntrait Compare(T:type) {fn Compare: (&T) i8;}\ntrait Drop {fn Drop: ();}\n"
+		std_lib.load_data("trait Copy(T:type) {fn Copy: (&T);}\ntrait Move(T:type) {fn Move: (&T);}\ntrait Compare(T:type) {fn Compare: (&T) i8;}\ntrait Drop {fn Drop: ();}\ntrait Default {fn Default: ();}\n"
 			"fn copy_slice(T: type): (to: []T, from: []T) { let i=0; while(i<from.count) { to[i] = from[i]; i = i+1;} }"
 			,"standard_library<buffer>");
 		std_lib.pair_braces();
@@ -142,6 +142,7 @@ namespace Corrosive {
 		tr_move = Ctx::global_namespace()->subtraits["Move"].get();
 		tr_compare = Ctx::global_namespace()->subtraits["Compare"].get();
 		tr_drop = Ctx::global_namespace()->subtraits["Drop"].get();
+		tr_ctor = Ctx::global_namespace()->subtraits["Ctor"].get();
 	}
 
 

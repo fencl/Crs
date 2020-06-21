@@ -303,7 +303,6 @@ namespace Corrosive {
 			Ctx::push_scope_context(ILContext::compile);
 			Ctx::push_workspace(new_inst);
 
-
 			for (auto&& m : member_funcs) {
 				Cursor c = m.type;
 				//TODO we could probably skip the catalogue stage and build the functiontemplate directly in the structure template
@@ -519,6 +518,11 @@ namespace Corrosive {
 					if (tt->owner->generic_inst.generator == &Ctx::types()->tr_drop->generic_ctx) {
 						new_inst->impl_drop = trait.begin()->get();
 						new_inst->impl_drop->parent = new_inst;
+					}
+					
+					if (tt->owner->generic_inst.generator == &Ctx::types()->tr_ctor->generic_ctx) {
+						new_inst->impl_ctor = trait.begin()->get();
+						new_inst->impl_ctor->parent = new_inst;
 					}
 
 					new_inst->traitfunctions[tt->owner] = std::move(trait);
@@ -987,7 +991,52 @@ namespace Corrosive {
 
 
 	void StructureInstance::build_automatic_constructor() {
-		//TODO
+		ILFunction* func = Ctx::global_module()->create_function();
+		func->alias = "auto_ctor";
+
+		ILBlock* block = func->create_and_append_block();
+		block->alias = "entry";
+		Ctx::push_scope(block);
+
+		ILBuilder::build_accept(block, ILDataType::none);
+
+		uint16_t clones = 0;
+
+		for (size_t i = 0; i < member_vars.size(); ++i) {
+			if (member_vars[i].first->has_special_constructor()) {
+				clones++;
+			}
+		}
+
+		if (clones > 1) {
+			ILBuilder::build_clone(block, ILDataType::ptr, clones);
+		}
+
+		size_t ind = 0;
+		for (ind = 0; ind < member_vars.size(); ++ind) {
+			auto& c_var = member_vars[ind];
+
+			if (c_var.first->has_special_constructor()) {
+
+				if (size.type == ILSizeType::table) {
+					ILBuilder::build_tableoffset(block, size.value, (uint16_t)ind);
+				}
+				else if (size.type == ILSizeType::absolute) {
+					ILBuilder::build_aoffset(block, c_var.second);
+				}
+				else if (size.type == ILSizeType::word) {
+					ILBuilder::build_woffset(block, c_var.second);
+				}
+
+				c_var.first->build_construct();
+			}
+		}
+
+		ILBuilder::build_yield(block, ILDataType::none);
+		ILBuilder::build_ret(block, ILDataType::none);
+
+		auto_constructor = func;
+		Ctx::pop_scope();
 	}
 
 	void StructureInstance::build_automatic_destructor() {
@@ -1215,6 +1264,8 @@ namespace Corrosive {
 					has_special_move = true;
 				if (m.first->has_special_compare())
 					has_special_compare = true;
+				if (m.first->has_special_constructor())
+					has_special_constructor = true;
 
 				ILSize m_s = m.first->size();
 
@@ -1315,6 +1366,16 @@ namespace Corrosive {
 			else {
 				if (has_special_destructor)
 					build_automatic_destructor();
+			}
+
+			if (impl_ctor) {
+				impl_ctor->compile();
+				auto_constructor = impl_ctor->func;
+				has_special_constructor = true;
+			}
+			else {
+				if (has_special_constructor)
+					build_automatic_constructor();
 			}
 
 

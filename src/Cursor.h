@@ -11,7 +11,7 @@ namespace Corrosive {
 		Plus, Minus, Slash, Star, Semicolon, Comma, ExclamationMark, QestionMark, GreaterThan, LessThan, Dot, Colon,
 		Equals, DoubleEquals, NotEquals, GreaterOrEqual, LessOrEqual, DoubleGreaterThan, DoubleLessThan, DoubleColon,
 		Or, DoubleOr, And, DoubleAnd, Open, At, Xor, Backslash, BackArrow, Percent, Arrow, String,
-		PlusEquals,MinusEquals,StarEquals,SlashEquals
+		PlusEquals,MinusEquals,StarEquals,SlashEquals,ColonEquals
 	};
 
 	class Source;
@@ -21,7 +21,7 @@ namespace Corrosive {
 		void move();
 
 
-		const Source* src;
+		const Source* src = nullptr;
 		RecognizedToken tok;
 		std::string_view buffer;
 		unsigned int top = 0;

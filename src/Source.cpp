@@ -316,6 +316,7 @@ namespace Corrosive {
 					case ':': switch (nc)
 						{
 						case ':': offset++; out.tok = (RecognizedToken::DoubleColon); break;
+						case '=': offset++; out.tok = (RecognizedToken::ColonEquals); break;
 						default: out.tok = (RecognizedToken::Colon); break;
 						}break;
 					case '|': switch (nc)
