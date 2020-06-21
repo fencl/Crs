@@ -516,7 +516,7 @@ namespace Corrosive {
 		}
 	}
 
-	void ILBuilder::eval_aoffset2(ILEvaluator* eval_ctx, uint32_t offset) {
+	void ILBuilder::eval_aoffset_pair(ILEvaluator* eval_ctx, uint32_t offset) {
 		if (offset > 0) {
 			auto mem2 = eval_ctx->pop_register_value<size_t>();
 			auto mem1 = eval_ctx->pop_register_value<size_t>();
@@ -536,7 +536,7 @@ namespace Corrosive {
 	}
 	
 
-	void ILBuilder::eval_woffset2(ILEvaluator* eval_ctx, uint32_t offset) {
+	void ILBuilder::eval_woffset_pair(ILEvaluator* eval_ctx, uint32_t offset) {
 		if (offset > 0) {
 			auto mem2 = eval_ctx->pop_register_value<size_t>();
 			auto mem1 = eval_ctx->pop_register_value<size_t>();
@@ -564,7 +564,7 @@ namespace Corrosive {
 		eval_ctx->write_register_value(mem);
 	}
 	
-	void ILBuilder::eval_rtoffset2(ILEvaluator* eval_ctx) {
+	void ILBuilder::eval_rtoffset_rev(ILEvaluator* eval_ctx) {
 		auto mem = eval_ctx->pop_register_value<unsigned char*>();
 		auto offset = eval_ctx->pop_register_value<size_t>();
 		mem += offset;
@@ -598,7 +598,7 @@ namespace Corrosive {
 		eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(type), mem);
 	}
 	
-	void ILBuilder::eval_store2(ILEvaluator* eval_ctx, ILDataType type) {
+	void ILBuilder::eval_store_rev(ILEvaluator* eval_ctx, ILDataType type) {
 		
 		if (setjmp(sandbox) == 0) {
 			ilsize_t storage;
@@ -629,7 +629,7 @@ namespace Corrosive {
 			eval_ctx->write_register_value_indirect(reg_s, lv);
 		}
 	}
-	void ILBuilder::eval_duplicate2(ILEvaluator* eval_ctx, ILDataType type) {
+	void ILBuilder::eval_duplicate_pair(ILEvaluator* eval_ctx, ILDataType type) {
 		size_t reg_s = eval_ctx->compile_time_register_size(type);
 
 		ilsize_t storage1, storage2;
@@ -642,7 +642,7 @@ namespace Corrosive {
 		eval_ctx->write_register_value_indirect(reg_s, &storage2);
 	}
 
-	void ILBuilder::eval_clone2(ILEvaluator* eval_ctx, ILDataType type, uint16_t times) {
+	void ILBuilder::eval_clone_pair(ILEvaluator* eval_ctx, ILDataType type, uint16_t times) {
 		size_t reg_s = eval_ctx->compile_time_register_size(type);
 
 		ilsize_t storage1, storage2;
@@ -728,7 +728,7 @@ namespace Corrosive {
 		}
 	}
 	
-	void ILBuilder::eval_memcpy2(ILEvaluator* eval_ctx, size_t size) {
+	void ILBuilder::eval_memcpy_rev(ILEvaluator* eval_ctx, size_t size) {
 		
 		if (setjmp(sandbox) == 0) {
 			auto src = eval_ctx->pop_register_value<void*>();
@@ -757,7 +757,7 @@ namespace Corrosive {
 		}
 	}
 
-	void ILBuilder::eval_memcmp2(ILEvaluator* eval_ctx, size_t size) {
+	void ILBuilder::eval_memcmp_rev(ILEvaluator* eval_ctx, size_t size) {
 		
 		if (setjmp(sandbox) == 0) {
 			auto src = eval_ctx->pop_register_value<void*>();
@@ -779,7 +779,7 @@ namespace Corrosive {
 		eval_ctx->write_register_value(ptr);
 	}
 
-	void ILBuilder::eval_tableoffset2(ILEvaluator* eval_ctx, uint32_t tableid, uint16_t itemid) {
+	void ILBuilder::eval_tableoffset_pair(ILEvaluator* eval_ctx, uint32_t tableid, uint16_t itemid) {
 		auto& table = eval_ctx->parent->structure_tables[tableid];
 		table.calculate(eval_ctx->parent, compiler_arch);
 		auto ptr2 = eval_ctx->pop_register_value<unsigned char*>();
@@ -815,7 +815,7 @@ namespace Corrosive {
 		}
 	}
 
-	void ILBuilder::eval_rmemcmp2(ILEvaluator* eval_ctx, ILDataType type) {
+	void ILBuilder::eval_rmemcmp_rev(ILEvaluator* eval_ctx, ILDataType type) {
 		
 		if (setjmp(sandbox) == 0) {
 			size_t reg_v = eval_ctx->compile_time_register_size(type);
@@ -945,7 +945,7 @@ namespace Corrosive {
 						} break;
 						case ILInstruction::memcpy2: {
 							auto size = read_data_type(ILSize);
-							eval_memcpy2(eval_ctx, size->eval(eval_ctx->parent, compiler_arch));
+							eval_memcpy_rev(eval_ctx, size->eval(eval_ctx->parent, compiler_arch));
 						} break;
 						case ILInstruction::memcmp: {
 							auto size = read_data_type(ILSize);
@@ -953,7 +953,7 @@ namespace Corrosive {
 						} break;
 						case ILInstruction::memcmp2: {
 							auto size = read_data_type(ILSize);
-							eval_memcmp2(eval_ctx, size->eval(eval_ctx->parent, compiler_arch));
+							eval_memcmp_rev(eval_ctx, size->eval(eval_ctx->parent, compiler_arch));
 						} break;
 						case ILInstruction::fnptr: {
 							auto id = *read_data_type(uint32_t);
@@ -974,12 +974,12 @@ namespace Corrosive {
 						} break;
 						case ILInstruction::duplicate2: {
 							auto type = *read_data_type(ILDataType);
-							eval_duplicate2(eval_ctx, type);
+							eval_duplicate_pair(eval_ctx, type);
 						} break;
 						case ILInstruction::clone2: {
 							auto type = *read_data_type(ILDataType);
 							auto times = *read_data_type(uint16_t);
-							eval_clone2(eval_ctx, type, times);
+							eval_clone_pair(eval_ctx, type, times);
 						} break;
 						case ILInstruction::swap: {
 							auto type = *read_data_type(ILDataType);
@@ -1000,7 +1000,7 @@ namespace Corrosive {
 						} break;
 						case ILInstruction::rmemcmp2: {
 							auto type = *read_data_type(ILDataType);
-							eval_rmemcmp2(eval_ctx, type);
+							eval_rmemcmp_rev(eval_ctx, type);
 						} break;
 						case ILInstruction::sub: {
 							auto left = *read_data_type(ILDataType);
@@ -1008,94 +1008,94 @@ namespace Corrosive {
 							eval_sub(eval_ctx, left, right);
 						} break;
 						case ILInstruction::div: {
-							auto left = read_data_type(ILDataType);
-							auto right = read_data_type(ILDataType);
-							eval_div(eval_ctx, *left, *right);
+							auto left = *read_data_type(ILDataType);
+							auto right = *read_data_type(ILDataType);
+							eval_div(eval_ctx, left, right);
 						} break;
 						case ILInstruction::rem: {
-							auto left = read_data_type(ILDataType);
-							auto right = read_data_type(ILDataType);
-							eval_rem(eval_ctx, *left, *right);
+							auto left = *read_data_type(ILDataType);
+							auto right = *read_data_type(ILDataType);
+							eval_rem(eval_ctx, left, right);
 						} break;
 						case ILInstruction::mul: {
-							auto left = read_data_type(ILDataType);
-							auto right = read_data_type(ILDataType);
-							eval_mul(eval_ctx, *left, *right);
+							auto left = *read_data_type(ILDataType);
+							auto right = *read_data_type(ILDataType);
+							eval_mul(eval_ctx, left, right);
 						} break;
 						case ILInstruction::add: {
-							auto left = read_data_type(ILDataType);
-							auto right = read_data_type(ILDataType);
-							eval_add(eval_ctx, *left, *right);
+							auto left = *read_data_type(ILDataType);
+							auto right = *read_data_type(ILDataType);
+							eval_add(eval_ctx, left, right);
 						} break;
 						case ILInstruction::bit_and: {
-							auto left = read_data_type(ILDataType);
-							auto right = read_data_type(ILDataType);
-							eval_and(eval_ctx, *left, *right);
+							auto left = *read_data_type(ILDataType);
+							auto right = *read_data_type(ILDataType);
+							eval_and(eval_ctx, left, right);
 						} break;
 						case ILInstruction::bit_or: {
-							auto left = read_data_type(ILDataType);
-							auto right = read_data_type(ILDataType);
-							eval_or(eval_ctx, *left, *right);
+							auto left = *read_data_type(ILDataType);
+							auto right = *read_data_type(ILDataType);
+							eval_or(eval_ctx, left, right);
 						} break;
 						case ILInstruction::bit_xor: {
-							auto left = read_data_type(ILDataType);
-							auto right = read_data_type(ILDataType);
-							eval_xor(eval_ctx, *left, *right);
+							auto left = *read_data_type(ILDataType);
+							auto right = *read_data_type(ILDataType);
+							eval_xor(eval_ctx, left, right);
 						} break;
 						case ILInstruction::eq: {
-							auto left = read_data_type(ILDataType);
-							auto right = read_data_type(ILDataType);
-							eval_eq(eval_ctx, *left, *right);
+							auto left = *read_data_type(ILDataType);
+							auto right = *read_data_type(ILDataType);
+							eval_eq(eval_ctx, left, right);
 						} break;
 						case ILInstruction::ne: {
-							auto left = read_data_type(ILDataType);
-							auto right = read_data_type(ILDataType);
-							eval_ne(eval_ctx, *left, *right);
+							auto left = *read_data_type(ILDataType);
+							auto right = *read_data_type(ILDataType);
+							eval_ne(eval_ctx, left, right);
 						} break;
 						case ILInstruction::gt: {
-							auto left = read_data_type(ILDataType);
-							auto right = read_data_type(ILDataType);
-							eval_gt(eval_ctx, *left, *right);
+							auto left = *read_data_type(ILDataType);
+							auto right = *read_data_type(ILDataType);
+							eval_gt(eval_ctx, left, right);
 						} break;
 						case ILInstruction::lt: {
-							auto left = read_data_type(ILDataType);
-							auto right = read_data_type(ILDataType);
-							eval_lt(eval_ctx, *left, *right);
+							auto left = *read_data_type(ILDataType);
+							auto right = *read_data_type(ILDataType);
+							eval_lt(eval_ctx, left, right);
 						} break;
 						case ILInstruction::ge: {
-							auto left = read_data_type(ILDataType);
-							auto right = read_data_type(ILDataType);
-							eval_ge(eval_ctx, *left, *right);
+							auto left = *read_data_type(ILDataType);
+							auto right = *read_data_type(ILDataType);
+							eval_ge(eval_ctx, left, right);
 						} break;
 						case ILInstruction::le: {
-							auto left = read_data_type(ILDataType);
-							auto right = read_data_type(ILDataType);
-							eval_le(eval_ctx, *left, *right);
+							auto left = *read_data_type(ILDataType);
+							auto right = *read_data_type(ILDataType);
+							eval_le(eval_ctx, left, right);
 						} break;
 						case ILInstruction::cast: {
-							auto left = read_data_type(ILDataType);
-							auto right = read_data_type(ILDataType);
-							eval_cast(eval_ctx, *left, *right);
+							auto left = *read_data_type(ILDataType);
+							auto right = *read_data_type(ILDataType);
+							eval_cast(eval_ctx, left, right);
 						} break;
 						case ILInstruction::store: {
-							auto type = read_data_type(ILDataType);
-							eval_store(eval_ctx, *type);
+							auto type = *read_data_type(ILDataType);
+							eval_store(eval_ctx, type);
 						} break;
 						case ILInstruction::store2: {
-							auto type = read_data_type(ILDataType);
-							eval_store2(eval_ctx, *type);
+							auto type = *read_data_type(ILDataType);
+							eval_store_rev(eval_ctx, type);
 						} break;
 						case ILInstruction::yield: {
-							auto type = read_data_type(ILDataType);
-							eval_yield(eval_ctx, *type);
+							auto type = *read_data_type(ILDataType);
+							eval_yield(eval_ctx, type);
 						} break;
 						case ILInstruction::accept: {
-							auto type = read_data_type(ILDataType);
-							eval_accept(eval_ctx, *type);
+							auto type = *read_data_type(ILDataType);
+							eval_accept(eval_ctx, type);
 						} break;
 						case ILInstruction::discard: {
-							auto type = read_data_type(ILDataType);
-							eval_discard(eval_ctx, *type);
+							auto type = *read_data_type(ILDataType);
+							eval_discard(eval_ctx, type);
 						} break;
 						case ILInstruction::start: {
 							eval_callstart(eval_ctx);
@@ -1124,11 +1124,11 @@ namespace Corrosive {
 						} break;
 						case ILInstruction::aoffset2: {
 							auto size = *read_data_type(uint32_t);
-							eval_aoffset2(eval_ctx, size);
+							eval_aoffset_pair(eval_ctx, size);
 						} break;
 						case ILInstruction::woffset2: {
 							auto size = *read_data_type(uint32_t);
-							eval_woffset2(eval_ctx, size);
+							eval_woffset_pair(eval_ctx, size);
 						} break;
 						case ILInstruction::constref: {
 							auto cid = *read_data_type(uint32_t);
@@ -1138,7 +1138,7 @@ namespace Corrosive {
 							eval_rtoffset(eval_ctx);
 						} break;
 						case ILInstruction::rtoffset2: {
-							eval_rtoffset2(eval_ctx);
+							eval_rtoffset_rev(eval_ctx);
 						} break;
 						case ILInstruction::roffset: {
 							auto from_t = *read_data_type(ILDataType);
@@ -1162,8 +1162,8 @@ namespace Corrosive {
 						} break;
 
 						case ILInstruction::local: {
-							auto id = read_data_type(uint16_t);
-							auto& offset = fun->calculated_local_offsets[*id];
+							auto id = *read_data_type(uint16_t);
+							auto& offset = fun->calculated_local_offsets[id];
 							eval_const_ptr(eval_ctx, lstack_base + offset);
 						} break;
 
@@ -1175,7 +1175,7 @@ namespace Corrosive {
 						case ILInstruction::tableoffset2: {
 							auto tableid = *read_data_type(uint32_t);
 							auto id = *read_data_type(uint16_t);
-							eval_tableoffset2(eval_ctx, tableid,id);
+							eval_tableoffset_pair(eval_ctx, tableid,id);
 						} break;
 
 						case ILInstruction::tableroffset: {
@@ -1193,8 +1193,8 @@ namespace Corrosive {
 						} break;
 
 						case ILInstruction::load: {
-							auto type = read_data_type(ILDataType);
-							eval_load(eval_ctx, *type);
+							auto type = *read_data_type(ILDataType);
+							eval_load(eval_ctx, type);
 						} break;
 
 						case ILInstruction::malloc: {
@@ -1206,13 +1206,13 @@ namespace Corrosive {
 						} break;
 
 						case ILInstruction::isnotzero: {
-							auto type = read_data_type(ILDataType);
-							eval_isnotzero(eval_ctx, *type);
+							auto type = *read_data_type(ILDataType);
+							eval_isnotzero(eval_ctx, type);
 						} break;
 
 						case ILInstruction::negative: {
-							auto type = read_data_type(ILDataType);
-							eval_negative(eval_ctx, *type);
+							auto type = *read_data_type(ILDataType);
+							eval_negative(eval_ctx, type);
 						} break;
 
 						case ILInstruction::negate: {
@@ -1220,20 +1220,20 @@ namespace Corrosive {
 						} break;
 
 						case ILInstruction::forget: {
-							auto type = read_data_type(ILDataType);
-							eval_forget(eval_ctx, *type);
+							auto type = *read_data_type(ILDataType);
+							eval_forget(eval_ctx, type);
 						} break;
 						case ILInstruction::jmpz: {
-							auto addressz = read_data_type(uint32_t);
-							auto addressnz = read_data_type(uint32_t);
+							auto addressz = *read_data_type(uint32_t);
+							auto addressnz = *read_data_type(uint32_t);
 
 							auto z = eval_ctx->pop_register_value<uint8_t>();
 
 							if (z) {
-								block = block->parent->blocks_memory[*addressnz].get();
+								block = block->parent->blocks_memory[addressnz].get();
 							}
 							else {
-								block = block->parent->blocks_memory[*addressz].get();
+								block = block->parent->blocks_memory[addressz].get();
 							}
 
 							goto next_block;

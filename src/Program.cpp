@@ -32,6 +32,8 @@ namespace Corrosive {
 		m.insintric_function_name[(unsigned char)ILInsintric::build_array] = "array";
 		m.insintric_function[(unsigned char)ILInsintric::build_reference] = &Operand::priv_build_reference;
 		m.insintric_function_name[(unsigned char)ILInsintric::build_reference] = "reference";
+		m.insintric_function[(unsigned char)ILInsintric::build_subtype] = &Operand::priv_build_subtype;
+		m.insintric_function_name[(unsigned char)ILInsintric::build_subtype] = "subtype";
 		m.insintric_function[(unsigned char)ILInsintric::push_template] = &Operand::priv_build_push_template;
 		m.insintric_function_name[(unsigned char)ILInsintric::push_template] = "push_template";
 		m.insintric_function[(unsigned char)ILInsintric::build_template] = &Operand::priv_build_build_template;

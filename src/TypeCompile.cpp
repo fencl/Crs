@@ -57,10 +57,10 @@ namespace Corrosive {
 		//dst(me), src(from)
 
 		if (rvalue_stacked()) {
-			ILBuilder::build_memcpy2(Ctx::scope(), size());
+			ILBuilder::build_memcpy_rev(Ctx::scope(), size());
 		}
 		else {
-			ILBuilder::build_store2(Ctx::scope(), rvalue());
+			ILBuilder::build_store_rev(Ctx::scope(), rvalue());
 		}
 	}
 
@@ -68,10 +68,10 @@ namespace Corrosive {
 		//dst(me), src(from)
 
 		if (rvalue_stacked()) {
-			ILBuilder::build_memcpy2(Ctx::scope(), size());
+			ILBuilder::build_memcpy_rev(Ctx::scope(), size());
 		}
 		else {
-			ILBuilder::build_store2(Ctx::scope(), rvalue());
+			ILBuilder::build_store_rev(Ctx::scope(), rvalue());
 		}
 	}
 
@@ -80,7 +80,7 @@ namespace Corrosive {
 		//dst(me), src(compare_to)
 
 		if (rvalue_stacked()) {
-			ILBuilder::build_memcmp2(Ctx::scope(), size());
+			ILBuilder::build_memcmp_rev(Ctx::scope(), size());
 		}
 		else {
 			ILBuilder::build_rmemcmp2(Ctx::scope(), rvalue());

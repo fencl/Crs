@@ -1051,7 +1051,7 @@ namespace Corrosive {
 				
 
 		if (member_vars.size() > 1) {
-			ILBuilder::build_clone2(block, ILDataType::ptr, (uint16_t)member_vars.size());
+			ILBuilder::build_clone_pair(block, ILDataType::ptr, (uint16_t)member_vars.size());
 		}
 
 		size_t ind = 0;
@@ -1060,20 +1060,20 @@ namespace Corrosive {
 
 
 			if (size.type == ILSizeType::table) {
-				ILBuilder::build_tableoffset2(block, size.value, (uint16_t)ind);
+				ILBuilder::build_tableoffset_pair(block, size.value, (uint16_t)ind);
 			}
 			else if (size.type == ILSizeType::absolute) {
-				ILBuilder::build_aoffset2(block, c_var.second);
+				ILBuilder::build_aoffset_pair(block, c_var.second);
 			}
 			else if (size.type == ILSizeType::word) {
-				ILBuilder::build_woffset2(block, c_var.second);
+				ILBuilder::build_woffset_pair(block, c_var.second);
 			}
 
 			if (c_var.first->has_special_move()) {
 				c_var.first->build_move();
 			}
 			else {
-				ILBuilder::build_memcpy2(Ctx::scope(), c_var.first->size());
+				ILBuilder::build_memcpy_rev(Ctx::scope(), c_var.first->size());
 			}
 		}
 
@@ -1094,7 +1094,7 @@ namespace Corrosive {
 		ILBuilder::build_accept(block, ILDataType::none);
 
 		if (member_vars.size() > 1) {
-			ILBuilder::build_clone2(block, ILDataType::ptr, (uint16_t)member_vars.size());
+			ILBuilder::build_clone_pair(block, ILDataType::ptr, (uint16_t)member_vars.size());
 		}
 
 		size_t ind = 0;
@@ -1102,20 +1102,20 @@ namespace Corrosive {
 			auto& c_var = member_vars[ind];
 
 			if (size.type == ILSizeType::table) {
-				ILBuilder::build_tableoffset2(block, size.value, (uint16_t)ind);
+				ILBuilder::build_tableoffset_pair(block, size.value, (uint16_t)ind);
 			}
 			else if (size.type == ILSizeType::absolute) {
-				ILBuilder::build_aoffset2(block, c_var.second);
+				ILBuilder::build_aoffset_pair(block, c_var.second);
 			}
 			else if (size.type == ILSizeType::word) {
-				ILBuilder::build_woffset2(block, c_var.second);
+				ILBuilder::build_woffset_pair(block, c_var.second);
 			}
 
 			if (c_var.first->has_special_copy()) {
 				c_var.first->build_copy();
 			}
 			else {
-				ILBuilder::build_memcpy2(Ctx::scope(), c_var.first->size());
+				ILBuilder::build_memcpy_rev(Ctx::scope(), c_var.first->size());
 			}			
 		}
 
@@ -1141,7 +1141,7 @@ namespace Corrosive {
 		ILBuilder::build_accept(block, ILDataType::none);
 
 		if (member_vars.size() > 1) {
-			ILBuilder::build_clone2(block, ILDataType::ptr, (uint16_t)member_vars.size());
+			ILBuilder::build_clone_pair(block, ILDataType::ptr, (uint16_t)member_vars.size());
 		}
 
 		size_t ind = 0;
@@ -1149,13 +1149,13 @@ namespace Corrosive {
 			auto& c_var = member_vars[ind];
 
 			if (size.type == ILSizeType::table) {
-				ILBuilder::build_tableoffset2(Ctx::scope(), size.value, (uint16_t)ind);
+				ILBuilder::build_tableoffset_pair(Ctx::scope(), size.value, (uint16_t)ind);
 			}
 			else if (size.type == ILSizeType::absolute) {
-				ILBuilder::build_aoffset2(Ctx::scope(), c_var.second);
+				ILBuilder::build_aoffset_pair(Ctx::scope(), c_var.second);
 			}
 			else if (size.type == ILSizeType::word) {
-				ILBuilder::build_woffset2(Ctx::scope(), c_var.second);
+				ILBuilder::build_woffset_pair(Ctx::scope(), c_var.second);
 			}
 
 			
@@ -1163,7 +1163,7 @@ namespace Corrosive {
 				c_var.first->build_compare();
 			}
 			else {
-				ILBuilder::build_memcmp2(Ctx::scope(), c_var.first->size());
+				ILBuilder::build_memcmp_rev(Ctx::scope(), c_var.first->size());
 			}
 
 			if (ind < member_vars.size() - 1) {

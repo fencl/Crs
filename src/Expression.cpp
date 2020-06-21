@@ -28,10 +28,10 @@ namespace Corrosive {
 			else {
 				if (me_top) {
 					if (me->rvalue_stacked()) {
-						ILBuilder::build_memcpy2(Ctx::scope(), me->size());
+						ILBuilder::build_memcpy_rev(Ctx::scope(), me->size());
 					}
 					else {
-						ILBuilder::build_store2(Ctx::scope(), me->rvalue());
+						ILBuilder::build_store_rev(Ctx::scope(), me->rvalue());
 					}
 				}
 				else {
@@ -66,10 +66,10 @@ namespace Corrosive {
 
 				if (me_top) {
 					if (me->rvalue_stacked()) {
-						ILBuilder::eval_memcpy2(Ctx::eval(), me->size().eval(Ctx::global_module(), compiler_arch));
+						ILBuilder::eval_memcpy_rev(Ctx::eval(), me->size().eval(Ctx::global_module(), compiler_arch));
 					}
 					else {
-						ILBuilder::eval_store2(Ctx::eval(), me->rvalue());
+						ILBuilder::eval_store_rev(Ctx::eval(), me->rvalue());
 					}
 				}
 				else {
@@ -102,10 +102,10 @@ namespace Corrosive {
 			else {
 				if (me_top) {
 					if (me->rvalue_stacked()) {
-						ILBuilder::build_memcpy2(Ctx::scope(), me->size());
+						ILBuilder::build_memcpy_rev(Ctx::scope(), me->size());
 					}
 					else {
-						ILBuilder::build_store2(Ctx::scope(), me->rvalue());
+						ILBuilder::build_store_rev(Ctx::scope(), me->rvalue());
 					}
 				}
 				else {
@@ -140,10 +140,10 @@ namespace Corrosive {
 
 				if (me_top) {
 					if (me->rvalue_stacked()) {
-						ILBuilder::eval_memcpy2(Ctx::eval(), me->size().eval(Ctx::global_module(), compiler_arch));
+						ILBuilder::eval_memcpy_rev(Ctx::eval(), me->size().eval(Ctx::global_module(), compiler_arch));
 					}
 					else {
-						ILBuilder::eval_store2(Ctx::eval(), me->rvalue());
+						ILBuilder::eval_store_rev(Ctx::eval(), me->rvalue());
 					}
 				}
 				else {
@@ -572,7 +572,7 @@ namespace Corrosive {
 					ILBuilder::build_div(Ctx::scope(), val.t->rvalue(), val2.t->rvalue());
 
 				ILBuilder::build_cast(Ctx::scope(), ILBuilder::arith_result(val.t->rvalue(), val2.t->rvalue()), val.t->rvalue());
-				ILBuilder::build_store2(Ctx::scope(), val.t->rvalue());
+				ILBuilder::build_store_rev(Ctx::scope(), val.t->rvalue());
 			}
 			else {
 				if (op == 1)
@@ -585,7 +585,7 @@ namespace Corrosive {
 					ILBuilder::eval_div(Ctx::eval(), val.t->rvalue(), val2.t->rvalue());
 
 				ILBuilder::eval_cast(Ctx::eval(), ILBuilder::arith_result(val.t->rvalue(), val2.t->rvalue()), val.t->rvalue());
-				ILBuilder::eval_store2(Ctx::eval(), val.t->rvalue());
+				ILBuilder::eval_store_rev(Ctx::eval(), val.t->rvalue());
 			}
 
 			if (!require_output) {

@@ -5,7 +5,6 @@
 #include "Expression.h"
 #include "StackManager.h"
 #include "ConstantManager.h"
-
 #include <iostream>
 
 namespace Corrosive {
@@ -1602,21 +1601,80 @@ namespace Corrosive {
 	}
 
 	void Operand::priv_build_reference(ILEvaluator* eval) {
-
 		Type* t = eval->pop_register_value<Type*>();
 		t = t->generate_reference();
 		ILBuilder::eval_const_type(eval, t);
+	}
+	
+	void Operand::priv_build_subtype(ILEvaluator* eval) {
+		Type* str = Ctx::types()->t_u8->generate_slice();
 
-		
+		auto slice_ptr = eval->pop_register_value<size_t*>();
+		char* slice_data = (char*)slice_ptr[0];
+		size_t slice_size = slice_ptr[1];
+
+		std::string_view slice_str(slice_data,slice_size);
+
+		Type* t = eval->pop_register_value<Type*>();
+		if (t->type() == TypeInstanceType::type_structure_instance) {
+			TypeStructureInstance* tsi = (TypeStructureInstance*)t;
+
+			Corrosive::Namespace* nspc;
+			Corrosive::StructureTemplate* templ;
+			Corrosive::FunctionTemplate* ftempl;
+			Corrosive::TraitTemplate* trait;
+
+			tsi->owner->find_name(slice_str, nspc, templ, ftempl, trait);
+
+			if (templ) {
+				templ->compile();
+				if (!templ->is_generic) {
+					StructureInstance* sinst;
+					templ->generate(nullptr, sinst);
+					sinst->compile();
+					eval->write_register_value<void*>(sinst->type.get());
+				}
+				else {
+					eval->write_register_value<void*>(templ->type.get());
+				}
+			}
+			else if (ftempl) {
+				ftempl->compile();
+				if (!ftempl->is_generic) {
+					FunctionInstance* finst;
+					ftempl->generate(nullptr, finst);
+					finst->compile();
+					eval->write_register_value<void*>(finst->type);
+				}
+				else {
+					eval->write_register_value<void*>(ftempl->type.get());
+				}
+			}
+			else if (trait) {
+				trait->compile();
+				if (!trait->is_generic) {
+					TraitInstance* tinst;
+					trait->generate(nullptr, tinst);
+					eval->write_register_value<void*>(tinst->type.get());
+				}
+				else {
+					eval->write_register_value<void*>(trait->type.get());
+				}
+			}
+			else {
+				eval->write_register_value<void*>(nullptr);
+			}
+
+		}
+		else {
+			eval->write_register_value<void*>(nullptr);
+		}
 	}
 
 	void Operand::priv_build_slice(ILEvaluator* eval) {
-
 		Type* t = eval->pop_register_value<Type*>();
 		t = t->generate_slice();
 		ILBuilder::eval_const_type(eval, t);
-
-		
 	}
 
 	void Operand::parse_reference(CompileValue& ret, Cursor& c, CompileType cpt) {
@@ -2039,16 +2097,15 @@ namespace Corrosive {
 				Expression::rvalue(ret, cpt);
 
 				Expression::parse(c, res, cpt);
-				Expression::rvalue(res, cpt);
-
 				Operand::cast(err, res, Ctx::types()->t_u32, cpt, true);
+				Expression::rvalue(res, cpt);
 
 
 				if (c.tok != RecognizedToken::CloseParenthesis) {
 					throw_wrong_token_error(c, "')'");
-					
 				}
 				c.move();
+
 				if (cpt == CompileType::compile) {
 					ILBuilder::build_insintric(Ctx::scope(), ILInsintric::build_array);
 				}
@@ -2064,6 +2121,37 @@ namespace Corrosive {
 				}
 				else {
 					ILBuilder::eval_insintric(Ctx::eval(), ILInsintric::build_reference);
+				}
+			}
+			else if (c.buffer == "subtype") {
+				c.move(); 
+
+				if (c.tok != RecognizedToken::OpenParenthesis) {
+					throw_wrong_token_error(c, "'('");
+				}
+				c.move();
+
+				Expression::rvalue(ret, cpt);
+
+				Cursor err = c;
+				CompileValue res;
+				Expression::parse(c, res, cpt);
+				Type* to = Ctx::types()->t_u8->generate_slice();
+				Operand::cast(err, res, to, cpt, true);
+				Expression::rvalue(res, cpt);
+
+
+				if (c.tok != RecognizedToken::CloseParenthesis) {
+					throw_wrong_token_error(c, "')'");
+				}
+				c.move();
+
+
+				if (cpt == CompileType::compile) {
+					ILBuilder::build_insintric(Ctx::scope(), ILInsintric::build_subtype);
+				}
+				else {
+					ILBuilder::eval_insintric(Ctx::eval(), ILInsintric::build_subtype);
 				}
 			}
 			else if (c.buffer == "slice") {

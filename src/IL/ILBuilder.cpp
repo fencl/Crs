@@ -147,7 +147,7 @@ namespace Corrosive {
 		
 	}
 
-	void ILBuilder::build_memcpy2(ILBlock* block, ILSize size) {
+	void ILBuilder::build_memcpy_rev(ILBlock* block, ILSize size) {
 		block->write_instruction(ILInstruction::memcpy2);
 		block->write_value(sizeof(ILSize), (unsigned char*)&size);
 		
@@ -159,7 +159,7 @@ namespace Corrosive {
 		
 	}
 
-	void ILBuilder::build_memcmp2(ILBlock* block, ILSize size) {
+	void ILBuilder::build_memcmp_rev(ILBlock* block, ILSize size) {
 		block->write_instruction(ILInstruction::memcmp2);
 		block->write_value(sizeof(ILSize), (unsigned char*)&size);
 		
@@ -183,7 +183,7 @@ namespace Corrosive {
 	}
 	
 
-	void ILBuilder::build_store2(ILBlock* block, ILDataType type) {
+	void ILBuilder::build_store_rev(ILBlock* block, ILDataType type) {
 		block->write_instruction(ILInstruction::store2);
 		block->write_const_type(type);
 	}
@@ -208,7 +208,7 @@ namespace Corrosive {
 		}
 	}
 
-	void ILBuilder::build_tableoffset2(ILBlock* block, uint32_t tableid, uint16_t itemid) {
+	void ILBuilder::build_tableoffset_pair(ILBlock* block, uint32_t tableid, uint16_t itemid) {
 		if (itemid != 0) {
 			block->write_instruction(ILInstruction::tableoffset2);
 			block->write_value(sizeof(uint32_t), (unsigned char*)&tableid);
@@ -254,14 +254,14 @@ namespace Corrosive {
 		}
 	}
 
-	void ILBuilder::build_duplicate2(ILBlock* block, ILDataType type) {
+	void ILBuilder::build_duplicate_pair(ILBlock* block, ILDataType type) {
 		block->write_instruction(ILInstruction::duplicate2);
 		block->write_const_type(type);
 	}
 
-	void ILBuilder::build_clone2(ILBlock* block, ILDataType type, uint16_t times) {
+	void ILBuilder::build_clone_pair(ILBlock* block, ILDataType type, uint16_t times) {
 		if (times == 2) {
-			build_duplicate2(block, type);
+			build_duplicate_pair(block, type);
 		}
 		else if (times == 0) {
 			build_forget(block, type);
@@ -313,14 +313,14 @@ namespace Corrosive {
 			block->write_value(sizeof(uint32_t), (unsigned char*)&offset);
 		}
 	}
-	void ILBuilder::build_aoffset2(ILBlock* block, uint32_t offset) {
+	void ILBuilder::build_aoffset_pair(ILBlock* block, uint32_t offset) {
 		if (offset) {
 			block->write_instruction(ILInstruction::aoffset2);
 			block->write_value(sizeof(uint32_t), (unsigned char*)&offset);
 		}
 	}
 
-	void ILBuilder::build_woffset2(ILBlock* block, uint32_t offset) {
+	void ILBuilder::build_woffset_pair(ILBlock* block, uint32_t offset) {
 		if (offset) {
 			block->write_instruction(ILInstruction::woffset2);
 			block->write_value(sizeof(uint32_t), (unsigned char*)&offset);
@@ -349,7 +349,7 @@ namespace Corrosive {
 		
 	}
 
-	void ILBuilder::build_rtoffset2(ILBlock* block) {
+	void ILBuilder::build_rtoffset_rev(ILBlock* block) {
 		block->write_instruction(ILInstruction::rtoffset2);
 		
 	}
