@@ -11,10 +11,12 @@ namespace Corrosive {
 
 	class ConstantManager {
 	public:
-		uint32_t register_string_literal(std::string_view string);
+		std::pair<const std::string_view, uint32_t> register_string_literal(std::string string);
+		std::pair<const std::string_view, uint32_t> register_string_literal(Cursor& c);
 
 	private:
-		std::unordered_map<std::string_view, uint32_t> string_literals;
+		std::unordered_map<std::string, uint32_t> string_literals;
+		std::map<Cursor, std::pair<const std::string_view,uint32_t>> string_holders;
 	};
 }
 

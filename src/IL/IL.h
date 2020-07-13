@@ -29,17 +29,23 @@ namespace Corrosive {
 	void throw_il_wrong_type_error();
 
 
+	class ILBytecodeFunction;
 	class ILFunction;
 	class ILModule;
+	class ILEvaluator;
 
 	enum class ILContext {
 		compile, runtime, both
 	};
 
 	enum class ILInstruction : unsigned char {
-		value, add, sub, div, mul, rem, bit_and, bit_or, bit_xor,
+		value, 
+		
+		add, sub, div, mul, rem,
+		bit_and, bit_or, bit_xor,
+		eq, ne, gt, ge, lt, le,
+
 		load, store, store2, ret, jmp, jmpz,
-		eq, ne, gt, ge, lt, le, 
 		local, forget, 
 		fnptr, call, start, insintric, cast, 
 		roffset, offset, vtable, duplicate, duplicate2, swap, swap2,
@@ -55,7 +61,7 @@ namespace Corrosive {
 	};
 
 	enum class ILArchitecture : unsigned char {
-		none,x86_64,i386
+		none, bit64, bit32
 	};
 	
 	enum class ILSizeType : unsigned char {
@@ -89,7 +95,7 @@ namespace Corrosive {
 
 	struct ILArrayTable {
 		ILSize element;
-		uint64_t count;
+		uint32_t count;
 		size_t calculated_size;
 		size_t calculated_alignment;
 		ILArchitecture calculated_for = ILArchitecture::none;
@@ -109,7 +115,7 @@ namespace Corrosive {
 		uint32_t id;
 		ILDataType yields = ILDataType::none;
 		ILDataType accepts = ILDataType::none;
-		ILFunction* parent;
+		ILBytecodeFunction* parent;
 		std::list<std::unique_ptr<ILBlockData>> data_pool;
 		std::set<ILBlock*> predecessors;
 
@@ -158,15 +164,18 @@ namespace Corrosive {
 
 	class ILFunction {
 	public:
-		~ILFunction();
-		unsigned int	id;
-		ILModule*		parent;
-		bool			is_const = false;
-
+		virtual ~ILFunction();
 		std::string alias;
+		unsigned int id;
+		ILModule* parent;
 
 		std::vector<ILDataType>		arguments;
 		ILDataType					returns;
+	};
+
+	class ILBytecodeFunction : public ILFunction {
+	public:
+		bool is_const = false;
 
 		std::vector<size_t>			calculated_local_offsets;
 		size_t						calculated_local_stack_size;
@@ -175,7 +184,6 @@ namespace Corrosive {
 		ILLifetime					local_stack_lifetime;
 
 		void calculate_stack(ILArchitecture arch);
-
 
 		std::vector<ILBlock*>						blocks;
 		std::vector<std::unique_ptr<ILBlock>>		blocks_memory;
@@ -186,6 +194,11 @@ namespace Corrosive {
 		void		 append_block(ILBlock* block);
 		void		 dump();
 		bool		 assert_flow();
+	};
+
+	class ILExtFunction : public ILFunction {
+	public:
+		void (*ptr)(ILEvaluator*) = nullptr;
 	};
 
 	using ilsize_t = uint64_t; // max size for all architectures
@@ -289,8 +302,8 @@ namespace Corrosive {
 		void (*insintric_function[256])(ILEvaluator*);
 		std::string insintric_function_name[256];
 
-		ILArchitecture architecture = ILArchitecture::x86_64;
-		ILFunction* create_function();
+		ILBytecodeFunction* create_function();
+		ILExtFunction* create_ext_function();
 		
 		uint32_t register_constant(unsigned char* memory, size_t size);
 	};

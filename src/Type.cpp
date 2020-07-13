@@ -122,7 +122,7 @@ namespace Corrosive {
 
 	void TypeArray::construct(unsigned char* me) {
 		if (has_special_constructor()) {
-			size_t count = Ctx::global_module()->array_tables[table].count;
+			uint32_t count = Ctx::global_module()->array_tables[table].count;
 			size_t elem_stride = align_up(owner->size().eval(Ctx::global_module(), compiler_arch), owner->size().alignment(Ctx::global_module(), compiler_arch));
 
 			for (uint32_t i = 0; i < count; i++) {
@@ -134,7 +134,7 @@ namespace Corrosive {
 
 	void TypeArray::drop(unsigned char* me) {
 		if (has_special_constructor()) {
-			size_t count = Ctx::global_module()->array_tables[table].count; 
+			uint32_t count = Ctx::global_module()->array_tables[table].count;
 			size_t elem_stride = align_up(owner->size().eval(Ctx::global_module(), compiler_arch), owner->size().alignment(Ctx::global_module(), compiler_arch));
 
 			for (uint32_t i = 0; i < count; i++) {
@@ -147,7 +147,7 @@ namespace Corrosive {
 	void TypeArray::move(unsigned char* me, unsigned char* from) {
 		if (has_special_move()) {
 
-			size_t count = Ctx::global_module()->array_tables[table].count;
+			uint32_t count = Ctx::global_module()->array_tables[table].count;
 			size_t elem_stride = align_up(owner->size().eval(Ctx::global_module(), compiler_arch), owner->size().alignment(Ctx::global_module(), compiler_arch));
 
 			for (uint32_t i = 0; i < count; i++) {
@@ -163,7 +163,7 @@ namespace Corrosive {
 
 	void TypeArray::copy(unsigned char* me, unsigned char* from) {
 		if (has_special_copy()) {
-			size_t count = Ctx::global_module()->array_tables[table].count;
+			uint32_t count = Ctx::global_module()->array_tables[table].count;
 			size_t elem_stride = align_up(owner->size().eval(Ctx::global_module(), compiler_arch), owner->size().alignment(Ctx::global_module(), compiler_arch));
 
 			for (uint32_t i = 0; i < count; i++) {
@@ -179,7 +179,7 @@ namespace Corrosive {
 
 	int8_t TypeArray::compare(unsigned char* me, unsigned char* to) {
 		if (has_special_compare()) {
-			size_t count = Ctx::global_module()->array_tables[table].count;
+			uint32_t count = Ctx::global_module()->array_tables[table].count;
 			size_t elem_stride = align_up(owner->size().eval(Ctx::global_module(), compiler_arch), owner->size().alignment(Ctx::global_module(), compiler_arch));
 
 			for (uint32_t i = 0; i < count; i++) {

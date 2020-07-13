@@ -8,6 +8,7 @@
 #include "Utilities.h"
 #include "CompileContext.h"
 #include "Error.h"
+#include "ConstantManager.h"
 
 namespace Corrosive {
 
@@ -49,7 +50,6 @@ namespace Corrosive {
 	void Source::read_after(Cursor& out, const Cursor& c) const {
 		read(out, c.offset + c.buffer.length(), c.left + (unsigned int)c.buffer.length(), c.top);
 	}
-
 
 	Cursor Source::read_first() const {
 		Cursor c;
@@ -211,12 +211,12 @@ namespace Corrosive {
 				size_t start = offset;
 				unsigned int sleft = left;
 
-
 				bool escaped = false;
 				while (true) {
 					offset++;
+					char boff = buffer[offset];
 
-					if (offset >= buffer.size() || buffer[offset] == '\n') {
+					if (offset >= buffer.size() || boff == '\n') {
 						out.src = this;
 						out.offset = start;
 						out.left = sleft;
@@ -224,11 +224,11 @@ namespace Corrosive {
 						out.buffer = data().substr(start, offset - start);
 						throw_specific_error(out, "String literal not closed");
 					}
-					else if (buffer[offset] == '"' && !escaped) {
+					else if (boff == '"' && !escaped) {
 						break;
 					}
 
-					if (buffer[offset] == '\\' && !escaped) {
+					if (boff == '\\' && !escaped) {
 						escaped = true;
 					}
 					else {

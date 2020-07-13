@@ -87,9 +87,18 @@ namespace Corrosive {
 
 	ILFunction::~ILFunction() {}
 
-	ILFunction* ILModule::create_function() {
-		std::unique_ptr<ILFunction> function = std::make_unique<ILFunction>();
-		ILFunction* function_ptr = function.get();
+	ILBytecodeFunction* ILModule::create_function() {
+		std::unique_ptr<ILBytecodeFunction> function = std::make_unique<ILBytecodeFunction>();
+		ILBytecodeFunction* function_ptr = function.get();
+		function_ptr->id = (uint32_t)functions.size();
+		function_ptr->parent = this;
+		functions.push_back(std::move(function));
+		return function_ptr;
+	}
+	
+	ILExtFunction* ILModule::create_ext_function() {
+		std::unique_ptr<ILExtFunction> function = std::make_unique<ILExtFunction>();
+		ILExtFunction* function_ptr = function.get();
 		function_ptr->id = (uint32_t)functions.size();
 		function_ptr->parent = this;
 		functions.push_back(std::move(function));
@@ -97,13 +106,13 @@ namespace Corrosive {
 	}
 
 
-	ILBlock* ILFunction::create_and_append_block() {
+	ILBlock* ILBytecodeFunction::create_and_append_block() {
 		ILBlock* b = create_block();
 		append_block(b);
 		return b;
 	}
 
-	ILBlock* ILFunction::create_block() {
+	ILBlock* ILBytecodeFunction::create_block() {
 		std::unique_ptr<ILBlock> block = std::make_unique<ILBlock>();
 		ILBlock* block_ptr = block.get();
 		block->id = (uint32_t)blocks_memory.size();
@@ -118,7 +127,7 @@ namespace Corrosive {
 		return (uint32_t)vtable_data.size() - 1;
 	}
 
-	void ILFunction::append_block(ILBlock* block) {
+	void ILBytecodeFunction::append_block(ILBlock* block) {
 		blocks.push_back(block);
 	}
 
@@ -153,7 +162,7 @@ namespace Corrosive {
 
 
 
-	void ILFunction::dump() {
+	void ILBytecodeFunction::dump() {
 		std::cout << "function " << id << " -> ";
 		ILBlock::dump_data_type((*return_blocks.begin())->yields);
 		std::cout << " \"" << alias << "\"\n";
@@ -252,9 +261,7 @@ namespace Corrosive {
 		return (uint32_t)constant_memory.size() - 1;
 	}
 
-
-
-	void ILFunction::calculate_stack(ILArchitecture arch) {
+	void ILBytecodeFunction::calculate_stack(ILArchitecture arch) {
 		if (arch != calculated_for) {
 			calculated_local_stack_size = 0;
 			calculated_local_stack_alignment = 0;
@@ -376,9 +383,9 @@ namespace Corrosive {
 			case ILSizeType::word: {
 				switch (arch)
 				{
-					case ILArchitecture::i386:
+					case ILArchitecture::bit32:
 						return (size_t)value * 4;
-					case ILArchitecture::x86_64:
+					case ILArchitecture::bit64:
 						return (size_t)value * 8;
 					default:
 						return 0;
@@ -418,9 +425,9 @@ namespace Corrosive {
 			case ILSizeType::absolute: {
 				switch (arch)
 				{
-					case ILArchitecture::i386:
+					case ILArchitecture::bit32:
 						return (size_t)_upper_power_of_two((uint32_t)std::max<size_t>((size_t)value, 4));
-					case ILArchitecture::x86_64:
+					case ILArchitecture::bit64:
 						return (size_t)_upper_power_of_two((uint32_t)std::max<size_t>((size_t)value, 8));
 					default:
 						return 0;
@@ -430,9 +437,9 @@ namespace Corrosive {
 			case ILSizeType::word: {
 				switch (arch)
 				{
-					case ILArchitecture::i386:
+					case ILArchitecture::bit32:
 						return 4;
-					case ILArchitecture::x86_64:
+					case ILArchitecture::bit64:
 						return 8;
 					default:
 						return 0;
@@ -481,7 +488,7 @@ namespace Corrosive {
 	void ILArrayTable::calculate(ILModule* mod, ILArchitecture arch) {
 		if (arch != calculated_for) {
 			calculated_alignment = element.alignment(mod, arch);
-			calculated_size = _align_up(element.eval(mod, arch), calculated_alignment) * count;
+			calculated_size = (size_t)(_align_up(element.eval(mod, arch), calculated_alignment) * count);
 			calculated_for = arch;
 		}
 	}
@@ -935,7 +942,7 @@ namespace Corrosive {
 #undef read_data_size
 #undef read_data_type
 
-	bool ILFunction::assert_flow() {
+	bool ILBytecodeFunction::assert_flow() {
 		if (return_blocks.size() == 0) {
 			throw_il_wrong_data_flow_error();
 			return false;

@@ -56,7 +56,7 @@ namespace Corrosive {
 		return inside.back();
 	}
 
-	ILFunction* Ctx::workspace_function() {
+	ILBytecodeFunction* Ctx::workspace_function() {
 		return il_function.back();
 	}
 
@@ -82,7 +82,7 @@ namespace Corrosive {
 	void Ctx::pop_workspace() { inside.pop_back(); }
 	void Ctx::push_scope_context(ILContext ctx) { scope_ctx.push_back(ctx); }
 	void Ctx::pop_scope_context() { scope_ctx.pop_back(); }
-	void Ctx::push_function(ILFunction* ilf, Type* ret) { il_function.push_back(ilf); function_returns.push_back(ret); }
+	void Ctx::push_function(ILBytecodeFunction* ilf, Type* ret) { il_function.push_back(ilf); function_returns.push_back(ret); }
 	void Ctx::pop_function() { il_function.pop_back(); function_returns.pop_back(); }
 	void Ctx::push_scope(ILBlock* s) { il_scope.push_back(s); }
 	void Ctx::pop_scope() { il_scope.pop_back(); }
@@ -99,10 +99,41 @@ namespace Corrosive {
 	ConstantManager* Ctx::constant_mgr = nullptr;
 
 	std::vector<Namespace*> Ctx::inside;
-	std::vector < ILFunction* >Ctx::il_function;
+	std::vector < ILBytecodeFunction* >Ctx::il_function;
 	std::vector < Type* > Ctx::function_returns;
 	std::vector < ILContext	> Ctx::scope_ctx;
 	std::vector < ILBlock* > Ctx::il_scope;
 	std::vector < ILBlock* > Ctx::il_scope_exit;
+
+
+	void Ctx::register_ext_function(std::initializer_list<const char*> path, void(*ptr)(ILEvaluator*)) {
+		Namespace* nspc = Ctx::global_namespace();
+		FunctionTemplate* func = nullptr;
+
+		for (auto && p : path) {
+			Namespace* next_nspc = nullptr;
+			StructureTemplate* next_struct = nullptr;
+			FunctionTemplate* next_func = nullptr;
+			TraitTemplate* next_trait = nullptr;
+
+			nspc->find_name(p, next_nspc, next_struct, next_func, next_trait);
+			
+
+			if (next_nspc && !func) {
+				nspc = next_nspc;
+			}
+			else if (next_func && !func) {
+				func = next_func;
+			}
+			else {
+				throw std::exception("Wrong path provided to register_ext_function function.");
+			}
+		}
+
+		FunctionInstance* finst;
+		func->generate(nullptr, finst);
+		finst->compile();
+		((ILExtFunction*)finst->func)->ptr = ptr;
+	}
 
 }

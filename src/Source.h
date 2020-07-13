@@ -3,7 +3,8 @@
 #define _source_crs_h
 #include "Cursor.h"
 #include <unordered_map> 
-
+#include <map> 
+#include <string>
 
 namespace Corrosive {
 	class Source {

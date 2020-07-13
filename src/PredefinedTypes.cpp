@@ -86,7 +86,7 @@ namespace Corrosive {
 		TypeFunction* tf = load_or_register_function_type(std::move(arg_array), f_malloc_template->singe_instance->returns.second,ILContext::both);
 		f_malloc_template->singe_instance->type = tf;
 
-		ILBlock* f_malloc_block = f_malloc_template->singe_instance->func->create_and_append_block();
+		ILBlock* f_malloc_block = ((ILBytecodeFunction*)f_malloc_template->singe_instance->func)->create_and_append_block();
 
 		ILBuilder::build_malloc(f_malloc_block);
 		ILBuilder::build_ret(f_malloc_block, ILDataType::ptr);
@@ -119,7 +119,7 @@ namespace Corrosive {
 		tf = load_or_register_function_type(std::move(arg_array), f_free_template->singe_instance->returns.second, ILContext::both);
 		f_free_template->singe_instance->type = tf;
 
-		ILBlock* f_free_block = f_free_template->singe_instance->func->create_and_append_block();
+		ILBlock* f_free_block = ((ILBytecodeFunction*)f_free_template->singe_instance->func)->create_and_append_block();
 
 		ILBuilder::build_free(f_free_block);
 		ILBuilder::build_ret(f_free_block, ILDataType::none);

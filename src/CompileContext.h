@@ -27,7 +27,7 @@ namespace Corrosive {
 		static ILEvaluator* eval();
 		
 		static Namespace* workspace();
-		static ILFunction* workspace_function();
+		static ILBytecodeFunction* workspace_function();
 		static Type* workspace_return();
 		static ILContext scope_context();
 		static ILBlock* scope();
@@ -44,7 +44,7 @@ namespace Corrosive {
 		static void push_scope_context(ILContext context);
 		static void pop_scope_context();
 
-		static void push_function(ILFunction* ilf, Type* ret);
+		static void push_function(ILBytecodeFunction* ilf, Type* ret);
 		static void pop_function();
 
 		static void push_scope(ILBlock* scope);
@@ -52,6 +52,8 @@ namespace Corrosive {
 
 		static void push_scope_exit(ILBlock* scope_exit);
 		static void pop_scope_exit();
+
+		static void register_ext_function(std::initializer_list<const char*> path,void(*ptr)(ILEvaluator*));
 
 	private:
 		static DefaultTypes* default_types;
@@ -64,7 +66,7 @@ namespace Corrosive {
 		static ConstantManager* constant_mgr;
 
 		static std::vector<Namespace*> inside;
-		static std::vector<ILFunction*> il_function;
+		static std::vector<ILBytecodeFunction*> il_function;
 		static std::vector<Type*> function_returns;
 		static std::vector<ILContext> scope_ctx;
 		static std::vector<ILBlock*> il_scope;

@@ -14,7 +14,17 @@
 #include <memory>
 
 namespace Corrosive {
-	const ILArchitecture compiler_arch = ILArchitecture::x86_64;
+	
+
+	const ILArchitecture compiler_arch = (sizeof(void*)==8)? ILArchitecture::bit64 : ILArchitecture::bit32;
+
+	void print_provider(ILEvaluator* eval) {
+		auto ptr = eval->pop_register_value<size_t*>();
+		const char* text = *(const char**)ptr;
+		size_t size = ptr[1];
+		std::basic_string_view<char> sv(text, size);
+		std::cout << sv << "\n";
+	}
 
 	int crs_main() {
 		std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
@@ -45,9 +55,7 @@ namespace Corrosive {
 		m.insintric_function[(unsigned char)ILInsintric::type_size] = &Operand::priv_type_size;
 		m.insintric_function_name[(unsigned char)ILInsintric::type_size] = "type_size";
 
-		m.architecture = ILArchitecture::x86_64;
 		e->parent = &m;
-
 
 		Ctx::init(&m, &dt, e.get(), &gn, &rts, &cps, &tms,&cmgr);
 
@@ -56,18 +64,28 @@ namespace Corrosive {
 		try {
 			
 
+			Ctx::types()->setup();
+
+			Source std_src;
+			std_src.load("..\\test\\std.crs");
+			std_src.pair_braces();
+			std_src.register_debug();
+			Cursor c_std = std_src.read_first();
+			Declaration::parse_global(c_std, &gn);
+			
 			Source src;
 			src.load("..\\test\\test.crs");
 			src.pair_braces();
 			src.register_debug();
-			Cursor c = src.read_first();
+			Cursor c_src = src.read_first();
+			Declaration::parse_global(c_src, &gn);
+			
 
-
-			Ctx::types()->setup();
 
 			ILFunction* main = nullptr;
 
-			Declaration::parse_global(c, &gn);
+			Ctx::register_ext_function({ "std","print_slice" }, print_provider);
+
 			auto mainfun = gn.subfunctions.find("main");
 			if (mainfun != gn.subfunctions.end()) {
 				FunctionInstance* finst;
@@ -81,6 +99,7 @@ namespace Corrosive {
 
 
 			if (main != nullptr) {
+				Ctx::push_scope_context(ILContext::runtime);
 				Ctx::eval()->debug_file = UINT16_MAX;
 				Ctx::eval()->debug_line = UINT16_MAX;
 				ILBuilder::eval_fnptr(Ctx::eval(), main);
@@ -91,7 +110,9 @@ namespace Corrosive {
 
 				auto lr = (size_t)(Ctx::eval()->register_stack_pointer - Ctx::eval()->register_stack);
 				if (lr>0)
-					std::cout << "leaked registers: " << lr << "\n";
+					std::cout << "leaked registers: " << lr << "B\n";
+				Ctx::pop_scope_context();
+
 			}
 			else {
 				std::cerr << "main was null\n";

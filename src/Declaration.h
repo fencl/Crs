@@ -68,8 +68,9 @@ namespace Corrosive {
 
 	class StructureInstance : public Namespace {
 	public:
-		std::map<std::string_view, uint16_t> member_table;
+		std::map<std::string_view, std::pair<uint16_t,bool>> member_table;
 		std::vector<std::pair<Type*,uint32_t>> member_vars;
+		std::vector<uint16_t> member_composites;
 
 		std::map<TraitInstance*, std::vector<std::unique_ptr<FunctionInstance>>> traitfunctions;
 
@@ -117,6 +118,7 @@ namespace Corrosive {
 	struct StructureTemplateMemberVar {
 		Cursor name;
 		Cursor type;
+		bool composite;
 	};
 
 	struct StructureTemplateMemberFunc {

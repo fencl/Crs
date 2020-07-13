@@ -35,7 +35,7 @@ namespace Corrosive {
 			std::string_view line = data.substr(from, to - from);
 			cerr << "... ";
 			bool remove_whitespace = true;
-			for (int i = 0; i < line.length(); i++) {
+			for (size_t i = 0; i < line.length(); i++) {
 
 				if (remove_whitespace) {
 					if (isspace(line[i]))
@@ -60,7 +60,7 @@ namespace Corrosive {
 			for (int i = 0; i < req_offset; i++)
 				cerr << " ";
 
-			for (int i = 0; i < cc.buffer.length(); i++)
+			for (size_t i = 0; i < cc.buffer.length(); i++)
 				cerr << "^";
 		}
 

@@ -11,7 +11,7 @@ size_t rot(size_t n, int c)
 
 unsigned long long svtoi(std::string_view sv) {
 	unsigned long long r = 0;
-	for (int i = 0; i < sv.length(); i++) {
+	for (size_t i = 0; i < sv.length(); i++) {
 		r *= 10;
 		r += (unsigned char)(sv[i] - '0');
 	}

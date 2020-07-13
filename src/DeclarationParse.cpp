@@ -93,16 +93,26 @@ namespace Corrosive {
 			}
 			else if (c.buffer == "fn") {
 				StructureTemplateMemberFunc member;
+				bool ext = false;
 
 				c.move();
-				if (c.buffer == "compile") {
-					member.context = ILContext::compile;
-					c.move();
-				}else if (c.buffer == "runtime") {
-					member.context = ILContext::runtime;
-					c.move();
+				member.context = ILContext::both;
+
+				while (true) {
+					if (c.buffer == "compile" && member.context == ILContext::both) {
+						member.context = ILContext::compile;
+						c.move();
+					}
+					else if (c.buffer == "runtime" && member.context == ILContext::both) {
+						member.context = ILContext::runtime;
+						c.move();
+					}
+					else if (c.buffer == "ext") {
+						ext = true;
+						c.move();
+					}
+					else break;
 				}
-				else member.context = ILContext::both;
 
 				if (c.tok != RecognizedToken::Symbol) {
 					throw_not_a_name_error(c);
@@ -111,7 +121,7 @@ namespace Corrosive {
 				member.name = c;
 				c.move();
 
-				if (c.tok == RecognizedToken::OpenParenthesis) {
+				if (!ext && c.tok == RecognizedToken::OpenParenthesis) {
 					c.move();
 					member.annotation = c;
 					int lvl = 1;
@@ -137,15 +147,28 @@ namespace Corrosive {
 				c.move();
 				member.type = c;
 
-				while (c.tok != RecognizedToken::OpenBrace) {
-					if (c.tok == RecognizedToken::Eof) {
-						throw_eof_error(c, "parsing of structure member type");
+				if (!ext) {
+					while (c.tok != RecognizedToken::OpenBrace) {
+						if (c.tok == RecognizedToken::Eof) {
+							throw_eof_error(c, "parsing of structure member type");
+						}
+						c.move();
 					}
-					c.move();
+					member.block = c;
+					member.block.move();
+					c.move_matching();
 				}
-				member.block = c;
-				member.block.move();
-				c.move_matching();
+				else {
+					while (c.tok != RecognizedToken::Semicolon) {
+						if (c.tok == RecognizedToken::Eof) {
+							throw_eof_error(c, "parsing of structure member type");
+						}
+						c.move();
+					}
+
+					member.block.src = nullptr;
+				}
+
 				c.move();
 
 				std::unique_ptr<FunctionTemplate> ft = std::make_unique<FunctionTemplate>();
@@ -220,6 +243,13 @@ namespace Corrosive {
 			if (c.buffer == "var") {
 				StructureTemplateMemberVar member;
 				c.move();
+				if (c.buffer == "alias") {
+					member.composite = true;
+					c.move();
+				}
+				else {
+					member.composite = false;
+				}
 				member.name = c;
 				c.move();
 				if (c.tok != RecognizedToken::Colon) {
