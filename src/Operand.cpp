@@ -676,6 +676,32 @@ namespace Corrosive {
 				ILBuilder::eval_const_i8(Ctx::eval(), false);
 			}
 		}
+		else if (c.buffer == "self") {
+			ret.lvalue = false;
+			ret.t = Ctx::types()->t_type;
+
+			Namespace* nspc = Ctx::workspace();
+			StructureInstance* s = dynamic_cast<StructureInstance*>(nspc);
+
+			if (!s) {
+				throw_specific_error(c, "Self must be used inside structure");
+			}
+			else {
+
+				if (Ctx::scope_context() != ILContext::compile) {
+					throw_specific_error(c, "Self type can be used only in compile context");
+				}
+
+				if (cpt == CompileType::compile) {
+					ILBuilder::build_const_type(Ctx::scope(), s->type.get());
+				}
+				else if (cpt == CompileType::eval) {
+					ILBuilder::eval_const_type(Ctx::eval(), s->type.get());
+				}
+			}
+
+			c.move();
+		}
 		else if (c.buffer == "null") {
 			c.move();
 			ret.lvalue = false;
