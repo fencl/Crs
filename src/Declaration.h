@@ -75,7 +75,7 @@ namespace Corrosive {
 		std::map<TraitInstance*, std::vector<std::unique_ptr<FunctionInstance>>> traitfunctions;
 
 		StructureInstanceType structure_type = StructureInstanceType::normal_structure;
-		ILDataType rvalue = ILDataType::ptr;
+		ILDataType rvalue = ILDataType::word;
 
 		ILSize size;
 		bool wrapper = false;

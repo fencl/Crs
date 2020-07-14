@@ -23,7 +23,18 @@ namespace Corrosive {
 		const char* text = *(const char**)ptr;
 		size_t size = ptr[1];
 		std::basic_string_view<char> sv(text, size);
-		std::cout << sv << "\n";
+		std::cout << sv;
+	}
+
+	void malloc_provider(ILEvaluator* eval) {
+		auto size = eval->pop_register_value<size_t>();
+		auto ref = malloc(size);
+		eval->write_register_value(ref);
+	}
+
+	void free_provider(ILEvaluator* eval) {
+		auto ref = eval->pop_register_value<void*>();
+		free(ref);
 	}
 
 	int crs_main() {
@@ -85,6 +96,8 @@ namespace Corrosive {
 			ILFunction* main = nullptr;
 
 			Ctx::register_ext_function({ "std","print_slice" }, print_provider);
+			Ctx::register_ext_function({ "std","malloc" }, malloc_provider);
+			Ctx::register_ext_function({ "std","free" }, free_provider);
 
 			auto mainfun = gn.subfunctions.find("main");
 			if (mainfun != gn.subfunctions.end()) {
@@ -99,6 +112,7 @@ namespace Corrosive {
 
 
 			if (main != nullptr) {
+				std::cout << "========= TEST =========\n";
 				Ctx::push_scope_context(ILContext::runtime);
 				Ctx::eval()->debug_file = UINT16_MAX;
 				Ctx::eval()->debug_line = UINT16_MAX;
@@ -106,7 +120,7 @@ namespace Corrosive {
 				ILBuilder::eval_callstart(Ctx::eval());
 				ILBuilder::eval_call(Ctx::eval(), ILDataType::u64, 0);
 				uint64_t ret_val = Ctx::eval()->pop_register_value<uint64_t>();
-				std::cout << "========= TEST =========\ntest result was: " << ret_val << "\n\n";
+				std::cout << "\ntest result was: " << ret_val << "\n\n";
 
 				auto lr = (size_t)(Ctx::eval()->register_stack_pointer - Ctx::eval()->register_stack);
 				if (lr>0)

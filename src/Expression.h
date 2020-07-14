@@ -21,7 +21,7 @@ namespace Corrosive {
 		static void parse_and(Cursor& c, CompileValue& res, CompileType comp_type);
 		static void parse_or(Cursor& c, CompileValue& res, CompileType comp_type);
 		static void parse_operators(Cursor& c, CompileValue& res, CompileType comp_type);
-		static void emit(Cursor& c, CompileValue& res, int l, int op, CompileValue left, CompileValue right, CompileType cpt, int next_l,int next_op);
+		static void emit(Cursor& c, CompileValue& res, int l, int op, CompileValue left, CompileValue right, CompileType cpt, int next_l, int next_op);
 	};
 }
 

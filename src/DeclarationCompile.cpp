@@ -944,7 +944,7 @@ namespace Corrosive {
 
 				if (ret_rval_stack) {
 					ILBuilder::build_local(Ctx::scope(), return_ptr_local_id);
-					ILBuilder::build_store(Ctx::scope(), ILDataType::ptr);
+					ILBuilder::build_store(Ctx::scope(), ILDataType::word);
 				}
 
 
@@ -1014,7 +1014,7 @@ namespace Corrosive {
 		}
 
 		if (clones > 1) {
-			ILBuilder::build_clone(block, ILDataType::ptr, clones);
+			ILBuilder::build_clone(block, ILDataType::word, clones);
 		}
 
 		auto do_lmbda = [&block, this](size_t ind, std::pair<Type*, uint32_t>& c_var) {
@@ -1064,7 +1064,7 @@ namespace Corrosive {
 		}
 
 		if (clones > 1) {
-			ILBuilder::build_clone(block, ILDataType::ptr, clones);
+			ILBuilder::build_clone(block, ILDataType::word, clones);
 		}
 
 
@@ -1108,7 +1108,7 @@ namespace Corrosive {
 
 
 		if (member_vars.size() > 1) {
-			ILBuilder::build_clone_pair(block, ILDataType::ptr, (uint16_t)(member_vars.size()));
+			ILBuilder::build_clone_pair(block, ILDataType::word, (uint16_t)(member_vars.size()));
 		}
 
 
@@ -1153,7 +1153,7 @@ namespace Corrosive {
 		ILBuilder::build_accept(block, ILDataType::none);
 
 		if (member_vars.size() > 1 || member_composites.size() > 1) {
-			ILBuilder::build_clone_pair(block, ILDataType::ptr, (uint16_t)(member_vars.size() + member_composites.size()));
+			ILBuilder::build_clone_pair(block, ILDataType::word, (uint16_t)(member_vars.size() + member_composites.size()));
 		}
 
 		auto do_lmbda = [&block, this](size_t ind, std::pair<Type*, uint32_t>& c_var) {
@@ -1201,7 +1201,7 @@ namespace Corrosive {
 		ILBuilder::build_accept(block, ILDataType::none);
 
 		if (member_vars.size() > 1 || member_composites.size() > 1) {
-			ILBuilder::build_clone_pair(block, ILDataType::ptr, (uint16_t)(member_vars.size()));
+			ILBuilder::build_clone_pair(block, ILDataType::word, (uint16_t)(member_vars.size()));
 		}
 		auto do_lmbda = [&block, &func, &block_return, this](size_t ind, std::pair<Type*, uint32_t>& c_var) {
 			if (size.type == ILSizeType::table) {

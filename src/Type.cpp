@@ -226,27 +226,27 @@ namespace Corrosive {
 	}
 
 	ILDataType TypeReference::rvalue() {
-		return ILDataType::ptr;
+		return ILDataType::word;
 	}
 
 	ILDataType TypeArray::rvalue() {
-		return ILDataType::ptr;
+		return ILDataType::word;
 	}
 
 	ILDataType TypeTraitInstance::rvalue() {
-		return ILDataType::ptr;
+		return ILDataType::word;
 	}
 
 	ILDataType TypeSlice::rvalue() {
-		return ILDataType::ptr;
+		return ILDataType::word;
 	}
 
 	ILDataType TypeFunction::rvalue() {
-		return ILDataType::ptr;
+		return ILDataType::word;
 	}
 
 	ILDataType TypeTemplate::rvalue() {
-		return ILDataType::ptr;
+		return ILDataType::word;
 	}
 
 	// ==============================================================================================

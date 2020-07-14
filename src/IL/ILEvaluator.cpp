@@ -64,7 +64,6 @@ namespace Corrosive {
 		}
 	}
 
-	void ILBuilder::eval_const_ibool(ILEvaluator* eval_ctx, uint8_t   value) { eval_ctx->write_register_value_indirect(sizeof(uint8_t), (unsigned char*)&value); }
 	void ILBuilder::eval_const_i8(ILEvaluator* eval_ctx, int8_t   value) { eval_ctx->write_register_value_indirect(sizeof(int8_t), (unsigned char*)&value); }
 	void ILBuilder::eval_const_i16(ILEvaluator* eval_ctx, int16_t  value) { eval_ctx->write_register_value_indirect(sizeof(int16_t), (unsigned char*)&value); }
 	void ILBuilder::eval_const_i32(ILEvaluator* eval_ctx, int32_t  value) { eval_ctx->write_register_value_indirect(sizeof(int32_t), (unsigned char*)&value); }
@@ -83,8 +82,6 @@ namespace Corrosive {
 	template<typename T> inline T _il_evaluator_value_pop_into(ILEvaluator* eval_ctx, ILDataType t) {
 		switch (t)
 		{
-			case Corrosive::ILDataType::ibool:
-				return (T)eval_ctx->pop_register_value<uint8_t>();
 			case Corrosive::ILDataType::u8:
 				return (T)eval_ctx->pop_register_value<uint8_t>();
 			case Corrosive::ILDataType::i8:
@@ -105,9 +102,7 @@ namespace Corrosive {
 				return (T)eval_ctx->pop_register_value<float>();
 			case Corrosive::ILDataType::f64:
 				return (T)eval_ctx->pop_register_value<double>();
-			case Corrosive::ILDataType::size:
-				return (T)eval_ctx->pop_register_value<size_t>();
-			case Corrosive::ILDataType::ptr:
+			case Corrosive::ILDataType::word:
 				return (T)(size_t)eval_ctx->pop_register_value<void*>();
 			default:
 				return 0;
@@ -125,10 +120,6 @@ namespace Corrosive {
 			case ILDataType::u8: {
 				uint8_t lval = _il_evaluator_value_pop_into<uint8_t>(eval_ctx, l);
 				ILBuilder::eval_const_u8(eval_ctx, lval);
-			}break;
-			case ILDataType::ibool: {
-				uint8_t lval = _il_evaluator_value_pop_into<uint8_t>(eval_ctx, l);
-				ILBuilder::eval_const_ibool(eval_ctx, lval);
 			}break;
 			case ILDataType::i16: {
 				int16_t lval = _il_evaluator_value_pop_into<int16_t>(eval_ctx, l);
@@ -162,11 +153,7 @@ namespace Corrosive {
 				double lval = _il_evaluator_value_pop_into<double>(eval_ctx, l);
 				ILBuilder::eval_const_f64(eval_ctx, lval);
 			}break;
-			case ILDataType::size: {
-				size_t lval = _il_evaluator_value_pop_into<size_t>(eval_ctx, l);
-				ILBuilder::eval_const_size(eval_ctx, lval);
-			}break;
-			case ILDataType::ptr: {
+			case ILDataType::word: {
 				size_t lval = _il_evaluator_value_pop_into<size_t>(eval_ctx, l);
 				ILBuilder::eval_const_size(eval_ctx, lval);
 			}break;
@@ -187,12 +174,6 @@ namespace Corrosive {
 				uint8_t lval = _il_evaluator_value_pop_into<uint8_t>(eval_ctx, l);
 				op<uint8_t> o;
 				ILBuilder::eval_const_u8(eval_ctx, o(lval, rval));
-			}break;
-			case ILDataType::ibool: {
-				uint8_t rval = _il_evaluator_value_pop_into<uint8_t>(eval_ctx, r);
-				uint8_t lval = _il_evaluator_value_pop_into<uint8_t>(eval_ctx, l);
-				op<uint8_t> o;
-				ILBuilder::eval_const_ibool(eval_ctx, o(lval, rval));
 			}break;
 			case ILDataType::i16: {
 				int16_t rval = _il_evaluator_value_pop_into<int16_t>(eval_ctx, r);
@@ -242,13 +223,7 @@ namespace Corrosive {
 				op<double> o;
 				ILBuilder::eval_const_f64(eval_ctx, o(lval, rval));
 			}break;
-			case ILDataType::size: {
-				size_t rval = _il_evaluator_value_pop_into<size_t>(eval_ctx, r);
-				size_t lval = _il_evaluator_value_pop_into<size_t>(eval_ctx, l);
-				op<size_t> o;
-				ILBuilder::eval_const_size(eval_ctx, o(lval, rval));
-			}break;
-			case ILDataType::ptr: {
+			case ILDataType::word: {
 				size_t rval = _il_evaluator_value_pop_into<size_t>(eval_ctx, r);
 				size_t lval = _il_evaluator_value_pop_into<size_t>(eval_ctx, l);
 				op<size_t> o;
@@ -272,12 +247,6 @@ namespace Corrosive {
 				uint8_t lval = _il_evaluator_value_pop_into<uint8_t>(eval_ctx, l);
 				op<uint8_t> o;
 				ILBuilder::eval_const_u8(eval_ctx, o(lval, rval));
-			}break;
-			case ILDataType::ibool: {
-				uint8_t rval = _il_evaluator_value_pop_into<uint8_t>(eval_ctx, r);
-				uint8_t lval = _il_evaluator_value_pop_into<uint8_t>(eval_ctx, l);
-				op<uint8_t> o;
-				ILBuilder::eval_const_ibool(eval_ctx, o(lval, rval));
 			}break;
 			case ILDataType::i16: {
 				int16_t rval = _il_evaluator_value_pop_into<int16_t>(eval_ctx, r);
@@ -315,13 +284,7 @@ namespace Corrosive {
 				op<uint64_t> o;
 				ILBuilder::eval_const_u64(eval_ctx, o(lval, rval));
 			}break;
-			case ILDataType::size: {
-				size_t rval = _il_evaluator_value_pop_into<size_t>(eval_ctx, r);
-				size_t lval = _il_evaluator_value_pop_into<size_t>(eval_ctx, l);
-				op<size_t> o;
-				ILBuilder::eval_const_size(eval_ctx, o(lval, rval));
-			}break;
-			case ILDataType::ptr: {
+			case ILDataType::word: {
 				size_t rval = _il_evaluator_value_pop_into<size_t>(eval_ctx, r);
 				size_t lval = _il_evaluator_value_pop_into<size_t>(eval_ctx, l);
 				op<size_t> o;
@@ -338,79 +301,67 @@ namespace Corrosive {
 				int8_t rval = _il_evaluator_value_pop_into<int8_t>(eval_ctx, r);
 				int8_t lval = _il_evaluator_value_pop_into<int8_t>(eval_ctx, l);
 				op<int8_t> o;
-				ILBuilder::eval_const_ibool(eval_ctx, o(lval, rval));
+				ILBuilder::eval_const_i8(eval_ctx, o(lval, rval));
 			}break;
 			case ILDataType::u8: {
 				uint8_t rval = _il_evaluator_value_pop_into<uint8_t>(eval_ctx, r);
 				uint8_t lval = _il_evaluator_value_pop_into<uint8_t>(eval_ctx, l);
 				op<uint8_t> o;
-				ILBuilder::eval_const_ibool(eval_ctx, o(lval, rval));
-			}break;
-			case ILDataType::ibool: {
-				uint8_t rval = _il_evaluator_value_pop_into<uint8_t>(eval_ctx, r);
-				uint8_t lval = _il_evaluator_value_pop_into<uint8_t>(eval_ctx, l);
-				op<uint8_t> o;
-				ILBuilder::eval_const_ibool(eval_ctx, o(lval, rval));
+				ILBuilder::eval_const_i8(eval_ctx, o(lval, rval));
 			}break;
 			case ILDataType::i16: {
 				int16_t rval = _il_evaluator_value_pop_into<int16_t>(eval_ctx, r);
 				int16_t lval = _il_evaluator_value_pop_into<int16_t>(eval_ctx, l);
 				op<int16_t> o;
-				ILBuilder::eval_const_ibool(eval_ctx, o(lval, rval));
+				ILBuilder::eval_const_i8(eval_ctx, o(lval, rval));
 			}break;
 			case ILDataType::u16: {
 				uint16_t rval = _il_evaluator_value_pop_into<uint16_t>(eval_ctx, r);
 				uint16_t lval = _il_evaluator_value_pop_into<uint16_t>(eval_ctx, l);
 				op<uint16_t> o;
-				ILBuilder::eval_const_ibool(eval_ctx, o(lval, rval));
+				ILBuilder::eval_const_i8(eval_ctx, o(lval, rval));
 			}break;
 			case ILDataType::i32: {
 				int32_t rval = _il_evaluator_value_pop_into<int32_t>(eval_ctx, r);
 				int32_t lval = _il_evaluator_value_pop_into<int32_t>(eval_ctx, l);
 				op<int32_t> o;
-				ILBuilder::eval_const_ibool(eval_ctx, o(lval, rval));
+				ILBuilder::eval_const_i8(eval_ctx, o(lval, rval));
 			}break;
 			case ILDataType::u32: {
 				uint32_t rval = _il_evaluator_value_pop_into<uint32_t>(eval_ctx, r);
 				uint32_t lval = _il_evaluator_value_pop_into<uint32_t>(eval_ctx, l);
 				op<uint32_t> o;
-				ILBuilder::eval_const_ibool(eval_ctx, o(lval, rval));
+				ILBuilder::eval_const_i8(eval_ctx, o(lval, rval));
 			}break;
 			case ILDataType::i64: {
 				int64_t rval = _il_evaluator_value_pop_into<int64_t>(eval_ctx, r);
 				int64_t lval = _il_evaluator_value_pop_into<int64_t>(eval_ctx, l);
 				op<int64_t> o;
-				ILBuilder::eval_const_ibool(eval_ctx, o(lval, rval));
+				ILBuilder::eval_const_i8(eval_ctx, o(lval, rval));
 			}break;
 			case ILDataType::u64: {
 				uint64_t rval = _il_evaluator_value_pop_into<uint64_t>(eval_ctx, r);
 				uint64_t lval = _il_evaluator_value_pop_into<uint64_t>(eval_ctx, l);
 				op<uint64_t> o;
-				ILBuilder::eval_const_ibool(eval_ctx, o(lval, rval));
+				ILBuilder::eval_const_i8(eval_ctx, o(lval, rval));
 			}break;
 			case ILDataType::f32: {
 				float rval = _il_evaluator_value_pop_into<float>(eval_ctx, r);
 				float lval = _il_evaluator_value_pop_into<float>(eval_ctx, l);
 				op<float> o;
-				ILBuilder::eval_const_ibool(eval_ctx, o(lval, rval));
+				ILBuilder::eval_const_i8(eval_ctx, o(lval, rval));
 			}break;
 			case ILDataType::f64: {
 				double rval = _il_evaluator_value_pop_into<double>(eval_ctx, r);
 				double lval = _il_evaluator_value_pop_into<double>(eval_ctx, l);
 				op<double> o;
-				ILBuilder::eval_const_ibool(eval_ctx, o(lval, rval));
+				ILBuilder::eval_const_i8(eval_ctx, o(lval, rval));
 			}break;
-			case ILDataType::size: {
+			case ILDataType::word: {
 				size_t rval = _il_evaluator_value_pop_into<size_t>(eval_ctx, r);
 				size_t lval = _il_evaluator_value_pop_into<size_t>(eval_ctx, l);
 				op<size_t> o;
-				ILBuilder::eval_const_ibool(eval_ctx, o(lval, rval));
-			}break;
-			case ILDataType::ptr: {
-				size_t rval = _il_evaluator_value_pop_into<size_t>(eval_ctx, r);
-				size_t lval = _il_evaluator_value_pop_into<size_t>(eval_ctx, l);
-				op<size_t> o;
-				ILBuilder::eval_const_ibool(eval_ctx, o(lval, rval));
+				ILBuilder::eval_const_i8(eval_ctx, o(lval, rval));
 			}break;
 		}
 
@@ -441,8 +392,6 @@ namespace Corrosive {
 	size_t ILEvaluator::compile_time_register_size(ILDataType t) {
 		switch (t)
 		{
-			case Corrosive::ILDataType::ibool:
-				return 1;
 			case Corrosive::ILDataType::u8:
 				return 1;
 			case Corrosive::ILDataType::i8:
@@ -463,10 +412,8 @@ namespace Corrosive {
 				return 4;
 			case Corrosive::ILDataType::f64:
 				return 8;
-			case Corrosive::ILDataType::ptr:
+			case Corrosive::ILDataType::word:
 				return sizeof(void*);
-			case Corrosive::ILDataType::size:
-				return sizeof(size_t);
 			case Corrosive::ILDataType::none:
 				return 0;
 			case Corrosive::ILDataType::undefined:
@@ -530,7 +477,7 @@ namespace Corrosive {
 	void ILBuilder::eval_woffset(ILEvaluator* eval_ctx, uint32_t offset) {
 		if (offset > 0) {
 			auto mem = eval_ctx->pop_register_value<size_t>();
-			mem += offset * eval_ctx->compile_time_register_size(ILDataType::ptr);
+			mem += offset * eval_ctx->compile_time_register_size(ILDataType::word);
 			eval_ctx->write_register_value(mem);
 		}
 	}
@@ -540,8 +487,8 @@ namespace Corrosive {
 		if (offset > 0) {
 			auto mem2 = eval_ctx->pop_register_value<size_t>();
 			auto mem1 = eval_ctx->pop_register_value<size_t>();
-			mem2 += offset * eval_ctx->compile_time_register_size(ILDataType::ptr);
-			mem1 += offset * eval_ctx->compile_time_register_size(ILDataType::ptr);
+			mem2 += offset * eval_ctx->compile_time_register_size(ILDataType::word);
+			mem1 += offset * eval_ctx->compile_time_register_size(ILDataType::word);
 			eval_ctx->write_register_value(mem1);
 			eval_ctx->write_register_value(mem2);
 		}
@@ -588,7 +535,7 @@ namespace Corrosive {
 	void ILBuilder::eval_wroffset(ILEvaluator* eval_ctx, ILDataType from, ILDataType to, uint8_t offset) {
 		ilsize_t mem;
 		eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(from), &mem);
-		mem = mem << (offset * eval_ctx->compile_time_register_size(ILDataType::ptr));
+		mem = mem << (offset * eval_ctx->compile_time_register_size(ILDataType::word));
 		return eval_ctx->write_register_value_indirect(eval_ctx->compile_time_register_size(to), &mem);
 	}
 
@@ -666,7 +613,7 @@ namespace Corrosive {
 	void ILBuilder::eval_isnotzero(ILEvaluator* eval_ctx, ILDataType type) {
 		ilsize_t z = 0;
 		eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(type), &z);
-		eval_const_ibool(eval_ctx, (z == 0 ? 0 : 1));
+		eval_const_i8(eval_ctx, (z == 0 ? 0 : 1));
 	}
 
 
@@ -690,36 +637,6 @@ namespace Corrosive {
 			auto dst = eval_ctx->pop_register_value<void*>();
 			auto src = eval_ctx->pop_register_value<void*>();
 			memcpy(dst, src, size);
-
-		}
-		else {
-
-			throw_runtime_handler_exception(eval_ctx);
-		}
-	}
-
-	void ILBuilder::eval_malloc(ILEvaluator* eval_ctx) {
-
-		if (setjmp(sandbox) == 0) {
-			auto size = eval_ctx->pop_register_value<size_t>();
-			void* mlc = malloc(size);
-			if (mlc == nullptr) {
-				throw_runtime_exception(eval_ctx, "Failed to allocate memory");
-			}
-			eval_const_ptr(eval_ctx, mlc);
-
-		}
-		else {
-
-			throw_runtime_handler_exception(eval_ctx);
-		}
-	}
-
-	void ILBuilder::eval_free(ILEvaluator* eval_ctx) {
-
-		if (setjmp(sandbox) == 0) {
-			auto ptr = eval_ctx->pop_register_value<void*>();
-			free(ptr);
 
 		}
 		else {
@@ -846,7 +763,6 @@ namespace Corrosive {
 	void ILBuilder::eval_negative(ILEvaluator* eval_ctx, ILDataType type) {
 
 		switch (type) {
-			case ILDataType::ibool:
 			case ILDataType::u8:
 				eval_ctx->write_register_value(-eval_ctx->pop_register_value<uint8_t>());
 				break;
@@ -871,8 +787,7 @@ namespace Corrosive {
 			case ILDataType::f64:
 				eval_ctx->write_register_value(-eval_ctx->pop_register_value<double>());
 				break;
-			case ILDataType::ptr:
-			case ILDataType::size:
+			case ILDataType::word:
 				eval_ctx->write_register_value((SIZE_MAX ^ eval_ctx->pop_register_value<size_t>()) - 1);
 				break;
 		}
@@ -1198,14 +1113,6 @@ namespace Corrosive {
 								eval_load(eval_ctx, type);
 							} break;
 
-							case ILInstruction::malloc: {
-								eval_malloc(eval_ctx);
-							} break;
-
-							case ILInstruction::free: {
-								eval_free(eval_ctx);
-							} break;
-
 							case ILInstruction::isnotzero: {
 								auto type = *read_data_type(ILDataType);
 								eval_isnotzero(eval_ctx, type);
@@ -1239,26 +1146,20 @@ namespace Corrosive {
 
 								goto next_block;
 							} break;
-							case ILInstruction::value: {
 
-								auto type = read_data_type(ILDataType);
+							case ILInstruction::u8: eval_const_u8(eval_ctx, *read_data_type(uint8_t)); break;
+							case ILInstruction::i8: eval_const_i8(eval_ctx, *read_data_type(int8_t)); break;
+							case ILInstruction::u16: eval_const_u16(eval_ctx, *read_data_type(uint16_t)); break;
+							case ILInstruction::i16: eval_const_i16(eval_ctx, *read_data_type(int16_t)); break;
+							case ILInstruction::u32: eval_const_u32(eval_ctx, *read_data_type(uint32_t)); break;
+							case ILInstruction::i32: eval_const_i32(eval_ctx, *read_data_type(int32_t)); break;
+							case ILInstruction::u64: eval_const_u64(eval_ctx, *read_data_type(uint64_t)); break;
+							case ILInstruction::i64: eval_const_i64(eval_ctx, *read_data_type(int64_t)); break;
+							case ILInstruction::f32: eval_const_f32(eval_ctx, *read_data_type(float)); break;
+							case ILInstruction::f64: eval_const_f64(eval_ctx, *read_data_type(double)); break;
+							case ILInstruction::word: eval_const_ptr(eval_ctx, *read_data_type(void*)); break;
+							case ILInstruction::size: eval_const_size(eval_ctx, read_data_type(ILSize)->eval(eval_ctx->parent, compiler_arch)); break;
 
-								switch (*type) {
-									case ILDataType::ibool:  eval_const_ibool(eval_ctx, *read_data_type(int8_t)); break;
-									case ILDataType::u8:     eval_const_u8(eval_ctx, *read_data_type(uint8_t)); break;
-									case ILDataType::u16:    eval_const_u16(eval_ctx, *read_data_type(uint16_t)); break;
-									case ILDataType::u32:    eval_const_u32(eval_ctx, *read_data_type(uint32_t)); break;
-									case ILDataType::u64:    eval_const_u64(eval_ctx, *read_data_type(uint64_t)); break;
-									case ILDataType::i8:     eval_const_i8(eval_ctx, *read_data_type(int8_t)); break;
-									case ILDataType::i16:    eval_const_i16(eval_ctx, *read_data_type(int16_t)); break;
-									case ILDataType::i32:    eval_const_i32(eval_ctx, *read_data_type(int32_t)); break;
-									case ILDataType::i64:    eval_const_i64(eval_ctx, *read_data_type(int64_t)); break;
-									case ILDataType::f32:    eval_const_f32(eval_ctx, *read_data_type(float)); break;
-									case ILDataType::f64:    eval_const_f64(eval_ctx, *read_data_type(double)); break;
-									case ILDataType::ptr:    eval_const_ptr(eval_ctx, *read_data_type(void*)); break;
-									case ILDataType::size:   eval_const_size(eval_ctx, read_data_type(ILSize)->eval(eval_ctx->parent, compiler_arch)); break;
-								}
-							} break;
 						}
 					}
 

@@ -39,31 +39,30 @@ namespace Corrosive {
 	};
 
 	enum class ILInstruction : unsigned char {
-		value, 
-		
+		u8, i8, u16, i16, u32, i32, u64, i64, f32, f64, word, size,
+
 		add, sub, div, mul, rem,
 		bit_and, bit_or, bit_xor,
 		eq, ne, gt, ge, lt, le,
 
 		load, store, store2, ret, jmp, jmpz,
-		local, forget, 
-		fnptr, call, start, insintric, cast, 
+		local, forget,
+		fnptr, call, start, insintric, cast,
 		roffset, offset, vtable, duplicate, duplicate2, swap, swap2,
 		memcpy, memcpy2, memcmp, memcmp2, rmemcmp, rmemcmp2,
-		malloc, free,
 		rtoffset, rtoffset2, null, isnotzero, yield, discard, accept,
 		debug, constref, negative, negate, tableoffset, tableroffset, tableoffset2,
 		aoffset, aoffset2, woffset, woffset2, aroffset, wroffset, clone, clone2
 	};
 
 	enum class ILDataType : unsigned char {
-		ibool, u8, i8, u16, i16, u32, i32, u64, i64, size, f32, f64, ptr, none, undefined
+		i8, u8, i16, u16, i32, u32, i64, u64, f32, f64, word, none, undefined
 	};
 
 	enum class ILArchitecture : unsigned char {
 		none, bit64, bit32
 	};
-	
+
 	enum class ILSizeType : unsigned char {
 		array, table, absolute, word
 	};
@@ -120,7 +119,7 @@ namespace Corrosive {
 		std::set<ILBlock*> predecessors;
 
 		void write_instruction(ILInstruction instruction);
-		void write_value(size_t size,unsigned char* value);
+		void write_value(size_t size, unsigned char* value);
 		void write_const_type(ILDataType type);
 
 		template<typename T> inline T pop() {
@@ -148,7 +147,7 @@ namespace Corrosive {
 
 
 	enum class ILLifetimeEvent : unsigned char {
-		push,pop,append
+		push, pop, append
 	};
 
 	struct ILLifetime {
@@ -189,8 +188,8 @@ namespace Corrosive {
 		std::vector<std::unique_ptr<ILBlock>>		blocks_memory;
 		std::set<ILBlock*>							return_blocks;
 
-		ILBlock*	 create_block();
-		ILBlock*	 create_and_append_block();
+		ILBlock* create_block();
+		ILBlock* create_and_append_block();
 		void		 append_block(ILBlock* block);
 		void		 dump();
 		bool		 assert_flow();
@@ -215,7 +214,7 @@ namespace Corrosive {
 
 		ILModule* parent = nullptr;
 
-		static const inline size_t stack_size = 1024*4;
+		static const inline size_t stack_size = 1024 * 4;
 		unsigned char memory_stack[stack_size];
 
 		unsigned char register_stack[stack_size];
@@ -224,8 +223,8 @@ namespace Corrosive {
 		ilsize_t yield_storage;
 
 		std::vector<ILFunction*> callstack;
-		std::vector<std::tuple<uint16_t, uint16_t,std::string_view>> callstack_debug;
-		
+		std::vector<std::tuple<uint16_t, uint16_t, std::string_view>> callstack_debug;
+
 		uint16_t debug_line = 0;
 		uint16_t debug_file = 0;
 
@@ -249,22 +248,22 @@ namespace Corrosive {
 
 		void	write_register_value_indirect(size_t size, void* value);
 		void	pop_register_value_indirect(size_t size, void* into);
-		void*	read_last_register_value_indirect(ILDataType rs);
+		void* read_last_register_value_indirect(ILDataType rs);
 
 		size_t	compile_time_register_size(ILDataType t);
 		void	discard_last_register_type(ILDataType rs);
-		
+
 
 		template<typename T> inline T read_register_value() {
-			if (register_stack_pointer - register_stack < sizeof(T)) { 
-				throw std::exception("Compiler error, register stack smaller than requested data"); 
+			if (register_stack_pointer - register_stack < sizeof(T)) {
+				throw std::exception("Compiler error, register stack smaller than requested data");
 			}
-			return *(((T*)register_stack_pointer)-1);
+			return *(((T*)register_stack_pointer) - 1);
 		}
 
 		template<typename T> inline T pop_register_value() {
-			if (register_stack_pointer - register_stack < sizeof(T)) { 
-				throw std::exception("Compiler error, register stack smaller than requested data"); 
+			if (register_stack_pointer - register_stack < sizeof(T)) {
+				throw std::exception("Compiler error, register stack smaller than requested data");
 			}
 			register_stack_pointer -= sizeof(T);
 
@@ -290,7 +289,7 @@ namespace Corrosive {
 	public:
 		std::vector<std::unique_ptr<unsigned char[]>> constant_memory;
 		std::vector<std::unique_ptr<ILFunction>> functions;
-		std::vector<std::unique_ptr<void*[]>> vtable_data;
+		std::vector<std::unique_ptr<void* []>> vtable_data;
 		std::vector<ILStructTable> structure_tables;
 		std::vector<ILArrayTable> array_tables;
 
@@ -304,7 +303,7 @@ namespace Corrosive {
 
 		ILBytecodeFunction* create_function();
 		ILExtFunction* create_ext_function();
-		
+
 		uint32_t register_constant(unsigned char* memory, size_t size);
 	};
 
@@ -312,34 +311,32 @@ namespace Corrosive {
 	class ILBuilder {
 	public:
 
-		static void eval_const_ibool (ILEvaluator* eval_ctx, uint8_t   value);
-		static void eval_const_i8    (ILEvaluator* eval_ctx, int8_t   value);
-		static void eval_const_i16   (ILEvaluator* eval_ctx, int16_t  value);
-		static void eval_const_i32   (ILEvaluator* eval_ctx, int32_t  value);
-		static void eval_const_i64   (ILEvaluator* eval_ctx, int64_t  value);
-		static void eval_const_u8    (ILEvaluator* eval_ctx, uint8_t  value);
-		static void eval_const_u16   (ILEvaluator* eval_ctx, uint16_t value);
-		static void eval_const_u32   (ILEvaluator* eval_ctx, uint32_t value);
-		static void eval_const_u64   (ILEvaluator* eval_ctx, uint64_t value);
-		static void eval_const_f32   (ILEvaluator* eval_ctx, float    value);
-		static void eval_const_f64   (ILEvaluator* eval_ctx, double   value);
-		static void eval_const_type  (ILEvaluator* eval_ctx, void*    value);
-		static void eval_const_ptr   (ILEvaluator* eval_ctx, void*    value);
-		static void eval_const_size  (ILEvaluator* eval_ctx, size_t   value);
+		static void eval_const_i8(ILEvaluator* eval_ctx, int8_t   value);
+		static void eval_const_i16(ILEvaluator* eval_ctx, int16_t  value);
+		static void eval_const_i32(ILEvaluator* eval_ctx, int32_t  value);
+		static void eval_const_i64(ILEvaluator* eval_ctx, int64_t  value);
+		static void eval_const_u8(ILEvaluator* eval_ctx, uint8_t  value);
+		static void eval_const_u16(ILEvaluator* eval_ctx, uint16_t value);
+		static void eval_const_u32(ILEvaluator* eval_ctx, uint32_t value);
+		static void eval_const_u64(ILEvaluator* eval_ctx, uint64_t value);
+		static void eval_const_f32(ILEvaluator* eval_ctx, float    value);
+		static void eval_const_f64(ILEvaluator* eval_ctx, double   value);
+		static void eval_const_type(ILEvaluator* eval_ctx, void* value);
+		static void eval_const_ptr(ILEvaluator* eval_ctx, void* value);
+		static void eval_const_size(ILEvaluator* eval_ctx, size_t   value);
 
-		static void build_const_ibool (ILBlock* block, uint8_t  value);
-		static void build_const_i8	  (ILBlock* block, int8_t   value);
-		static void build_const_i16	  (ILBlock* block, int16_t  value);
-		static void build_const_i32	  (ILBlock* block, int32_t  value);
-		static void build_const_i64	  (ILBlock* block, int64_t  value);
-		static void build_const_u8	  (ILBlock* block, uint8_t  value);
-		static void build_const_u16	  (ILBlock* block, uint16_t value);
-		static void build_const_u32	  (ILBlock* block, uint32_t value);
-		static void build_const_u64	  (ILBlock* block, uint64_t value);
-		static void build_const_f32	  (ILBlock* block, float    value);
-		static void build_const_f64	  (ILBlock* block, double   value);
-		static void build_const_type  (ILBlock* block, void*    value);
-		static void build_const_size  (ILBlock* block, ILSize   value);
+		static void build_const_i8(ILBlock* block, int8_t   value);
+		static void build_const_i16(ILBlock* block, int16_t  value);
+		static void build_const_i32(ILBlock* block, int32_t  value);
+		static void build_const_i64(ILBlock* block, int64_t  value);
+		static void build_const_u8(ILBlock* block, uint8_t  value);
+		static void build_const_u16(ILBlock* block, uint16_t value);
+		static void build_const_u32(ILBlock* block, uint32_t value);
+		static void build_const_u64(ILBlock* block, uint64_t value);
+		static void build_const_f32(ILBlock* block, float    value);
+		static void build_const_f64(ILBlock* block, double   value);
+		static void build_const_type(ILBlock* block, void* value);
+		static void build_const_size(ILBlock* block, ILSize   value);
 
 		static void eval_tableoffset(ILEvaluator* eval_ctx, uint32_t tableid, uint16_t itemid);
 		static void eval_tableoffset_pair(ILEvaluator* eval_ctx, uint32_t tableid, uint16_t itemid);
@@ -355,8 +352,6 @@ namespace Corrosive {
 		static void eval_memcpy_rev(ILEvaluator* eval_ctx, size_t size);
 		static void eval_memcmp(ILEvaluator* eval_ctx, size_t size);
 		static void eval_memcmp_rev(ILEvaluator* eval_ctx, size_t size);
-		static void eval_malloc(ILEvaluator* eval_ctx);
-		static void eval_free(ILEvaluator* eval_ctx);
 		static void eval_null(ILEvaluator* eval_ctx);
 		static void eval_negate(ILEvaluator* eval_ctx);
 		static void eval_rmemcmp(ILEvaluator* eval_ctx, ILDataType type);
@@ -370,8 +365,8 @@ namespace Corrosive {
 		static void eval_aoffset_pair(ILEvaluator* eval_ctx, uint32_t offset);
 		static void eval_woffset(ILEvaluator* eval_ctx, uint32_t offset);
 		static void eval_woffset_pair(ILEvaluator* eval_ctx, uint32_t offset);
-		static void eval_aroffset(ILEvaluator* eval_ctx, ILDataType from,ILDataType to,uint8_t offset);
-		static void eval_wroffset(ILEvaluator* eval_ctx, ILDataType from,ILDataType to,uint8_t offset);
+		static void eval_aroffset(ILEvaluator* eval_ctx, ILDataType from, ILDataType to, uint8_t offset);
+		static void eval_wroffset(ILEvaluator* eval_ctx, ILDataType from, ILDataType to, uint8_t offset);
 		static void eval_roffset(ILEvaluator* eval_ctx, ILDataType src, ILDataType dst, size_t offset);
 		static void eval_add(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
 		static void eval_and(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
@@ -429,15 +424,13 @@ namespace Corrosive {
 		static void build_aoffset_pair(ILBlock* block, uint32_t offest);
 		static void build_woffset(ILBlock* block, uint32_t offest);
 		static void build_woffset_pair(ILBlock* block, uint32_t offest);
-		static void build_aroffset(ILBlock* block, ILDataType from,ILDataType to,uint8_t offest);
-		static void build_wroffset(ILBlock* block, ILDataType from,ILDataType to,uint8_t offest);
+		static void build_aroffset(ILBlock* block, ILDataType from, ILDataType to, uint8_t offest);
+		static void build_wroffset(ILBlock* block, ILDataType from, ILDataType to, uint8_t offest);
 		static void build_roffset(ILBlock* block, ILDataType src, ILDataType dst, ILSize offset);
 		static void build_rtoffset(ILBlock* block);
 		static void build_rtoffset_rev(ILBlock* block);
 		static void build_rmemcmp(ILBlock* block, ILDataType type);
 		static void build_rmemcmp2(ILBlock* block, ILDataType type);
-		static void build_malloc(ILBlock* block);
-		static void build_free(ILBlock* block);
 		static void build_null(ILBlock* block);
 		static void build_negate(ILBlock* block);
 		static void build_isnotzero(ILBlock* block, ILDataType type);
@@ -466,7 +459,7 @@ namespace Corrosive {
 		static void build_fnptr(ILBlock* block, ILFunction* fun);
 		static void build_call(ILBlock* block, ILDataType type, uint16_t argc);
 		static void build_callstart(ILBlock* block);
-		static void build_jmp(ILBlock* block,ILBlock* address);
+		static void build_jmp(ILBlock* block, ILBlock* address);
 		static void build_jmpz(ILBlock* block, ILBlock* ifz, ILBlock* ifnz);
 		static void build_insintric(ILBlock* block, ILInsintric fun);
 	};

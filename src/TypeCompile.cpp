@@ -45,11 +45,11 @@ namespace Corrosive {
 	*/
 
 	void Type::build_drop() {
-		ILBuilder::build_forget(Ctx::scope(), ILDataType::ptr);
+		ILBuilder::build_forget(Ctx::scope(), ILDataType::word);
 	}
 
 	void Type::build_construct() {
-		ILBuilder::build_forget(Ctx::scope(), ILDataType::ptr);
+		ILBuilder::build_forget(Ctx::scope(), ILDataType::word);
 	}
 
 

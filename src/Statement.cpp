@@ -231,7 +231,7 @@ namespace Corrosive {
 						ret_val.t->build_drop();
 					}
 					else {
-						ILBuilder::build_forget(Ctx::scope(), ILDataType::ptr);
+						ILBuilder::build_forget(Ctx::scope(), ILDataType::word);
 					}
 				}
 				else {
@@ -245,7 +245,7 @@ namespace Corrosive {
 						ret_val.t->drop(me);
 					}
 					else {
-						ILBuilder::eval_forget(Ctx::eval(), ILDataType::ptr);
+						ILBuilder::eval_forget(Ctx::eval(), ILDataType::word);
 					}
 				} else {
 					ILBuilder::eval_forget(Ctx::eval(), ret_val.t->rvalue());
@@ -407,7 +407,7 @@ namespace Corrosive {
 
 		if (Ctx::workspace_return()->rvalue_stacked()) {
 			ILBuilder::build_local(Ctx::scope(), 0);
-			ILBuilder::build_load(Ctx::scope(), ILDataType::ptr);
+			ILBuilder::build_load(Ctx::scope(), ILDataType::word);
 			Expression::move_from_rvalue(Ctx::workspace_return(), CompileType::compile, false);
 		}
 

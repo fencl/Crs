@@ -80,9 +80,9 @@ namespace Corrosive {
 
 		std::stringstream cerr = throw_error_header(c);
 		cerr << "Cannot cast from '";
-		from->print(std::cerr);
+		from->print(cerr);
 		cerr << "' to '";
-		to->print(std::cerr);
+		to->print(cerr);
 		cerr << "'";
 		throw string_exception(std::move(cerr.str()));
 	}
@@ -92,9 +92,9 @@ namespace Corrosive {
 
 		std::stringstream cerr = throw_error_header(c);
 		cerr << "Cannot implicitly cast from '";
-		from->print(std::cerr);
+		from->print(cerr);
 		cerr << "' to '";
-		to->print(std::cerr);
+		to->print(cerr);
 		cerr << "'\n |\tplease, use explicit cast(...) and be careful";
 		throw string_exception(std::move(cerr.str()));
 	}
