@@ -1339,10 +1339,10 @@ namespace Corrosive {
 				size_t comp = member_composites[i];
 				auto& m = member_vars[comp];
 				Type* t = m.first;
-				if (t->type() == TypeInstanceType::type_reference) {
+
+				if (t->type() == TypeInstanceType::type_reference && ((TypeReference*)t)->owner->type() == TypeInstanceType::type_structure_instance) {
 					t = ((TypeReference*)t)->owner;
 				}
-
 
 				if (t->type() == TypeInstanceType::type_structure_instance) {
 					TypeStructureInstance* ts = (TypeStructureInstance*)t;
@@ -1350,6 +1350,12 @@ namespace Corrosive {
 					for (auto&& v : ts->owner->member_table) {
 						member_table.insert(std::make_pair(v.first, std::make_pair<uint16_t, bool>((uint16_t)comp, true)));
 					}
+				}
+				else if (t->type() == TypeInstanceType::type_slice) {
+					TypeSlice* ts = (TypeSlice*)t;
+					ts->compile();
+					pass_array_operator = true;
+					pass_array_id = (uint16_t)comp;
 				}
 			}
 

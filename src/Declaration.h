@@ -68,9 +68,13 @@ namespace Corrosive {
 
 	class StructureInstance : public Namespace {
 	public:
-		std::map<std::string_view, std::pair<uint16_t,bool>> member_table;
-		std::vector<std::pair<Type*,uint32_t>> member_vars;
-		std::vector<uint16_t> member_composites;
+
+		uint16_t pass_array_id = 0;
+		bool pass_array_operator = false;
+
+		std::map<std::string_view, std::pair<uint16_t,bool>>	member_table;
+		std::vector<std::pair<Type*,uint32_t>>					member_vars;
+		std::vector<uint16_t>									member_composites;
 
 		std::map<TraitInstance*, std::vector<std::unique_ptr<FunctionInstance>>> traitfunctions;
 
@@ -89,7 +93,6 @@ namespace Corrosive {
 		bool has_special_copy = false;
 		bool has_special_move = false;
 		bool has_special_compare = false;
-
 
 		ILFunction* auto_constructor = nullptr;
 		ILFunction* auto_destructor = nullptr;

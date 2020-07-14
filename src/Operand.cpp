@@ -1705,9 +1705,51 @@ namespace Corrosive {
 	}
 
 	void Operand::parse_array_operator(CompileValue& ret, Cursor& c, CompileType cpt) {
-		if (ret.t->type() != TypeInstanceType::type_slice) {
-			throw_specific_error(c, "Offset can be applied only on slices");
 
+		while (ret.t->type() != TypeInstanceType::type_slice && (ret.t->type() != TypeInstanceType::type_reference || ((TypeReference*)ret.t)->owner->type() != TypeInstanceType::type_slice)) {
+
+			if (ret.t->type() == TypeInstanceType::type_reference) {
+				ret.t = ((TypeReference*)ret.t)->owner;
+				ret.lvalue = true;
+
+				if (cpt == CompileType::compile) {
+					ILBuilder::build_load(Ctx::scope(), ret.t->rvalue());
+				}
+				else if (cpt == CompileType::eval) {
+					ILBuilder::eval_load(Ctx::eval(), ret.t->rvalue());
+				}
+			}
+
+			if (ret.t->type() != TypeInstanceType::type_structure_instance) {
+				throw_specific_error(c, "Offset can be applied only on slices or passed to slice by alias");
+			}
+
+
+			TypeStructureInstance* ti = (TypeStructureInstance*)ret.t;
+			ti->compile();
+			StructureInstance* si = ti->owner;
+			
+			if (!si->pass_array_operator) {
+				throw_specific_error(c, "Offset can be applied only on slices or passed to slice by alias");
+			}
+
+			structure_element_offset(ret, si->pass_array_id, cpt);
+		}
+
+		if (ret.t->type() == TypeInstanceType::type_reference && ((TypeReference*)ret.t)->owner->type() == TypeInstanceType::type_slice) {
+			ret.t = ((TypeReference*)ret.t)->owner;
+			ret.lvalue = true;
+
+			if (cpt == CompileType::compile) {
+				ILBuilder::build_load(Ctx::scope(), ret.t->rvalue());
+			}
+			else if (cpt == CompileType::eval) {
+				ILBuilder::eval_load(Ctx::eval(), ret.t->rvalue());
+			}
+		}
+
+		if (ret.t->type() != TypeInstanceType::type_slice) {
+			throw_specific_error(c, "Offset can be applied only on slices or passed to slice by alias");
 		}
 		c.move();
 
@@ -1889,8 +1931,115 @@ namespace Corrosive {
 		ret.t = Ctx::types()->t_type;
 
 		c.move();
+		
+
+	}
 
 
+	void Operand::structure_element_offset(CompileValue& ret,uint16_t id, CompileType cpt) {
+		
+		TypeStructureInstance* ti = (TypeStructureInstance*)ret.t;
+		ti->compile();
+
+		uint16_t elem_id = 0;
+		Type* mem_type = nullptr;		
+		StructureInstance* si = ti->owner;
+		ILSize elem_size(si->size.type, 0);
+
+		auto& member = si->member_vars[id];
+		if (si->size.type == ILSizeType::table) {
+			elem_id = id;
+			elem_size.value = si->size.value;
+		}
+		else {
+			elem_size.value = member.second;
+		}
+
+		mem_type = member.first;		
+
+		if (ret.lvalue)
+		{
+			if (cpt == CompileType::compile) {
+				if (!si->wrapper) {
+					if (elem_size.type == ILSizeType::table)
+						ILBuilder::build_tableoffset(Ctx::scope(), elem_size.value, elem_id);
+					else if (elem_size.type == ILSizeType::absolute)
+						ILBuilder::build_aoffset(Ctx::scope(), (uint32_t)elem_size.value);
+					else if (elem_size.type == ILSizeType::word)
+						ILBuilder::build_woffset(Ctx::scope(), (uint32_t)elem_size.value);
+				}
+			}
+			else if (cpt == CompileType::eval) {
+				if (!si->wrapper) {
+					if (elem_size.type == ILSizeType::table)
+						ILBuilder::eval_tableoffset(Ctx::eval(), elem_size.value, elem_id);
+					else if (elem_size.type == ILSizeType::absolute)
+						ILBuilder::eval_aoffset(Ctx::eval(), (uint32_t)elem_size.value);
+					else if (elem_size.type == ILSizeType::word)
+						ILBuilder::eval_woffset(Ctx::eval(), (uint32_t)elem_size.value);
+				}
+			}
+		}
+		else if (ret.t->rvalue_stacked()) {
+			if (cpt == CompileType::compile) {
+				if (!si->wrapper) {
+					if (elem_size.type == ILSizeType::table)
+						ILBuilder::build_tableoffset(Ctx::scope(), elem_size.value, elem_id);
+					else if (elem_size.type == ILSizeType::absolute)
+						ILBuilder::build_aoffset(Ctx::scope(), (uint32_t)elem_size.value);
+					else if (elem_size.type == ILSizeType::word)
+						ILBuilder::build_woffset(Ctx::scope(), (uint32_t)elem_size.value);
+				}
+
+				if (!mem_type->rvalue_stacked()) {
+					ILBuilder::build_load(Ctx::scope(), mem_type->rvalue());
+				}
+			}
+			else if (cpt == CompileType::eval) {
+
+				if (!si->wrapper) {
+					if (elem_size.type == ILSizeType::table)
+						ILBuilder::eval_tableoffset(Ctx::eval(), elem_size.value, elem_id);
+					else if (elem_size.type == ILSizeType::absolute)
+						ILBuilder::eval_aoffset(Ctx::eval(), (uint32_t)elem_size.value);
+					else if (elem_size.type == ILSizeType::word)
+						ILBuilder::eval_woffset(Ctx::eval(), (uint32_t)elem_size.value);
+				}
+
+				if (!mem_type->rvalue_stacked()) {
+					ILBuilder::eval_load(Ctx::eval(), mem_type->rvalue());
+				}
+			}
+		}
+		else {
+			if (cpt == CompileType::compile) {
+				if (!si->wrapper) {
+					if (elem_size.type == ILSizeType::table)
+						ILBuilder::build_tableroffset(Ctx::scope(), ret.t->rvalue(), mem_type->rvalue(), elem_size.value, elem_id);
+					else if (elem_size.type == ILSizeType::absolute)
+						ILBuilder::build_aroffset(Ctx::scope(), ret.t->rvalue(), mem_type->rvalue(), (uint8_t)elem_size.value);
+					else if (elem_size.type == ILSizeType::word)
+						ILBuilder::build_wroffset(Ctx::scope(), ret.t->rvalue(), mem_type->rvalue(), (uint8_t)elem_size.value);
+				}
+
+			}
+			else if (cpt == CompileType::eval) {
+
+				if (!si->wrapper) {
+					if (elem_size.type == ILSizeType::table)
+						ILBuilder::eval_tableroffset(Ctx::eval(), ret.t->rvalue(), mem_type->rvalue(), elem_size.value, elem_id);
+					else if (elem_size.type == ILSizeType::absolute)
+						ILBuilder::eval_aroffset(Ctx::eval(), ret.t->rvalue(), mem_type->rvalue(), (uint8_t)elem_size.value);
+					else if (elem_size.type == ILSizeType::word)
+						ILBuilder::eval_wroffset(Ctx::eval(), ret.t->rvalue(), mem_type->rvalue(), (uint8_t)elem_size.value);
+				}
+
+			}
+
+		}
+
+		// ret.lvalue stays the same
+		ret.t = mem_type;
 	}
 
 
@@ -2300,127 +2449,22 @@ namespace Corrosive {
 				}
 
 				if (ret.t->type() != TypeInstanceType::type_structure_instance) {
-					throw_specific_error(c, "Operator cannot be used on this type");
+					throw_specific_error(tok, "Operator cannot be used on this type");
 				}
 
 
 				TypeStructureInstance* ti = (TypeStructureInstance*)ret.t;
-				if (cpt == CompileType::compile) {
-					ti->compile();
-				}
-
-				uint16_t elem_id = 0;
-
-				Type* mem_type = nullptr;
-
+				ti->compile();
 				StructureInstance* si = ti->owner;
-
-
-				ILSize elem_size(si->size.type, 0);
 
 				auto table_element = si->member_table.find(tok.buffer);
 				if (table_element != si->member_table.end()) {
-
-					auto& member = si->member_vars[table_element->second.first];
 					continue_deeper = table_element->second.second;
-
-					if (si->size.type == ILSizeType::table) {
-						elem_id = table_element->second.first;
-						elem_size.value = si->size.value;
-					}
-					else {
-						elem_size.value = member.second;
-					}
-
-					mem_type = member.first;
+					structure_element_offset(ret, table_element->second.first, cpt);
 				}
 				else {
 					throw_specific_error(tok, "Instance does not contain member with this name");
 				}
-
-				if (ret.lvalue)
-				{
-					if (cpt == CompileType::compile) {
-						if (!si->wrapper) {
-							if (elem_size.type == ILSizeType::table)
-								ILBuilder::build_tableoffset(Ctx::scope(), elem_size.value, elem_id);
-							else if (elem_size.type == ILSizeType::absolute)
-								ILBuilder::build_aoffset(Ctx::scope(), (uint32_t)elem_size.value);
-							else if (elem_size.type == ILSizeType::word)
-								ILBuilder::build_woffset(Ctx::scope(), (uint32_t)elem_size.value);
-						}
-					}
-					else if (cpt == CompileType::eval) {
-						if (!si->wrapper) {
-							if (elem_size.type == ILSizeType::table)
-								ILBuilder::eval_tableoffset(Ctx::eval(), elem_size.value, elem_id);
-							else if (elem_size.type == ILSizeType::absolute)
-								ILBuilder::eval_aoffset(Ctx::eval(), (uint32_t)elem_size.value);
-							else if (elem_size.type == ILSizeType::word)
-								ILBuilder::eval_woffset(Ctx::eval(), (uint32_t)elem_size.value);
-						}
-					}
-				}
-				else if (ret.t->rvalue_stacked()) {
-					if (cpt == CompileType::compile) {
-						if (!si->wrapper) {
-							if (elem_size.type == ILSizeType::table)
-								ILBuilder::build_tableoffset(Ctx::scope(), elem_size.value, elem_id);
-							else if (elem_size.type == ILSizeType::absolute)
-								ILBuilder::build_aoffset(Ctx::scope(), (uint32_t)elem_size.value);
-							else if (elem_size.type == ILSizeType::word)
-								ILBuilder::build_woffset(Ctx::scope(), (uint32_t)elem_size.value);
-						}
-
-						if (!mem_type->rvalue_stacked()) {
-							ILBuilder::build_load(Ctx::scope(), mem_type->rvalue());
-						}
-					}
-					else if (cpt == CompileType::eval) {
-
-						if (!si->wrapper) {
-							if (elem_size.type == ILSizeType::table)
-								ILBuilder::eval_tableoffset(Ctx::eval(), elem_size.value, elem_id);
-							else if (elem_size.type == ILSizeType::absolute)
-								ILBuilder::eval_aoffset(Ctx::eval(), (uint32_t)elem_size.value);
-							else if (elem_size.type == ILSizeType::word)
-								ILBuilder::eval_woffset(Ctx::eval(), (uint32_t)elem_size.value);
-						}
-
-						if (!mem_type->rvalue_stacked()) {
-							ILBuilder::eval_load(Ctx::eval(), mem_type->rvalue());
-						}
-					}
-				}
-				else {
-					if (cpt == CompileType::compile) {
-						if (!si->wrapper) {
-							if (elem_size.type == ILSizeType::table)
-								ILBuilder::build_tableroffset(Ctx::scope(), ret.t->rvalue(), mem_type->rvalue(), elem_size.value, elem_id);
-							else if (elem_size.type == ILSizeType::absolute)
-								ILBuilder::build_aroffset(Ctx::scope(), ret.t->rvalue(), mem_type->rvalue(), (uint8_t)elem_size.value);
-							else if (elem_size.type == ILSizeType::word)
-								ILBuilder::build_wroffset(Ctx::scope(), ret.t->rvalue(), mem_type->rvalue(), (uint8_t)elem_size.value);
-						}
-
-					}
-					else if (cpt == CompileType::eval) {
-
-						if (!si->wrapper) {
-							if (elem_size.type == ILSizeType::table)
-								ILBuilder::eval_tableroffset(Ctx::eval(), ret.t->rvalue(), mem_type->rvalue(), elem_size.value, elem_id);
-							else if (elem_size.type == ILSizeType::absolute)
-								ILBuilder::eval_aroffset(Ctx::eval(), ret.t->rvalue(), mem_type->rvalue(), (uint8_t)elem_size.value);
-							else if (elem_size.type == ILSizeType::word)
-								ILBuilder::eval_wroffset(Ctx::eval(), ret.t->rvalue(), mem_type->rvalue(), (uint8_t)elem_size.value);
-						}
-
-					}
-
-				}
-
-				// ret.lvalue stays the same
-				ret.t = mem_type;
 			}
 			
 		}
