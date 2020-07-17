@@ -2469,7 +2469,26 @@ namespace Corrosive {
 							structure_element_offset(ret, table_element->second.first, cpt);
 							break;
 						case MemberTableEntryType::func:
-							if (!ret.lvalue && !ret.t->rvalue_stacked()) { // TODO: this is inconsistent
+
+							// rvalues will be stored in temporary memory location
+							if (!ret.lvalue && !ret.t->rvalue_stacked()) {
+								if (cpt == CompileType::compile) {
+									uint32_t local_id = Ctx::workspace_function()->local_stack_lifetime.append(ret.t->size());
+									Ctx::temp_stack()->push_item("$tmp", ret.t, local_id, StackItemTag::regular);
+									ILBuilder::build_store(Ctx::scope(), ret.t->rvalue());
+									ILBuilder::build_local(Ctx::scope(), local_id);
+									ret.lvalue = true;
+								}
+								else {
+									uint32_t local_id = Ctx::eval()->push_local(ret.t->size());
+									Ctx::eval_stack()->push_item("$tmp", ret.t, local_id, StackItemTag::regular);
+									ILBuilder::eval_store(Ctx::eval(), ret.t->rvalue());
+									ILBuilder::eval_local(Ctx::eval(), local_id);
+									ret.lvalue = true;
+								}
+							}
+
+							if (!ret.lvalue && !ret.t->rvalue_stacked()) {
 								throw_wrong_token_error(c, "This function can be called only from lvalue object or reference");
 							}
 
