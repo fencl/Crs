@@ -1874,13 +1874,9 @@ namespace Corrosive {
 				throw_specific_error(c, "Wrong number of arguments");
 			}
 			c.move();
+			ft->compile();
 
-			if (!ft->return_type->rvalue_stacked()) {
-				ILBuilder::build_call(Ctx::scope(), ft->return_type->rvalue(), (uint16_t)argi);
-			}
-			else {
-				ILBuilder::build_call(Ctx::scope(), ILDataType::none, (uint16_t)argi + 1);
-			}
+			ILBuilder::build_call(Ctx::scope(), ft->il_function_decl);
 
 			if (ft->return_type->rvalue_stacked()) {
 				ILBuilder::build_local(Ctx::scope(), local_return_id);
@@ -1914,14 +1910,9 @@ namespace Corrosive {
 			}
 
 			c.move();
+			ft->compile();
 
-			if (!ft->return_type->rvalue_stacked()) {
-				ILBuilder::eval_call(Ctx::eval(), ft->return_type->rvalue(), (uint16_t)argi);
-			}
-			else {
-				ILBuilder::eval_call(Ctx::eval(), ILDataType::none, (uint16_t)argi + 1);
-			}
-
+			ILBuilder::eval_call(Ctx::eval(), ft->il_function_decl);
 
 			if (ft->return_type->rvalue_stacked()) {
 				ILBuilder::eval_local(Ctx::eval(), local_stack_item.id);
@@ -2387,11 +2378,13 @@ namespace Corrosive {
 				_crs_read_arguments(c, argi, mf.type, cpt);
 				c.move();
 
+				mf.type->compile();
+
 				if (cpt == CompileType::compile) {
-					ILBuilder::build_call(Ctx::scope(), mf.type->return_type->rvalue(), argi);
+					ILBuilder::build_call(Ctx::scope(), mf.type->il_function_decl);
 				}
 				else {
-					ILBuilder::eval_call(Ctx::eval(), mf.type->return_type->rvalue(), argi);
+					ILBuilder::eval_call(Ctx::eval(), mf.type->il_function_decl);
 				}
 
 				ret.lvalue = false;

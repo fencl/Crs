@@ -61,8 +61,8 @@ namespace Corrosive {
 		}
 		c.move();
 
-
-		ILBuilder::build_accept(b_exit, Ctx::workspace_function()->returns);
+		auto ret = Ctx::workspace_return();
+		ILBuilder::build_accept(b_exit, ret->rvalue_stacked()?ILDataType::none:ret->rvalue());
 
 
 
@@ -94,15 +94,19 @@ namespace Corrosive {
 
 			Ctx::workspace_function()->append_block(b_exit);
 
-			ILBuilder::build_yield(prev_scope, Ctx::workspace_function()->returns);
+
+			auto ret = Ctx::workspace_return();
+			ILBuilder::build_yield(prev_scope, ret->rvalue_stacked() ? ILDataType::none : ret->rvalue());
 			ILBuilder::build_jmp(prev_scope, b_exit);
 
 			if (!exit_returns) {
-				ILBuilder::build_yield(b_exit, Ctx::workspace_function()->returns);
+				auto ret = Ctx::workspace_return();
+				ILBuilder::build_yield(b_exit, ret->rvalue_stacked() ? ILDataType::none : ret->rvalue());
 				ILBuilder::build_jmp(b_exit, Ctx::scope_exit());
 			}
 			else {
-				ILBuilder::build_ret(b_exit, Ctx::workspace_function()->returns);
+				auto ret = Ctx::workspace_return();
+				ILBuilder::build_ret(b_exit, ret->rvalue_stacked() ? ILDataType::none : ret->rvalue());
 			}
 		}
 		else if (termination == BlockTermination::needs_exit) {
@@ -115,7 +119,8 @@ namespace Corrosive {
 				ILBuilder::build_jmp(prev_scope, Ctx::scope());
 
 
-				ILBuilder::build_yield(b_exit, Ctx::workspace_function()->returns);
+				auto ret = Ctx::workspace_return();
+				ILBuilder::build_yield(b_exit, ret->rvalue_stacked() ? ILDataType::none : ret->rvalue());
 				ILBuilder::build_jmp(b_exit, Ctx::scope_exit());
 			}
 			else {

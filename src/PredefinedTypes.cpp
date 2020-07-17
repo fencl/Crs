@@ -86,24 +86,26 @@ namespace Corrosive {
 
 
 
-	size_t DefaultTypes::load_or_register_argument_array(std::vector<Type*> arg_array) {
+	std::pair<size_t,bool> DefaultTypes::load_or_register_argument_array(std::vector<Type*> arg_array) {
 		return argument_array_storage.register_or_load(std::move(arg_array));
 	}
 
 	TypeFunction* DefaultTypes::load_or_register_function_type(std::vector<Type*> arg_array, Type* return_type, ILContext ctx) {
-		size_t arg_id = load_or_register_argument_array(std::move(arg_array));
+		std::pair<size_t,bool> arg_id = load_or_register_argument_array(std::move(arg_array));
 
-		std::tuple<size_t, Type*,ILContext> key = std::make_tuple(arg_id, return_type, ctx);
+		std::tuple<size_t, Type*,ILContext> key = std::make_tuple(arg_id.first, return_type, ctx);
 		auto t_find = function_types_storage.find(key);
 		if (t_find != function_types_storage.end()) {
 			return t_find->second.get();
 		}
 		else {
 			std::unique_ptr<TypeFunction> tf = std::make_unique<TypeFunction>();
-			tf->argument_array_id = arg_id;
+			tf->argument_array_id = arg_id.first;
 			tf->owner = this;
 			tf->return_type = return_type;
 			tf->ptr_context = ctx;
+			tf->il_function_decl = UINT32_MAX;
+
 			TypeFunction* ret = tf.get();
 			function_types_storage[key] = std::move(tf);
 			return ret;
@@ -111,9 +113,9 @@ namespace Corrosive {
 	}
 
 	TypeTemplate* DefaultTypes::load_or_register_template_type(std::vector<Type*> arg_array) {
-		size_t arg_id = load_or_register_argument_array(std::move(arg_array));
+		std::pair<size_t, bool> arg_id = load_or_register_argument_array(std::move(arg_array));
 
-		size_t key = arg_id;
+		size_t key = arg_id.first;
 
 		auto t_find = template_types_storage.find(key);
 		if (t_find != template_types_storage.end()) {
@@ -121,7 +123,7 @@ namespace Corrosive {
 		}
 		else {
 			std::unique_ptr<TypeTemplate> tf = std::make_unique<TypeTemplate>();
-			tf->argument_array_id = arg_id;
+			tf->argument_array_id = arg_id.first;
 			tf->owner = this;
 			TypeTemplate* ret = tf.get();
 			template_types_storage[key] = std::move(tf);

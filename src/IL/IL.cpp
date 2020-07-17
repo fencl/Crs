@@ -192,7 +192,7 @@ namespace Corrosive {
 			case ILDataType::i64: std::cout << "i64"; break;
 			case ILDataType::f32: std::cout << "f32"; break;
 			case ILDataType::f64: std::cout << "f64"; break;
-			case ILDataType::word:  std::cout << "ptr"; break;
+			case ILDataType::word:  std::cout << "w"; break;
 			case ILDataType::none: std::cout << "none"; break;
 			default: std::cout << "error";
 		}
@@ -513,6 +513,22 @@ namespace Corrosive {
 	ILSize::ILSize(ILSizeType t, uint32_t v) : type(t), value(v) {}
 
 
+	uint32_t ILModule::register_function_decl(std::pair<ILDataType, std::vector<ILDataType>> decl) {
+		function_decl.push_back(std::move(decl));
+		return (uint32_t)(function_decl.size() - 1);
+	}
+
+	void ILModule::dump_function_decl(uint32_t id) {
+		auto& decl = function_decl[id];
+		std::cout << "[";
+		for (size_t i = 0; i < decl.second.size(); ++i) {
+			if (i > 0) std::cout << ", ";
+
+			ILBlock::dump_data_type(decl.second[i]);
+		}
+		std::cout << "] -> ";
+		ILBlock::dump_data_type(decl.first);
+	}
 
 #define read_data_type(T) ((T*)read_data(sizeof(T),mempool,memoff))
 #define read_data_size(S) (read_data((S),mempool,memoff))
@@ -544,18 +560,26 @@ namespace Corrosive {
 					std::cout << "]\n";
 				} break;
 				case ILInstruction::call: {
-					std::cout << "   call [";
-					auto type = read_data_type(ILDataType);
-					dump_data_type(*type);
-					auto argc = read_data_type(uint16_t);
-					std::cout << "] (" << *argc << ")\n";
+					std::cout << "   call ";
+					auto id = *read_data_type(uint32_t);
+					parent->parent->dump_function_decl(id);
+					std::cout << "\n";
 				} break;
+
 				case ILInstruction::fnptr: {
 					std::cout << "   fnptr ";
 					auto ind = read_data_type(uint32_t);
 					ILFunction* fn = parent->parent->functions[*ind].get();
 					std::cout << *ind << " \"" << fn->alias << "\"\n";
 				} break;
+
+				case ILInstruction::fncall: {
+					std::cout << "   fncall ";
+					auto ind = read_data_type(uint32_t);
+					ILFunction* fn = parent->parent->functions[*ind].get();
+					std::cout << *ind << " \"" << fn->alias << "\"\n";
+				} break;
+
 				case ILInstruction::vtable: {
 					std::cout << "   vtable ";
 					auto ind = read_data_type(uint32_t);
@@ -615,61 +639,118 @@ namespace Corrosive {
 					auto type = read_data_type(uint8_t);
 					std::cout << parent->parent->insintric_function_name[*type] << "\"\n";
 				} break;
-				case ILInstruction::sub:
+				case ILInstruction::sub2:
 					std::cout << "   sub [";
 					dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 					break;
-				case ILInstruction::div:
+				case ILInstruction::div2:
 					std::cout << "   div [";
 					dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 					break;
-				case ILInstruction::rem:
+				case ILInstruction::rem2:
 					std::cout << "   rem [";
 					dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 					break;
-				case ILInstruction::mul:
+				case ILInstruction::mul2:
 					std::cout << "   mul [";
 					dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 					break;
-				case ILInstruction::add:
+				case ILInstruction::add2:
 					std::cout << "   add [";
 					dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 					break;
-				case ILInstruction::bit_and:
+				case ILInstruction::bit_and2:
 					std::cout << "   and [";
 					dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 					break;
-				case ILInstruction::bit_or:
+				case ILInstruction::bit_or2:
 					std::cout << "   or [";
 					dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 					break;
-				case ILInstruction::bit_xor:
+				case ILInstruction::bit_xor2:
 					std::cout << "   xor [";
 					dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 					break;
-				case ILInstruction::eq:
+				case ILInstruction::eq2:
 					std::cout << "   eq [";
 					dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 					break;
-				case ILInstruction::ne:
+				case ILInstruction::ne2:
 					std::cout << "   ne [";
 					dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 					break;
-				case ILInstruction::gt:
+				case ILInstruction::gt2:
 					std::cout << "   gt [";
 					dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 					break;
-				case ILInstruction::lt:
+				case ILInstruction::lt2:
 					std::cout << "   lt [";
 					dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 					break;
-				case ILInstruction::ge:
+				case ILInstruction::ge2:
 					std::cout << "   ge [";
 					dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 					break;
-				case ILInstruction::le:
+				case ILInstruction::le2:
 					std::cout << "   le [";
 					dump_data_type(*read_data_type(ILDataType)); std::cout << ", "; dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
+					break;
+
+				case ILInstruction::sub:
+					std::cout << "   sub [";
+					dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
+					break;
+				case ILInstruction::div:
+					std::cout << "   div [";
+					dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
+					break;
+				case ILInstruction::rem:
+					std::cout << "   rem [";
+					dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
+					break;
+				case ILInstruction::mul:
+					std::cout << "   mul [";
+					dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
+					break;
+				case ILInstruction::add:
+					std::cout << "   add [";
+					dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
+					break;
+				case ILInstruction::bit_and:
+					std::cout << "   and [";
+					dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
+					break;
+				case ILInstruction::bit_or:
+					std::cout << "   or [";
+					dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
+					break;
+				case ILInstruction::bit_xor:
+					std::cout << "   xor [";
+					dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
+					break;
+				case ILInstruction::eq:
+					std::cout << "   eq [";
+					dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
+					break;
+				case ILInstruction::ne:
+					std::cout << "   ne [";
+					dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
+					break;
+				case ILInstruction::gt:
+					std::cout << "   gt [";
+					dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
+					break;
+				case ILInstruction::lt:
+					std::cout << "   lt [";
+					dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
+					break;
+				case ILInstruction::ge:
+					std::cout << "   ge [";
+					dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
+					break;
+				case ILInstruction::le:
+					std::cout << "   le [";
+					dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
 					break;
 				case ILInstruction::cast:
 					std::cout << "   cast ";

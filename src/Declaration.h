@@ -94,11 +94,11 @@ namespace Corrosive {
 		
 		GenericInstance generic_inst;
 
-		bool has_special_constructor = false;
+		/*bool has_special_constructor = false;
 		bool has_special_destructor = false;
 		bool has_special_copy = false;
 		bool has_special_move = false;
-		bool has_special_compare = false;
+		bool has_special_compare = false;*/
 
 		ILFunction* auto_constructor = nullptr;
 		ILFunction* auto_destructor = nullptr;
@@ -269,7 +269,7 @@ namespace Corrosive {
 		Cursor block;
 		Cursor name;
 
-		Type* type;
+		TypeFunction* type;
 
 		GenericInstance generic_inst;
 

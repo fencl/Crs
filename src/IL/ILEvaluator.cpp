@@ -621,6 +621,12 @@ namespace Corrosive {
 		eval_ctx->write_register_value(fun);
 	}
 
+
+	void ILBuilder::eval_fncall(ILEvaluator* eval_ctx, ILFunction* fun) {
+		eval_ctx->callstack.push_back(fun);
+		eval_call(eval_ctx, fun->decl_id);
+	}
+
 	void ILBuilder::eval_null(ILEvaluator* eval_ctx) {
 		eval_ctx->write_register_value((size_t)0);
 	}
@@ -832,7 +838,7 @@ namespace Corrosive {
 
 #define read_data_type(T) ((T*)block->read_data(sizeof(T),mempool,memoff))
 #define read_data_size(S) (block->read_data((S),mempool,memoff))
-	void ILBuilder::eval_call(ILEvaluator* eval_ctx, ILDataType rett, uint16_t argc) {
+	void ILBuilder::eval_call(ILEvaluator* eval_ctx, uint32_t decl) {
 
 		if (setjmp(sandbox) == 0) {
 			ILFunction* fun = eval_ctx->callstack.back();
@@ -866,9 +872,8 @@ namespace Corrosive {
 								goto returned;
 							} break;
 							case ILInstruction::call: {
-								auto type = *read_data_type(ILDataType);
-								auto argc = *read_data_type(uint16_t);
-								eval_call(eval_ctx, type, argc);
+								auto decl = *read_data_type(uint32_t);
+								eval_call(eval_ctx, decl);
 							} break;
 							case ILInstruction::memcpy: {
 								auto size = read_data_type(ILSize);
@@ -889,6 +894,12 @@ namespace Corrosive {
 							case ILInstruction::fnptr: {
 								auto id = *read_data_type(uint32_t);
 								eval_ctx->write_register_value(eval_ctx->parent->functions[id].get());
+							} break;
+							case ILInstruction::fncall: {
+								auto id = *read_data_type(uint32_t);
+								auto fn = eval_ctx->parent->functions[id].get();
+								eval_ctx->callstack.push_back(fn);
+								eval_call(eval_ctx, fn->decl_id);
 							} break;
 							case ILInstruction::vtable: {
 								auto id = *read_data_type(uint32_t);
@@ -934,71 +945,128 @@ namespace Corrosive {
 								eval_rmemcmp_rev(eval_ctx, type);
 							} break;
 							case ILInstruction::sub: {
+								auto type = *read_data_type(ILDataType);
+								eval_sub(eval_ctx, type, type);
+							} break;
+							case ILInstruction::div: {
+								auto type = *read_data_type(ILDataType);
+								eval_div(eval_ctx, type, type);
+							} break;
+							case ILInstruction::rem: {
+								auto type = *read_data_type(ILDataType);
+								eval_rem(eval_ctx, type, type);
+							} break;
+							case ILInstruction::mul: {
+								auto type = *read_data_type(ILDataType);
+								eval_mul(eval_ctx, type, type);
+							} break;
+							case ILInstruction::add: {
+								auto type = *read_data_type(ILDataType);
+								eval_add(eval_ctx, type, type);
+							} break;
+							case ILInstruction::bit_and: {
+								auto type = *read_data_type(ILDataType);
+								eval_and(eval_ctx, type, type);
+							} break;
+							case ILInstruction::bit_or: {
+								auto type = *read_data_type(ILDataType);
+								eval_or(eval_ctx, type, type);
+							} break;
+							case ILInstruction::bit_xor: {
+								auto type = *read_data_type(ILDataType);
+								eval_xor(eval_ctx, type, type);
+							} break;
+							case ILInstruction::eq: {
+								auto type = *read_data_type(ILDataType);
+								eval_eq(eval_ctx, type, type);
+							} break;
+							case ILInstruction::ne: {
+								auto type = *read_data_type(ILDataType);
+								eval_ne(eval_ctx, type, type);
+							} break;
+							case ILInstruction::gt: {
+								auto type = *read_data_type(ILDataType);
+								eval_gt(eval_ctx, type, type);
+							} break;
+							case ILInstruction::lt: {
+								auto type = *read_data_type(ILDataType);
+								eval_lt(eval_ctx, type, type);
+							} break;
+							case ILInstruction::ge: {
+								auto type = *read_data_type(ILDataType);
+								eval_ge(eval_ctx, type, type);
+							} break;
+							case ILInstruction::le: {
+								auto type = *read_data_type(ILDataType);
+								eval_le(eval_ctx, type, type);
+							} break;
+
+							case ILInstruction::sub2: {
 								auto left = *read_data_type(ILDataType);
 								auto right = *read_data_type(ILDataType);
 								eval_sub(eval_ctx, left, right);
 							} break;
-							case ILInstruction::div: {
+							case ILInstruction::div2: {
 								auto left = *read_data_type(ILDataType);
 								auto right = *read_data_type(ILDataType);
 								eval_div(eval_ctx, left, right);
 							} break;
-							case ILInstruction::rem: {
+							case ILInstruction::rem2: {
 								auto left = *read_data_type(ILDataType);
 								auto right = *read_data_type(ILDataType);
 								eval_rem(eval_ctx, left, right);
 							} break;
-							case ILInstruction::mul: {
+							case ILInstruction::mul2: {
 								auto left = *read_data_type(ILDataType);
 								auto right = *read_data_type(ILDataType);
 								eval_mul(eval_ctx, left, right);
 							} break;
-							case ILInstruction::add: {
+							case ILInstruction::add2: {
 								auto left = *read_data_type(ILDataType);
 								auto right = *read_data_type(ILDataType);
 								eval_add(eval_ctx, left, right);
 							} break;
-							case ILInstruction::bit_and: {
+							case ILInstruction::bit_and2: {
 								auto left = *read_data_type(ILDataType);
 								auto right = *read_data_type(ILDataType);
 								eval_and(eval_ctx, left, right);
 							} break;
-							case ILInstruction::bit_or: {
+							case ILInstruction::bit_or2: {
 								auto left = *read_data_type(ILDataType);
 								auto right = *read_data_type(ILDataType);
 								eval_or(eval_ctx, left, right);
 							} break;
-							case ILInstruction::bit_xor: {
+							case ILInstruction::bit_xor2: {
 								auto left = *read_data_type(ILDataType);
 								auto right = *read_data_type(ILDataType);
 								eval_xor(eval_ctx, left, right);
 							} break;
-							case ILInstruction::eq: {
+							case ILInstruction::eq2: {
 								auto left = *read_data_type(ILDataType);
 								auto right = *read_data_type(ILDataType);
 								eval_eq(eval_ctx, left, right);
 							} break;
-							case ILInstruction::ne: {
+							case ILInstruction::ne2: {
 								auto left = *read_data_type(ILDataType);
 								auto right = *read_data_type(ILDataType);
 								eval_ne(eval_ctx, left, right);
 							} break;
-							case ILInstruction::gt: {
+							case ILInstruction::gt2: {
 								auto left = *read_data_type(ILDataType);
 								auto right = *read_data_type(ILDataType);
 								eval_gt(eval_ctx, left, right);
 							} break;
-							case ILInstruction::lt: {
+							case ILInstruction::lt2: {
 								auto left = *read_data_type(ILDataType);
 								auto right = *read_data_type(ILDataType);
 								eval_lt(eval_ctx, left, right);
 							} break;
-							case ILInstruction::ge: {
+							case ILInstruction::ge2: {
 								auto left = *read_data_type(ILDataType);
 								auto right = *read_data_type(ILDataType);
 								eval_ge(eval_ctx, left, right);
 							} break;
-							case ILInstruction::le: {
+							case ILInstruction::le2: {
 								auto left = *read_data_type(ILDataType);
 								auto right = *read_data_type(ILDataType);
 								eval_le(eval_ctx, left, right);

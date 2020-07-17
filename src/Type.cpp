@@ -54,20 +54,16 @@ namespace Corrosive {
 	void TypeStructureInstance::construct(unsigned char* me) {
 		if (has_special_constructor()) {
 			ILEvaluator* eval = Ctx::eval();
-			ILBuilder::eval_fnptr(eval, owner->auto_constructor);
-			ILBuilder::eval_callstart(eval);
 			ILBuilder::eval_const_ptr(eval, me);
-			ILBuilder::eval_call(eval, ILDataType::none, 1);
+			ILBuilder::eval_fncall(eval, owner->auto_constructor);
 		}
 	}
 
 	void TypeStructureInstance::drop(unsigned char* me) {
 		if (has_special_constructor()) {
 			ILEvaluator* eval = Ctx::eval();
-			ILBuilder::eval_fnptr(eval, owner->auto_destructor);
-			ILBuilder::eval_callstart(eval);
 			ILBuilder::eval_const_ptr(eval, me);
-			ILBuilder::eval_call(eval, ILDataType::none, 1);
+			ILBuilder::eval_fncall(eval, owner->auto_destructor);
 		}
 	}
 
@@ -75,11 +71,9 @@ namespace Corrosive {
 		if (has_special_move()) {
 
 			ILEvaluator* eval = Ctx::eval();
-			ILBuilder::eval_fnptr(eval, owner->auto_move);
-			ILBuilder::eval_callstart(eval);
 			ILBuilder::eval_const_ptr(eval, me);
 			ILBuilder::eval_const_ptr(eval, from);
-			ILBuilder::eval_call(eval, ILDataType::none, 2);
+			ILBuilder::eval_fncall(eval, owner->auto_move);
 		}
 		else {
 			Type::move(me, from);
@@ -90,11 +84,10 @@ namespace Corrosive {
 		if (has_special_copy()) {
 
 			ILEvaluator* eval = Ctx::eval();
-			ILBuilder::eval_fnptr(eval, owner->auto_copy);
-			ILBuilder::eval_callstart(eval);
 			ILBuilder::eval_const_ptr(eval, me);
 			ILBuilder::eval_const_ptr(eval, from);
-			ILBuilder::eval_call(eval, ILDataType::none, 2);
+
+			ILBuilder::eval_fncall(eval, owner->auto_copy);
 		}
 		else {
 			Type::copy(me, from);
@@ -105,11 +98,9 @@ namespace Corrosive {
 		if (has_special_compare()) {
 
 			ILEvaluator* eval = Ctx::eval();
-			ILBuilder::eval_fnptr(eval, owner->auto_compare);
-			ILBuilder::eval_callstart(eval);
 			ILBuilder::eval_const_ptr(eval, me);
 			ILBuilder::eval_const_ptr(eval, to);
-			ILBuilder::eval_call(eval, ILDataType::u8, 2);
+			ILBuilder::eval_fncall(eval, owner->auto_compare);
 			return eval->pop_register_value<int8_t>();
 
 		}

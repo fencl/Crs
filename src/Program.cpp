@@ -38,7 +38,6 @@ namespace Corrosive {
 	}
 
 	int crs_main() {
-		std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
 		ILModule m;
 		DefaultTypes dt;
@@ -73,7 +72,8 @@ namespace Corrosive {
 		Ctx::eval()->sandbox_begin();
 
 		try {
-			
+
+			std::chrono::steady_clock::time_point compile_begin = std::chrono::steady_clock::now();
 
 			Ctx::types()->setup();
 
@@ -117,33 +117,40 @@ namespace Corrosive {
 			}
 
 
+			std::chrono::steady_clock::time_point compile_end = std::chrono::steady_clock::now();
+
 			if (main != nullptr) {
 				
 				std::cout << "========= TEST =========\n";
+
+				std::chrono::steady_clock::time_point runtime_start = std::chrono::steady_clock::now();
 				Ctx::push_scope_context(ILContext::runtime);
 				Ctx::eval()->debug_file = UINT16_MAX;
 				Ctx::eval()->debug_line = UINT16_MAX;
 				ILBuilder::eval_fnptr(Ctx::eval(), main);
 				ILBuilder::eval_callstart(Ctx::eval());
-				ILBuilder::eval_call(Ctx::eval(), ILDataType::u64, 0);
+				ILBuilder::eval_call(Ctx::eval(), main->decl_id);
 				uint64_t ret_val = Ctx::eval()->pop_register_value<uint64_t>();
+
+				std::chrono::steady_clock::time_point runtime_end = std::chrono::steady_clock::now();
+
 				std::cout << "\ntest result was: " << ret_val << "\n\n";
 
 				auto lr1b = (size_t)(Ctx::eval()->register_stack_1b - Ctx::eval()->register_stack_1b);
-				if (lr1b >0)
-					std::cout << "leaked 1 byte registers: " << lr1b << "\n";
+				
+				std::cout << "leaked 1 byte registers: " << lr1b << "\n";
 				auto lr2b = (size_t)(Ctx::eval()->register_stack_2b - Ctx::eval()->register_stack_2b);
-				if (lr2b > 0)
-					std::cout << "leaked 2 byte registers: " << lr2b << "\n";
+				std::cout << "leaked 2 byte registers: " << lr2b << "\n";
 				auto lr4b = (size_t)(Ctx::eval()->register_stack_4b - Ctx::eval()->register_stack_4b);
-				if (lr4b > 0)
-					std::cout << "leaked 4 byte registers: " << lr4b << "\n";
+				std::cout << "leaked 4 byte registers: " << lr4b << "\n";
 				auto lr8b = (size_t)(Ctx::eval()->register_stack_8b - Ctx::eval()->register_stack_8b);
-				if (lr8b > 0)
-					std::cout << "leaked 8 byte registers: " << lr8b << "\n";
+				std::cout << "leaked 8 byte registers: " << lr8b << "\n";
 
 				Ctx::pop_scope_context();
 
+
+				std::cout << "\ncompile time: " << std::chrono::duration_cast<std::chrono::milliseconds>(compile_end - compile_begin).count() << "[ms]\n";
+				std::cout << "runtime: " << std::chrono::duration_cast<std::chrono::milliseconds>(runtime_end - compile_end).count() << "[ms]\n" << std::endl;
 			}
 			else {
 				std::cerr << "main was null\n";
@@ -154,12 +161,6 @@ namespace Corrosive {
 		}
 
 		Ctx::eval()->sandbox_end();
-
-
-		std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-
-		std::cout << "\nelapsed: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]\n" << std::endl;
-
 		return 0;
 	}
 }

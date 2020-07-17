@@ -873,9 +873,10 @@ namespace Corrosive {
 		if (compile_state == 1) {
 			compile_state = 2;
 			if (block.src) {
+				type->compile();
 				auto func = Ctx::global_module()->create_function();
 				this->func = func;
-
+				func->decl_id = type->il_function_decl;
 				func->alias = name.buffer;
 
 				ILBlock* b = func->create_and_append_block();
@@ -909,10 +910,6 @@ namespace Corrosive {
 				if (returns.second->rvalue_stacked()) {
 					ret_rval_stack = true;
 					return_ptr_local_id = func->local_stack_lifetime.append(Ctx::types()->t_ptr->size());
-					func->returns = ILDataType::none;
-				}
-				else {
-					func->returns = returns.second->rvalue();
 				}
 
 				for (auto&& a : arguments) {
@@ -927,7 +924,6 @@ namespace Corrosive {
 
 					a.second->compile();
 					uint16_t id = func->local_stack_lifetime.append(a.second->size());
-					func->arguments.push_back(a.second->rvalue());
 
 					Ctx::stack()->push_item(a.first.buffer, a.second, id, StackItemTag::regular);
 				}
@@ -982,6 +978,8 @@ namespace Corrosive {
 				Ctx::pop_workspace();
 				Ctx::pop_scope_context();
 				Ctx::pop_function();
+
+			
 			} else {
 				auto func = Ctx::global_module()->create_ext_function(); 
 				this->func = func;
@@ -1268,7 +1266,13 @@ namespace Corrosive {
 			uint32_t max_align = 0;
 			size = ILSize(ILSizeType::absolute, 0);
 
-			auto compile_and_prepare = [&table, &max_align, this](std::pair<Type*, uint32_t>& m) {
+			bool has_special_constructor = false;
+			bool has_special_destructor = false;
+			bool has_special_copy = false;
+			bool has_special_move = false;
+			bool has_special_compare = false;
+
+			for (auto&& m : member_vars) {
 				m.first->compile();
 
 				if (m.first->has_special_destructor())
@@ -1313,10 +1317,6 @@ namespace Corrosive {
 
 
 				table.elements.push_back(m_s);
-			};
-
-			for (auto&& m : member_vars) {
-				compile_and_prepare(m);
 			}
 
 

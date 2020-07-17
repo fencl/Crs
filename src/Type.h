@@ -218,9 +218,13 @@ namespace Corrosive {
 		DefaultTypes* owner;
 		size_t argument_array_id;
 		Type* return_type;
+		uint32_t il_function_decl;
+
 		virtual ILContext context();
 		virtual ILSize size();
 		virtual void print(std::ostream& os);
+
+		virtual void compile();
 	};
 
 	class TypeTemplate : public Type {

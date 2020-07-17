@@ -14,18 +14,18 @@ namespace Corrosive {
 	template <typename T>
 	class idset {
 	public:
-		inline size_t register_or_load(T val) {
+		inline std::pair<size_t,bool> register_or_load(T val) {
 			if (data.size() == 0) data.resize(2);
 			data[0] = std::move(val);
 
 			auto lf = lookup.find(0);
 			if (lf != lookup.end()) {
-				return lf->second;
+				return std::make_pair(lf->second, false);
 			}
 			else {
 				data.push_back(std::move(data[0]));
 				lookup[data.size() - 1] = data.size() - 1;
-				return data.size() - 1;
+				return std::make_pair(data.size() - 1, true);
 			}
 		}
 
@@ -134,7 +134,7 @@ namespace Corrosive {
 		std::map<size_t, std::unique_ptr<TypeTemplate>> template_types_storage;
 
 
-		size_t load_or_register_argument_array(std::vector<Type*> arg_array);
+		std::pair<size_t, bool> load_or_register_argument_array(std::vector<Type*> arg_array);
 
 		TypeFunction* load_or_register_function_type(std::vector<Type*> arg_array, Type* return_type, ILContext ctx);
 		TypeTemplate* load_or_register_template_type(std::vector<Type*> arg_array);

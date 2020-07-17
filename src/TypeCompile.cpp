@@ -31,6 +31,38 @@ namespace Corrosive {
 		owner->compile();
 	}
 
+	void TypeFunction::compile() {
+		if (il_function_decl == UINT32_MAX) {
+
+			return_type->compile();
+
+			auto& args = Ctx::types()->argument_array_storage.get(argument_array_id);
+
+			for (auto&& a : args) {
+				a->compile();
+			}
+
+			size_t ret_ref_offset = (return_type->rvalue_stacked() ? 1 : 0);
+
+			std::vector<ILDataType> decl_args(args.size() + ret_ref_offset);
+			for (size_t i = ret_ref_offset; i < args.size() + ret_ref_offset; ++i) {
+				decl_args[i] = args[i - ret_ref_offset]->rvalue();
+			}
+
+			ILDataType ret_t = ILDataType::none;
+			if (!return_type->rvalue_stacked()) {
+				ret_t = return_type->rvalue();
+			}
+			else {
+				decl_args[0] = ILDataType::word;
+			}
+
+			il_function_decl = Ctx::global_module()->register_function_decl(std::make_pair(ret_t, std::move(decl_args)));
+		}
+	}
+
+
+
 
 	// ===================================================================================== GENERIC BUILD COPY/MOVE/CMP/CTOR/DROP
 	
@@ -132,33 +164,28 @@ namespace Corrosive {
 	}
 
 	bool TypeStructureInstance::has_special_constructor() {
-		return owner->has_special_constructor;
+		return owner->auto_constructor != nullptr;
 	}
 
 	bool TypeStructureInstance::has_special_destructor() {
-		return owner->has_special_destructor;
+		return owner->auto_destructor != nullptr;
 	}
 
 	bool TypeStructureInstance::has_special_copy() {
-		return owner->has_special_copy;
+		return owner->auto_copy != nullptr;
 	}
 
 	bool TypeStructureInstance::has_special_move() {
-		return owner->has_special_move;
+		return owner->auto_move != nullptr;
 	}
 
 	bool TypeStructureInstance::has_special_compare() {
-		return owner->has_special_compare;
+		return owner->auto_compare != nullptr;
 	}
-
-	
-
 
 	void TypeStructureInstance::build_drop() {
 		if (has_special_destructor()) {
-			ILBuilder::build_fnptr(Ctx::scope(), owner->auto_destructor);
-			ILBuilder::build_callstart(Ctx::scope());
-			ILBuilder::build_call(Ctx::scope(), ILDataType::none, 1);
+			ILBuilder::build_fncall(Ctx::scope(), owner->auto_destructor);
 		}
 		else {
 			Type::build_drop();
@@ -167,23 +194,17 @@ namespace Corrosive {
 
 	void TypeStructureInstance::build_construct() {
 		if (has_special_constructor()) {
-			ILBuilder::build_fnptr(Ctx::scope(), owner->auto_constructor);
-			ILBuilder::build_callstart(Ctx::scope());
-			ILBuilder::build_call(Ctx::scope(), ILDataType::none, 1);
+			ILBuilder::build_fncall(Ctx::scope(), owner->auto_constructor);
 		}
 		else {
 			Type::build_construct();
 		}
 	}
 
-	
-
 	void TypeStructureInstance::build_copy() {
 		//dst(me), src(from)
 		if (has_special_copy()) {
-			ILBuilder::build_fnptr(Ctx::scope(), owner->auto_copy);
-			ILBuilder::build_callstart(Ctx::scope());
-			ILBuilder::build_call(Ctx::scope(), ILDataType::none, 2);
+			ILBuilder::build_fncall(Ctx::scope(), owner->auto_copy);
 		}
 		else {
 			Type::build_copy();
@@ -193,9 +214,7 @@ namespace Corrosive {
 	void TypeStructureInstance::build_move() {
 		//dst(me), src(from)
 		if (has_special_move()) {
-			ILBuilder::build_fnptr(Ctx::scope(), owner->auto_move);
-			ILBuilder::build_callstart(Ctx::scope());
-			ILBuilder::build_call(Ctx::scope(), ILDataType::none, 2);
+			ILBuilder::build_fncall(Ctx::scope(), owner->auto_move);
 		}
 		else {
 			Type::build_move();
@@ -206,9 +225,7 @@ namespace Corrosive {
 		//dst(me), src(compare to)
 
 		if (has_special_copy()) {
-			ILBuilder::build_fnptr(Ctx::scope(), owner->auto_compare);
-			ILBuilder::build_callstart(Ctx::scope());
-			ILBuilder::build_call(Ctx::scope(), ILDataType::i8, 2);
+			ILBuilder::build_fncall(Ctx::scope(), owner->auto_compare);
 		}
 		else {
 			Type::build_compare();

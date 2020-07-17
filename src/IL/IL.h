@@ -45,8 +45,12 @@ namespace Corrosive {
 		bit_and, bit_or, bit_xor,
 		eq, ne, gt, ge, lt, le,
 
+		add2, sub2, div2, mul2, rem2,
+		bit_and2, bit_or2, bit_xor2,
+		eq2, ne2, gt2, ge2, lt2, le2,
+
 		load, store, store2, ret, jmp, jmpz,
-		local, forget,
+		local, forget, fncall,
 		fnptr, call, start, insintric, cast,
 		roffset, offset, vtable, duplicate, duplicate2, swap, swap2,
 		memcpy, memcpy2, memcmp, memcmp2, rmemcmp, rmemcmp2,
@@ -168,8 +172,7 @@ namespace Corrosive {
 		unsigned int id;
 		ILModule* parent;
 
-		std::vector<ILDataType>		arguments;
-		ILDataType					returns;
+		uint32_t decl_id;
 	};
 
 	class ILBytecodeFunction : public ILFunction {
@@ -318,6 +321,7 @@ namespace Corrosive {
 		std::vector<std::unique_ptr<void* []>> vtable_data;
 		std::vector<ILStructTable> structure_tables;
 		std::vector<ILArrayTable> array_tables;
+		std::vector<std::pair<ILDataType, std::vector<ILDataType>>> function_decl;
 
 		uint32_t register_structure_table();
 		uint32_t register_array_table();
@@ -331,6 +335,8 @@ namespace Corrosive {
 		ILExtFunction* create_ext_function();
 
 		uint32_t register_constant(unsigned char* memory, size_t size);
+		uint32_t register_function_decl(std::pair<ILDataType, std::vector<ILDataType>> decl);
+		void dump_function_decl(uint32_t id);
 	};
 
 
@@ -411,12 +417,13 @@ namespace Corrosive {
 		static void eval_cast(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
 		static void eval_forget(ILEvaluator* eval_ctx, ILDataType type);
 		static void eval_fnptr(ILEvaluator* eval_ctx, ILFunction* fun);
+		static void eval_fncall(ILEvaluator* eval_ctx, ILFunction* fun);
 		static void eval_insintric(ILEvaluator* eval_ctx, ILInsintric fun);
 		static void eval_discard(ILEvaluator* eval_ctx, ILDataType type);
 		static void eval_yield(ILEvaluator* eval_ctx, ILDataType type);
 		static void eval_accept(ILEvaluator* eval_ctx, ILDataType type);
 		static void eval_callstart(ILEvaluator* eval_ctx);
-		static void eval_call(ILEvaluator* eval_ctx, ILDataType rett, uint16_t argc);
+		static void eval_call(ILEvaluator* eval_ctx, uint32_t decl);
 		static void eval_duplicate(ILEvaluator* eval_ctx, ILDataType type);
 		static void eval_clone(ILEvaluator* eval_ctx, ILDataType type, uint16_t times);
 		static void eval_duplicate_pair(ILEvaluator* eval_ctx, ILDataType type);
@@ -483,7 +490,8 @@ namespace Corrosive {
 		static void build_forget(ILBlock* block, ILDataType type);
 		static void build_ret(ILBlock* block, ILDataType type);
 		static void build_fnptr(ILBlock* block, ILFunction* fun);
-		static void build_call(ILBlock* block, ILDataType type, uint16_t argc);
+		static void build_fncall(ILBlock* eval_ctx, ILFunction* fun);
+		static void build_call(ILBlock* block, uint32_t decl);
 		static void build_callstart(ILBlock* block);
 		static void build_jmp(ILBlock* block, ILBlock* address);
 		static void build_jmpz(ILBlock* block, ILBlock* ifz, ILBlock* ifnz);
