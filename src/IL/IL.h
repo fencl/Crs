@@ -200,7 +200,7 @@ namespace Corrosive {
 		void (*ptr)(ILEvaluator*) = nullptr;
 	};
 
-	using ilsize_t = uint64_t; // max size for all architectures
+	using ilsize_t = uint64_t; // max register size for all architectures (temp storage)
 
 	enum class ILInsintric : unsigned char {
 		build_array, build_reference, push_template, build_template, build_slice, template_cast, type_size, build_subtype
@@ -217,8 +217,17 @@ namespace Corrosive {
 		static const inline size_t stack_size = 1024 * 4;
 		unsigned char memory_stack[stack_size];
 
-		unsigned char register_stack[stack_size];
-		unsigned char* register_stack_pointer = register_stack;
+		uint8_t register_stack_1b[stack_size];
+		uint8_t* register_stack_pointer_1b = register_stack_1b;
+
+		uint16_t register_stack_2b[stack_size];
+		uint16_t* register_stack_pointer_2b = register_stack_2b;
+
+		uint32_t register_stack_4b[stack_size];
+		uint32_t* register_stack_pointer_4b = register_stack_4b;
+
+		uint64_t register_stack_8b[stack_size];
+		uint64_t* register_stack_pointer_8b = register_stack_8b;
 
 		ilsize_t yield_storage;
 
@@ -235,47 +244,64 @@ namespace Corrosive {
 		std::vector<unsigned char*> local_stack_base;
 		std::vector<std::vector<unsigned char*>> local_stack_offsets;
 
-		uint16_t mask_local(unsigned char* ptr);
-		void pop_mask_local();
-		uint16_t push_local(ILSize size);
-		void pop_local(ILSize size);
-		void stack_push(size_t align = 1);
-		void stack_pop();
-		unsigned char* stack_ptr(uint16_t id);
+		uint16_t		mask_local(unsigned char* ptr);
+		void			pop_mask_local();
+		uint16_t		push_local(ILSize size);
+		void			pop_local(ILSize size);
+		void			stack_push(size_t align = 1);
+		void			stack_pop();
+		unsigned char*	stack_ptr(uint16_t id);
 
 		static void sandbox_begin();
 		static void sandbox_end();
 
 		void	write_register_value_indirect(size_t size, void* value);
 		void	pop_register_value_indirect(size_t size, void* into);
-		void* read_last_register_value_indirect(ILDataType rs);
-
+		void*	read_last_register_value_indirect(ILDataType rs);
 		size_t	compile_time_register_size(ILDataType t);
-		void	discard_last_register_type(ILDataType rs);
 
 
 		template<typename T> inline T read_register_value() {
-			if (register_stack_pointer - register_stack < sizeof(T)) {
-				throw std::exception("Compiler error, register stack smaller than requested data");
+			switch (sizeof(T)) {
+				case 1:
+					return *(T*)(register_stack_pointer_1b - 1);
+				case 2:
+					return *(T*)(register_stack_pointer_2b - 1);
+				case 3:
+				case 4:
+					return *(T*)(register_stack_pointer_4b - 1);
+				default:
+					return *(T*)(register_stack_pointer_8b - 1);
 			}
-			return *(((T*)register_stack_pointer) - 1);
 		}
 
 		template<typename T> inline T pop_register_value() {
-			if (register_stack_pointer - register_stack < sizeof(T)) {
-				throw std::exception("Compiler error, register stack smaller than requested data");
+			switch (sizeof(T)) {
+				case 1:
+					return *(T*)(--register_stack_pointer_1b);
+				case 2:
+					return *(T*)(--register_stack_pointer_2b);
+				case 3:
+				case 4:
+					return *(T*)(--register_stack_pointer_4b);
+				default:
+					return *(T*)(--register_stack_pointer_8b );
 			}
-			register_stack_pointer -= sizeof(T);
-
-			//std::cout << "-" << sizeof(T) << "\n";
-			return *((T*)register_stack_pointer);
 		}
 
 		template<typename T> inline void write_register_value(T v) {
-			if (register_stack_pointer - register_stack + sizeof(T) > stack_size) { throw std::exception("Register stack overflow"); }
-			*((T*)register_stack_pointer) = v;
-			register_stack_pointer += sizeof(T);
-			//std::cout << "+" << sizeof(T) << "\n";
+			
+			switch (sizeof(T)) {
+				case 1:
+					*(T*)(register_stack_pointer_1b++) = v; break;
+				case 2:
+					*(T*)(register_stack_pointer_2b++) = v; break;
+				case 3:
+				case 4:
+					*(T*)(register_stack_pointer_4b++) = v; break;
+				default:
+					*(T*)(register_stack_pointer_8b++) = v; break;
+			}
 		}
 	};
 

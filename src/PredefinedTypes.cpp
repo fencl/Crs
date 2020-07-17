@@ -27,7 +27,8 @@ namespace Corrosive {
 
 		into = sinst->type.get();
 
-		Ctx::global_namespace()->subtemplates[c.buffer] = std::move(s);
+		Ctx::global_namespace()->name_table[c.buffer] = std::make_pair((uint8_t)1, (uint32_t)Ctx::global_namespace()->subtemplates.size());
+		Ctx::global_namespace()->subtemplates.push_back(std::move(s));
 	}
 
 
@@ -66,7 +67,8 @@ namespace Corrosive {
 		primitives[(unsigned char)ILDataType::word] = t_size;
 
 		std_lib.load_data("trait Copy(T:type) {fn Copy: (&T);}\ntrait Move(T:type) {fn Move: (&T);}\ntrait Compare(T:type) {fn Compare: (&T) i8;}\ntrait Drop {fn Drop: ();}\ntrait Default {fn Default: ();}\n"
-			"fn copy_slice(T: type): (to: []T, from: []T) { let i=0; while(i<from.count) { to[i] = from[i]; i = i+1;} }"
+			"fn copy_slice(T: type): (to: []T, from: []T) { let i=0; while(i<from.count) { to[i] = from[i]; i = i+1;} }\n"
+			"fn invalidate_slice(T: type): (slice: &[]T) { (*slice).ptr = null; (*slice).size=0; }"
 			,"standard_library<buffer>");
 		std_lib.pair_braces();
 		std_lib.register_debug();
@@ -74,11 +76,11 @@ namespace Corrosive {
 		Cursor c = std_lib.read_first();
 		Declaration::parse_global(c, Ctx::global_namespace());
 		
-		tr_copy = Ctx::global_namespace()->subtraits["Copy"].get();
-		tr_move = Ctx::global_namespace()->subtraits["Move"].get();
-		tr_compare = Ctx::global_namespace()->subtraits["Compare"].get();
-		tr_drop = Ctx::global_namespace()->subtraits["Drop"].get();
-		tr_ctor = Ctx::global_namespace()->subtraits["Default"].get();
+		tr_copy = Ctx::global_namespace()->subtraits[Ctx::global_namespace()->name_table["Copy"].second].get();
+		tr_move = Ctx::global_namespace()->subtraits[Ctx::global_namespace()->name_table["Move"].second].get();
+		tr_compare = Ctx::global_namespace()->subtraits[Ctx::global_namespace()->name_table["Compare"].second].get();
+		tr_drop = Ctx::global_namespace()->subtraits[Ctx::global_namespace()->name_table["Drop"].second].get();
+		tr_ctor = Ctx::global_namespace()->subtraits[Ctx::global_namespace()->name_table["Default"].second].get();
 	}
 
 

@@ -99,10 +99,16 @@ namespace Corrosive {
 			Ctx::register_ext_function({ "std","malloc" }, malloc_provider);
 			Ctx::register_ext_function({ "std","free" }, free_provider);
 
-			auto mainfun = gn.subfunctions.find("main");
-			if (mainfun != gn.subfunctions.end()) {
+			Namespace* f_nspc;
+			StructureTemplate* f_stemp;
+			FunctionTemplate* f_ftemp;
+			TraitTemplate* f_ttemp;
+
+			gn.find_name("main", f_nspc,f_stemp,f_ftemp,f_ttemp);
+
+			if (f_ftemp) {
 				FunctionInstance* finst;
-				mainfun->second->generate(nullptr, finst);
+				f_ftemp->generate(nullptr, finst);
 				finst->compile();
 				main = finst->func;
 			}
@@ -112,6 +118,7 @@ namespace Corrosive {
 
 
 			if (main != nullptr) {
+				
 				std::cout << "========= TEST =========\n";
 				Ctx::push_scope_context(ILContext::runtime);
 				Ctx::eval()->debug_file = UINT16_MAX;
@@ -122,9 +129,19 @@ namespace Corrosive {
 				uint64_t ret_val = Ctx::eval()->pop_register_value<uint64_t>();
 				std::cout << "\ntest result was: " << ret_val << "\n\n";
 
-				auto lr = (size_t)(Ctx::eval()->register_stack_pointer - Ctx::eval()->register_stack);
-				if (lr>0)
-					std::cout << "leaked registers: " << lr << "B\n";
+				auto lr1b = (size_t)(Ctx::eval()->register_stack_1b - Ctx::eval()->register_stack_1b);
+				if (lr1b >0)
+					std::cout << "leaked 1 byte registers: " << lr1b << "\n";
+				auto lr2b = (size_t)(Ctx::eval()->register_stack_2b - Ctx::eval()->register_stack_2b);
+				if (lr2b > 0)
+					std::cout << "leaked 2 byte registers: " << lr2b << "\n";
+				auto lr4b = (size_t)(Ctx::eval()->register_stack_4b - Ctx::eval()->register_stack_4b);
+				if (lr4b > 0)
+					std::cout << "leaked 4 byte registers: " << lr4b << "\n";
+				auto lr8b = (size_t)(Ctx::eval()->register_stack_8b - Ctx::eval()->register_stack_8b);
+				if (lr8b > 0)
+					std::cout << "leaked 8 byte registers: " << lr8b << "\n";
+
 				Ctx::pop_scope_context();
 
 			}

@@ -233,7 +233,7 @@ namespace Corrosive {
 			res.t = to;
 
 		}
-		else if (res.t->type() == TypeInstanceType::type_structure_instance && to->type() == TypeInstanceType::type_reference) {
+		else if (to->type() == TypeInstanceType::type_reference && ((TypeReference*)to)->owner == res.t) {
 			TypeReference* tr = (TypeReference*)to;
 			if (tr->owner != res.t) {
 				throw_cannot_cast_error(err, res.t, to);
@@ -246,29 +246,6 @@ namespace Corrosive {
 
 			}
 
-			res.t = to;
-			res.lvalue = false;
-
-		}
-		else if (res.t->type() == TypeInstanceType::type_slice && to == Ctx::types()->t_ptr) {
-			if (res.lvalue || res.t->rvalue_stacked()) {
-				if (cpt == CompileType::compile) {
-					ILBuilder::build_load(Ctx::scope(), ILDataType::word);
-				}
-				else {
-					ILBuilder::eval_load(Ctx::eval(), ILDataType::word);
-				}
-			}
-			else {
-				if (cpt == CompileType::compile) {
-					ILBuilder::build_cast(Ctx::scope(), res.t->rvalue(), ILDataType::word);
-					//ILBuilder::build_roffset(Ctx::scope(), res.t->rvalue(), ILDataType::ptr,ILSize(ILSizeType::absolute,0));
-				}
-				else {
-					ILBuilder::build_cast(Ctx::scope(), res.t->rvalue(), ILDataType::word);
-					//ILBuilder::eval_roffset(Ctx::eval(), res.t->rvalue(), ILDataType::ptr, 0);
-				}
-			}
 			res.t = to;
 			res.lvalue = false;
 		}
@@ -574,22 +551,13 @@ namespace Corrosive {
 
 			c.move();
 
-			auto f = inst->subfunctions.find(nm_err.buffer);
-			if (f != inst->subfunctions.end()) {
-				func_inst = f->second.get();
-				break;
-			}
-			else {
-				auto f2 = inst->subtemplates.find(nm_err.buffer);
+			Namespace* f_nspc;
+			TraitTemplate* f_ttemp;
 
-				if (f2 != inst->subtemplates.end()) {
-					struct_inst = f2->second.get();
-					continue;
-				}
-				else {
-					throw_specific_error(nm_err, "Only function may be brought in the runtime context");
+			inst->find_name(nm_err.buffer, f_nspc, struct_inst, func_inst, f_ttemp);
 
-				}
+			if (f_nspc || f_ttemp) {
+				throw_specific_error(nm_err, "Only function may be brought in the runtime context");
 			}
 		}
 
@@ -952,9 +920,6 @@ namespace Corrosive {
 				c.move();
 			}
 			else if (cpt != CompileType::compile && Ctx::eval_stack()->find(c.buffer, sitm)) {
-
-				//std::cout <<sitm.id<<": 0x"<<std::hex << (size_t)Ctx::eval()->stack_ptr(sitm.id) << "\n";
-
 				ILBuilder::eval_local(Ctx::eval(), sitm.id);
 				ret.t = sitm.type;
 				ret.lvalue = true;
@@ -995,7 +960,6 @@ namespace Corrosive {
 
 				if (namespace_inst == nullptr && struct_inst == nullptr && func_inst == nullptr && trait_inst == nullptr) {
 					throw_specific_error(c, "Path start point not found");
-
 				}
 
 
@@ -1515,109 +1479,10 @@ namespace Corrosive {
 
 		}
 		else if (ret.t->type() == TypeInstanceType::type_function) {
-			Expression::rvalue(ret, cpt);
-
-			c.move();
-			TypeFunction* ft = (TypeFunction*)ret.t;
-
-			if (ft->context() != ILContext::both && Ctx::scope_context() != ft->context()) {
-				throw_specific_error(c, "Cannot call function with different context specifier");
-
-			}
-
-			unsigned int argi = 0;
-
-			CompileValue retval;
-			retval.t = ft->return_type;
-			retval.lvalue = true;
-			ft->return_type->compile();
-
-			if (cpt == CompileType::compile) {
-
-				uint16_t local_return_id = 0;
-
-
-				ILBuilder::build_callstart(Ctx::scope());
-				if (ft->return_type->rvalue_stacked()) {
-					local_return_id = Ctx::workspace_function()->local_stack_lifetime.append(retval.t->size());
-					Ctx::temp_stack()->push_item("$tmp", retval.t, local_return_id, StackItemTag::regular);
-
-					if (retval.t->has_special_constructor()) {
-						ILBuilder::build_local(Ctx::scope(), local_return_id);
-						retval.t->build_construct();
-					}
-
-					ILBuilder::build_local(Ctx::scope(), local_return_id);
-				}
-
-				_crs_read_arguments(c, argi, ft, cpt);
-
-				if (argi != Ctx::types()->argument_array_storage.get(ft->argument_array_id).size()) {
-					throw_specific_error(c, "Wrong number of arguments");
-				}
-
-				c.move();
-
-				if (!ft->return_type->rvalue_stacked()) {
-					ILBuilder::build_call(Ctx::scope(), ft->return_type->rvalue(), (uint16_t)argi);
-				}
-				else {
-					ILBuilder::build_call(Ctx::scope(), ILDataType::none, (uint16_t)argi + 1);
-				}
-
-				if (ft->return_type->rvalue_stacked()) {
-					ILBuilder::build_local(Ctx::scope(), local_return_id);
-				}
-
-			}
-			else if (cpt == CompileType::eval) {
-
-				StackItem local_stack_item;
-
-				ILBuilder::eval_callstart(Ctx::eval());
-
-				if (ft->return_type->rvalue_stacked()) {
-					uint16_t sid = Ctx::eval()->push_local(retval.t->size());
-					unsigned char* memory_place = Ctx::eval()->stack_ptr(sid);
-
-					Ctx::eval_stack()->push_item("$tmp", retval.t, sid, StackItemTag::regular);
-
-					if (retval.t->has_special_constructor()) {
-						retval.t->construct(memory_place);
-					}
-
-					ILBuilder::eval_local(Ctx::eval(), sid);
-				}
-
-				_crs_read_arguments(c, argi, ft, cpt);
-
-				if (argi != Ctx::types()->argument_array_storage.get(ft->argument_array_id).size()) {
-					throw_specific_error(c, "Wrong number of arguments");
-
-				}
-
-				c.move();
-
-				if (!ft->return_type->rvalue_stacked()) {
-					ILBuilder::eval_call(Ctx::eval(), ft->return_type->rvalue(), (uint16_t)argi);
-				}
-				else {
-					ILBuilder::eval_call(Ctx::eval(), ILDataType::none, (uint16_t)argi + 1);
-				}
-
-
-				if (ft->return_type->rvalue_stacked()) {
-					ILBuilder::eval_local(Ctx::eval(), local_stack_item.id);
-				}
-
-			}
-
-			ret.t = ft->return_type;
-			ret.lvalue = false;
+			function_call(ret, c, cpt, 0);
 		}
 		else {
 			throw_specific_error(c, "not implemented yet");
-
 		}
 
 
@@ -1735,15 +1600,17 @@ namespace Corrosive {
 		while (ret.t->type() != TypeInstanceType::type_slice && (ret.t->type() != TypeInstanceType::type_reference || ((TypeReference*)ret.t)->owner->type() != TypeInstanceType::type_slice)) {
 
 			if (ret.t->type() == TypeInstanceType::type_reference) {
+				if (ret.lvalue) {
+					if (cpt == CompileType::compile) {
+						ILBuilder::build_load(Ctx::scope(), ret.t->rvalue());
+					}
+					else if (cpt == CompileType::eval) {
+						ILBuilder::eval_load(Ctx::eval(), ret.t->rvalue());
+					}
+				}
+
 				ret.t = ((TypeReference*)ret.t)->owner;
 				ret.lvalue = true;
-
-				if (cpt == CompileType::compile) {
-					ILBuilder::build_load(Ctx::scope(), ret.t->rvalue());
-				}
-				else if (cpt == CompileType::eval) {
-					ILBuilder::eval_load(Ctx::eval(), ret.t->rvalue());
-				}
 			}
 
 			if (ret.t->type() != TypeInstanceType::type_structure_instance) {
@@ -1763,15 +1630,18 @@ namespace Corrosive {
 		}
 
 		if (ret.t->type() == TypeInstanceType::type_reference && ((TypeReference*)ret.t)->owner->type() == TypeInstanceType::type_slice) {
+			if (ret.lvalue) {
+				if (cpt == CompileType::compile) {
+					ILBuilder::build_load(Ctx::scope(), ret.t->rvalue());
+				}
+				else if (cpt == CompileType::eval) {
+					ILBuilder::eval_load(Ctx::eval(), ret.t->rvalue());
+				}
+			}
+
 			ret.t = ((TypeReference*)ret.t)->owner;
 			ret.lvalue = true;
 
-			if (cpt == CompileType::compile) {
-				ILBuilder::build_load(Ctx::scope(), ret.t->rvalue());
-			}
-			else if (cpt == CompileType::eval) {
-				ILBuilder::eval_load(Ctx::eval(), ret.t->rvalue());
-			}
 		}
 
 		if (ret.t->type() != TypeInstanceType::type_slice) {
@@ -1920,9 +1790,14 @@ namespace Corrosive {
 
 			StructureInstance* struct_inst = ti->owner;
 
-			auto f = struct_inst->subtemplates.find(c.buffer);
-			if (f != struct_inst->subtemplates.end()) {
-				StructureTemplate* tplt = f->second.get();
+			auto f = struct_inst->name_table.find(c.buffer);
+			if (f != struct_inst->name_table.end()) {
+
+				if (f->second.first != 1) {
+					throw_specific_error(c, "Target is not a structure");
+				}
+
+				StructureTemplate* tplt = struct_inst->subtemplates[f->second.second].get();
 
 				Ctx::eval_stack()->push();
 				Ctx::eval()->stack_push();
@@ -1949,7 +1824,6 @@ namespace Corrosive {
 			}
 			else {
 				throw_specific_error(c, "Structure instance does not contain a structure with this name");
-
 			}
 		}
 
@@ -1961,8 +1835,105 @@ namespace Corrosive {
 
 	}
 
+	void Operand::function_call(CompileValue& ret, Cursor& c, CompileType cpt, unsigned int argi) {
+		Expression::rvalue(ret, cpt);
 
-	void Operand::structure_element_offset(CompileValue& ret,uint16_t id, CompileType cpt) {
+		c.move();
+		TypeFunction* ft = (TypeFunction*)ret.t;
+
+		if (ft->context() != ILContext::both && Ctx::scope_context() != ft->context()) {
+			throw_specific_error(c, "Cannot call function with different context specifier");
+		}
+
+		CompileValue retval;
+		retval.t = ft->return_type;
+		retval.lvalue = true;
+		ft->return_type->compile();
+
+		if (cpt == CompileType::compile) {
+
+			uint16_t local_return_id = 0;
+
+
+			ILBuilder::build_callstart(Ctx::scope());
+			if (ft->return_type->rvalue_stacked()) {
+				local_return_id = Ctx::workspace_function()->local_stack_lifetime.append(retval.t->size());
+				Ctx::temp_stack()->push_item("$tmp", retval.t, local_return_id, StackItemTag::regular);
+
+				if (retval.t->has_special_constructor()) {
+					ILBuilder::build_local(Ctx::scope(), local_return_id);
+					retval.t->build_construct();
+				}
+
+				ILBuilder::build_local(Ctx::scope(), local_return_id);
+			}
+
+			_crs_read_arguments(c, argi, ft, cpt);
+
+			if (argi != Ctx::types()->argument_array_storage.get(ft->argument_array_id).size()) {
+				throw_specific_error(c, "Wrong number of arguments");
+			}
+			c.move();
+
+			if (!ft->return_type->rvalue_stacked()) {
+				ILBuilder::build_call(Ctx::scope(), ft->return_type->rvalue(), (uint16_t)argi);
+			}
+			else {
+				ILBuilder::build_call(Ctx::scope(), ILDataType::none, (uint16_t)argi + 1);
+			}
+
+			if (ft->return_type->rvalue_stacked()) {
+				ILBuilder::build_local(Ctx::scope(), local_return_id);
+			}
+
+		}
+		else if (cpt == CompileType::eval) {
+
+			StackItem local_stack_item;
+
+			ILBuilder::eval_callstart(Ctx::eval());
+
+			if (ft->return_type->rvalue_stacked()) {
+				uint16_t sid = Ctx::eval()->push_local(retval.t->size());
+				unsigned char* memory_place = Ctx::eval()->stack_ptr(sid);
+
+				Ctx::eval_stack()->push_item("$tmp", retval.t, sid, StackItemTag::regular);
+
+				if (retval.t->has_special_constructor()) {
+					retval.t->construct(memory_place);
+				}
+
+				ILBuilder::eval_local(Ctx::eval(), sid);
+			}
+
+			_crs_read_arguments(c, argi, ft, cpt);
+
+			if (argi != Ctx::types()->argument_array_storage.get(ft->argument_array_id).size()) {
+				throw_specific_error(c, "Wrong number of arguments");
+
+			}
+
+			c.move();
+
+			if (!ft->return_type->rvalue_stacked()) {
+				ILBuilder::eval_call(Ctx::eval(), ft->return_type->rvalue(), (uint16_t)argi);
+			}
+			else {
+				ILBuilder::eval_call(Ctx::eval(), ILDataType::none, (uint16_t)argi + 1);
+			}
+
+
+			if (ft->return_type->rvalue_stacked()) {
+				ILBuilder::eval_local(Ctx::eval(), local_stack_item.id);
+			}
+
+		}
+
+		ret.t = ft->return_type;
+		ret.lvalue = false;
+	}
+
+	void Operand::structure_element_offset(CompileValue& ret, uint16_t id, CompileType cpt) {
 		
 		TypeStructureInstance* ti = (TypeStructureInstance*)ret.t;
 		ti->compile();
@@ -2463,15 +2434,17 @@ namespace Corrosive {
 			while (continue_deeper) {
 
 				if (ret.t->type() == TypeInstanceType::type_reference) {
+					if (ret.lvalue) {
+						if (cpt == CompileType::compile) {
+							ILBuilder::build_load(Ctx::scope(), ret.t->rvalue());
+						}
+						else if (cpt == CompileType::eval) {
+							ILBuilder::eval_load(Ctx::eval(), ret.t->rvalue());
+						}
+					}
+
 					ret.t = ((TypeReference*)ret.t)->owner;
 					ret.lvalue = true;
-
-					if (cpt == CompileType::compile) {
-						ILBuilder::build_load(Ctx::scope(), ret.t->rvalue());
-					}
-					else if (cpt == CompileType::eval) {
-						ILBuilder::eval_load(Ctx::eval(), ret.t->rvalue());
-					}
 				}
 
 				if (ret.t->type() != TypeInstanceType::type_structure_instance) {
@@ -2485,8 +2458,41 @@ namespace Corrosive {
 
 				auto table_element = si->member_table.find(tok.buffer);
 				if (table_element != si->member_table.end()) {
-					continue_deeper = table_element->second.second;
-					structure_element_offset(ret, table_element->second.first, cpt);
+					switch (table_element->second.second)
+					{
+						case MemberTableEntryType::alias:
+							continue_deeper = true;
+							structure_element_offset(ret, table_element->second.first, cpt);
+							break;
+						case MemberTableEntryType::var:
+							continue_deeper = false;
+							structure_element_offset(ret, table_element->second.first, cpt);
+							break;
+						case MemberTableEntryType::func:
+							if (!ret.lvalue && !ret.t->rvalue_stacked()) { // TODO: this is inconsistent
+								throw_wrong_token_error(c, "This function can be called only from lvalue object or reference");
+							}
+
+							if (c.tok != RecognizedToken::OpenParenthesis) {
+								throw_wrong_token_error(c, "'('");
+							}
+
+							FunctionInstance* finst;
+							si->subfunctions[table_element->second.first]->generate(nullptr, finst);
+							finst->compile();
+
+							if (cpt == CompileType::compile) {
+								ILBuilder::build_fnptr(Ctx::scope(), finst->func);
+							}
+							else {
+								ILBuilder::eval_fnptr(Ctx::eval(), finst->func);
+							}
+
+							ret.t = finst->type;
+							ret.lvalue = false;
+							function_call(ret, c, cpt, 1);
+							return;
+					}
 				}
 				else {
 					throw_specific_error(tok, "Instance does not contain member with this name");

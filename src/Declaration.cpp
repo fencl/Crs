@@ -12,49 +12,23 @@ namespace Corrosive {
 
 
 	void Namespace::find_name(std::string_view name, Namespace*& subnamespace, StructureTemplate*& subtemplate, FunctionTemplate*& subfunction, TraitTemplate*& subtrait) {
-		auto res = subnamespaces.find(name);
-		if (res != subnamespaces.end()) {
-			subnamespace= res->second.get();
-			subtemplate = nullptr;
-			subfunction = nullptr;
-			subtrait = nullptr;
+		subnamespace = nullptr;
+		subtemplate = nullptr;
+		subfunction = nullptr;
+		subtrait = nullptr;
+
+		auto res = name_table.find(name);
+		if (res != name_table.end()) {
+
+			switch (res->second.first) {
+				case 0: subnamespace = subnamespaces[res->second.second].get(); return;
+				case 1: subtemplate  = subtemplates[res->second.second].get(); return;
+				case 2: subfunction  = subfunctions[res->second.second].get(); return;
+				case 3: subtrait     = subtraits[res->second.second].get(); return;
+			}
 		}
-		else {
-			auto res2 = subtemplates.find(name);
-			if (res2 != subtemplates.end()) {
-				subtemplate = res2->second.get();
-				subnamespace = nullptr;
-				subfunction = nullptr;
-				subtrait = nullptr;
-			}
-			else {
-				auto res3 = subfunctions.find(name);
-				if (res3 != subfunctions.end()) {
-					subnamespace = nullptr;
-					subtemplate = nullptr;
-					subtrait = nullptr;
-					subfunction = res3->second.get();
-				}
-				else {
-					auto res4 = subtraits.find(name);
-					if (res4 != subtraits.end()) {
-						subnamespace = nullptr;
-						subtemplate = nullptr;
-						subfunction = nullptr;
-						subtrait = res4->second.get();
-					}
-					else {
-						if (parent != nullptr) {
-							parent->find_name(name, subnamespace, subtemplate, subfunction,subtrait);
-						}
-						else {
-							subtemplate = nullptr;
-							subnamespace = nullptr;
-							subfunction = nullptr;
-						}
-					}
-				}
-			}
+		else if (parent) {
+			parent->find_name(name, subnamespace, subtemplate, subfunction, subtrait);
 		}
 	}
 

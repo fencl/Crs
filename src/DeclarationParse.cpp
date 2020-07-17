@@ -58,11 +58,13 @@ namespace Corrosive {
 				StructureTemplate::parse(c, into, nullptr, decl);
 
 				decl->parent = into;
-				if (into->subtemplates.find(decl->name.buffer) != into->subtemplates.end()) {
+				if (into->name_table.find(decl->name.buffer) != into->name_table.end()) {
 					throw_specific_error(nm, "this name already exists in current namespace");
 				}
 
-				into->subtemplates[decl->name.buffer] = std::move(decl);
+
+				into->name_table[decl->name.buffer] = std::make_pair((uint8_t)1, (uint32_t)into->subtemplates.size()); 
+				into->subtemplates.push_back(std::move(decl));
 
 			} else if (c.buffer == "trait") {
 				c.move();
@@ -72,11 +74,12 @@ namespace Corrosive {
 				TraitTemplate::parse(c, into, nullptr, decl);
 
 				decl->parent = into;
-				if (into->subtraits.find(decl->name.buffer) != into->subtraits.end()) {
+				if (into->name_table.find(decl->name.buffer) != into->name_table.end()) {
 					throw_specific_error(nm, "this name already exists in current namespace");
 				}
 
-				into->subtraits[decl->name.buffer] = std::move(decl);
+				into->name_table[decl->name.buffer] = std::make_pair((uint8_t)3, (uint32_t)into->subtraits.size());
+				into->subtraits.push_back(std::move(decl));
 
 			}
 			else if (c.buffer == "namespace") {
@@ -86,10 +89,12 @@ namespace Corrosive {
 				std::unique_ptr<Namespace> decl;
 				Namespace::parse(c, decl);
 				decl->parent = into;
-				if (into->subnamespaces.find(decl->name.buffer) != into->subnamespaces.end()) {
+				if (into->name_table.find(decl->name.buffer) != into->name_table.end()) {
 					throw_specific_error(nm, "this name already exists in current namespace");
 				}
-				into->subnamespaces[decl->name.buffer] = std::move(decl);
+
+				into->name_table[decl->name.buffer] = std::make_pair((uint8_t)0, (uint32_t)into->subnamespaces.size());
+				into->subnamespaces.push_back(std::move(decl));
 			}
 			else if (c.buffer == "fn") {
 				StructureTemplateMemberFunc member;
@@ -185,11 +190,12 @@ namespace Corrosive {
 				ft->type = std::make_unique<TypeFunctionTemplate>();
 				ft->type->owner = ft.get();
 
-				if (into->subfunctions.find(member.name.buffer) != into->subfunctions.end()) {
-					throw_specific_error(member.name, "Function with the same name already exists in the namespace");
+				if (into->name_table.find(member.name.buffer) != into->name_table.end()) {
+					throw_specific_error(member.name, "Name already exists in the namespace");
 				}
 
-				into->subfunctions[member.name.buffer] = std::move(ft);
+				into->name_table[member.name.buffer] = std::make_pair((uint8_t)2, (uint32_t)into->subfunctions.size());
+				into->subfunctions.push_back(std::move(ft));
 
 			}
 			else {

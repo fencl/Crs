@@ -51,10 +51,13 @@ namespace Corrosive {
 
 		Cursor name;
 		Namespace* parent = nullptr;
-		std::map<std::string_view, std::unique_ptr<Namespace>> subnamespaces;
-		std::map<std::string_view, std::unique_ptr<StructureTemplate>> subtemplates;
-		std::map<std::string_view, std::unique_ptr<FunctionTemplate>> subfunctions;
-		std::map<std::string_view, std::unique_ptr<TraitTemplate>> subtraits;
+		std::map<std::string_view, std::pair<uint8_t,uint32_t>> name_table;
+
+		std::vector<std::unique_ptr<Namespace>> subnamespaces;
+		std::vector<std::unique_ptr<StructureTemplate>> subtemplates;
+		std::vector<std::unique_ptr<FunctionTemplate>> subfunctions;
+		std::vector<std::unique_ptr<TraitTemplate>> subtraits;
+
 
 		static void parse_inner(Cursor& c, Namespace* into, GenericInstance* gen_inst);
 		static void parse(Cursor& c, std::unique_ptr<Namespace>& into);
@@ -65,6 +68,9 @@ namespace Corrosive {
 		primitive_structure, compact_structure, normal_structure
 	};
 
+	enum class MemberTableEntryType : uint8_t {
+		var, alias, func
+	};
 
 	class StructureInstance : public Namespace {
 	public:
@@ -72,9 +78,9 @@ namespace Corrosive {
 		uint16_t pass_array_id = 0;
 		bool pass_array_operator = false;
 
-		std::map<std::string_view, std::pair<uint16_t,bool>>	member_table;
-		std::vector<std::pair<Type*,uint32_t>>					member_vars;
-		std::vector<uint16_t>									member_composites;
+		std::map<std::string_view, std::pair<uint16_t, MemberTableEntryType>>	member_table;
+		std::vector<std::pair<Type*,uint32_t>>									member_vars;
+		std::vector<uint16_t>													member_composites;
 
 		std::map<TraitInstance*, std::vector<std::unique_ptr<FunctionInstance>>> traitfunctions;
 
@@ -197,7 +203,8 @@ namespace Corrosive {
 
 	class TraitInstance {
 	public:
-		std::map<std::string_view, size_t> member_table;
+		std::map<std::string_view, uint16_t> member_table;
+
 		std::vector<TraitInstanceMemberRecord> member_funcs;
 
 		std::map<StructureInstance*, uint32_t> vtable_instances;

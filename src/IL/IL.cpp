@@ -579,16 +579,16 @@ namespace Corrosive {
 					std::cout << table << ":" << id << "\n";
 				} break;
 				case ILInstruction::tableoffset: {
-					std::cout << "   tableoffset ";
+					std::cout << "   tableoffset (table ";
 					auto table = *read_data_type(uint32_t);
 					auto id = *read_data_type(uint16_t);
-					std::cout << table << ":" << id << "\n";
+					std::cout << table << "): " << id << "\n";
 				} break;
 				case ILInstruction::tableoffset2: {
-					std::cout << "   tableoffset2 ";
+					std::cout << "   tableoffset pair (table ";
 					auto table = *read_data_type(uint32_t);
 					auto id = *read_data_type(uint16_t);
-					std::cout << table << ":" << id << "\n";
+					std::cout << table << "): " << id << "\n";
 				} break;
 				case ILInstruction::duplicate: {
 					std::cout << "   duplicate [";
@@ -893,19 +893,19 @@ namespace Corrosive {
 					std::cout << *address << " \"" << parent->blocks_memory[*address]->alias << "\"\n";
 					break;
 				}
-				case ILInstruction::u8:  std::cout << "u8 " << (uint16_t)*read_data_type(uint8_t) << "\n"; break;
-				case ILInstruction::u16: std::cout << "u16 " << *read_data_type(uint16_t) << "\n"; break;
-				case ILInstruction::u32: std::cout << "u32 " << *read_data_type(uint32_t) << "\n"; break;
-				case ILInstruction::u64: std::cout << "u64 " << *read_data_type(uint64_t) << "\n"; break;
-				case ILInstruction::i8:  std::cout << "i8 " << (int16_t)*read_data_type(int8_t) << "\n"; break;
-				case ILInstruction::i16: std::cout << "i16 " << *read_data_type(int16_t) << "\n"; break;
-				case ILInstruction::i32: std::cout << "i32 " << *read_data_type(int32_t) << "\n"; break;
-				case ILInstruction::i64: std::cout << "i64 " << *read_data_type(int64_t) << "\n"; break;
-				case ILInstruction::f32: std::cout << "f32 " << *read_data_type(float) << "\n"; break;
-				case ILInstruction::f64: std::cout << "f64 " << *read_data_type(double) << "\n"; break;
-				case ILInstruction::word: std::cout << "word " << *read_data_type(void*) << "\n"; break;
+				case ILInstruction::u8:  std::cout << "   u8 " << (uint16_t)*read_data_type(uint8_t) << "\n"; break;
+				case ILInstruction::u16: std::cout << "   u16 " << *read_data_type(uint16_t) << "\n"; break;
+				case ILInstruction::u32: std::cout << "   u32 " << *read_data_type(uint32_t) << "\n"; break;
+				case ILInstruction::u64: std::cout << "   u64 " << *read_data_type(uint64_t) << "\n"; break;
+				case ILInstruction::i8:  std::cout << "   i8 " << (int16_t)*read_data_type(int8_t) << "\n"; break;
+				case ILInstruction::i16: std::cout << "   i16 " << *read_data_type(int16_t) << "\n"; break;
+				case ILInstruction::i32: std::cout << "   i32 " << *read_data_type(int32_t) << "\n"; break;
+				case ILInstruction::i64: std::cout << "   i64 " << *read_data_type(int64_t) << "\n"; break;
+				case ILInstruction::f32: std::cout << "   f32 " << *read_data_type(float) << "\n"; break;
+				case ILInstruction::f64: std::cout << "   f64 " << *read_data_type(double) << "\n"; break;
+				case ILInstruction::word: std::cout << "   word " << *read_data_type(void*) << "\n"; break;
 				case ILInstruction::size: {
-					std::cout << "size ";
+					std::cout << "   size ";
 					auto off = read_data_type(ILSize);
 					off->print();
 					std::cout << "\n";
@@ -954,14 +954,17 @@ namespace Corrosive {
 
 
 	void* ILEvaluator::read_last_register_value_indirect(ILDataType rs) {
-		return register_stack_pointer - compile_time_register_size(rs);
-	}
-
-
-	void ILEvaluator::discard_last_register_type(ILDataType rs) {
-		size_t s = compile_time_register_size(rs);
-		register_stack_pointer -= s;
-
-		std::cout << "-" << s << "\n";
+		size_t ctrs = compile_time_register_size(rs);
+		switch (ctrs) {
+			case 1:
+				return (void*)(register_stack_pointer_1b - 1);
+			case 2:
+				return (void*)(register_stack_pointer_2b - 1);
+			case 3:
+			case 4:
+				return (void*)(register_stack_pointer_4b - 1);
+			default:
+				return (void*)(register_stack_pointer_8b - 1);
+		}
 	}
 }

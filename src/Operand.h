@@ -27,6 +27,7 @@ namespace Corrosive {
 		static Type* template_stack[1024];
 		static uint16_t template_sp;
 
+		static void function_call(CompileValue& ret, Cursor& c, CompileType cpt, unsigned int argi);
 		static void structure_element_offset(CompileValue& ret, uint16_t id, CompileType cpt);
 		static void parse_const_type_function(Cursor& c, FunctionInstance*& func,Type*& type,ILSize& type_size);
 		static void parse_expression(CompileValue& ret, Cursor& c, CompileType copm_type);

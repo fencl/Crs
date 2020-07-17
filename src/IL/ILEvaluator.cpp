@@ -52,17 +52,47 @@ namespace Corrosive {
 
 
 	void ILEvaluator::write_register_value_indirect(size_t size, void* value) {
-		if (register_stack_pointer - register_stack + size >= stack_size) { throw_runtime_exception(this, "Stack overflow"); }
-
 		if (setjmp(sandbox) == 0) {
-			memcpy(register_stack_pointer, value, size);
-			//std::cout << "+" << size << "\n";
-			register_stack_pointer += size;
+			switch (size) {
+				case 1:
+					memcpy(register_stack_pointer_1b++, value, size); break;
+				case 2:
+					memcpy(register_stack_pointer_2b++, value, size); break;
+				case 3:
+				case 4:
+					memcpy(register_stack_pointer_4b++, value, size); break;
+				default:
+					memcpy(register_stack_pointer_8b++, value, size); break;
+			}
 		}
 		else {
 			throw_runtime_handler_exception(this);
 		}
 	}
+
+	void ILEvaluator::pop_register_value_indirect(size_t size, void* into) {
+		if (setjmp(sandbox) == 0) {
+			ilsize_t storage;
+			if (into == nullptr) into = &storage;
+
+			switch (size) {
+				case 1:
+					memcpy(into,--register_stack_pointer_1b, size); break;
+				case 2:
+					memcpy(into, --register_stack_pointer_2b, size); break;
+				case 3:
+				case 4:
+					memcpy(into, --register_stack_pointer_4b, size); break;
+				default:
+					memcpy(into, --register_stack_pointer_8b, size); break;
+			}
+		}
+		else {
+
+			throw_runtime_handler_exception(this);
+		}
+	}
+
 
 	void ILBuilder::eval_const_i8(ILEvaluator* eval_ctx, int8_t   value) { eval_ctx->write_register_value_indirect(sizeof(int8_t), (unsigned char*)&value); }
 	void ILBuilder::eval_const_i16(ILEvaluator* eval_ctx, int16_t  value) { eval_ctx->write_register_value_indirect(sizeof(int16_t), (unsigned char*)&value); }
@@ -369,21 +399,6 @@ namespace Corrosive {
 
 
 
-
-	void ILEvaluator::pop_register_value_indirect(size_t size, void* into) {
-		if (setjmp(sandbox) == 0) {
-
-			//std::cout << "-" << size << "\n";
-			register_stack_pointer -= size;
-			if (into != nullptr)
-				memcpy(into, register_stack_pointer, size);
-		}
-		else {
-
-			throw_runtime_handler_exception(this);
-		}
-	}
-
 	void ILBuilder::eval_forget(ILEvaluator* eval_ctx, ILDataType type) {
 		eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(type), nullptr);
 	}
@@ -583,10 +598,10 @@ namespace Corrosive {
 		eval_ctx->pop_register_value_indirect(reg_s, &storage1);
 		eval_ctx->pop_register_value_indirect(reg_s, &storage2);
 
-		eval_ctx->write_register_value_indirect(reg_s, &storage1);
 		eval_ctx->write_register_value_indirect(reg_s, &storage2);
 		eval_ctx->write_register_value_indirect(reg_s, &storage1);
 		eval_ctx->write_register_value_indirect(reg_s, &storage2);
+		eval_ctx->write_register_value_indirect(reg_s, &storage1);
 	}
 
 	void ILBuilder::eval_clone_pair(ILEvaluator* eval_ctx, ILDataType type, uint16_t times) {
@@ -597,8 +612,8 @@ namespace Corrosive {
 		eval_ctx->pop_register_value_indirect(reg_s, &storage2);
 
 		for (uint16_t i = 0; i < times; ++i) {
-			eval_ctx->write_register_value_indirect(reg_s, &storage1);
 			eval_ctx->write_register_value_indirect(reg_s, &storage2);
+			eval_ctx->write_register_value_indirect(reg_s, &storage1);
 		}
 	}
 

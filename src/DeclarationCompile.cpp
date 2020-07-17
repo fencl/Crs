@@ -321,18 +321,25 @@ namespace Corrosive {
 				ft->type = std::make_unique<TypeFunctionTemplate>();
 				ft->type->owner = ft.get();
 
-				if (new_inst->subfunctions.find(m.name.buffer) != new_inst->subfunctions.end()) {
-					throw_specific_error(m.name, "Funtion with the same name already exists in the structure");
+				if (new_inst->name_table.find(m.name.buffer) != new_inst->name_table.end()) {
+					throw_specific_error(m.name, "Name already exists in the structure");
 				}
 
-				new_inst->subfunctions[m.name.buffer] = std::move(ft);
+				new_inst->name_table[m.name.buffer] = std::make_pair((uint8_t)2, (uint32_t)new_inst->subfunctions.size());
+				new_inst->subfunctions.push_back(std::move(ft));
 			}
 
 			for (auto&& t : member_templates) {
 				Cursor tc = t.cursor;
 				std::unique_ptr<StructureTemplate> decl;
 				StructureTemplate::parse(tc, new_inst, &new_inst->generic_inst, decl);
-				new_inst->subtemplates[decl->name.buffer] = std::move(decl);
+
+				if (new_inst->name_table.find(decl->name.buffer) != new_inst->name_table.end()) {
+					throw_specific_error(decl->name, "Name already exists in the structure");
+				}
+
+				new_inst->name_table[decl->name.buffer] = std::make_pair((uint8_t)1, (uint32_t)new_inst->subtemplates.size());
+				new_inst->subtemplates.push_back(std::move(decl));
 			}
 
 
@@ -560,7 +567,7 @@ namespace Corrosive {
 					}
 				}
 
-				new_inst->member_table[m.name.buffer] = std::make_pair((uint16_t)new_inst->member_vars.size(), false);
+				new_inst->member_table[m.name.buffer] = std::make_pair((uint16_t)new_inst->member_vars.size(), MemberTableEntryType::var);
 				if (m.composite) {
 					new_inst->member_composites.push_back((uint16_t)new_inst->member_vars.size());
 				}
@@ -569,13 +576,13 @@ namespace Corrosive {
 
 			if (new_inst->context == ILContext::runtime) {
 				for (auto&& f : new_inst->subfunctions) {
-					f.second.get()->context = ILContext::runtime;
+					f->context = ILContext::runtime;
 				}
 			}
 
 			if (new_inst->context == ILContext::compile) {
 				for (auto&& f : new_inst->subfunctions) {
-					f.second.get()->context = ILContext::compile;
+					f->context = ILContext::compile;
 				}
 			}
 
@@ -716,7 +723,7 @@ namespace Corrosive {
 
 				member.type = Ctx::types()->load_or_register_function_type(std::move(args), ret_type, ILContext::both);
 
-				new_inst->member_table[m.name.buffer] = new_inst->member_funcs.size();
+				new_inst->member_table[m.name.buffer] = (uint16_t)new_inst->member_funcs.size();
 				new_inst->member_funcs.push_back(std::move(member));
 			}
 
@@ -1152,8 +1159,8 @@ namespace Corrosive {
 
 		ILBuilder::build_accept(block, ILDataType::none);
 
-		if (member_vars.size() > 1 || member_composites.size() > 1) {
-			ILBuilder::build_clone_pair(block, ILDataType::word, (uint16_t)(member_vars.size() + member_composites.size()));
+		if (member_vars.size() > 1) {
+			ILBuilder::build_clone_pair(block, ILDataType::word, (uint16_t)(member_vars.size()));
 		}
 
 		auto do_lmbda = [&block, this](size_t ind, std::pair<Type*, uint32_t>& c_var) {
@@ -1200,9 +1207,10 @@ namespace Corrosive {
 
 		ILBuilder::build_accept(block, ILDataType::none);
 
-		if (member_vars.size() > 1 || member_composites.size() > 1) {
+		if (member_vars.size() > 1) {
 			ILBuilder::build_clone_pair(block, ILDataType::word, (uint16_t)(member_vars.size()));
 		}
+
 		auto do_lmbda = [&block, &func, &block_return, this](size_t ind, std::pair<Type*, uint32_t>& c_var) {
 			if (size.type == ILSizeType::table) {
 				ILBuilder::build_tableoffset_pair(Ctx::scope(), size.value, (uint16_t)ind);
@@ -1244,7 +1252,6 @@ namespace Corrosive {
 
 
 		func->append_block(block_return);
-		//func->dump();
 		auto_compare = func;
 		Ctx::pop_scope();
 	}
@@ -1252,7 +1259,7 @@ namespace Corrosive {
 	void StructureInstance::compile() {
 		if (compile_state == 0) {
 			compile_state = 1;
-
+			Ctx::push_scope_context(ILContext::compile);
 			Ctx::eval()->stack_push();
 			Ctx::eval_stack()->push();
 			generic_inst.insert_key_on_stack(Ctx::eval());
@@ -1329,7 +1336,7 @@ namespace Corrosive {
 
 
 			for (auto&& m : subfunctions) {
-				m.second->compile();
+				m->compile();
 			}
 
 			structure_type = StructureInstanceType::normal_structure;
@@ -1348,7 +1355,7 @@ namespace Corrosive {
 					TypeStructureInstance* ts = (TypeStructureInstance*)t;
 					ts->compile();
 					for (auto&& v : ts->owner->member_table) {
-						member_table.insert(std::make_pair(v.first, std::make_pair<uint16_t, bool>((uint16_t)comp, true)));
+						member_table.insert(std::make_pair(v.first, std::make_pair<uint16_t, MemberTableEntryType>((uint16_t)comp, MemberTableEntryType::alias)));
 					}
 				}
 				else if (t->type() == TypeInstanceType::type_slice) {
@@ -1356,6 +1363,20 @@ namespace Corrosive {
 					ts->compile();
 					pass_array_operator = true;
 					pass_array_id = (uint16_t)comp;
+				}
+			}
+
+			
+			for (uint32_t i = 0; i < subfunctions.size(); ++i) {
+				auto gf = subfunctions[i].get();
+				if (!gf->is_generic) {
+					gf->compile();
+					FunctionInstance* fi;
+					gf->generate(nullptr, fi);
+
+					if (fi->arguments.size() > 0 && fi->arguments[0].second == type.get()->generate_reference()) {
+						member_table.insert(std::make_pair(fi->name.buffer, std::make_pair<uint16_t, MemberTableEntryType>((uint16_t)i, MemberTableEntryType::func)));
+					}
 				}
 			}
 
@@ -1414,6 +1435,7 @@ namespace Corrosive {
 
 			Ctx::eval_stack()->pop();
 			Ctx::eval()->stack_pop();
+			Ctx::pop_scope_context();
 		}
 		else if (compile_state == 3) {
 
