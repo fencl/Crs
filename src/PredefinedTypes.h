@@ -107,6 +107,8 @@ namespace Corrosive {
 		std::unordered_map<size_t, size_t, custom_hash> lookup;
 	};*/
 
+	class FunctionInstance;
+
 	class DefaultTypes {
 	public:
 		Type* t_i8;
@@ -146,6 +148,12 @@ namespace Corrosive {
 		TraitTemplate* tr_compare;
 		TraitTemplate* tr_drop;
 		TraitTemplate* tr_ctor;
+
+		FunctionInstance* f_build_reference;
+		FunctionInstance* f_build_array;
+		FunctionInstance* f_build_slice;
+		FunctionInstance* f_build_subtype;
+		FunctionInstance* f_type_size;
 
 		void setup();
 	private:

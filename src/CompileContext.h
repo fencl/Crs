@@ -53,7 +53,7 @@ namespace Corrosive {
 		static void push_scope_exit(ILBlock* scope_exit);
 		static void pop_scope_exit();
 
-		static void register_ext_function(std::initializer_list<const char*> path,void(*ptr)(ILEvaluator*));
+		static FunctionInstance* register_ext_function(std::initializer_list<const char*> path,void(*ptr)(ILEvaluator*));
 
 	private:
 		static DefaultTypes* default_types;

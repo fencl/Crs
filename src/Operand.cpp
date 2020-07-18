@@ -109,7 +109,7 @@ namespace Corrosive {
 			}
 			else {
 				ILBuilder::build_const_type(Ctx::scope(), to);
-				ILBuilder::build_insintric(Ctx::scope(), ILInsintric::template_cast);
+				ILBuilder::build_insintric(Ctx::scope(), ILInsintric::type_dynamic_cast);
 				res.t = to;
 			}
 		}
@@ -1472,9 +1472,66 @@ namespace Corrosive {
 
 
 			}
-			else {
-				throw_specific_error(c, "Template generator not supported as a runtime operator, please use .generate(...) on generic template type");
+			else if (ret.t->type() == TypeInstanceType::type_template) {
+				Expression::rvalue(ret, cpt);
 
+				if (cpt == CompileType::compile) {
+					ILBuilder::build_const_type(Ctx::scope(), ret.t);
+
+					ILBuilder::build_insintric(Ctx::scope(), ILInsintric::type_dynamic_cast);
+					ILBuilder::build_insintric(Ctx::scope(), ILInsintric::push_template);
+				}
+				else {
+					ILBuilder::eval_const_type(Ctx::eval(), ret.t);
+					ILBuilder::eval_insintric(Ctx::eval(), ILInsintric::type_dynamic_cast);
+					ILBuilder::eval_insintric(Ctx::eval(), ILInsintric::push_template);
+				}
+
+				TypeTemplate* tt = (TypeTemplate*)ret.t;
+				auto layout = Ctx::types()->argument_array_storage.get(tt->argument_array_id).begin();
+
+				if (c.tok != RecognizedToken::OpenParenthesis) {
+					throw_wrong_token_error(c, "'('");
+
+				}
+				c.move();
+
+				std::vector<CompileValue> results;
+				if (c.tok != RecognizedToken::CloseParenthesis) {
+					while (true) {
+						CompileValue res;
+						Cursor err = c;
+						Expression::parse(c, res, cpt);
+						Expression::rvalue(res, cpt);
+						Operand::cast(err, res, *layout, cpt, true);
+
+						results.push_back(res);
+						layout++;
+
+						if (c.tok == RecognizedToken::Comma) {
+							c.move();
+						}
+						else if (c.tok == RecognizedToken::CloseParenthesis) {
+							break;
+						}
+						else {
+							throw_wrong_token_error(c, "')' or ','");
+
+						}
+					}
+				}
+
+				c.move();
+
+				if (cpt == CompileType::compile) {
+					ILBuilder::build_insintric(Ctx::scope(), ILInsintric::build_template);
+				}
+				else {
+					ILBuilder::eval_insintric(Ctx::eval(), ILInsintric::build_template);
+				}
+			}
+			else {
+				throw_specific_error(c, "Operation not supported on plain type, please cast to generic type");
 			}
 
 		}
@@ -2143,177 +2200,6 @@ namespace Corrosive {
 				throw_specific_error(c, "Indentifier not recognized as a value of slice");
 
 			}
-		}
-		else if (ret.t->type() == TypeInstanceType::type_template || ret.t == Ctx::types()->t_type) {
-			c.move();
-
-			if (c.buffer == "generate") {
-
-				if (ret.t == Ctx::types()->t_type) {
-					throw_specific_error(c, "Operation not supported on generic type, please use generic template type");
-
-				}
-
-				c.move();
-
-
-				Expression::rvalue(ret, cpt);
-
-				if (cpt == CompileType::compile) {
-					ILBuilder::build_const_type(Ctx::scope(), ret.t);
-					ILBuilder::build_insintric(Ctx::scope(), ILInsintric::template_cast);
-					ILBuilder::build_insintric(Ctx::scope(), ILInsintric::push_template);
-				}
-				else {
-					ILBuilder::eval_const_type(Ctx::eval(), ret.t);
-					ILBuilder::eval_insintric(Ctx::eval(), ILInsintric::template_cast);
-					ILBuilder::eval_insintric(Ctx::eval(), ILInsintric::push_template);
-				}
-
-				TypeTemplate* tt = (TypeTemplate*)ret.t;
-				auto layout = Ctx::types()->argument_array_storage.get(tt->argument_array_id).begin();
-
-				if (c.tok != RecognizedToken::OpenParenthesis) {
-					throw_wrong_token_error(c, "'('");
-
-				}
-				c.move();
-
-				std::vector<CompileValue> results;
-				if (c.tok != RecognizedToken::CloseParenthesis) {
-					while (true) {
-						CompileValue res;
-						Cursor err = c;
-						Expression::parse(c, res, cpt);
-						Expression::rvalue(res, cpt);
-						Operand::cast(err, res, *layout, cpt, true);
-
-						results.push_back(res);
-						layout++;
-
-						if (c.tok == RecognizedToken::Comma) {
-							c.move();
-						}
-						else if (c.tok == RecognizedToken::CloseParenthesis) {
-							break;
-						}
-						else {
-							throw_wrong_token_error(c, "')' or ','");
-
-						}
-					}
-				}
-
-				c.move();
-
-				if (cpt == CompileType::compile) {
-					ILBuilder::build_insintric(Ctx::scope(), ILInsintric::build_template);
-				}
-				else {
-					ILBuilder::eval_insintric(Ctx::eval(), ILInsintric::build_template);
-				}
-			}
-			else if (c.buffer == "array") {
-				c.move();
-				if (c.tok != RecognizedToken::OpenParenthesis) {
-					throw_wrong_token_error(c, "'('");
-
-				}
-				c.move();
-
-				CompileValue res;
-				Cursor err = c;
-				Expression::rvalue(ret, cpt);
-
-				Expression::parse(c, res, cpt);
-				Operand::cast(err, res, Ctx::types()->t_u32, cpt, true);
-				Expression::rvalue(res, cpt);
-
-
-				if (c.tok != RecognizedToken::CloseParenthesis) {
-					throw_wrong_token_error(c, "')'");
-				}
-				c.move();
-
-				if (cpt == CompileType::compile) {
-					ILBuilder::build_insintric(Ctx::scope(), ILInsintric::build_array);
-				}
-				else {
-					ILBuilder::eval_insintric(Ctx::eval(), ILInsintric::build_array);
-				}
-			}
-			else if (c.buffer == "reference") {
-				c.move();
-				Expression::rvalue(ret, cpt);
-				if (cpt == CompileType::compile) {
-					ILBuilder::build_insintric(Ctx::scope(), ILInsintric::build_reference);
-				}
-				else {
-					ILBuilder::eval_insintric(Ctx::eval(), ILInsintric::build_reference);
-				}
-			}
-			else if (c.buffer == "subtype") {
-				c.move();
-
-				if (c.tok != RecognizedToken::OpenParenthesis) {
-					throw_wrong_token_error(c, "'('");
-				}
-				c.move();
-
-				Expression::rvalue(ret, cpt);
-
-				Cursor err = c;
-				CompileValue res;
-				Expression::parse(c, res, cpt);
-				Type* to = Ctx::types()->t_u8->generate_slice();
-				Operand::cast(err, res, to, cpt, true);
-				Expression::rvalue(res, cpt);
-
-
-				if (c.tok != RecognizedToken::CloseParenthesis) {
-					throw_wrong_token_error(c, "')'");
-				}
-				c.move();
-
-
-				if (cpt == CompileType::compile) {
-					ILBuilder::build_insintric(Ctx::scope(), ILInsintric::build_subtype);
-				}
-				else {
-					ILBuilder::eval_insintric(Ctx::eval(), ILInsintric::build_subtype);
-				}
-			}
-			else if (c.buffer == "slice") {
-				c.move();
-				Expression::rvalue(ret, cpt);
-				if (cpt == CompileType::compile) {
-					ILBuilder::build_insintric(Ctx::scope(), ILInsintric::build_slice);
-				}
-				else {
-					ILBuilder::eval_insintric(Ctx::eval(), ILInsintric::build_slice);
-				}
-			}
-			else if (c.buffer == "size") {
-				Expression::rvalue(ret, cpt);
-
-				if (cpt == CompileType::compile) {
-					ILBuilder::build_insintric(Ctx::scope(), ILInsintric::type_size);
-				}
-				else {
-					ILBuilder::eval_insintric(Ctx::eval(), ILInsintric::type_size);
-				}
-
-				ret.lvalue = false;
-				ret.t = Ctx::types()->t_size;
-
-			}
-			else {
-				throw_specific_error(c, "Unknown type functional operator");
-
-			}
-
-			ret.lvalue = false;
-			ret.t = Ctx::types()->t_type;
 		}
 		else if (ret.t->type() == TypeInstanceType::type_trait) {
 			c.move();

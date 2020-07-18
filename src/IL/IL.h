@@ -206,7 +206,7 @@ namespace Corrosive {
 	using ilsize_t = uint64_t; // max register size for all architectures (temp storage)
 
 	enum class ILInsintric : unsigned char {
-		build_array, build_reference, push_template, build_template, build_slice, template_cast, type_size, build_subtype
+		push_template, build_template, type_dynamic_cast
 	};
 
 	extern const ILArchitecture compiler_arch;

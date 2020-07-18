@@ -106,7 +106,7 @@ namespace Corrosive {
 	std::vector < ILBlock* > Ctx::il_scope_exit;
 
 
-	void Ctx::register_ext_function(std::initializer_list<const char*> path, void(*ptr)(ILEvaluator*)) {
+	FunctionInstance* Ctx::register_ext_function(std::initializer_list<const char*> path, void(*ptr)(ILEvaluator*)) {
 		Namespace* nspc = Ctx::global_namespace();
 		FunctionTemplate* func = nullptr;
 
@@ -126,7 +126,7 @@ namespace Corrosive {
 				func = next_func;
 			}
 			else {
-				throw std::exception("Wrong path provided to register_ext_function function.");
+				return nullptr;
 			}
 		}
 
@@ -134,6 +134,7 @@ namespace Corrosive {
 		func->generate(nullptr, finst);
 		finst->compile();
 		((ILExtFunction*)finst->func)->ptr = ptr;
+		return finst;
 	}
 
 }

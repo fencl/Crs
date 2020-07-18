@@ -1,5 +1,6 @@
 #include "PredefinedTypes.h"
 #include <iostream>
+#include "Operand.h"
 
 namespace Corrosive {
 
@@ -68,7 +69,14 @@ namespace Corrosive {
 
 		std_lib.load_data("trait Copy(T:type) {fn Copy: (&T);}\ntrait Move(T:type) {fn Move: (&T);}\ntrait Compare(T:type) {fn Compare: (&T) i8;}\ntrait Drop {fn Drop: ();}\ntrait Default {fn Default: ();}\n"
 			"fn copy_slice(T: type): (to: []T, from: []T) { let i=0; while(i<from.count) { to[i] = from[i]; i = i+1;} }\n"
-			"fn invalidate_slice(T: type): (slice: &[]T) { (*slice).ptr = null; (*slice).size=0; }"
+			"fn invalidate_slice(T: type): (slice: &[]T) { (*slice).ptr = null; (*slice).size=0; }\n"
+			"namespace compiler {\n"
+				"fn compile ext reference_of: (type) type;\n"
+				"fn compile ext array_of: (type, u32) type;\n"
+				"fn compile ext subtype_of: (type, []u8) type;\n"
+				"fn compile ext slice_of: (type) type;\n"
+				"fn compile ext type_size: (type) size;\n"
+			"}"
 			,"standard_library<buffer>");
 		std_lib.pair_braces();
 		std_lib.register_debug();
@@ -81,6 +89,12 @@ namespace Corrosive {
 		tr_compare = Ctx::global_namespace()->subtraits[Ctx::global_namespace()->name_table["Compare"].second].get();
 		tr_drop = Ctx::global_namespace()->subtraits[Ctx::global_namespace()->name_table["Drop"].second].get();
 		tr_ctor = Ctx::global_namespace()->subtraits[Ctx::global_namespace()->name_table["Default"].second].get();
+
+		f_build_reference = Ctx::register_ext_function({ "compiler","reference_of" }, Operand::priv_build_reference);
+		f_build_array = Ctx::register_ext_function({ "compiler","array_of" }, Operand::priv_build_array);
+		f_build_subtype = Ctx::register_ext_function({ "compiler","subtype_of" }, Operand::priv_build_subtype);
+		f_build_slice = Ctx::register_ext_function({ "compiler","slice_of" }, Operand::priv_build_slice);
+		f_type_size = Ctx::register_ext_function({ "compiler","type_size" }, Operand::priv_type_size);
 	}
 
 

@@ -33,6 +33,9 @@ namespace Corrosive {
 			in.read(&buffer[0], buffer.size());
 			in.close();
 		}
+		else {
+			throw std::exception("File not found");
+		}
 
 		name = file;
 		const size_t last_slash_idx = name.find_last_of("\\/");
@@ -399,4 +402,33 @@ namespace Corrosive {
 			throw_specific_error(open_braces.back(), "There was no '}' to close this block");
 		}
 	}
+
+	std::map<std::filesystem::path, std::unique_ptr<Source>> Source::included_sources;
+
+	void Source::require(std::filesystem::path file, const Source* src) 
+	{
+		std::filesystem::path abs;
+		if (src) {
+			abs = src->path.parent_path();
+			abs += abs.preferred_separator;
+			abs += file;
+			abs = std::filesystem::absolute(abs);
+		}
+		else {
+			abs = std::filesystem::absolute(file);
+		}
+
+		auto f = included_sources.find(abs);
+		if (f == included_sources.end()) {
+			auto std_src = std::make_unique<Source>();
+			std_src->path = abs;
+			std_src->load(abs.generic_string().c_str());
+			std_src->pair_braces();
+			std_src->register_debug();
+			Cursor c_std = std_src->read_first();
+			included_sources[std::move(abs)] = std::move(std_src);
+			Declaration::parse_global(c_std, Ctx::global_namespace());
+		}
+	}
+
 }

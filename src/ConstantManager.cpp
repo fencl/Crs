@@ -14,7 +14,7 @@ namespace Corrosive {
 			empl.first->second = Ctx::global_module()->register_constant((unsigned char*)empl.first->first.data(), empl.first->first.length());
 		}
 
-		return std::move(std::make_pair(empl.first->first,empl.first->second));
+		return std::move(std::make_pair(std::string_view(empl.first->first),empl.first->second));
 	}
 
 

@@ -26,44 +26,51 @@ namespace Corrosive {
 		std::cout << sv;
 	}
 
+	size_t allocated_counter = 0;
+
 	void malloc_provider(ILEvaluator* eval) {
 		auto size = eval->pop_register_value<size_t>();
 		auto ref = malloc(size);
 		eval->write_register_value(ref);
+		++allocated_counter;
 	}
 
 	void free_provider(ILEvaluator* eval) {
 		auto ref = eval->pop_register_value<void*>();
 		free(ref);
+		--allocated_counter;
 	}
 
 	int crs_main() {
+		static_assert(sizeof(void*) == sizeof(size_t), "Error, size_t and void* must be the same size");
+		static_assert(sizeof(double) == 8, "Error, double must be 64bit"); // TODO lets maybe create wrapper class to ensure correct format
+		static_assert(sizeof(float) == 4, "Error, float must be 32bit");   //      on architectures with different floating point format
+
+		//TODO ENDIANNESS !!!
+
+		switch (compiler_arch)
+		{
+			case ILArchitecture::bit32:
+				std::cout << "32bit arch\n\n"; break;
+			case ILArchitecture::bit64:
+				std::cout << "64bit arch\n\n"; break;
+		}
 
 		ILModule m;
 		DefaultTypes dt;
 		Namespace gn;
-		std::unique_ptr<ILEvaluator> e = std::make_unique<ILEvaluator>();
+		std::unique_ptr<ILEvaluator> e = std::make_unique<ILEvaluator>(); // evaluator is allocated because it holds large stack
 		StackManager rts;
 		StackManager cps;
 		StackManager tms;
 		ConstantManager cmgr;
 
-		m.insintric_function[(unsigned char)ILInsintric::build_array] = &Operand::priv_build_array;
-		m.insintric_function_name[(unsigned char)ILInsintric::build_array] = "array";
-		m.insintric_function[(unsigned char)ILInsintric::build_reference] = &Operand::priv_build_reference;
-		m.insintric_function_name[(unsigned char)ILInsintric::build_reference] = "reference";
-		m.insintric_function[(unsigned char)ILInsintric::build_subtype] = &Operand::priv_build_subtype;
-		m.insintric_function_name[(unsigned char)ILInsintric::build_subtype] = "subtype";
 		m.insintric_function[(unsigned char)ILInsintric::push_template] = &Operand::priv_build_push_template;
 		m.insintric_function_name[(unsigned char)ILInsintric::push_template] = "push_template";
 		m.insintric_function[(unsigned char)ILInsintric::build_template] = &Operand::priv_build_build_template;
 		m.insintric_function_name[(unsigned char)ILInsintric::build_template] = "build_template";
-		m.insintric_function[(unsigned char)ILInsintric::template_cast] = &Operand::priv_type_template_cast;
-		m.insintric_function_name[(unsigned char)ILInsintric::template_cast] = "dynamic_cast";
-		m.insintric_function[(unsigned char)ILInsintric::build_slice] = &Operand::priv_build_slice;
-		m.insintric_function_name[(unsigned char)ILInsintric::build_slice] = "slice";
-		m.insintric_function[(unsigned char)ILInsintric::type_size] = &Operand::priv_type_size;
-		m.insintric_function_name[(unsigned char)ILInsintric::type_size] = "type_size";
+		m.insintric_function[(unsigned char)ILInsintric::type_dynamic_cast] = &Operand::priv_type_template_cast;
+		m.insintric_function_name[(unsigned char)ILInsintric::type_dynamic_cast] = "dynamic_cast";
 
 		e->parent = &m;
 
@@ -77,21 +84,7 @@ namespace Corrosive {
 
 			Ctx::types()->setup();
 
-			Source std_src;
-			std_src.load("..\\test\\std.crs");
-			std_src.pair_braces();
-			std_src.register_debug();
-			Cursor c_std = std_src.read_first();
-			Declaration::parse_global(c_std, &gn);
-			
-			Source src;
-			src.load("..\\test\\test.crs");
-			src.pair_braces();
-			src.register_debug();
-			Cursor c_src = src.read_first();
-			Declaration::parse_global(c_src, &gn);
-			
-
+			Source::require("../test/test.crs");
 
 			ILFunction* main = nullptr;
 
@@ -136,15 +129,17 @@ namespace Corrosive {
 
 				std::cout << "\ntest result was: " << ret_val << "\n\n";
 
-				auto lr1b = (size_t)(Ctx::eval()->register_stack_1b - Ctx::eval()->register_stack_1b);
+				auto lr1b = (size_t)(Ctx::eval()->register_stack_pointer_1b - Ctx::eval()->register_stack_1b);
 				
 				std::cout << "leaked 1 byte registers: " << lr1b << "\n";
-				auto lr2b = (size_t)(Ctx::eval()->register_stack_2b - Ctx::eval()->register_stack_2b);
+				auto lr2b = (size_t)(Ctx::eval()->register_stack_pointer_2b - Ctx::eval()->register_stack_2b);
 				std::cout << "leaked 2 byte registers: " << lr2b << "\n";
-				auto lr4b = (size_t)(Ctx::eval()->register_stack_4b - Ctx::eval()->register_stack_4b);
+				auto lr4b = (size_t)(Ctx::eval()->register_stack_pointer_4b - Ctx::eval()->register_stack_4b);
 				std::cout << "leaked 4 byte registers: " << lr4b << "\n";
-				auto lr8b = (size_t)(Ctx::eval()->register_stack_8b - Ctx::eval()->register_stack_8b);
-				std::cout << "leaked 8 byte registers: " << lr8b << "\n";
+				auto lr8b = (size_t)(Ctx::eval()->register_stack_pointer_8b - Ctx::eval()->register_stack_8b);
+				std::cout << "leaked 8 byte registers: " << lr8b << "\n\n";
+
+				std::cout << "leaked allocations: " << allocated_counter << "\n";
 
 				Ctx::pop_scope_context();
 
@@ -160,6 +155,7 @@ namespace Corrosive {
 			std::cerr << e.what()<<"\n";
 		}
 
+		Source::release();
 		Ctx::eval()->sandbox_end();
 		return 0;
 	}

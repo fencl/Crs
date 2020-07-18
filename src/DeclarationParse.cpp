@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string>
 #include "PredefinedTypes.h"
-
+#include "ConstantManager.h"
 
 namespace Corrosive {
 
@@ -41,9 +41,11 @@ namespace Corrosive {
 			if (c.buffer == "require") {
 				c.move();
 				if (c.tok != RecognizedToken::String) {
-					throw_specific_error(c, "Expected string"); // TODO better message
+					throw_specific_error(c, "Expected string");
 				}
-				std::cout <<"require: "<< c.buffer << "\n";
+
+				auto lit = Ctx::const_mgr()->register_string_literal(c);
+				Source::require(lit.first, c.src);
 
 				c.move();
 				if (c.tok != RecognizedToken::Semicolon) {
