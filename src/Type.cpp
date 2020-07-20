@@ -5,6 +5,7 @@
 #include "PredefinedTypes.h"
 #include "Utilities.h"
 #include <csetjmp>
+#include "Compiler.h"
 
 namespace Corrosive {
 
@@ -12,10 +13,10 @@ namespace Corrosive {
 
 	int8_t Type::compare(unsigned char* me, unsigned char* to) {
 		if (setjmp(sandbox) == 0) {
-			return (int8_t)memcmp(me, to, size().eval(Ctx::global_module(), compiler_arch));
+			return (int8_t)memcmp(me, to, size().eval(compiler()->global_module(), compiler_arch));
 		}
 		else {
-			throw_runtime_handler_exception(Ctx::eval());
+			throw_runtime_handler_exception(compiler()->evaluator());
 		}
 
 		return 0;
@@ -23,19 +24,19 @@ namespace Corrosive {
 
 	void Type::move(unsigned char* me, unsigned char* from) {
 		if (setjmp(sandbox) == 0) {
-			memcpy(me, from, size().eval(Ctx::global_module(), compiler_arch));
+			memcpy(me, from, size().eval(compiler()->global_module(), compiler_arch));
 		}
 		else {
-			throw_runtime_handler_exception(Ctx::eval());
+			throw_runtime_handler_exception(compiler()->evaluator());
 		}
 	}
 
 	void Type::copy(unsigned char* me, unsigned char* from) {
 		if (setjmp(sandbox) == 0) {
-			memcpy(me, from, size().eval(Ctx::global_module(), compiler_arch));
+			memcpy(me, from, size().eval(compiler()->global_module(), compiler_arch));
 		}
 		else {
-			throw_runtime_handler_exception(Ctx::eval());
+			throw_runtime_handler_exception(compiler()->evaluator());
 		}
 	}
 
@@ -53,7 +54,7 @@ namespace Corrosive {
 
 	void TypeStructureInstance::construct(unsigned char* me) {
 		if (has_special_constructor()) {
-			ILEvaluator* eval = Ctx::eval();
+			ILEvaluator* eval = compiler()->evaluator();
 			ILBuilder::eval_const_ptr(eval, me);
 			ILBuilder::eval_fncall(eval, owner->auto_constructor);
 		}
@@ -61,7 +62,7 @@ namespace Corrosive {
 
 	void TypeStructureInstance::drop(unsigned char* me) {
 		if (has_special_constructor()) {
-			ILEvaluator* eval = Ctx::eval();
+			ILEvaluator* eval = compiler()->evaluator();
 			ILBuilder::eval_const_ptr(eval, me);
 			ILBuilder::eval_fncall(eval, owner->auto_destructor);
 		}
@@ -70,7 +71,7 @@ namespace Corrosive {
 	void TypeStructureInstance::move(unsigned char* me,  unsigned char* from) {
 		if (has_special_move()) {
 
-			ILEvaluator* eval = Ctx::eval();
+			ILEvaluator* eval = compiler()->evaluator();
 			ILBuilder::eval_const_ptr(eval, me);
 			ILBuilder::eval_const_ptr(eval, from);
 			ILBuilder::eval_fncall(eval, owner->auto_move);
@@ -83,7 +84,7 @@ namespace Corrosive {
 	void TypeStructureInstance::copy(unsigned char* me,  unsigned char* from) {
 		if (has_special_copy()) {
 
-			ILEvaluator* eval = Ctx::eval();
+			ILEvaluator* eval = compiler()->evaluator();
 			ILBuilder::eval_const_ptr(eval, me);
 			ILBuilder::eval_const_ptr(eval, from);
 
@@ -97,7 +98,7 @@ namespace Corrosive {
 	int8_t TypeStructureInstance::compare(unsigned char* me, unsigned char* to) {
 		if (has_special_compare()) {
 
-			ILEvaluator* eval = Ctx::eval();
+			ILEvaluator* eval = compiler()->evaluator();
 			ILBuilder::eval_const_ptr(eval, me);
 			ILBuilder::eval_const_ptr(eval, to);
 			ILBuilder::eval_fncall(eval, owner->auto_compare);
@@ -113,8 +114,8 @@ namespace Corrosive {
 
 	void TypeArray::construct(unsigned char* me) {
 		if (has_special_constructor()) {
-			uint32_t count = Ctx::global_module()->array_tables[table].count;
-			size_t elem_stride = align_up(owner->size().eval(Ctx::global_module(), compiler_arch), owner->size().alignment(Ctx::global_module(), compiler_arch));
+			uint32_t count = compiler()->global_module()->array_tables[table].count;
+			size_t elem_stride = align_up(owner->size().eval(compiler()->global_module(), compiler_arch), owner->size().alignment(compiler()->global_module(), compiler_arch));
 
 			for (uint32_t i = 0; i < count; i++) {
 				owner->construct(me);
@@ -125,8 +126,8 @@ namespace Corrosive {
 
 	void TypeArray::drop(unsigned char* me) {
 		if (has_special_constructor()) {
-			uint32_t count = Ctx::global_module()->array_tables[table].count;
-			size_t elem_stride = align_up(owner->size().eval(Ctx::global_module(), compiler_arch), owner->size().alignment(Ctx::global_module(), compiler_arch));
+			uint32_t count = compiler()->global_module()->array_tables[table].count;
+			size_t elem_stride = align_up(owner->size().eval(compiler()->global_module(), compiler_arch), owner->size().alignment(compiler()->global_module(), compiler_arch));
 
 			for (uint32_t i = 0; i < count; i++) {
 				owner->drop(me);
@@ -138,8 +139,8 @@ namespace Corrosive {
 	void TypeArray::move(unsigned char* me, unsigned char* from) {
 		if (has_special_move()) {
 
-			uint32_t count = Ctx::global_module()->array_tables[table].count;
-			size_t elem_stride = align_up(owner->size().eval(Ctx::global_module(), compiler_arch), owner->size().alignment(Ctx::global_module(), compiler_arch));
+			uint32_t count = compiler()->global_module()->array_tables[table].count;
+			size_t elem_stride = align_up(owner->size().eval(compiler()->global_module(), compiler_arch), owner->size().alignment(compiler()->global_module(), compiler_arch));
 
 			for (uint32_t i = 0; i < count; i++) {
 				owner->move(me, from);
@@ -154,8 +155,8 @@ namespace Corrosive {
 
 	void TypeArray::copy(unsigned char* me, unsigned char* from) {
 		if (has_special_copy()) {
-			uint32_t count = Ctx::global_module()->array_tables[table].count;
-			size_t elem_stride = align_up(owner->size().eval(Ctx::global_module(), compiler_arch), owner->size().alignment(Ctx::global_module(), compiler_arch));
+			uint32_t count = compiler()->global_module()->array_tables[table].count;
+			size_t elem_stride = align_up(owner->size().eval(compiler()->global_module(), compiler_arch), owner->size().alignment(compiler()->global_module(), compiler_arch));
 
 			for (uint32_t i = 0; i < count; i++) {
 				owner->copy(me, from);
@@ -170,8 +171,8 @@ namespace Corrosive {
 
 	int8_t TypeArray::compare(unsigned char* me, unsigned char* to) {
 		if (has_special_compare()) {
-			uint32_t count = Ctx::global_module()->array_tables[table].count;
-			size_t elem_stride = align_up(owner->size().eval(Ctx::global_module(), compiler_arch), owner->size().alignment(Ctx::global_module(), compiler_arch));
+			uint32_t count = compiler()->global_module()->array_tables[table].count;
+			size_t elem_stride = align_up(owner->size().eval(compiler()->global_module(), compiler_arch), owner->size().alignment(compiler()->global_module(), compiler_arch));
 
 			for (uint32_t i = 0; i < count; i++) {
 				int8_t cmpval = owner->compare(me, to);
@@ -270,9 +271,9 @@ namespace Corrosive {
 			std::unique_ptr<TypeArray> ti = std::make_unique<TypeArray>();
 			ti->owner = this;
 			
-			ti->table = Ctx::global_module()->register_array_table();
-			Ctx::global_module()->array_tables[ti->table].count = count;
-			Ctx::global_module()->array_tables[ti->table].element = size();
+			ti->table = compiler()->global_module()->register_array_table();
+			compiler()->global_module()->array_tables[ti->table].count = count;
+			compiler()->global_module()->array_tables[ti->table].element = size();
 			TypeArray* rt = ti.get();
 			arrays[count] = std::move(ti);
 			return rt;
@@ -321,7 +322,7 @@ namespace Corrosive {
 	}
 
 	void TypeArray::print(std::ostream& os) {
-		os << "[" << Ctx::global_module()->array_tables[table].count << "]";
+		os << "[" << compiler()->global_module()->array_tables[table].count << "]";
 		owner->print(os);
 	}
 
@@ -334,7 +335,7 @@ namespace Corrosive {
 			os << " runtime";
 		}
 		os << "(";
-		std::vector<Type*> args = owner->argument_array_storage.get(argument_array_id);
+		std::vector<Type*> args = owner->types()->argument_array_storage.get(argument_array_id);
 		for (auto arg = args.begin(); arg != args.end(); arg++) {
 			if (arg != args.begin())
 				os << ", ";
@@ -410,4 +411,18 @@ namespace Corrosive {
 	ILContext TypeStructureInstance::context() {
 		return owner->context;
 	}
+
+
+	Compiler* Type::compiler() { return nullptr; }
+	Compiler* TypeReference::compiler() { return owner->compiler(); }
+	Compiler* TypeSlice::compiler() { return owner->compiler(); }
+	Compiler* TypeArray::compiler() { return owner->compiler(); }
+	Compiler* TypeTraitInstance::compiler() { return owner->compiler; }
+	Compiler* TypeStructureInstance::compiler() { return owner->compiler; }
+	Compiler* TypeFunction::compiler() { return owner; }
+	Compiler* TypeTemplate::compiler() { return owner->owner; }
+	Compiler* TypeTraitTemplate::compiler() { return owner->compiler; }
+	Compiler* TypeFunctionTemplate::compiler() { return owner->compiler; }
+	Compiler* TypeStructureTemplate::compiler() { return owner->compiler; }
+
 }

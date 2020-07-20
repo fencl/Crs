@@ -3,6 +3,7 @@
 
 #include "Cursor.h"
 #include "CompileContext.h"
+#include "Compiler.h"
 
 namespace Corrosive {
 
@@ -13,15 +14,15 @@ namespace Corrosive {
 	class Statement {
 	public:
 
-		static void parse(Cursor& c, CompileType copm_type, BlockTermination& termination);
-		static void parse_inner_block(Cursor& c, BlockTermination& termination, bool exit_returns = false, Cursor* err = nullptr);
+		static void parse(Compiler& compiler, Cursor& c, CompileType copm_type, BlockTermination& termination);
+		static void parse_inner_block(Compiler& compiler, Cursor& c, BlockTermination& termination, bool exit_returns = false, Cursor* err = nullptr);
 
-		static void parse_if(Cursor& c, BlockTermination& termination);
-		static void parse_while(Cursor& c, BlockTermination& termination);
+		static void parse_if(Compiler& compiler, Cursor& c, BlockTermination& termination);
+		static void parse_while(Compiler& compiler, Cursor& c, BlockTermination& termination);
 
-		static void parse_return(Cursor& c);
-		static void parse_make(Cursor& c);
-		static void parse_let(Cursor& c);
+		static void parse_return(Compiler& compiler, Cursor& c);
+		static void parse_make(Compiler& compiler, Cursor& c);
+		static void parse_let(Compiler& compiler, Cursor& c);
 	};
 
 }

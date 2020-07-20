@@ -13,7 +13,7 @@
 #include <map>
 
 namespace Corrosive {
-	class Ctx;
+	class Compiler;
 	class StructureInstance;
 	class StructureTemplate;
 	class TraitTemplate;
@@ -38,6 +38,8 @@ namespace Corrosive {
 		inline virtual TypeInstanceType type() { return TypeInstanceType::type_undefined; }
 
 		virtual void compile();
+
+		virtual Compiler* compiler();
 
 		virtual int8_t compare(unsigned char* me, unsigned char* p2);
 		virtual void move(unsigned char* me, unsigned char* from);
@@ -81,6 +83,8 @@ namespace Corrosive {
 
 		inline virtual TypeInstanceType type() { return TypeInstanceType::type_structure_instance; }
 
+
+		virtual Compiler* compiler();
 		virtual ILContext context();
 		virtual void compile();
 		virtual int8_t compare(unsigned char* me,  unsigned char* to);
@@ -113,6 +117,7 @@ namespace Corrosive {
 
 		StructureTemplate* owner;
 
+		virtual Compiler* compiler();
 		virtual void compile();
 		virtual void print(std::ostream& os);
 	};
@@ -123,6 +128,7 @@ namespace Corrosive {
 
 		FunctionTemplate* owner;
 
+		virtual Compiler* compiler();
 		virtual void compile();
 		virtual void print(std::ostream& os);
 	};
@@ -140,6 +146,8 @@ namespace Corrosive {
 
 		virtual bool rvalue_stacked();
 		virtual void print(std::ostream& os);
+
+		virtual Compiler* compiler();
 	};
 
 	class TypeTraitTemplate : public Type {
@@ -150,6 +158,8 @@ namespace Corrosive {
 
 		virtual void compile();
 		virtual void print(std::ostream& os);
+
+		virtual Compiler* compiler();
 	};
 
 	class TypeArray : public Type {
@@ -179,6 +189,8 @@ namespace Corrosive {
 		virtual bool has_special_copy();
 		virtual bool has_special_move();
 		virtual bool has_special_compare();
+
+		virtual Compiler* compiler();
 	};
 	
 	class TypeReference : public Type {
@@ -191,6 +203,7 @@ namespace Corrosive {
 		virtual ILContext context();
 		virtual ILSize size();
 		virtual void print(std::ostream& os);
+		virtual Compiler* compiler();
 	};
 
 	class TypeSlice : public Type {
@@ -205,6 +218,8 @@ namespace Corrosive {
 		virtual ILContext context();
 		virtual ILSize size();
 		virtual void print(std::ostream& os);
+
+		virtual Compiler* compiler();
 	};
 
 	class TypeFunction : public Type {
@@ -215,7 +230,7 @@ namespace Corrosive {
 
 		ILContext ptr_context;
 
-		DefaultTypes* owner;
+		Compiler* owner;
 		size_t argument_array_id;
 		Type* return_type;
 		uint32_t il_function_decl;
@@ -225,6 +240,8 @@ namespace Corrosive {
 		virtual void print(std::ostream& os);
 
 		virtual void compile();
+
+		virtual Compiler* compiler();
 	};
 
 	class TypeTemplate : public Type {
@@ -235,6 +252,8 @@ namespace Corrosive {
 		size_t argument_array_id;
 		virtual ILSize size();
 		virtual void print(std::ostream& os);
+
+		virtual Compiler* compiler();
 	};
 }
 

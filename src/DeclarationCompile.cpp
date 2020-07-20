@@ -10,6 +10,7 @@
 #include "Statement.h"
 #include "Utilities.h"
 #include "Operand.h"
+#include "Compiler.h"
 
 namespace Corrosive {
 
@@ -19,7 +20,7 @@ namespace Corrosive {
 
 			if (is_generic) {
 				Cursor c = annotation;
-				Ctx::push_workspace(parent);
+				compiler->push_workspace(parent);
 
 				while (true) {
 
@@ -32,23 +33,18 @@ namespace Corrosive {
 					c.move();
 					Cursor err = c;
 					CompileValue value;
-					Expression::parse(c, value, CompileType::eval);
-					Expression::rvalue(value, CompileType::eval);
+					Expression::parse(*compiler,c, value, CompileType::eval);
+					Expression::rvalue(*compiler,value, CompileType::eval);
 
-					if (value.t != Ctx::types()->t_type) {
+					if (value.type != compiler->types()->t_type) {
 						throw_specific_error(err, "Expected type value");
 					}
 
-					Type* t = Ctx::eval()->pop_register_value<Type*>();
-
-					/*if (t->type() != TypeInstanceType::type_structure_instance && t->type()!=TypeInstanceType::type_template && t->type() != TypeInstanceType::type_function) {
-						throw_specific_error(err, "Type does not point to instance");
-						return false;
-					}*/
+					Type* t = compiler->evaluator()->pop_register_value<Type*>();
 
 					t->compile();
 
-					generic_ctx.generate_heap_size += t->size().eval(Ctx::global_module(), compiler_arch);
+					generic_ctx.generate_heap_size += t->size().eval(compiler->global_module(), compiler_arch);
 					generic_ctx.generic_layout.push_back(std::make_tuple(name, t));
 
 
@@ -68,7 +64,7 @@ namespace Corrosive {
 				gen_template_cmp.parent = this;
 				instances = std::make_unique<std::map<unsigned char*, std::pair<std::unique_ptr<unsigned char[]>, std::unique_ptr<FunctionInstance>>, GenericTemplateCompare>>(gen_template_cmp);
 
-				Ctx::pop_workspace();
+				compiler->pop_workspace();
 			}
 
 			compile_state = 2;
@@ -86,10 +82,10 @@ namespace Corrosive {
 		if (compile_state == 0) {
 			compile_state = 1;
 
-			Ctx::eval()->stack_push();
-			Ctx::eval_stack()->push();
+			compiler->evaluator()->stack_push();
+			compiler->compiler_stack()->push();
 			if (generic_ctx.generator != nullptr) {
-				generic_ctx.generator->insert_key_on_stack(Ctx::eval());
+				generic_ctx.generator->insert_key_on_stack(*compiler);
 			}
 
 			type = std::make_unique<TypeStructureTemplate>();
@@ -98,7 +94,7 @@ namespace Corrosive {
 			if (is_generic) {
 				Cursor c = annotation;
 
-				Ctx::push_workspace(parent);
+				compiler->push_workspace(parent);
 
 				while (true) {
 
@@ -110,14 +106,14 @@ namespace Corrosive {
 					c.move();
 					Cursor err = c;
 					CompileValue value;
-					Expression::parse(c, value, CompileType::eval);
-					Expression::rvalue(value, CompileType::eval);
+					Expression::parse(*compiler,c, value, CompileType::eval);
+					Expression::rvalue(*compiler,value, CompileType::eval);
 
-					if (value.t != Ctx::types()->t_type) {
+					if (value.type != compiler->types()->t_type) {
 						throw_specific_error(err, "Expected type value");
 					}
 
-					Type* t = Ctx::eval()->pop_register_value<Type*>();
+					Type* t = compiler->evaluator()->pop_register_value<Type*>();
 
 					/*if (t->type() != TypeInstanceType::type_structure_instance && t->type() != TypeInstanceType::type_template && t->type() != TypeInstanceType::type_function) {
 						throw_specific_error(err, "Type does not point to instance");
@@ -126,7 +122,7 @@ namespace Corrosive {
 
 					t->compile();
 
-					generic_ctx.generate_heap_size += t->size().eval(Ctx::global_module(), compiler_arch);
+					generic_ctx.generate_heap_size += t->size().eval(compiler->global_module(), compiler_arch);
 					generic_ctx.generic_layout.push_back(std::make_tuple(name, t));
 
 
@@ -145,11 +141,11 @@ namespace Corrosive {
 				gen_template_cmp.parent = this;
 				instances = std::make_unique<std::map<unsigned char*, std::pair<std::unique_ptr<unsigned char[]>, std::unique_ptr<StructureInstance>>, GenericTemplateCompare>>(gen_template_cmp);
 
-				Ctx::pop_workspace();
+				compiler->pop_workspace();
 			}
 
-			Ctx::eval()->stack_pop();
-			Ctx::eval_stack()->pop();
+			compiler->evaluator()->stack_pop();
+			compiler->compiler_stack()->pop();
 
 			compile_state = 2;
 		}
@@ -165,10 +161,10 @@ namespace Corrosive {
 		if (compile_state == 0) {
 			compile_state = 1;
 
-			Ctx::eval()->stack_push();
-			Ctx::eval_stack()->push();
+			compiler->evaluator()->stack_push();
+			compiler->compiler_stack()->push();
 			if (generic_ctx.generator != nullptr) {
-				generic_ctx.generator->insert_key_on_stack(Ctx::eval());
+				generic_ctx.generator->insert_key_on_stack(*compiler);
 			}
 
 			type = std::make_unique<TypeTraitTemplate>();
@@ -179,7 +175,7 @@ namespace Corrosive {
 			if (is_generic) {
 				Cursor c = annotation;
 
-				Ctx::push_workspace(parent);
+				compiler->push_workspace(parent);
 
 				while (true) {
 
@@ -191,14 +187,14 @@ namespace Corrosive {
 					c.move();
 					Cursor err = c;
 					CompileValue value;
-					Expression::parse(c, value, CompileType::eval);
-					Expression::rvalue(value, CompileType::eval);
+					Expression::parse(*compiler,c, value, CompileType::eval);
+					Expression::rvalue(*compiler,value, CompileType::eval);
 
-					if (value.t != Ctx::types()->t_type) {
+					if (value.type != compiler->types()->t_type) {
 						throw_specific_error(err, "Expected type value");
 					}
 
-					Type* t = Ctx::eval()->pop_register_value<Type*>();
+					Type* t = compiler->evaluator()->pop_register_value<Type*>();
 
 					/*if (t->type() != TypeInstanceType::type_structure_instance && t->type() != TypeInstanceType::type_template && t->type() != TypeInstanceType::type_function) {
 						throw_specific_error(err, "Type does not point to instance");
@@ -207,7 +203,7 @@ namespace Corrosive {
 
 					t->compile();
 
-					generic_ctx.generate_heap_size += t->size().eval(Ctx::global_module(), compiler_arch);
+					generic_ctx.generate_heap_size += t->size().eval(compiler->global_module(), compiler_arch);
 					generic_ctx.generic_layout.push_back(std::make_tuple(name, t));
 
 
@@ -225,11 +221,11 @@ namespace Corrosive {
 
 				gen_template_cmp.parent = this;
 				instances = std::make_unique<std::map<unsigned char*, std::pair<std::unique_ptr<unsigned char[]>, std::unique_ptr<TraitInstance>>, GenericTemplateCompare>>(gen_template_cmp);
-				Ctx::pop_workspace();
+				compiler->pop_workspace();
 			}
 
-			Ctx::eval()->stack_pop();
-			Ctx::eval_stack()->pop();
+			compiler->evaluator()->stack_pop();
+			compiler->compiler_stack()->pop();
 			compile_state = 2;
 		}
 		else if (compile_state == 2) {
@@ -246,8 +242,8 @@ namespace Corrosive {
 		StructureInstance* new_inst = nullptr;
 		unsigned char* new_key = nullptr;
 
-		Ctx::eval()->stack_push();
-		Ctx::eval_stack()->push();
+		compiler->evaluator()->stack_push();
+		compiler->compiler_stack()->push();
 
 		if (!is_generic) {
 			if (singe_instance == nullptr) {
@@ -273,7 +269,7 @@ namespace Corrosive {
 
 				for (auto l = generic_ctx.generic_layout.rbegin(); l != generic_ctx.generic_layout.rend(); l++) {
 					std::get<1>(*l)->move(new_offset, old_offset);
-					size_t c_size = std::get<1>(*l)->size().eval(Ctx::global_module(), compiler_arch);
+					size_t c_size = std::get<1>(*l)->size().eval(compiler->global_module(), compiler_arch);
 					old_offset += c_size;
 					new_offset += c_size;
 				}
@@ -293,15 +289,16 @@ namespace Corrosive {
 			new_inst->type = std::make_unique<TypeStructureInstance>();
 			new_inst->type->owner = new_inst;
 			new_inst->parent = parent;
+			new_inst->compiler = compiler;
 			new_inst->name = name;
 			new_inst->namespace_type = NamespaceType::t_struct_instance;
 			new_inst->generic_inst.key = new_key;
 			new_inst->generic_inst.generator = &generic_ctx;
 
-			new_inst->generic_inst.insert_key_on_stack(Ctx::eval());
+			new_inst->generic_inst.insert_key_on_stack(*compiler);
 
-			Ctx::push_scope_context(ILContext::compile);
-			Ctx::push_workspace(new_inst);
+			compiler->push_scope_context(ILContext::compile);
+			compiler->push_workspace(new_inst);
 
 			for (auto&& m : member_funcs) {
 				Cursor c = m.type;
@@ -311,6 +308,7 @@ namespace Corrosive {
 				std::unique_ptr<FunctionTemplate> ft = std::make_unique<FunctionTemplate>();
 				ft->context = m.context;
 				ft->name = m.name;
+				ft->compiler = compiler;
 				ft->annotation = m.annotation;
 				ft->is_generic = m.annotation.tok != RecognizedToken::Eof;
 				ft->parent = new_inst;
@@ -332,7 +330,7 @@ namespace Corrosive {
 			for (auto&& t : member_templates) {
 				Cursor tc = t.cursor;
 				std::unique_ptr<StructureTemplate> decl;
-				StructureTemplate::parse(tc, new_inst, &new_inst->generic_inst, decl);
+				StructureTemplate::parse(*compiler,tc, new_inst, &new_inst->generic_inst, decl);
 
 				if (new_inst->name_table.find(decl->name.buffer) != new_inst->name_table.end()) {
 					throw_specific_error(decl->name, "Name already exists in the structure");
@@ -349,14 +347,14 @@ namespace Corrosive {
 				CompileValue value;
 
 				Cursor err = c;
-				Expression::parse(c, value, CompileType::eval);
-				Expression::rvalue(value, CompileType::eval);
+				Expression::parse(*compiler,c, value, CompileType::eval);
+				Expression::rvalue(*compiler,value, CompileType::eval);
 
-				if (value.t != Ctx::types()->t_type) {
+				if (value.type != compiler->types()->t_type) {
 					throw_specific_error(m.type, "Expected type value");
 				}
 
-				Type* t = Ctx::eval()->pop_register_value<Type*>();
+				Type* t = compiler->evaluator()->pop_register_value<Type*>();
 
 				if (t->type() != TypeInstanceType::type_trait) {
 					throw_specific_error(m.type, "Expected trait instance type");
@@ -378,6 +376,7 @@ namespace Corrosive {
 						ft->compile_state = 0;
 						ft->generic_inst.generator = &generic_ctx;
 						ft->generic_inst.key = new_key;
+						ft->compiler = compiler;
 
 						Cursor err;
 						ft->block = f.block;
@@ -405,7 +404,7 @@ namespace Corrosive {
 						auto& fundecl = tt->owner->member_funcs[ttid->second];
 						ft->context = fundecl.ctx;
 
-						auto& args = Ctx::types()->argument_array_storage.get(fundecl.type->argument_array_id);
+						auto& args = compiler->types()->argument_array_storage.get(fundecl.type->argument_array_id);
 
 						Cursor c = f.type;
 						c.move();
@@ -423,12 +422,12 @@ namespace Corrosive {
 
 								Cursor err = c;
 								CompileValue res;
-								Expression::parse(c, res, CompileType::eval);
-								Expression::rvalue(res, CompileType::eval);
-								if (res.t != Ctx::types()->t_type) {
+								Expression::parse(*compiler,c, res, CompileType::eval);
+								Expression::rvalue(*compiler,res, CompileType::eval);
+								if (res.type != compiler->types()->t_type) {
 									throw_specific_error(err, "Expected type");
 								}
-								Type* argt = Ctx::eval()->pop_register_value<Type*>();
+								Type* argt = compiler->evaluator()->pop_register_value<Type*>();
 								if (ft->arguments.size() == 0) {
 									Type* this_type = new_inst->type->generate_reference();
 									if (argt != this_type) {
@@ -471,13 +470,13 @@ namespace Corrosive {
 						if (c.tok != RecognizedToken::OpenBrace) {
 							Cursor err = c;
 							CompileValue res;
-							Expression::parse(c, res, CompileType::eval);
-							Expression::rvalue(res, CompileType::eval);
+							Expression::parse(*compiler,c, res, CompileType::eval);
+							Expression::rvalue(*compiler,res, CompileType::eval);
 
-							if (res.t != Ctx::types()->t_type) {
+							if (res.type != compiler->types()->t_type) {
 								throw_specific_error(err, "Expected type");
 							}
-							Type* rett = Ctx::eval()->pop_register_value<Type*>();
+							Type* rett = compiler->evaluator()->pop_register_value<Type*>();
 
 							Type* req_type = fundecl.type->return_type;
 							if (rett != req_type) {
@@ -488,7 +487,7 @@ namespace Corrosive {
 							ft->returns.second = rett;
 						}
 						else {
-							ft->returns.second = Ctx::types()->t_void;
+							ft->returns.second = compiler->types()->t_void;
 						}
 
 
@@ -497,7 +496,7 @@ namespace Corrosive {
 							argtypes.push_back(a.second);
 						}
 
-						ft->type = Ctx::types()->load_or_register_function_type(std::move(argtypes), ft->returns.second, ft->context);
+						ft->type = compiler->types()->load_or_register_function_type(std::move(argtypes), ft->returns.second, ft->context);
 						ft->compile_state = 1;
 						trait[ttid->second] = std::move(ft);
 
@@ -507,27 +506,27 @@ namespace Corrosive {
 						throw_specific_error(m.type, "Trait implementation is missing some functions");
 					}
 
-					if (tt->owner->generic_inst.generator == &Ctx::types()->tr_copy->generic_ctx) {
+					if (tt->owner->generic_inst.generator == &compiler->types()->tr_copy->generic_ctx) {
 						new_inst->impl_copy = trait.begin()->get();
 						new_inst->impl_copy->parent = new_inst;
 					}
 
-					if (tt->owner->generic_inst.generator == &Ctx::types()->tr_move->generic_ctx) {
+					if (tt->owner->generic_inst.generator == &compiler->types()->tr_move->generic_ctx) {
 						new_inst->impl_move = trait.begin()->get();
 						new_inst->impl_move->parent = new_inst;
 					}
 
-					if (tt->owner->generic_inst.generator == &Ctx::types()->tr_compare->generic_ctx) {
+					if (tt->owner->generic_inst.generator == &compiler->types()->tr_compare->generic_ctx) {
 						new_inst->impl_compare = trait.begin()->get();
 						new_inst->impl_compare->parent = new_inst;
 					}
 
-					if (tt->owner->generic_inst.generator == &Ctx::types()->tr_drop->generic_ctx) {
+					if (tt->owner->generic_inst.generator == &compiler->types()->tr_drop->generic_ctx) {
 						new_inst->impl_drop = trait.begin()->get();
 						new_inst->impl_drop->parent = new_inst;
 					}
 
-					if (tt->owner->generic_inst.generator == &Ctx::types()->tr_ctor->generic_ctx) {
+					if (tt->owner->generic_inst.generator == &compiler->types()->tr_ctor->generic_ctx) {
 						new_inst->impl_ctor = trait.begin()->get();
 						new_inst->impl_ctor->parent = new_inst;
 					}
@@ -543,13 +542,13 @@ namespace Corrosive {
 				CompileValue value;
 
 				Cursor err = c;
-				Expression::parse(c, value, CompileType::eval);
-				Expression::rvalue(value, CompileType::eval);
-				if (value.t != Ctx::types()->t_type) {
+				Expression::parse(*compiler,c, value, CompileType::eval);
+				Expression::rvalue(*compiler,value, CompileType::eval);
+				if (value.type != compiler->types()->t_type) {
 					throw_specific_error(m.type, "Expected type value");
 				}
 
-				Type* m_t = Ctx::eval()->pop_register_value<Type*>();
+				Type* m_t = compiler->evaluator()->pop_register_value<Type*>();
 				if (m_t->context() == ILContext::compile) {
 					if (new_inst->context == ILContext::both || new_inst->context == ILContext::compile) {
 						new_inst->context = ILContext::compile;
@@ -587,14 +586,14 @@ namespace Corrosive {
 			}
 
 
-			Ctx::pop_workspace();
-			Ctx::pop_scope_context();
+			compiler->pop_workspace();
+			compiler->pop_scope_context();
 
 		}
 
 
-		Ctx::eval_stack()->pop();
-		Ctx::eval()->stack_pop();
+		compiler->compiler_stack()->pop();
+		compiler->evaluator()->stack_pop();
 	}
 
 
@@ -603,8 +602,8 @@ namespace Corrosive {
 		unsigned char* new_key = nullptr;
 
 
-		Ctx::eval()->stack_push();
-		Ctx::eval_stack()->push();
+		compiler->evaluator()->stack_push();
+		compiler->compiler_stack()->push();
 
 		if (!is_generic) {
 			if (singe_instance == nullptr) {
@@ -630,7 +629,7 @@ namespace Corrosive {
 
 				for (auto l = generic_ctx.generic_layout.rbegin(); l != generic_ctx.generic_layout.rend(); l++) {
 					std::get<1>(*l)->move(new_offset, old_offset);
-					size_t c_size = std::get<1>(*l)->size().eval(Ctx::global_module(), compiler_arch);
+					size_t c_size = std::get<1>(*l)->size().eval(compiler->global_module(), compiler_arch);
 					old_offset += c_size;
 					new_offset += c_size;
 				}
@@ -650,15 +649,15 @@ namespace Corrosive {
 		if (new_inst != nullptr) {
 			new_inst->type = std::make_unique<TypeTraitInstance>();
 			new_inst->type->owner = new_inst;
-
+			new_inst->compiler = compiler;
 			new_inst->parent = parent;
 			new_inst->name = name;
 			new_inst->generic_inst.key = new_key;
 			new_inst->generic_inst.generator = &generic_ctx;
 
-			new_inst->generic_inst.insert_key_on_stack(Ctx::eval());
+			new_inst->generic_inst.insert_key_on_stack(*compiler);
 
-			Ctx::push_workspace(parent);
+			compiler->push_workspace(parent);
 
 			for (auto&& m : member_funcs) {
 
@@ -683,13 +682,13 @@ namespace Corrosive {
 					while (true) {
 						Cursor err = c;
 						CompileValue val;
-						Expression::parse(c, val, CompileType::eval);
-						Expression::rvalue(val, CompileType::eval);
+						Expression::parse(*compiler,c, val, CompileType::eval);
+						Expression::rvalue(*compiler,val, CompileType::eval);
 
-						if (val.t != Ctx::types()->t_type) {
+						if (val.type != compiler->types()->t_type) {
 							throw_specific_error(err, "Expected type");
 						}
-						Type* t = Ctx::eval()->pop_register_value<Type*>();
+						Type* t = compiler->evaluator()->pop_register_value<Type*>();
 						args.push_back(t);
 						if (c.tok == RecognizedToken::Comma) {
 							c.move();
@@ -705,33 +704,33 @@ namespace Corrosive {
 				c.move();
 
 				if (c.tok == RecognizedToken::Semicolon) {
-					ret_type = Ctx::types()->t_void;
+					ret_type = compiler->types()->t_void;
 				}
 				else {
 					Cursor err = c;
 					CompileValue val;
-					Expression::parse(c, val, CompileType::eval);
-					Expression::rvalue(val, CompileType::eval);
+					Expression::parse(*compiler,c, val, CompileType::eval);
+					Expression::rvalue(*compiler,val, CompileType::eval);
 
-					if (val.t != Ctx::types()->t_type) {
+					if (val.type != compiler->types()->t_type) {
 						throw_specific_error(err, "Expected type");
 					}
-					Type* t = Ctx::eval()->pop_register_value<Type*>();
+					Type* t = compiler->evaluator()->pop_register_value<Type*>();
 					ret_type = t;
 				}
 
 
-				member.type = Ctx::types()->load_or_register_function_type(std::move(args), ret_type, ILContext::both);
+				member.type = compiler->types()->load_or_register_function_type(std::move(args), ret_type, ILContext::both);
 
 				new_inst->member_table[m.name.buffer] = (uint16_t)new_inst->member_funcs.size();
 				new_inst->member_funcs.push_back(std::move(member));
 			}
 
-			Ctx::pop_workspace();
+			compiler->pop_workspace();
 		}
 
-		Ctx::eval_stack()->pop();
-		Ctx::eval()->stack_pop();
+		compiler->compiler_stack()->pop();
+		compiler->evaluator()->stack_pop();
 
 	}
 
@@ -740,8 +739,8 @@ namespace Corrosive {
 		FunctionInstance* new_inst = nullptr;
 		unsigned char* new_key = nullptr;
 
-		Ctx::eval()->stack_push();
-		Ctx::eval_stack()->push();
+		compiler->evaluator()->stack_push();
+		compiler->compiler_stack()->push();
 
 		if (!is_generic) {
 			if (singe_instance == nullptr) {
@@ -769,7 +768,7 @@ namespace Corrosive {
 
 				for (auto l = generic_ctx.generic_layout.rbegin(); l != generic_ctx.generic_layout.rend(); l++) {
 					std::get<1>(*l)->move(new_offset, old_offset);
-					size_t c_size = std::get<1>(*l)->size().eval(Ctx::global_module(), compiler_arch);
+					size_t c_size = std::get<1>(*l)->size().eval(compiler->global_module(), compiler_arch);
 					old_offset += c_size;
 					new_offset += c_size;
 				}
@@ -788,15 +787,16 @@ namespace Corrosive {
 		if (new_inst != nullptr) {
 			new_inst->compile_state = 0;
 			new_inst->parent = parent;
+			new_inst->compiler = compiler;
 			new_inst->generic_inst.key = new_key;
 			new_inst->generic_inst.generator = &generic_ctx;
 			new_inst->block = block;
 			new_inst->name = name;
 			new_inst->context = context;
 
-			new_inst->generic_inst.insert_key_on_stack(Ctx::eval());
+			new_inst->generic_inst.insert_key_on_stack(*compiler);
 
-			Ctx::push_workspace(parent);
+			compiler->push_workspace(parent);
 
 			CompileValue cvres;
 
@@ -815,13 +815,13 @@ namespace Corrosive {
 					}
 
 					Cursor err = cc;
-					Expression::parse(cc, cvres, CompileType::eval);
-					Expression::rvalue(cvres, CompileType::eval);
+					Expression::parse(*compiler,cc, cvres, CompileType::eval);
+					Expression::rvalue(*compiler,cvres, CompileType::eval);
 
-					if (cvres.t != Ctx::types()->t_type) {
-						throw_cannot_cast_error(err, cvres.t, Ctx::types()->t_type);
+					if (cvres.type != compiler->types()->t_type) {
+						throw_cannot_cast_error(err, cvres.type, compiler->types()->t_type);
 					}
-					Type* t = Ctx::eval()->pop_register_value<Type*>();
+					Type* t = compiler->evaluator()->pop_register_value<Type*>();
 					new_inst->arguments.push_back(std::make_pair(argname, t));
 
 					if (cc.tok == RecognizedToken::Comma) {
@@ -840,18 +840,18 @@ namespace Corrosive {
 
 			if (cc.tok != RecognizedToken::OpenBrace && cc.tok != RecognizedToken::Semicolon) {
 				Cursor err = cc;
-				Expression::parse(cc, cvres, CompileType::eval);
-				Expression::rvalue(cvres, CompileType::eval);
+				Expression::parse(*compiler,cc, cvres, CompileType::eval);
+				Expression::rvalue(*compiler,cvres, CompileType::eval);
 
-				if (cvres.t != Ctx::types()->t_type) {
-					throw_cannot_cast_error(err, cvres.t, Ctx::types()->t_type);
+				if (cvres.type != compiler->types()->t_type) {
+					throw_cannot_cast_error(err, cvres.type, compiler->types()->t_type);
 				}
-				Type* t = Ctx::eval()->pop_register_value<Type*>();
+				Type* t = compiler->evaluator()->pop_register_value<Type*>();
 				new_inst->returns.first = err;
 				new_inst->returns.second = t;
 			}
 			else {
-				new_inst->returns.second = Ctx::types()->t_void;
+				new_inst->returns.second = compiler->types()->t_void;
 			}
 
 			std::vector<Type*> argtypes;
@@ -859,14 +859,14 @@ namespace Corrosive {
 				argtypes.push_back(a.second);
 			}
 
-			new_inst->type = Ctx::types()->load_or_register_function_type(std::move(argtypes), new_inst->returns.second, new_inst->context);
+			new_inst->type = compiler->types()->load_or_register_function_type(std::move(argtypes), new_inst->returns.second, new_inst->context);
 			new_inst->compile_state = 1;
 
-			Ctx::pop_workspace();
+			compiler->pop_workspace();
 		}
 
-		Ctx::eval_stack()->pop();
-		Ctx::eval()->stack_pop();
+		compiler->compiler_stack()->pop();
+		compiler->evaluator()->stack_pop();
 	}
 
 	void FunctionInstance::compile() {
@@ -874,7 +874,7 @@ namespace Corrosive {
 			compile_state = 2;
 			if (block.src) {
 				type->compile();
-				auto func = Ctx::global_module()->create_function();
+				auto func = compiler->global_module()->create_function();
 				this->func = func;
 				func->decl_id = type->il_function_decl;
 				func->alias = name.buffer;
@@ -883,23 +883,23 @@ namespace Corrosive {
 				b->alias = "entry";
 
 
-				Ctx::push_workspace(parent);
-				Ctx::push_scope_context(context);
-				Ctx::push_function(func, returns.second);
-				Ctx::push_scope(b);
+				compiler->push_workspace(parent);
+				compiler->push_scope_context(context);
+				compiler->push_function(func, returns.second);
+				compiler->push_scope(b);
 
 
-				Ctx::eval()->stack_push();
-				Ctx::eval_stack()->push();
-				generic_inst.insert_key_on_stack(Ctx::eval());
+				compiler->evaluator()->stack_push();
+				compiler->compiler_stack()->push();
+				generic_inst.insert_key_on_stack(*compiler);
 
-				Ctx::stack()->push();
-				Ctx::temp_stack()->push();
+				compiler->stack()->push();
+				compiler->temp_stack()->push();
 
-				Ctx::workspace_function()->local_stack_lifetime.push();
-				Ctx::stack()->push_block();
-				Ctx::temp_stack()->push_block();
-				ILBuilder::build_accept(Ctx::scope(), ILDataType::none);
+				compiler->target()->local_stack_lifetime.push();
+				compiler->stack()->push_block();
+				compiler->temp_stack()->push_block();
+				ILBuilder::build_accept(compiler->scope(), ILDataType::none);
 
 				bool ret_rval_stack = false;
 				uint16_t return_ptr_local_id = 0;
@@ -909,7 +909,7 @@ namespace Corrosive {
 
 				if (returns.second->rvalue_stacked()) {
 					ret_rval_stack = true;
-					return_ptr_local_id = func->local_stack_lifetime.append(Ctx::types()->t_ptr->size());
+					return_ptr_local_id = func->local_stack_lifetime.append(compiler->types()->t_ptr->size());
 				}
 
 				for (auto&& a : arguments) {
@@ -925,7 +925,7 @@ namespace Corrosive {
 					a.second->compile();
 					uint16_t id = func->local_stack_lifetime.append(a.second->size());
 
-					Ctx::stack()->push_item(a.first.buffer, a.second, id, StackItemTag::regular);
+					compiler->stack()->push_item(a.first.buffer, a.second, id, StackItemTag::regular);
 				}
 
 
@@ -934,11 +934,11 @@ namespace Corrosive {
 				for (auto a = arguments.rbegin(); a != arguments.rend(); a++) {
 
 					if (a->second->has_special_constructor()) {
-						ILBuilder::build_local(Ctx::scope(), argid);
+						ILBuilder::build_local(compiler->scope(), argid);
 						a->second->build_construct();
 					}
 
-					ILBuilder::build_local(Ctx::scope(), argid);
+					ILBuilder::build_local(compiler->scope(), argid);
 
 					Expression::copy_from_rvalue(a->second, CompileType::compile, false);
 
@@ -946,8 +946,8 @@ namespace Corrosive {
 				}
 
 				if (ret_rval_stack) {
-					ILBuilder::build_local(Ctx::scope(), return_ptr_local_id);
-					ILBuilder::build_store(Ctx::scope(), ILDataType::word);
+					ILBuilder::build_local(compiler->scope(), return_ptr_local_id);
+					ILBuilder::build_store(compiler->scope(), ILDataType::word);
 				}
 
 
@@ -960,7 +960,7 @@ namespace Corrosive {
 
 				Cursor cb = block;
 				BlockTermination term;
-				Statement::parse_inner_block(cb, term, true, &name);
+				Statement::parse_inner_block(*compiler,cb, term, true, &name);
 
 
 				//func->dump();
@@ -968,20 +968,20 @@ namespace Corrosive {
 
 				func->assert_flow();
 
-				Ctx::temp_stack()->pop_block();
+				compiler->temp_stack()->pop_block();
 
-				Ctx::stack()->pop();
-				Ctx::temp_stack()->pop();
-				Ctx::eval_stack()->pop();
-				Ctx::eval()->stack_pop();
+				compiler->stack()->pop();
+				compiler->temp_stack()->pop();
+				compiler->compiler_stack()->pop();
+				compiler->evaluator()->stack_pop();
 
-				Ctx::pop_workspace();
-				Ctx::pop_scope_context();
-				Ctx::pop_function();
+				compiler->pop_workspace();
+				compiler->pop_scope_context();
+				compiler->pop_function();
 
 			
 			} else {
-				auto func = Ctx::global_module()->create_ext_function(); 
+				auto func = compiler->global_module()->create_ext_function(); 
 				this->func = func;
 				func->alias = name.buffer;
 				compile_state = 3;
@@ -1001,12 +1001,12 @@ namespace Corrosive {
 
 
 	void StructureInstance::build_automatic_constructor() {
-		auto func = Ctx::global_module()->create_function();
+		auto func = compiler->global_module()->create_function();
 		func->alias = "auto_ctor";
 
 		ILBlock* block = func->create_and_append_block();
 		block->alias = "entry";
-		Ctx::push_scope(block);
+		compiler->push_scope(block);
 
 		ILBuilder::build_accept(block, ILDataType::none);
 
@@ -1047,16 +1047,16 @@ namespace Corrosive {
 		ILBuilder::build_ret(block, ILDataType::none);
 
 		auto_constructor = func;
-		Ctx::pop_scope();
+		compiler->pop_scope();
 	}
 
 	void StructureInstance::build_automatic_destructor() {
-		auto func = Ctx::global_module()->create_function();
+		auto func = compiler->global_module()->create_function();
 		func->alias = "auto_drop";
 
 		ILBlock* block = func->create_and_append_block();
 		block->alias = "entry";
-		Ctx::push_scope(block);
+		compiler->push_scope(block);
 
 		ILBuilder::build_accept(block, ILDataType::none);
 
@@ -1098,16 +1098,16 @@ namespace Corrosive {
 		ILBuilder::build_ret(block, ILDataType::none);
 
 		auto_destructor = func;
-		Ctx::pop_scope();
+		compiler->pop_scope();
 	}
 
 	void StructureInstance::build_automatic_move() {
-		auto func = Ctx::global_module()->create_function();
+		auto func = compiler->global_module()->create_function();
 		func->alias = "auto_move";
 
 		ILBlock* block = func->create_and_append_block();
 		block->alias = "entry";
-		Ctx::push_scope(block);
+		compiler->push_scope(block);
 
 		ILBuilder::build_accept(block, ILDataType::none);
 
@@ -1132,7 +1132,7 @@ namespace Corrosive {
 				c_var.first->build_move();
 			}
 			else {
-				ILBuilder::build_memcpy_rev(Ctx::scope(), c_var.first->size());
+				ILBuilder::build_memcpy_rev(compiler->scope(), c_var.first->size());
 			}
 		};
 
@@ -1144,16 +1144,16 @@ namespace Corrosive {
 		ILBuilder::build_ret(block, ILDataType::none);
 
 		auto_move = func;
-		Ctx::pop_scope();
+		compiler->pop_scope();
 	}
 
 	void StructureInstance::build_automatic_copy() {
-		auto func = Ctx::global_module()->create_function();
+		auto func = compiler->global_module()->create_function();
 		func->alias = "auto_copy";
 
 		ILBlock* block = func->create_and_append_block();
 		block->alias = "entry";
-		Ctx::push_scope(block);
+		compiler->push_scope(block);
 
 		ILBuilder::build_accept(block, ILDataType::none);
 
@@ -1176,7 +1176,7 @@ namespace Corrosive {
 				c_var.first->build_copy();
 			}
 			else {
-				ILBuilder::build_memcpy_rev(Ctx::scope(), c_var.first->size());
+				ILBuilder::build_memcpy_rev(compiler->scope(), c_var.first->size());
 			}
 		};
 
@@ -1187,11 +1187,11 @@ namespace Corrosive {
 		ILBuilder::build_ret(block, ILDataType::none);
 
 		auto_copy = func;
-		Ctx::pop_scope();
+		compiler->pop_scope();
 	}
 
 	void StructureInstance::build_automatic_compare() {
-		auto func = Ctx::global_module()->create_function();
+		auto func = compiler->global_module()->create_function();
 		func->alias = "auto_compare";
 
 		ILBlock* block = func->create_and_append_block();
@@ -1201,7 +1201,7 @@ namespace Corrosive {
 		ILBuilder::build_ret(block_return, ILDataType::i8);
 
 		block->alias = "entry";
-		Ctx::push_scope(block);
+		compiler->push_scope(block);
 
 		ILBuilder::build_accept(block, ILDataType::none);
 
@@ -1211,13 +1211,13 @@ namespace Corrosive {
 
 		auto do_lmbda = [&block, &func, &block_return, this](size_t ind, std::pair<Type*, uint32_t>& c_var) {
 			if (size.type == ILSizeType::table) {
-				ILBuilder::build_tableoffset_pair(Ctx::scope(), size.value, (uint16_t)ind);
+				ILBuilder::build_tableoffset_pair(compiler->scope(), size.value, (uint16_t)ind);
 			}
 			else if (size.type == ILSizeType::absolute) {
-				ILBuilder::build_aoffset_pair(Ctx::scope(), c_var.second);
+				ILBuilder::build_aoffset_pair(compiler->scope(), c_var.second);
 			}
 			else if (size.type == ILSizeType::word) {
-				ILBuilder::build_woffset_pair(Ctx::scope(), c_var.second);
+				ILBuilder::build_woffset_pair(compiler->scope(), c_var.second);
 			}
 
 
@@ -1225,22 +1225,22 @@ namespace Corrosive {
 				c_var.first->build_compare();
 			}
 			else {
-				ILBuilder::build_memcmp_rev(Ctx::scope(), c_var.first->size());
+				ILBuilder::build_memcmp_rev(compiler->scope(), c_var.first->size());
 			}
 
 			if (ind < member_vars.size() - 1) {
 				ILBlock* continue_block = func->create_and_append_block();
 
 				ILBuilder::build_discard(continue_block, ILDataType::i8);
-				ILBuilder::build_duplicate(Ctx::scope(), ILDataType::i8);
-				ILBuilder::build_yield(Ctx::scope(), ILDataType::i8);
-				ILBuilder::build_jmpz(Ctx::scope(), continue_block, block_return);
-				Ctx::pop_scope();
-				Ctx::push_scope(continue_block);
+				ILBuilder::build_duplicate(compiler->scope(), ILDataType::i8);
+				ILBuilder::build_yield(compiler->scope(), ILDataType::i8);
+				ILBuilder::build_jmpz(compiler->scope(), continue_block, block_return);
+				compiler->pop_scope();
+				compiler->push_scope(continue_block);
 			}
 			else {
-				ILBuilder::build_yield(Ctx::scope(), ILDataType::i8);
-				ILBuilder::build_jmp(Ctx::scope(), block_return);
+				ILBuilder::build_yield(compiler->scope(), ILDataType::i8);
+				ILBuilder::build_jmp(compiler->scope(), block_return);
 			}
 		};
 
@@ -1251,16 +1251,16 @@ namespace Corrosive {
 
 		func->append_block(block_return);
 		auto_compare = func;
-		Ctx::pop_scope();
+		compiler->pop_scope();
 	}
 
 	void StructureInstance::compile() {
 		if (compile_state == 0) {
 			compile_state = 1;
-			Ctx::push_scope_context(ILContext::compile);
-			Ctx::eval()->stack_push();
-			Ctx::eval_stack()->push();
-			generic_inst.insert_key_on_stack(Ctx::eval());
+			compiler->push_scope_context(ILContext::compile);
+			compiler->evaluator()->stack_push();
+			compiler->compiler_stack()->push();
+			generic_inst.insert_key_on_stack(*compiler);
 
 			ILStructTable table;
 			uint32_t max_align = 0;
@@ -1322,8 +1322,8 @@ namespace Corrosive {
 
 			if (size.type == ILSizeType::table) {
 				if (table.elements.size() > 0) {
-					size.value = Ctx::global_module()->register_structure_table();
-					Ctx::global_module()->structure_tables[size.value] = std::move(table);
+					size.value = compiler->global_module()->register_structure_table();
+					compiler->global_module()->structure_tables[size.value] = std::move(table);
 				}
 				else {
 					size = table.elements.back();
@@ -1433,9 +1433,9 @@ namespace Corrosive {
 			}
 
 
-			Ctx::eval_stack()->pop();
-			Ctx::eval()->stack_pop();
-			Ctx::pop_scope_context();
+			compiler->compiler_stack()->pop();
+			compiler->evaluator()->stack_pop();
+			compiler->pop_scope_context();
 		}
 		else if (compile_state == 3) {
 
@@ -1445,23 +1445,23 @@ namespace Corrosive {
 		}
 	}
 
-	void GenericInstance::insert_key_on_stack(ILEvaluator* eval) {
+	void GenericInstance::insert_key_on_stack(Compiler& compiler) {
 
 
 		if (generator != nullptr) {
 
 			if (generator->generator != nullptr) {
-				generator->generator->insert_key_on_stack(eval);
+				generator->generator->insert_key_on_stack(compiler);
 			}
 
 
 			unsigned char* key_ptr = key;
 			for (auto key_l = generator->generic_layout.rbegin(); key_l != generator->generic_layout.rend(); key_l++) {
 
-				uint16_t sid = Ctx::eval()->mask_local(key_ptr);
-				Ctx::eval_stack()->push_item(std::get<0>(*key_l).buffer, std::get<1>(*key_l), sid, StackItemTag::alias);
+				uint16_t sid = compiler.evaluator()->mask_local(key_ptr);
+				compiler.compiler_stack()->push_item(std::get<0>(*key_l).buffer, std::get<1>(*key_l), sid, StackItemTag::alias);
 
-				key_ptr += std::get<1>(*key_l)->size().eval(Ctx::global_module(), compiler_arch);
+				key_ptr += std::get<1>(*key_l)->size().eval(compiler.global_module(), compiler_arch);
 			}
 
 			
@@ -1485,7 +1485,7 @@ namespace Corrosive {
 		}
 
 		void** vt = vtable.get();
-		uint32_t vtid = Ctx::global_module()->register_vtable(std::move(vtable));
+		uint32_t vtid = compiler->global_module()->register_vtable(std::move(vtable));
 		vtable_instances[forinst] = vtid;
 		optid = vtid;
 	}

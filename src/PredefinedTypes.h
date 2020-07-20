@@ -9,6 +9,7 @@
 #include "Source.h"
 
 namespace Corrosive {
+	class Compiler;
 	extern const char* PredefinedNamespace;
 
 	template <typename T>
@@ -52,60 +53,6 @@ namespace Corrosive {
 		std::vector<T> data;
 		std::map<size_t, size_t, cmp> lookup;
 	};
-
-	/*template <typename T>
-	class unordered_idset {
-	public:
-		inline size_t register_or_load(T val) {
-			if (data.size() == 0) data.resize(2);
-			data[0] = std::move(val);
-
-			auto lf = lookup.find(0);
-			if (lf != lookup.end()) {
-				return lf->second;
-			}
-			else {
-				data.push_back(std::move(data[0]));
-				lookup[data.size() - 1] = data.size() - 1;
-				return data.size() - 1;
-			}
-		}
-
-		inline T& get(size_t id) {
-			return data[id];
-		}
-
-		inline unordered_idset() : lookup(custom_hash(this)) {
-
-		}
-
-	private:
-		struct custom_hash : public std::hash<size_t> {
-			inline custom_hash(unordered_idset<T>* own) : owner(own) {
-
-			}
-
-			unordered_idset<T>* owner;
-			inline size_t operator()(const size_t& a) const {
-				std::hash<T> hfunc;
-				return hfunc(owner->data[a]);
-			}
-		};
-
-		struct custom_compare : public std::equal_to<size_t> {
-			inline custom_compare(unordered_idset<T>* own) : owner(own) {
-
-			}
-
-			unordered_idset<T>* owner;
-			inline bool operator()(const size_t& a, const size_t& b) const {
-				return owner->data[a] == owner->data[b];
-			}
-		};
-
-		std::vector<T> data;
-		std::unordered_map<size_t, size_t, custom_hash> lookup;
-	};*/
 
 	class FunctionInstance;
 
@@ -155,9 +102,11 @@ namespace Corrosive {
 		FunctionInstance* f_build_subtype;
 		FunctionInstance* f_type_size;
 
-		void setup();
+		Compiler* owner;
+
+		void setup(Compiler& compiler);
 	private:
-		void setup_type(std::string_view name, Type*& into, ILSize size, ILDataType ildt,ILContext runtime);
+		void setup_type(Compiler& compiler, std::string_view name, Type*& into, ILSize size, ILDataType ildt,ILContext runtime);
 	};
 }
 

@@ -92,6 +92,7 @@ namespace Corrosive {
 		ILBytecodeFunction* function_ptr = function.get();
 		function_ptr->id = (uint32_t)functions.size();
 		function_ptr->parent = this;
+		internal_functions.insert(function.get());
 		functions.push_back(std::move(function));
 		return function_ptr;
 	}
@@ -101,10 +102,10 @@ namespace Corrosive {
 		ILExtFunction* function_ptr = function.get();
 		function_ptr->id = (uint32_t)functions.size();
 		function_ptr->parent = this;
+		internal_functions.insert(function.get());
 		functions.push_back(std::move(function));
 		return function_ptr;
 	}
-
 
 	ILBlock* ILBytecodeFunction::create_and_append_block() {
 		ILBlock* b = create_block();

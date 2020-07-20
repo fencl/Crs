@@ -9,12 +9,13 @@
 #include "CompileContext.h"
 #include "Error.h"
 #include "ConstantManager.h"
+#include "Compiler.h"
 
 namespace Corrosive {
 
-	void Source::register_debug() {
+	void Source::register_debug(Compiler& compiler) {
 		if (debug_id == UINT16_MAX) {
-			debug_id = Ctx::eval()->register_debug_source(name);
+			debug_id = compiler.evaluator()->register_debug_source(name);
 		}
 	}
 
@@ -405,7 +406,7 @@ namespace Corrosive {
 
 	std::map<std::filesystem::path, std::unique_ptr<Source>> Source::included_sources;
 
-	void Source::require(std::filesystem::path file, const Source* src) 
+	void Source::require(Compiler& compiler, std::filesystem::path file, const Source* src) 
 	{
 		std::filesystem::path abs;
 		if (src) {
@@ -424,10 +425,10 @@ namespace Corrosive {
 			std_src->path = abs;
 			std_src->load(abs.generic_string().c_str());
 			std_src->pair_braces();
-			std_src->register_debug();
+			std_src->register_debug(compiler);
 			Cursor c_std = std_src->read_first();
 			included_sources[std::move(abs)] = std::move(std_src);
-			Declaration::parse_global(c_std, Ctx::global_namespace());
+			Declaration::parse_global(compiler,c_std, compiler.global_namespace());
 		}
 	}
 

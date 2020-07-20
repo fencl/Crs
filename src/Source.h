@@ -8,10 +8,12 @@
 #include <filesystem>
 
 namespace Corrosive {
+	class Compiler;
+
 	class Source {
 	public:
 		uint16_t debug_id = UINT16_MAX;
-		void register_debug();
+		void register_debug(Compiler& compiler);
 
 		std::string name;
 		std::filesystem::path path;
@@ -27,7 +29,7 @@ namespace Corrosive {
 		void move_matching(Cursor& c) const;
 
 		static std::map<std::filesystem::path, std::unique_ptr<Source>> included_sources;
-		static void require(std::filesystem::path file, const Source* base=nullptr);
+		static void require(Compiler& compiler, std::filesystem::path file, const Source* base=nullptr);
 		inline static void release() { included_sources.clear(); }
 	private:
 		std::string buffer;

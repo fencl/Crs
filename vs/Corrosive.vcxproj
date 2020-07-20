@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\CompileContext.h" />
+    <ClInclude Include="..\src\Compiler.h" />
     <ClInclude Include="..\src\ConstantManager.h" />
     <ClInclude Include="..\src\Cursor.h" />
     <ClInclude Include="..\src\Declaration.h" />
@@ -36,6 +37,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\CompileContext.cpp" />
+    <ClCompile Include="..\src\Compiler.cpp" />
     <ClCompile Include="..\src\ConstantManager.cpp" />
     <ClCompile Include="..\src\Declaration.cpp" />
     <ClCompile Include="..\src\DeclarationCompile.cpp" />

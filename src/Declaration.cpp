@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string>
 #include "PredefinedTypes.h"
-
+#include "Compiler.h"
 
 namespace Corrosive {
 	Namespace::~Namespace() {
@@ -42,7 +42,7 @@ namespace Corrosive {
 			int r = std::get<1>(l)->compare(loff,roff);
 			if (r < 0) return true;
 			if (r > 0) return false;
-			size_t off = std::get<1>(l)->size().eval(Ctx::global_module(),compiler_arch);
+			size_t off = std::get<1>(l)->size().eval(parent->compiler->global_module(),compiler_arch);
 			loff += off;
 			roff += off;
 		}
@@ -60,7 +60,7 @@ namespace Corrosive {
 			int r = std::get<1>(l)->compare(loff, roff);
 			if (r < 0) return true;
 			if (r > 0) return false;
-			size_t off = std::get<1>(l)->size().eval(Ctx::global_module(), compiler_arch);
+			size_t off = std::get<1>(l)->size().eval(parent->compiler->global_module(), compiler_arch);
 			loff += off;
 			roff += off;
 		}
@@ -77,7 +77,7 @@ namespace Corrosive {
 			if (r < 0) return true;
 			if (r > 0) return false;
 
-			size_t off = std::get<1>(l)->size().eval(Ctx::global_module(), compiler_arch);
+			size_t off = std::get<1>(l)->size().eval(parent->compiler->global_module(), compiler_arch);
 			loff += off;
 			roff += off;
 		}

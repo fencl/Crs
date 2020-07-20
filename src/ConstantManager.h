@@ -11,6 +11,7 @@ namespace Corrosive {
 
 	class ConstantManager {
 	public:
+		Compiler* compiler;
 		std::pair<const std::string_view, uint32_t> register_string_literal(std::string string);
 		std::pair<const std::string_view, uint32_t> register_string_literal(Cursor& c);
 

@@ -4,6 +4,7 @@
 #include "IL/IL.h"
 #include <memory>
 #include "ConstantManager.h"
+#include "Compiler.h"
 
 namespace Corrosive {
 
@@ -11,7 +12,7 @@ namespace Corrosive {
 		auto empl = string_literals.emplace(std::move(string), 0);
 
 		if (empl.second) {
-			empl.first->second = Ctx::global_module()->register_constant((unsigned char*)empl.first->first.data(), empl.first->first.length());
+			empl.first->second = compiler->global_module()->register_constant((unsigned char*)empl.first->first.data(), empl.first->first.length());
 		}
 
 		return std::move(std::make_pair(std::string_view(empl.first->first),empl.first->second));

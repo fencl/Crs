@@ -10,7 +10,7 @@
 #include <map>
 #include <variant>
 #include <iostream>
-
+#include <unordered_set>
 
 namespace Corrosive {
 
@@ -234,7 +234,7 @@ namespace Corrosive {
 
 		ilsize_t yield_storage;
 
-		std::vector<ILFunction*> callstack;
+		std::vector<void*> callstack;
 		std::vector<std::tuple<uint16_t, uint16_t, std::string_view>> callstack_debug;
 
 		uint16_t debug_line = 0;
@@ -316,6 +316,7 @@ namespace Corrosive {
 
 	class ILModule {
 	public:
+		std::unordered_set<void*> internal_functions;
 		std::vector<std::unique_ptr<unsigned char[]>> constant_memory;
 		std::vector<std::unique_ptr<ILFunction>> functions;
 		std::vector<std::unique_ptr<void* []>> vtable_data;

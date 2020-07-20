@@ -5,6 +5,7 @@
 #include "Utilities.h"
 #include <iostream>
 #include "Expression.h"
+#include "Compiler.h"
 
 namespace Corrosive {
 
@@ -36,7 +37,7 @@ namespace Corrosive {
 
 			return_type->compile();
 
-			auto& args = Ctx::types()->argument_array_storage.get(argument_array_id);
+			auto& args = compiler()->types()->argument_array_storage.get(argument_array_id);
 
 			for (auto&& a : args) {
 				a->compile();
@@ -57,7 +58,7 @@ namespace Corrosive {
 				decl_args[0] = ILDataType::word;
 			}
 
-			il_function_decl = Ctx::global_module()->register_function_decl(std::make_pair(ret_t, std::move(decl_args)));
+			il_function_decl = compiler()->global_module()->register_function_decl(std::make_pair(ret_t, std::move(decl_args)));
 		}
 	}
 
@@ -77,11 +78,11 @@ namespace Corrosive {
 	*/
 
 	void Type::build_drop() {
-		ILBuilder::build_forget(Ctx::scope(), ILDataType::word);
+		ILBuilder::build_forget(compiler()->scope(), ILDataType::word);
 	}
 
 	void Type::build_construct() {
-		ILBuilder::build_forget(Ctx::scope(), ILDataType::word);
+		ILBuilder::build_forget(compiler()->scope(), ILDataType::word);
 	}
 
 
@@ -89,10 +90,10 @@ namespace Corrosive {
 		//dst(me), src(from)
 
 		if (rvalue_stacked()) {
-			ILBuilder::build_memcpy_rev(Ctx::scope(), size());
+			ILBuilder::build_memcpy_rev(compiler()->scope(), size());
 		}
 		else {
-			ILBuilder::build_store_rev(Ctx::scope(), rvalue());
+			ILBuilder::build_store_rev(compiler()->scope(), rvalue());
 		}
 	}
 
@@ -100,10 +101,10 @@ namespace Corrosive {
 		//dst(me), src(from)
 
 		if (rvalue_stacked()) {
-			ILBuilder::build_memcpy_rev(Ctx::scope(), size());
+			ILBuilder::build_memcpy_rev(compiler()->scope(), size());
 		}
 		else {
-			ILBuilder::build_store_rev(Ctx::scope(), rvalue());
+			ILBuilder::build_store_rev(compiler()->scope(), rvalue());
 		}
 	}
 
@@ -112,10 +113,10 @@ namespace Corrosive {
 		//dst(me), src(compare_to)
 
 		if (rvalue_stacked()) {
-			ILBuilder::build_memcmp_rev(Ctx::scope(), size());
+			ILBuilder::build_memcmp_rev(compiler()->scope(), size());
 		}
 		else {
-			ILBuilder::build_rmemcmp2(Ctx::scope(), rvalue());
+			ILBuilder::build_rmemcmp2(compiler()->scope(), rvalue());
 		}
 	}
 
@@ -185,7 +186,7 @@ namespace Corrosive {
 
 	void TypeStructureInstance::build_drop() {
 		if (has_special_destructor()) {
-			ILBuilder::build_fncall(Ctx::scope(), owner->auto_destructor);
+			ILBuilder::build_fncall(compiler()->scope(), owner->auto_destructor);
 		}
 		else {
 			Type::build_drop();
@@ -194,7 +195,7 @@ namespace Corrosive {
 
 	void TypeStructureInstance::build_construct() {
 		if (has_special_constructor()) {
-			ILBuilder::build_fncall(Ctx::scope(), owner->auto_constructor);
+			ILBuilder::build_fncall(compiler()->scope(), owner->auto_constructor);
 		}
 		else {
 			Type::build_construct();
@@ -204,7 +205,7 @@ namespace Corrosive {
 	void TypeStructureInstance::build_copy() {
 		//dst(me), src(from)
 		if (has_special_copy()) {
-			ILBuilder::build_fncall(Ctx::scope(), owner->auto_copy);
+			ILBuilder::build_fncall(compiler()->scope(), owner->auto_copy);
 		}
 		else {
 			Type::build_copy();
@@ -214,7 +215,7 @@ namespace Corrosive {
 	void TypeStructureInstance::build_move() {
 		//dst(me), src(from)
 		if (has_special_move()) {
-			ILBuilder::build_fncall(Ctx::scope(), owner->auto_move);
+			ILBuilder::build_fncall(compiler()->scope(), owner->auto_move);
 		}
 		else {
 			Type::build_move();
@@ -225,7 +226,7 @@ namespace Corrosive {
 		//dst(me), src(compare to)
 
 		if (has_special_copy()) {
-			ILBuilder::build_fncall(Ctx::scope(), owner->auto_compare);
+			ILBuilder::build_fncall(compiler()->scope(), owner->auto_compare);
 		}
 		else {
 			Type::build_compare();

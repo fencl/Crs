@@ -4,12 +4,13 @@
 #include <string>
 #include "PredefinedTypes.h"
 #include "ConstantManager.h"
+#include "Compiler.h"
 
 namespace Corrosive {
 
 
 
-	void Namespace::parse(Cursor& c, std::unique_ptr<Namespace>& into) {
+	void Namespace::parse(Compiler& compiler, Cursor& c, std::unique_ptr<Namespace>& into) {
 		std::unique_ptr<Namespace> result = std::make_unique<Namespace>();
 		result->namespace_type = NamespaceType::t_namespace; 
 		if (c.tok != RecognizedToken::Symbol)
@@ -24,7 +25,7 @@ namespace Corrosive {
 		}
 		c.move();
 
-		Namespace::parse_inner(c, result.get(), nullptr);
+		Namespace::parse_inner(compiler,c, result.get(), nullptr);
 
 		if (c.tok != RecognizedToken::CloseBrace) {
 			throw_wrong_token_error(c, "'}'");
@@ -35,7 +36,7 @@ namespace Corrosive {
 	}
 
 
-	void Namespace::parse_inner(Cursor& c, Namespace* into, GenericInstance* gen_inst) {
+	void Namespace::parse_inner(Compiler& compiler, Cursor& c, Namespace* into, GenericInstance* gen_inst) {
 		
 		while (c.tok != RecognizedToken::CloseBrace && c.tok!=RecognizedToken::Eof) {
 			if (c.buffer == "require") {
@@ -44,8 +45,8 @@ namespace Corrosive {
 					throw_specific_error(c, "Expected string");
 				}
 
-				auto lit = Ctx::const_mgr()->register_string_literal(c);
-				Source::require(lit.first, c.src);
+				auto lit = compiler.constant_manager()->register_string_literal(c);
+				Source::require(compiler,lit.first, c.src);
 
 				c.move();
 				if (c.tok != RecognizedToken::Semicolon) {
@@ -57,7 +58,7 @@ namespace Corrosive {
 				Cursor nm = c;
 
 				std::unique_ptr<StructureTemplate> decl;
-				StructureTemplate::parse(c, into, nullptr, decl);
+				StructureTemplate::parse(compiler, c, into, nullptr, decl);
 
 				decl->parent = into;
 				if (into->name_table.find(decl->name.buffer) != into->name_table.end()) {
@@ -73,7 +74,7 @@ namespace Corrosive {
 				Cursor nm = c;
 
 				std::unique_ptr<TraitTemplate> decl;
-				TraitTemplate::parse(c, into, nullptr, decl);
+				TraitTemplate::parse(compiler, c, into, nullptr, decl);
 
 				decl->parent = into;
 				if (into->name_table.find(decl->name.buffer) != into->name_table.end()) {
@@ -89,7 +90,7 @@ namespace Corrosive {
 				Cursor nm = c;
 
 				std::unique_ptr<Namespace> decl;
-				Namespace::parse(c, decl);
+				Namespace::parse(compiler, c, decl);
 				decl->parent = into;
 				if (into->name_table.find(decl->name.buffer) != into->name_table.end()) {
 					throw_specific_error(nm, "this name already exists in current namespace");
@@ -179,6 +180,7 @@ namespace Corrosive {
 				c.move();
 
 				std::unique_ptr<FunctionTemplate> ft = std::make_unique<FunctionTemplate>();
+				ft->compiler = &compiler;
 				ft->name = member.name;
 				ft->annotation = member.annotation;
 				ft->is_generic = member.annotation.tok != RecognizedToken::Eof;
@@ -206,9 +208,10 @@ namespace Corrosive {
 		}
 	}
 
-	void StructureTemplate::parse(Cursor& c, Namespace* parent, GenericInstance* gen_inst, std::unique_ptr<StructureTemplate>& into) {
+	void StructureTemplate::parse(Compiler& compiler, Cursor& c, Namespace* parent, GenericInstance* gen_inst, std::unique_ptr<StructureTemplate>& into) {
 		std::unique_ptr<StructureTemplate> result = std::make_unique<StructureTemplate>();
 
+		result->compiler = &compiler;
 		result->parent = parent;
 		result->generic_ctx.generator = gen_inst;
 
@@ -542,9 +545,10 @@ namespace Corrosive {
 	
 
 
-	void TraitTemplate::parse(Cursor& c, Namespace* parent, GenericInstance* gen_inst, std::unique_ptr<TraitTemplate>& into) {
+	void TraitTemplate::parse(Compiler& compiler, Cursor& c, Namespace* parent, GenericInstance* gen_inst, std::unique_ptr<TraitTemplate>& into) {
 		std::unique_ptr<TraitTemplate> result = std::make_unique<TraitTemplate>();
 
+		result->compiler = &compiler;
 		result->parent = parent;
 		result->generic_ctx.generator = gen_inst;
 		//result->template_parent = dynamic_cast<StructureInstance*>(parent);
@@ -640,9 +644,9 @@ namespace Corrosive {
 	}
 
 
-	void Declaration::parse_global(Cursor &c, Namespace* global_namespace) {
+	void Declaration::parse_global(Compiler& compiler, Cursor &c, Namespace* global_namespace) {
 		
-		Namespace::parse_inner(c, global_namespace, nullptr);
+		Namespace::parse_inner(compiler, c, global_namespace, nullptr);
 
 		if (c.tok != RecognizedToken::Eof) {
 			throw_wrong_token_error(c, "end of file");	
