@@ -856,12 +856,12 @@ namespace Corrosive {
 					t_context = ILContext::runtime;
 					c.move();
 				}
-				else if (c.tok == RecognizedToken::Symbol && c.buffer == "cdecl") {
-					call_conv = ILCallingConvention::x86_cdecl;
+				else if (c.tok == RecognizedToken::Symbol && c.buffer == "native") {
+					call_conv = ILCallingConvention::native;
 					c.move();
 				}
 				else if (c.tok == RecognizedToken::Symbol && c.buffer == "stdcall") {
-					call_conv = ILCallingConvention::x86_stdcall;
+					call_conv = ILCallingConvention::stdcall;
 					c.move();
 				}
 				else {

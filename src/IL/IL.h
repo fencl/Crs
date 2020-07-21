@@ -73,7 +73,7 @@ namespace Corrosive {
 	};
 
 	enum class ILCallingConvention : uint8_t {
-		bytecode, win_x64, x86_cdecl, x86_stdcall, __max
+		bytecode, native, stdcall, __max
 	};
 
 	struct ILSize {

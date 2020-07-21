@@ -1266,6 +1266,8 @@ namespace Corrosive {
 					if (ext_fun->ptr) {
 						ext_fun->ptr(eval_ctx);
 					}
+
+					eval_ctx->callstack_debug.pop_back();
 				}
 			}
 			else {
@@ -1273,6 +1275,8 @@ namespace Corrosive {
 				eval_ctx->callstack_debug.push_back(std::make_tuple(eval_ctx->debug_line, eval_ctx->debug_file, "External code"));
 				
 				abi_dynamic_call(eval_ctx, std::get<0>(declaration), ptr, declaration);
+
+				eval_ctx->callstack_debug.pop_back();
 			}
 
 		}

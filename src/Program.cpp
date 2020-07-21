@@ -14,6 +14,9 @@
 #include <memory>
 #include "Compiler.h"
 
+// for library test
+#include <Windows.h>
+
 namespace Corrosive {
 	const ILArchitecture compiler_arch = (sizeof(void*)==8)? ILArchitecture::bit64 : ILArchitecture::bit32;
 
@@ -40,7 +43,7 @@ namespace Corrosive {
 		--allocated_counter;
 	}
 
-	uint64_t __stdcall print_test(uint64_t a, double b) {
+	uint64_t print_test(uint64_t a, double b) {
 		std::cout << a << ", " << b << "\n";
 		return 42;
 	}
@@ -49,6 +52,30 @@ namespace Corrosive {
 		eval->write_register_value<void*>(print_test);
 	}
 
+	void share_provider(ILEvaluator* eval) {
+		auto ptr = eval->pop_register_value<size_t*>();
+		const char* text = *(const char**)ptr;
+		size_t size = ptr[1];
+		std::basic_string_view<char> sv(text, size);
+		void* lib = LoadLibraryA(std::string(sv).c_str());
+		eval->write_register_value<void*>(lib);
+	}
+
+	void function_provider(ILEvaluator* eval) {
+		auto ptr = eval->pop_register_value<size_t*>();
+		const char* text = *(const char**)ptr;
+		size_t size = ptr[1];
+		std::basic_string_view<char> sv(text, size);
+		auto lib = eval->pop_register_value<void*>();
+		eval->write_register_value<void*>(GetProcAddress((HMODULE)lib,std::string(sv).c_str()));
+	}
+
+
+	void release_provider(ILEvaluator* eval) {
+		auto lib = eval->pop_register_value<void*>();
+		FreeLibrary((HMODULE)lib);
+	}
+	
 	int crs_main() {
 		static_assert(sizeof(void*) == sizeof(size_t), "Error, size_t and void* must be the same size");
 		static_assert(sizeof(double) == 8, "Error, double must be 64bit"); // TODO lets maybe create wrapper class to ensure correct format
@@ -82,6 +109,9 @@ namespace Corrosive {
 			c.register_ext_function({ "std","malloc" }, malloc_provider);
 			c.register_ext_function({ "std","free" }, free_provider);
 			c.register_ext_function({ "std","test" }, test_fun_provider);
+			c.register_ext_function({ "std","library","share" }, share_provider);
+			c.register_ext_function({ "std","library","function" }, function_provider);
+			c.register_ext_function({ "std","library","release" }, release_provider);
 
 			Namespace* f_nspc;
 			StructureTemplate* f_stemp;
@@ -131,7 +161,6 @@ namespace Corrosive {
 				std::cout << "leaked allocations: " << allocated_counter << "\n";
 
 				c.pop_scope_context();
-
 
 				std::cout << "\ncompile time: " << std::chrono::duration_cast<std::chrono::milliseconds>(compile_end - compile_begin).count() << "[ms]\n";
 				std::cout << "runtime: " << std::chrono::duration_cast<std::chrono::milliseconds>(runtime_end - compile_end).count() << "[ms]\n" << std::endl;
