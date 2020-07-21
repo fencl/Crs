@@ -234,6 +234,7 @@ namespace Corrosive {
 		size_t argument_array_id;
 		Type* return_type;
 		uint32_t il_function_decl;
+		ILCallingConvention call_conv;
 
 		virtual ILContext context();
 		virtual ILSize size();

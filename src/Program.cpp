@@ -15,8 +15,6 @@
 #include "Compiler.h"
 
 namespace Corrosive {
-	
-
 	const ILArchitecture compiler_arch = (sizeof(void*)==8)? ILArchitecture::bit64 : ILArchitecture::bit32;
 
 	void print_provider(ILEvaluator* eval) {
@@ -42,6 +40,15 @@ namespace Corrosive {
 		--allocated_counter;
 	}
 
+	uint64_t __stdcall print_test(uint64_t a, double b) {
+		std::cout << a << ", " << b << "\n";
+		return 42;
+	}
+
+	void test_fun_provider(ILEvaluator* eval) {
+		eval->write_register_value<void*>(print_test);
+	}
+
 	int crs_main() {
 		static_assert(sizeof(void*) == sizeof(size_t), "Error, size_t and void* must be the same size");
 		static_assert(sizeof(double) == 8, "Error, double must be 64bit"); // TODO lets maybe create wrapper class to ensure correct format
@@ -60,7 +67,7 @@ namespace Corrosive {
 		
 		Compiler c;
 
-		c.evaluator()->sandbox_begin();
+		ILEvaluator::sandbox_begin();
 
 		try {
 
@@ -74,6 +81,7 @@ namespace Corrosive {
 			c.register_ext_function({ "std","print_slice" }, print_provider);
 			c.register_ext_function({ "std","malloc" }, malloc_provider);
 			c.register_ext_function({ "std","free" }, free_provider);
+			c.register_ext_function({ "std","test" }, test_fun_provider);
 
 			Namespace* f_nspc;
 			StructureTemplate* f_stemp;
@@ -135,10 +143,8 @@ namespace Corrosive {
 		catch (std::exception& e) {
 			std::cerr << e.what()<<"\n";
 		}
-
-		Source::release();
-		c.evaluator()->sandbox_end();
-
+		
+		ILEvaluator::sandbox_end();
 		return 0;
 	}
 }

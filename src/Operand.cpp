@@ -843,14 +843,30 @@ namespace Corrosive {
 			}
 
 			c.move();
+			ILCallingConvention call_conv = ILCallingConvention::bytecode;
 			ILContext t_context = ILContext::both;
-			if (c.tok == RecognizedToken::Symbol && c.buffer == "compile") {
-				t_context = ILContext::compile;
-				c.move();
-			}
-			else if (c.tok == RecognizedToken::Symbol && c.buffer == "runtime") {
-				t_context = ILContext::runtime;
-				c.move();
+
+			while (true)
+			{
+				if (c.tok == RecognizedToken::Symbol && c.buffer == "compile") {
+					t_context = ILContext::compile;
+					c.move();
+				}
+				else if (c.tok == RecognizedToken::Symbol && c.buffer == "runtime") {
+					t_context = ILContext::runtime;
+					c.move();
+				}
+				else if (c.tok == RecognizedToken::Symbol && c.buffer == "cdecl") {
+					call_conv = ILCallingConvention::x86_cdecl;
+					c.move();
+				}
+				else if (c.tok == RecognizedToken::Symbol && c.buffer == "stdcall") {
+					call_conv = ILCallingConvention::x86_stdcall;
+					c.move();
+				}
+				else {
+					break;
+				}
 			}
 
 			if (c.tok != RecognizedToken::OpenParenthesis) {
@@ -902,7 +918,7 @@ namespace Corrosive {
 				ret_type = compiler.evaluator()->pop_register_value<Type*>();
 			}
 
-			Type* ftype = compiler.types()->load_or_register_function_type(std::move(arg_types), ret_type, t_context);
+			Type* ftype = compiler.types()->load_or_register_function_type(call_conv,std::move(arg_types), ret_type, t_context);
 
 			compiler.evaluator()->write_register_value(ftype);
 			ret.lvalue = false;

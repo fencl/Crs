@@ -28,9 +28,7 @@ namespace Corrosive {
 		void pair_braces();
 		void move_matching(Cursor& c) const;
 
-		static std::map<std::filesystem::path, std::unique_ptr<Source>> included_sources;
 		static void require(Compiler& compiler, std::filesystem::path file, const Source* base=nullptr);
-		inline static void release() { included_sources.clear(); }
 	private:
 		std::string buffer;
 		std::unordered_map<size_t, Cursor> brace_pair;

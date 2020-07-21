@@ -79,13 +79,13 @@ namespace Corrosive {
 		Type* get_type_from_rvalue(ILDataType rval);
 
 		idset<std::vector<Type*>> argument_array_storage;
-		std::map<std::tuple<size_t,Type*,ILContext>, std::unique_ptr<TypeFunction>> function_types_storage;
+		std::map<std::tuple<ILCallingConvention, size_t,Type*,ILContext>, std::unique_ptr<TypeFunction>> function_types_storage;
 		std::map<size_t, std::unique_ptr<TypeTemplate>> template_types_storage;
 
 
 		std::pair<size_t, bool> load_or_register_argument_array(std::vector<Type*> arg_array);
 
-		TypeFunction* load_or_register_function_type(std::vector<Type*> arg_array, Type* return_type, ILContext ctx);
+		TypeFunction* load_or_register_function_type(ILCallingConvention call_conv, std::vector<Type*> arg_array, Type* return_type, ILContext ctx);
 		TypeTemplate* load_or_register_template_type(std::vector<Type*> arg_array);
 
 		Source std_lib;

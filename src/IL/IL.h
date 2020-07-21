@@ -28,6 +28,7 @@ namespace Corrosive {
 	void throw_il_wrong_arguments_error();
 	void throw_il_wrong_type_error();
 
+	size_t _align_up(size_t value, size_t alignment);
 
 	class ILBytecodeFunction;
 	class ILFunction;
@@ -69,6 +70,10 @@ namespace Corrosive {
 
 	enum class ILSizeType : unsigned char {
 		array, table, absolute, word
+	};
+
+	enum class ILCallingConvention : uint8_t {
+		bytecode, win_x64, x86_cdecl, x86_stdcall, __max
 	};
 
 	struct ILSize {
@@ -316,13 +321,12 @@ namespace Corrosive {
 
 	class ILModule {
 	public:
-		std::unordered_set<void*> internal_functions;
 		std::vector<std::unique_ptr<unsigned char[]>> constant_memory;
 		std::vector<std::unique_ptr<ILFunction>> functions;
 		std::vector<std::unique_ptr<void* []>> vtable_data;
 		std::vector<ILStructTable> structure_tables;
 		std::vector<ILArrayTable> array_tables;
-		std::vector<std::pair<ILDataType, std::vector<ILDataType>>> function_decl;
+		std::vector<std::tuple<ILCallingConvention, ILDataType, std::vector<ILDataType>>> function_decl;
 
 		uint32_t register_structure_table();
 		uint32_t register_array_table();
@@ -336,10 +340,11 @@ namespace Corrosive {
 		ILExtFunction* create_ext_function();
 
 		uint32_t register_constant(unsigned char* memory, size_t size);
-		uint32_t register_function_decl(std::pair<ILDataType, std::vector<ILDataType>> decl);
+		uint32_t register_function_decl(std::tuple<ILCallingConvention, ILDataType, std::vector<ILDataType>> decl);
 		void dump_function_decl(uint32_t id);
 	};
 
+	void abi_dynamic_call(ILEvaluator* eval, ILCallingConvention conv, void* ptr, std::tuple<ILCallingConvention, ILDataType, std::vector<ILDataType>>& decl);
 
 	class ILBuilder {
 	public:

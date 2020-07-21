@@ -496,7 +496,7 @@ namespace Corrosive {
 							argtypes.push_back(a.second);
 						}
 
-						ft->type = compiler->types()->load_or_register_function_type(std::move(argtypes), ft->returns.second, ft->context);
+						ft->type = compiler->types()->load_or_register_function_type(ILCallingConvention::bytecode,std::move(argtypes), ft->returns.second, ft->context);
 						ft->compile_state = 1;
 						trait[ttid->second] = std::move(ft);
 
@@ -720,7 +720,7 @@ namespace Corrosive {
 				}
 
 
-				member.type = compiler->types()->load_or_register_function_type(std::move(args), ret_type, ILContext::both);
+				member.type = compiler->types()->load_or_register_function_type(ILCallingConvention::bytecode, std::move(args), ret_type, ILContext::both);
 
 				new_inst->member_table[m.name.buffer] = (uint16_t)new_inst->member_funcs.size();
 				new_inst->member_funcs.push_back(std::move(member));
@@ -859,7 +859,7 @@ namespace Corrosive {
 				argtypes.push_back(a.second);
 			}
 
-			new_inst->type = compiler->types()->load_or_register_function_type(std::move(argtypes), new_inst->returns.second, new_inst->context);
+			new_inst->type = compiler->types()->load_or_register_function_type(ILCallingConvention::bytecode, std::move(argtypes), new_inst->returns.second, new_inst->context);
 			new_inst->compile_state = 1;
 
 			compiler->pop_workspace();

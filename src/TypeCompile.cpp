@@ -58,7 +58,7 @@ namespace Corrosive {
 				decl_args[0] = ILDataType::word;
 			}
 
-			il_function_decl = compiler()->global_module()->register_function_decl(std::make_pair(ret_t, std::move(decl_args)));
+			il_function_decl = compiler()->global_module()->register_function_decl(std::make_tuple(call_conv,ret_t, std::move(decl_args)));
 		}
 	}
 

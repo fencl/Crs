@@ -404,8 +404,6 @@ namespace Corrosive {
 		}
 	}
 
-	std::map<std::filesystem::path, std::unique_ptr<Source>> Source::included_sources;
-
 	void Source::require(Compiler& compiler, std::filesystem::path file, const Source* src) 
 	{
 		std::filesystem::path abs;
@@ -419,15 +417,15 @@ namespace Corrosive {
 			abs = std::filesystem::absolute(file);
 		}
 
-		auto f = included_sources.find(abs);
-		if (f == included_sources.end()) {
+		auto f = compiler.included_sources.find(abs);
+		if (f == compiler.included_sources.end()) {
 			auto std_src = std::make_unique<Source>();
 			std_src->path = abs;
 			std_src->load(abs.generic_string().c_str());
 			std_src->pair_braces();
 			std_src->register_debug(compiler);
 			Cursor c_std = std_src->read_first();
-			included_sources[std::move(abs)] = std::move(std_src);
+			compiler.included_sources[std::move(abs)] = std::move(std_src);
 			Declaration::parse_global(compiler,c_std, compiler.global_namespace());
 		}
 	}

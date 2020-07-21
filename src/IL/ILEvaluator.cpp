@@ -18,7 +18,6 @@ namespace Corrosive {
 		sigseg_value = INT_MIN;
 		sigint_value = signum;
 		longjmp(sandbox, 1);
-
 	}
 
 	void sandbox_sigseghandler(int signum) {
@@ -841,8 +840,10 @@ namespace Corrosive {
 	void ILBuilder::eval_call(ILEvaluator* eval_ctx, uint32_t decl) {
 
 		if (setjmp(sandbox) == 0) {
+			auto& declaration = eval_ctx->parent->function_decl[decl];
+
 			void* ptr = eval_ctx->callstack.back();
-			if (eval_ctx->parent->internal_functions.find(ptr) != eval_ctx->parent->internal_functions.end()) {
+			if (std::get<0>(declaration) == ILCallingConvention::bytecode) {
 				ILFunction* fun = (ILFunction*)ptr;
 				eval_ctx->callstack.pop_back();
 				eval_ctx->callstack_debug.push_back(std::make_tuple(eval_ctx->debug_line, eval_ctx->debug_file, std::string_view(fun->alias)));
@@ -1270,7 +1271,8 @@ namespace Corrosive {
 			else {
 				eval_ctx->callstack.pop_back();
 				eval_ctx->callstack_debug.push_back(std::make_tuple(eval_ctx->debug_line, eval_ctx->debug_file, "External code"));
-				throw std::exception("pointer functions not implemented yet");
+				
+				abi_dynamic_call(eval_ctx, std::get<0>(declaration), ptr, declaration);
 			}
 
 		}

@@ -107,10 +107,10 @@ namespace Corrosive {
 		return argument_array_storage.register_or_load(std::move(arg_array));
 	}
 
-	TypeFunction* DefaultTypes::load_or_register_function_type(std::vector<Type*> arg_array, Type* return_type, ILContext ctx) {
+	TypeFunction* DefaultTypes::load_or_register_function_type(ILCallingConvention call_conv, std::vector<Type*> arg_array, Type* return_type, ILContext ctx) {
 		std::pair<size_t,bool> arg_id = load_or_register_argument_array(std::move(arg_array));
 
-		std::tuple<size_t, Type*,ILContext> key = std::make_tuple(arg_id.first, return_type, ctx);
+		std::tuple<ILCallingConvention, size_t, Type*,ILContext> key = std::make_tuple(call_conv,arg_id.first, return_type, ctx);
 		auto t_find = function_types_storage.find(key);
 		if (t_find != function_types_storage.end()) {
 			return t_find->second.get();
@@ -119,6 +119,7 @@ namespace Corrosive {
 			std::unique_ptr<TypeFunction> tf = std::make_unique<TypeFunction>();
 			tf->argument_array_id = arg_id.first;
 			tf->owner = owner;
+			tf->call_conv = call_conv;
 			tf->return_type = return_type;
 			tf->ptr_context = ctx;
 			tf->il_function_decl = UINT32_MAX;

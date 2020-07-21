@@ -3,6 +3,7 @@
 #include <iostream>
 #include <algorithm>
 #include <sstream>
+#include <unordered_map>
 
 namespace Corrosive {
 	void throw_il_wrong_data_flow_error() {
@@ -92,7 +93,6 @@ namespace Corrosive {
 		ILBytecodeFunction* function_ptr = function.get();
 		function_ptr->id = (uint32_t)functions.size();
 		function_ptr->parent = this;
-		internal_functions.insert(function.get());
 		functions.push_back(std::move(function));
 		return function_ptr;
 	}
@@ -102,7 +102,6 @@ namespace Corrosive {
 		ILExtFunction* function_ptr = function.get();
 		function_ptr->id = (uint32_t)functions.size();
 		function_ptr->parent = this;
-		internal_functions.insert(function.get());
 		functions.push_back(std::move(function));
 		return function_ptr;
 	}
@@ -514,7 +513,7 @@ namespace Corrosive {
 	ILSize::ILSize(ILSizeType t, uint32_t v) : type(t), value(v) {}
 
 
-	uint32_t ILModule::register_function_decl(std::pair<ILDataType, std::vector<ILDataType>> decl) {
+	uint32_t ILModule::register_function_decl(std::tuple<ILCallingConvention, ILDataType, std::vector<ILDataType>> decl) {
 		function_decl.push_back(std::move(decl));
 		return (uint32_t)(function_decl.size() - 1);
 	}
@@ -522,13 +521,13 @@ namespace Corrosive {
 	void ILModule::dump_function_decl(uint32_t id) {
 		auto& decl = function_decl[id];
 		std::cout << "[";
-		for (size_t i = 0; i < decl.second.size(); ++i) {
+		for (size_t i = 0; i < std::get<2>(decl).size(); ++i) {
 			if (i > 0) std::cout << ", ";
 
-			ILBlock::dump_data_type(decl.second[i]);
+			ILBlock::dump_data_type(std::get<2>(decl)[i]);
 		}
 		std::cout << "] -> ";
-		ILBlock::dump_data_type(decl.first);
+		ILBlock::dump_data_type(std::get<1>(decl));
 	}
 
 #define read_data_type(T) ((T*)read_data(sizeof(T),mempool,memoff))

@@ -128,5 +128,8 @@
     <ClCompile Include="..\src\Compiler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\IL\ILCallConv.cpp">
+      <Filter>Source Files\IL</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

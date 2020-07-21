@@ -51,6 +51,8 @@ namespace Corrosive {
 		std::vector<Namespace*> nm;
 		std::vector<ILBytecodeFunction*> wf;
 
+		std::map<std::filesystem::path, std::unique_ptr<Source>> included_sources;
+
 		ILModule m;
 		DefaultTypes dt;
 		Namespace gn;

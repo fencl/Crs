@@ -18,7 +18,7 @@ namespace Corrosive {
 
 		termination = BlockTermination::no_exit;
 
-		BlockTermination term;
+
 		while (c.tok != RecognizedToken::CloseBrace) {
 
 			if (c.src != nullptr) {
@@ -30,19 +30,11 @@ namespace Corrosive {
 				ILBuilder::build_debug(compiler.scope(), UINT16_MAX, c.top);
 			}
 
-			Statement::parse(compiler,c, CompileType::compile, term);
+			Statement::parse(compiler,c, CompileType::compile, termination);
 
-			if (term == BlockTermination::terminated && c.tok != RecognizedToken::CloseBrace) {
+			if (termination == BlockTermination::terminated && c.tok != RecognizedToken::CloseBrace) {
 				throw_specific_error(c, "Instruction after the current branch has been terminated");
 			}
-
-			if (term == BlockTermination::terminated) {
-				termination = BlockTermination::terminated;
-			}
-			else if (term == BlockTermination::needs_exit) {
-				termination = BlockTermination::needs_exit;
-			}
-
 
 			int d = 0;
 			while (compiler.temp_stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) {
