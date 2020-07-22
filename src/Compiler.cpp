@@ -25,6 +25,7 @@ namespace Corrosive {
 			FunctionTemplate* next_func = nullptr;
 			TraitTemplate* next_trait = nullptr;
 
+
 			nspc->find_name(p, next_nspc, next_struct, next_func, next_trait);
 
 

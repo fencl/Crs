@@ -287,18 +287,18 @@ namespace Corrosive {
 		switch (c.tok) {
 			case RecognizedToken::And:
 			case RecognizedToken::DoubleAnd: {
-				Operand::parse_reference(compiler,res, c, cpt);
+				Operand::parse_reference(compiler, res, c, cpt);
 				return;
 			}
 			case RecognizedToken::OpenBracket: {
-				Operand::parse_array_type(compiler,res, c, cpt);
+				Operand::parse_array_type(compiler, res, c, cpt);
 				return;
 			}
 			case RecognizedToken::Star: {
 				c.move();
 				Cursor err = c;
 				CompileValue value;
-				Operand::parse(compiler,c, value, cpt);
+				Operand::parse(compiler, c, value, cpt);
 				Expression::rvalue(compiler, value, cpt);
 				if (value.type->type() != TypeInstanceType::type_reference) {
 					throw_specific_error(err, "Target is not reference, and cannot be dereferenced");
@@ -311,7 +311,7 @@ namespace Corrosive {
 			}
 
 			case RecognizedToken::OpenParenthesis: {
-				Operand::parse_expression(compiler,ret, c, cpt);
+				Operand::parse_expression(compiler, ret, c, cpt);
 			}break;
 
 			case RecognizedToken::Symbol: {
@@ -349,14 +349,14 @@ namespace Corrosive {
 
 					err = c;
 					CompileValue value;
-					Operand::parse(compiler,c, value, cpt);
-					Operand::cast(compiler,err, value, to, cpt, false);
+					Operand::parse(compiler, c, value, cpt);
+					Operand::cast(compiler, err, value, to, cpt, false);
 
 					res = value;
 					return;
 				}
 				else {
-					Operand::parse_symbol(compiler,ret, c, cpt);
+					Operand::parse_symbol(compiler, ret, c, cpt);
 				}
 			}break;
 
@@ -383,7 +383,7 @@ namespace Corrosive {
 				Cursor err = c;
 				Expression::parse(compiler, c, res, cpt);
 				Expression::rvalue(compiler, res, cpt);
-				Operand::cast(compiler,err, res, compiler.types()->t_bool, cpt, true);
+				Operand::cast(compiler, err, res, compiler.types()->t_bool, cpt, true);
 
 				if (cpt == CompileType::compile) {
 					ILBuilder::build_negate(compiler.scope());
@@ -395,21 +395,21 @@ namespace Corrosive {
 
 			case RecognizedToken::Number:
 			case RecognizedToken::UnsignedNumber: {
-				Operand::parse_number(compiler,ret, c, cpt);
+				Operand::parse_number(compiler, ret, c, cpt);
 			}break;
 
 			case RecognizedToken::LongNumber:
 			case RecognizedToken::UnsignedLongNumber: {
-				Operand::parse_long_number(compiler,ret, c, cpt);
+				Operand::parse_long_number(compiler, ret, c, cpt);
 			}break;
 
 			case RecognizedToken::FloatNumber:
 			case RecognizedToken::DoubleNumber: {
-				Operand::parse_float_number(compiler,ret, c, cpt);
+				Operand::parse_float_number(compiler, ret, c, cpt);
 			}break;
 
 			case RecognizedToken::String: {
-				Operand::parse_string_literal(compiler,ret, c, cpt);
+				Operand::parse_string_literal(compiler, ret, c, cpt);
 			}break;
 
 
@@ -456,21 +456,21 @@ namespace Corrosive {
 
 						compiler.pop_scope_context();
 
-						Operand::cast(compiler,err, ret, to, cpt, false);
+						Operand::cast(compiler, err, ret, to, cpt, false);
 					}
 					else goto break_while;
 				}break;
 				case RecognizedToken::OpenParenthesis: {
-					parse_call_operator(compiler,ret, c, cpt);
+					parse_call_operator(compiler, ret, c, cpt);
 				}break;
 				case RecognizedToken::OpenBracket: {
-					parse_array_operator(compiler,ret, c, cpt);
+					parse_array_operator(compiler, ret, c, cpt);
 				}break;
 				case RecognizedToken::Dot: {
-					parse_dot_operator(compiler,ret, c, cpt);
+					parse_dot_operator(compiler, ret, c, cpt);
 				}break;
 				case RecognizedToken::DoubleColon: {
-					parse_double_colon_operator(compiler,ret, c, cpt);
+					parse_double_colon_operator(compiler, ret, c, cpt);
 				}break;
 				default: goto break_while;
 			}
@@ -532,7 +532,7 @@ namespace Corrosive {
 				}
 				c.move();
 
-				Operand::parse_generate_template(compiler,c, struct_inst, inst);
+				Operand::parse_generate_template(compiler, c, struct_inst, inst);
 			}
 			else {
 				struct_inst->generate(nullptr, inst);
@@ -586,7 +586,7 @@ namespace Corrosive {
 				}
 				c.move();
 
-				Operand::parse_generate_template(compiler,c, func_inst, inst);
+				Operand::parse_generate_template(compiler, c, func_inst, inst);
 				inst->compile();
 
 				compiler.pop_scope_context();
@@ -688,7 +688,7 @@ namespace Corrosive {
 
 			CompileValue type_val;
 			Cursor err = c;
-			Operand::parse(compiler,c, type_val, CompileType::eval);
+			Operand::parse(compiler, c, type_val, CompileType::eval);
 			Expression::rvalue(compiler, type_val, CompileType::eval);
 
 			if (type_val.type != compiler.types()->t_type) {
@@ -714,7 +714,7 @@ namespace Corrosive {
 
 			CompileValue type_val;
 			Cursor err = c;
-			Operand::parse(compiler,c, type_val, cpt);
+			Operand::parse(compiler, c, type_val, cpt);
 
 			if (type_val.type->type() == TypeInstanceType::type_structure_instance && type_val.lvalue) {
 				type_val.type->compile();
@@ -753,7 +753,7 @@ namespace Corrosive {
 
 			CompileValue type_val;
 			Cursor err = c;
-			Operand::parse(compiler,c, type_val, cpt);
+			Operand::parse(compiler, c, type_val, cpt);
 
 			if (type_val.type->type() == TypeInstanceType::type_structure_instance && type_val.lvalue) {
 
@@ -918,7 +918,7 @@ namespace Corrosive {
 				ret_type = compiler.evaluator()->pop_register_value<Type*>();
 			}
 
-			Type* ftype = compiler.types()->load_or_register_function_type(call_conv,std::move(arg_types), ret_type, t_context);
+			Type* ftype = compiler.types()->load_or_register_function_type(call_conv, std::move(arg_types), ret_type, t_context);
 
 			compiler.evaluator()->write_register_value(ftype);
 			ret.lvalue = false;
@@ -944,7 +944,7 @@ namespace Corrosive {
 				FunctionInstance* f = nullptr;
 				Type* t = nullptr;
 				ILSize t_s;
-				parse_const_type_function(compiler,c, f, t, t_s);
+				parse_const_type_function(compiler, c, f, t, t_s);
 
 				if (f) {
 					ILBuilder::build_fnptr(compiler.scope(), f->func);
@@ -1246,7 +1246,7 @@ namespace Corrosive {
 				CompileValue res;
 				Cursor err = c;
 				Expression::parse(compiler, c, res, CompileType::eval);
-				Operand::cast(compiler,err, res, std::get<1>(*layout), CompileType::eval, false);
+				Operand::cast(compiler, err, res, std::get<1>(*layout), CompileType::eval, false);
 				Expression::rvalue(compiler, res, CompileType::eval);
 
 				layout++;
@@ -1419,7 +1419,7 @@ namespace Corrosive {
 				CompileValue arg;
 				Cursor err = c;
 				Expression::parse(compiler, c, arg, cpt);
-				Operand::cast(compiler,err, arg, compiler.types()->argument_array_storage.get(ft->argument_array_id)[argi], cpt, true);
+				Operand::cast(compiler, err, arg, compiler.types()->argument_array_storage.get(ft->argument_array_id)[argi], cpt, true);
 				Expression::rvalue(compiler, arg, cpt);
 				argi++;
 
@@ -1458,7 +1458,7 @@ namespace Corrosive {
 
 				if (dt->type() == TypeInstanceType::type_structure_template) {
 					StructureInstance* inst;
-					parse_generate_template(compiler,c, ((TypeStructureTemplate*)dt)->owner, inst);
+					parse_generate_template(compiler, c, ((TypeStructureTemplate*)dt)->owner, inst);
 					ILBuilder::eval_const_type(compiler.evaluator(), inst->type.get());
 
 					ret.lvalue = false;
@@ -1467,7 +1467,7 @@ namespace Corrosive {
 				}
 				else if (dt->type() == TypeInstanceType::type_trait_template) {
 					TraitInstance* inst;
-					parse_generate_template(compiler,c, ((TypeTraitTemplate*)dt)->owner, inst);
+					parse_generate_template(compiler, c, ((TypeTraitTemplate*)dt)->owner, inst);
 					ILBuilder::eval_const_type(compiler.evaluator(), inst->type.get());
 
 					ret.lvalue = false;
@@ -1475,7 +1475,7 @@ namespace Corrosive {
 				}
 				else if (dt->type() == TypeInstanceType::type_function_template) {
 					FunctionInstance* inst;
-					parse_generate_template(compiler,c, ((TypeFunctionTemplate*)dt)->owner, inst);
+					parse_generate_template(compiler, c, ((TypeFunctionTemplate*)dt)->owner, inst);
 					inst->compile();
 
 					ILBuilder::eval_fnptr(compiler.evaluator(), inst->func);
@@ -1518,7 +1518,7 @@ namespace Corrosive {
 						Cursor err = c;
 						Expression::parse(compiler, c, res, cpt);
 						Expression::rvalue(compiler, res, cpt);
-						Operand::cast(compiler,err, res, *layout, cpt, true);
+						Operand::cast(compiler, err, res, *layout, cpt, true);
 
 						results.push_back(res);
 						layout++;
@@ -1551,7 +1551,7 @@ namespace Corrosive {
 
 		}
 		else if (ret.type->type() == TypeInstanceType::type_function) {
-			function_call(compiler,ret, c, cpt, 0);
+			function_call(compiler, ret, c, cpt, 0);
 		}
 		else {
 			throw_specific_error(c, "not implemented yet");
@@ -1631,7 +1631,7 @@ namespace Corrosive {
 		ILBuilder::eval_const_type(eval, t);
 	}
 
-	void Operand::parse_reference(Compiler& compiler,CompileValue& ret, Cursor& c, CompileType cpt) {
+	void Operand::parse_reference(Compiler& compiler, CompileValue& ret, Cursor& c, CompileType cpt) {
 		Cursor operr = c;
 
 		unsigned int type_ref_count = 0;
@@ -1644,7 +1644,7 @@ namespace Corrosive {
 
 		Cursor err = c;
 		CompileValue value;
-		Operand::parse(compiler,c, value, cpt);
+		Operand::parse(compiler, c, value, cpt);
 		Expression::rvalue(compiler, value, cpt);
 
 		if (value.type != compiler.types()->t_type) {
@@ -1669,7 +1669,7 @@ namespace Corrosive {
 
 	}
 
-	void Operand::parse_array_operator(Compiler& compiler,CompileValue& ret, Cursor& c, CompileType cpt) {
+	void Operand::parse_array_operator(Compiler& compiler, CompileValue& ret, Cursor& c, CompileType cpt) {
 
 		while (ret.type->type() != TypeInstanceType::type_slice && (ret.type->type() != TypeInstanceType::type_reference || ((TypeReference*)ret.type)->owner->type() != TypeInstanceType::type_slice)) {
 
@@ -1695,12 +1695,12 @@ namespace Corrosive {
 			TypeStructureInstance* ti = (TypeStructureInstance*)ret.type;
 			ti->compile();
 			StructureInstance* si = ti->owner;
-			
+
 			if (!si->pass_array_operator) {
 				throw_specific_error(c, "Offset can be applied only on slices or passed to slice by alias");
 			}
 
-			Operand::structure_element_offset(compiler,ret, si->pass_array_id, cpt);
+			Operand::structure_element_offset(compiler, ret, si->pass_array_id, cpt);
 		}
 
 		if (ret.type->type() == TypeInstanceType::type_reference && ((TypeReference*)ret.type)->owner->type() == TypeInstanceType::type_slice) {
@@ -1738,7 +1738,7 @@ namespace Corrosive {
 		CompileValue index;
 		Expression::parse(compiler, c, index, cpt);
 		Expression::rvalue(compiler, index, cpt);
-		Operand::cast(compiler,err, index, compiler.types()->t_size, cpt, true);
+		Operand::cast(compiler, err, index, compiler.types()->t_size, cpt, true);
 
 
 
@@ -1773,7 +1773,7 @@ namespace Corrosive {
 
 	}
 
-	void Operand::parse_array_type(Compiler& compiler,CompileValue& ret, Cursor& c, CompileType cpt) {
+	void Operand::parse_array_type(Compiler& compiler, CompileValue& ret, Cursor& c, CompileType cpt) {
 		Cursor err = c;
 		CompileValue res;
 		c.move();
@@ -1783,7 +1783,7 @@ namespace Corrosive {
 
 			Cursor t_err = c;
 
-			Operand::parse(compiler,c, res, cpt);
+			Operand::parse(compiler, c, res, cpt);
 			Expression::rvalue(compiler, res, cpt);
 
 			if (res.type != compiler.types()->t_type) {
@@ -1805,7 +1805,7 @@ namespace Corrosive {
 			Expression::parse(compiler, c, res, cpt);
 			Expression::rvalue(compiler, res, cpt);
 
-			Operand::cast(compiler,err, res, compiler.types()->t_u32, cpt, true);
+			Operand::cast(compiler, err, res, compiler.types()->t_u32, cpt, true);
 
 
 			if (c.tok != RecognizedToken::CloseBracket) {
@@ -1816,7 +1816,7 @@ namespace Corrosive {
 
 			Cursor t_err = c;
 
-			Operand::parse(compiler,c, res, cpt);
+			Operand::parse(compiler, c, res, cpt);
 			Expression::rvalue(compiler, res, cpt);
 
 			if (res.type != compiler.types()->t_type) {
@@ -1842,7 +1842,7 @@ namespace Corrosive {
 	}
 
 
-	void Operand::parse_double_colon_operator(Compiler& compiler,CompileValue& ret, Cursor& c, CompileType cpt) {
+	void Operand::parse_double_colon_operator(Compiler& compiler, CompileValue& ret, Cursor& c, CompileType cpt) {
 		c.move();
 
 		if (cpt == CompileType::compile) {
@@ -1905,7 +1905,7 @@ namespace Corrosive {
 		ret.type = compiler.types()->t_type;
 
 		c.move();
-		
+
 
 	}
 
@@ -1942,7 +1942,7 @@ namespace Corrosive {
 				ILBuilder::build_local(compiler.scope(), local_return_id);
 			}
 
-			Operand::read_arguments(compiler,c, argi, ft, cpt);
+			Operand::read_arguments(compiler, c, argi, ft, cpt);
 
 			if (argi != compiler.types()->argument_array_storage.get(ft->argument_array_id).size()) {
 				throw_specific_error(c, "Wrong number of arguments");
@@ -1976,7 +1976,7 @@ namespace Corrosive {
 				ILBuilder::eval_local(compiler.evaluator(), sid);
 			}
 
-			Operand::read_arguments(compiler,c, argi, ft, cpt);
+			Operand::read_arguments(compiler, c, argi, ft, cpt);
 
 			if (argi != compiler.types()->argument_array_storage.get(ft->argument_array_id).size()) {
 				throw_specific_error(c, "Wrong number of arguments");
@@ -1999,12 +1999,12 @@ namespace Corrosive {
 	}
 
 	void Operand::structure_element_offset(Compiler& compiler, CompileValue& ret, uint16_t id, CompileType cpt) {
-		
+
 		TypeStructureInstance* ti = (TypeStructureInstance*)ret.type;
 		ti->compile();
 
 		uint16_t elem_id = 0;
-		Type* mem_type = nullptr;		
+		Type* mem_type = nullptr;
 		StructureInstance* si = ti->owner;
 		ILSize elem_size(si->size.type, 0);
 
@@ -2017,7 +2017,7 @@ namespace Corrosive {
 			elem_size.value = member.second;
 		}
 
-		mem_type = member.first;		
+		mem_type = member.first;
 
 		if (ret.lvalue)
 		{
@@ -2105,7 +2105,7 @@ namespace Corrosive {
 	}
 
 
-	void Operand::parse_dot_operator(Compiler& compiler,CompileValue& ret, Cursor& c, CompileType cpt) {
+	void Operand::parse_dot_operator(Compiler& compiler, CompileValue& ret, Cursor& c, CompileType cpt) {
 		if (ret.type->type() == TypeInstanceType::type_slice) {
 			TypeSlice* ts = (TypeSlice*)ret.type;
 			c.move();
@@ -2278,7 +2278,7 @@ namespace Corrosive {
 
 				c.move();
 				unsigned int argi = 1;
-				Operand::read_arguments(compiler,c, argi, mf.type, cpt);
+				Operand::read_arguments(compiler, c, argi, mf.type, cpt);
 				c.move();
 
 				mf.type->compile();
@@ -2358,11 +2358,11 @@ namespace Corrosive {
 					{
 						case MemberTableEntryType::alias:
 							continue_deeper = true;
-							structure_element_offset(compiler,ret, table_element->second.first, cpt);
+							structure_element_offset(compiler, ret, table_element->second.first, cpt);
 							break;
 						case MemberTableEntryType::var:
 							continue_deeper = false;
-							structure_element_offset(compiler,ret, table_element->second.first, cpt);
+							structure_element_offset(compiler, ret, table_element->second.first, cpt);
 							break;
 						case MemberTableEntryType::func:
 
@@ -2405,7 +2405,7 @@ namespace Corrosive {
 
 							ret.type = finst->type;
 							ret.lvalue = false;
-							function_call(compiler,ret, c, cpt, 1);
+							function_call(compiler, ret, c, cpt, 1);
 							return;
 					}
 				}
@@ -2413,7 +2413,7 @@ namespace Corrosive {
 					throw_specific_error(tok, "Instance does not contain member with this name");
 				}
 			}
-			
+
 		}
 
 

@@ -365,31 +365,47 @@ namespace Corrosive {
 	}
 
 	void Cursor::move_matching() {
-		if (src != nullptr && tok == RecognizedToken::OpenBrace) {
+		if (src != nullptr && (tok == RecognizedToken::OpenBrace || tok == RecognizedToken::OpenParenthesis)) {
 			src->move_matching(*this);
 		}
 	}
 
 	void Source::move_matching(Cursor& c) const {
-		c = brace_pair.find(c.offset)->second;
+		c = token_pair.find(c.offset)->second;
 	}
 
-	void Source::pair_braces() {
+	void Source::pair_tokens() {
 		Cursor c = read_first();
-		int level = 0;
+		int level_braces = 0;
+		int level_parenthesies = 0;
 		std::vector<Cursor> open_braces;
+		std::vector<Cursor> open_parenthesies;
 
 		while (c.tok != RecognizedToken::Eof) {
 			
 			if (c.tok == RecognizedToken::OpenBrace) {
 				open_braces.push_back(c);
-				level++;
+				level_braces++;
+			}
+			else if (c.tok == RecognizedToken::OpenParenthesis) {
+				open_parenthesies.push_back(c);
+				level_parenthesies++;
 			}
 			else if (c.tok == RecognizedToken::CloseBrace) {
-				if (level > 0) {
-					brace_pair[open_braces.back().offset] = c;
+				if (level_braces > 0) {
+					token_pair[open_braces.back().offset] = c;
 					open_braces.pop_back();
-					level--;
+					level_braces--;
+				}
+				else {
+					throw_specific_error(c, "There was no '{' to match this brace");
+				}
+			}
+			else if (c.tok == RecognizedToken::CloseParenthesis) {
+				if (level_parenthesies > 0) {
+					token_pair[open_parenthesies.back().offset] = c;
+					open_parenthesies.pop_back();
+					level_parenthesies--;
 				}
 				else {
 					throw_specific_error(c, "There was no '{' to match this brace");
@@ -399,8 +415,11 @@ namespace Corrosive {
 			c.move();
 		}
 
-		if (level != 0) {
+		if (level_braces != 0) {
 			throw_specific_error(open_braces.back(), "There was no '}' to close this block");
+		}
+		if (level_parenthesies != 0) {
+			throw_specific_error(open_parenthesies.back(), "There was no '}' to close this block");
 		}
 	}
 
@@ -422,7 +441,7 @@ namespace Corrosive {
 			auto std_src = std::make_unique<Source>();
 			std_src->path = abs;
 			std_src->load(abs.generic_string().c_str());
-			std_src->pair_braces();
+			std_src->pair_tokens();
 			std_src->register_debug(compiler);
 			Cursor c_std = std_src->read_first();
 			compiler.included_sources[std::move(abs)] = std::move(std_src);

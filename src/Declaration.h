@@ -14,7 +14,7 @@
 
 namespace Corrosive {
 	class Compiler;
-	
+
 	enum class StructDeclarationType : unsigned char {
 		t_u8, t_u16, t_u32, t_u64, t_i8, t_i16, t_i32, t_i64, t_f32, t_f64, t_bool, t_ptr
 	};
@@ -52,7 +52,7 @@ namespace Corrosive {
 
 		Cursor name;
 		Namespace* parent = nullptr;
-		std::map<std::string_view, std::pair<uint8_t,uint32_t>> name_table;
+		std::map<std::string_view, std::pair<uint8_t, uint32_t>> name_table;
 
 		std::vector<std::unique_ptr<Namespace>> subnamespaces;
 		std::vector<std::unique_ptr<StructureTemplate>> subtemplates;
@@ -79,7 +79,7 @@ namespace Corrosive {
 		std::unique_ptr<TypeStructureInstance> type;
 
 		std::map<std::string_view, std::pair<uint16_t, MemberTableEntryType>>	 member_table;
-		std::vector<std::pair<Type*,uint32_t>>									 member_vars;
+		std::vector<std::pair<Type*, uint32_t>>									 member_vars;
 		std::vector<uint16_t>													 member_composites;
 		std::map<TraitInstance*, std::vector<std::unique_ptr<FunctionInstance>>> traitfunctions;
 
@@ -171,7 +171,7 @@ namespace Corrosive {
 		void generate(unsigned char* argdata, StructureInstance*& out);
 		void compile();
 
-		static void parse(Compiler& compiler, Cursor &c, Namespace* parent, GenericInstance* gen_inst, std::unique_ptr<StructureTemplate>& into);
+		static void parse(Compiler& compiler, Cursor& c, Namespace* parent, GenericInstance* gen_inst, std::unique_ptr<StructureTemplate>& into);
 
 		unsigned int compile_state = 0;
 
@@ -182,7 +182,7 @@ namespace Corrosive {
 		};
 		GenericTemplateCompare gen_template_cmp;
 	public:
-		std::unique_ptr<std::map<unsigned char*, std::pair<std::unique_ptr<unsigned char[]>,std::unique_ptr<StructureInstance>>, GenericTemplateCompare>> instances = nullptr;
+		std::unique_ptr<std::map<unsigned char*, std::pair<std::unique_ptr<unsigned char[]>, std::unique_ptr<StructureInstance>>, GenericTemplateCompare>> instances = nullptr;
 	};
 
 	class TraitTemplate;
@@ -268,7 +268,7 @@ namespace Corrosive {
 
 		GenericInstance generic_inst;
 
-		std::vector<std::pair<Cursor,Type*>> arguments;
+		std::vector<std::pair<Cursor, Type*>> arguments;
 		std::pair<Cursor, Type*> returns;
 		ILContext context = ILContext::both;
 

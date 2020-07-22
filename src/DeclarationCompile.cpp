@@ -33,8 +33,8 @@ namespace Corrosive {
 					c.move();
 					Cursor err = c;
 					CompileValue value;
-					Expression::parse(*compiler,c, value, CompileType::eval);
-					Expression::rvalue(*compiler,value, CompileType::eval);
+					Expression::parse(*compiler, c, value, CompileType::eval);
+					Expression::rvalue(*compiler, value, CompileType::eval);
 
 					if (value.type != compiler->types()->t_type) {
 						throw_specific_error(err, "Expected type value");
@@ -106,8 +106,8 @@ namespace Corrosive {
 					c.move();
 					Cursor err = c;
 					CompileValue value;
-					Expression::parse(*compiler,c, value, CompileType::eval);
-					Expression::rvalue(*compiler,value, CompileType::eval);
+					Expression::parse(*compiler, c, value, CompileType::eval);
+					Expression::rvalue(*compiler, value, CompileType::eval);
 
 					if (value.type != compiler->types()->t_type) {
 						throw_specific_error(err, "Expected type value");
@@ -187,8 +187,8 @@ namespace Corrosive {
 					c.move();
 					Cursor err = c;
 					CompileValue value;
-					Expression::parse(*compiler,c, value, CompileType::eval);
-					Expression::rvalue(*compiler,value, CompileType::eval);
+					Expression::parse(*compiler, c, value, CompileType::eval);
+					Expression::rvalue(*compiler, value, CompileType::eval);
 
 					if (value.type != compiler->types()->t_type) {
 						throw_specific_error(err, "Expected type value");
@@ -330,7 +330,7 @@ namespace Corrosive {
 			for (auto&& t : member_templates) {
 				Cursor tc = t.cursor;
 				std::unique_ptr<StructureTemplate> decl;
-				StructureTemplate::parse(*compiler,tc, new_inst, &new_inst->generic_inst, decl);
+				StructureTemplate::parse(*compiler, tc, new_inst, &new_inst->generic_inst, decl);
 
 				if (new_inst->name_table.find(decl->name.buffer) != new_inst->name_table.end()) {
 					throw_specific_error(decl->name, "Name already exists in the structure");
@@ -347,8 +347,8 @@ namespace Corrosive {
 				CompileValue value;
 
 				Cursor err = c;
-				Expression::parse(*compiler,c, value, CompileType::eval);
-				Expression::rvalue(*compiler,value, CompileType::eval);
+				Expression::parse(*compiler, c, value, CompileType::eval);
+				Expression::rvalue(*compiler, value, CompileType::eval);
 
 				if (value.type != compiler->types()->t_type) {
 					throw_specific_error(m.type, "Expected type value");
@@ -422,8 +422,8 @@ namespace Corrosive {
 
 								Cursor err = c;
 								CompileValue res;
-								Expression::parse(*compiler,c, res, CompileType::eval);
-								Expression::rvalue(*compiler,res, CompileType::eval);
+								Expression::parse(*compiler, c, res, CompileType::eval);
+								Expression::rvalue(*compiler, res, CompileType::eval);
 								if (res.type != compiler->types()->t_type) {
 									throw_specific_error(err, "Expected type");
 								}
@@ -470,8 +470,8 @@ namespace Corrosive {
 						if (c.tok != RecognizedToken::OpenBrace) {
 							Cursor err = c;
 							CompileValue res;
-							Expression::parse(*compiler,c, res, CompileType::eval);
-							Expression::rvalue(*compiler,res, CompileType::eval);
+							Expression::parse(*compiler, c, res, CompileType::eval);
+							Expression::rvalue(*compiler, res, CompileType::eval);
 
 							if (res.type != compiler->types()->t_type) {
 								throw_specific_error(err, "Expected type");
@@ -496,7 +496,7 @@ namespace Corrosive {
 							argtypes.push_back(a.second);
 						}
 
-						ft->type = compiler->types()->load_or_register_function_type(ILCallingConvention::bytecode,std::move(argtypes), ft->returns.second, ft->context);
+						ft->type = compiler->types()->load_or_register_function_type(ILCallingConvention::bytecode, std::move(argtypes), ft->returns.second, ft->context);
 						ft->compile_state = 1;
 						trait[ttid->second] = std::move(ft);
 
@@ -542,8 +542,8 @@ namespace Corrosive {
 				CompileValue value;
 
 				Cursor err = c;
-				Expression::parse(*compiler,c, value, CompileType::eval);
-				Expression::rvalue(*compiler,value, CompileType::eval);
+				Expression::parse(*compiler, c, value, CompileType::eval);
+				Expression::rvalue(*compiler, value, CompileType::eval);
 				if (value.type != compiler->types()->t_type) {
 					throw_specific_error(m.type, "Expected type value");
 				}
@@ -682,8 +682,8 @@ namespace Corrosive {
 					while (true) {
 						Cursor err = c;
 						CompileValue val;
-						Expression::parse(*compiler,c, val, CompileType::eval);
-						Expression::rvalue(*compiler,val, CompileType::eval);
+						Expression::parse(*compiler, c, val, CompileType::eval);
+						Expression::rvalue(*compiler, val, CompileType::eval);
 
 						if (val.type != compiler->types()->t_type) {
 							throw_specific_error(err, "Expected type");
@@ -709,8 +709,8 @@ namespace Corrosive {
 				else {
 					Cursor err = c;
 					CompileValue val;
-					Expression::parse(*compiler,c, val, CompileType::eval);
-					Expression::rvalue(*compiler,val, CompileType::eval);
+					Expression::parse(*compiler, c, val, CompileType::eval);
+					Expression::rvalue(*compiler, val, CompileType::eval);
 
 					if (val.type != compiler->types()->t_type) {
 						throw_specific_error(err, "Expected type");
@@ -815,8 +815,8 @@ namespace Corrosive {
 					}
 
 					Cursor err = cc;
-					Expression::parse(*compiler,cc, cvres, CompileType::eval);
-					Expression::rvalue(*compiler,cvres, CompileType::eval);
+					Expression::parse(*compiler, cc, cvres, CompileType::eval);
+					Expression::rvalue(*compiler, cvres, CompileType::eval);
 
 					if (cvres.type != compiler->types()->t_type) {
 						throw_cannot_cast_error(err, cvres.type, compiler->types()->t_type);
@@ -840,8 +840,8 @@ namespace Corrosive {
 
 			if (cc.tok != RecognizedToken::OpenBrace && cc.tok != RecognizedToken::Semicolon) {
 				Cursor err = cc;
-				Expression::parse(*compiler,cc, cvres, CompileType::eval);
-				Expression::rvalue(*compiler,cvres, CompileType::eval);
+				Expression::parse(*compiler, cc, cvres, CompileType::eval);
+				Expression::rvalue(*compiler, cvres, CompileType::eval);
 
 				if (cvres.type != compiler->types()->t_type) {
 					throw_cannot_cast_error(err, cvres.type, compiler->types()->t_type);
@@ -960,7 +960,7 @@ namespace Corrosive {
 
 				Cursor cb = block;
 				BlockTermination term;
-				Statement::parse_inner_block(*compiler,cb, term, true, &name);
+				Statement::parse_inner_block(*compiler, cb, term, true, &name);
 
 
 				//func->dump();
@@ -979,9 +979,10 @@ namespace Corrosive {
 				compiler->pop_scope_context();
 				compiler->pop_function();
 
-			
-			} else {
-				auto func = compiler->global_module()->create_ext_function(); 
+
+			}
+			else {
+				auto func = compiler->global_module()->create_ext_function();
 				this->func = func;
 				func->alias = name.buffer;
 				compile_state = 3;
@@ -1366,7 +1367,7 @@ namespace Corrosive {
 				}
 			}
 
-			
+
 			for (uint32_t i = 0; i < subfunctions.size(); ++i) {
 				auto gf = subfunctions[i].get();
 				if (!gf->is_generic) {
@@ -1464,7 +1465,7 @@ namespace Corrosive {
 				key_ptr += std::get<1>(*key_l)->size().eval(compiler.global_module(), compiler_arch);
 			}
 
-			
+
 		}
 
 	}

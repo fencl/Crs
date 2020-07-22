@@ -38,7 +38,6 @@ namespace Corrosive {
 		unsigned char* roff = b;
 
 		for (auto&& l : parent->generic_ctx.generic_layout) {
-
 			int r = std::get<1>(l)->compare(loff,roff);
 			if (r < 0) return true;
 			if (r > 0) return false;

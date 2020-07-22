@@ -25,13 +25,13 @@ namespace Corrosive {
 		void read_after(Cursor& out, const Cursor& c) const;
 		Cursor read_first() const;
 
-		void pair_braces();
+		void pair_tokens();
 		void move_matching(Cursor& c) const;
 
 		static void require(Compiler& compiler, std::filesystem::path file, const Source* base=nullptr);
 	private:
 		std::string buffer;
-		std::unordered_map<size_t, Cursor> brace_pair;
+		std::unordered_map<size_t, Cursor> token_pair;
 	};
 
 }
