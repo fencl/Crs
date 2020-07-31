@@ -66,6 +66,9 @@
     <ClInclude Include="..\src\Compiler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\Ast.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\Declaration.cpp">
@@ -130,6 +133,9 @@
     </ClCompile>
     <ClCompile Include="..\src\IL\ILCallConv.cpp">
       <Filter>Source Files\IL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Ast.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -8,17 +8,17 @@
 #include <string>
 
 namespace Corrosive {
-	std::stringstream throw_error_header(const Cursor& c) {
+	std::stringstream throw_error_header(Cursor& c) {
 		std::stringstream cerr;
 		if (c.src != nullptr) {
-			cerr << "\n | Error ("<<((Source*)c.src)->name<<": " << (c.top + 1) << "):\n | \t";
+			cerr << "\n | Error ("<<((Source*)c.src)->name<<": " << (c.line() + 1) << "):\n | \t";
 		}
 		else {
-			cerr << "\n | Error (" << (c.top + 1) << "):\n | \t";
+			cerr << "\n | Error (" << (c.line() + 1) << "):\n | \t";
 		}
 
 		Cursor cc = c;
-		if (cc.tok != RecognizedToken::Eof && cc.src!=nullptr) {
+		if (cc.length > 0 && cc.src!=nullptr) {
 			Source* src = (Source*)cc.src;
 			std::string_view data = src->data();
 			size_t from = std::min(cc.offset, data.size() - 1);
@@ -60,7 +60,7 @@ namespace Corrosive {
 			for (int i = 0; i < req_offset; i++)
 				cerr << " ";
 
-			for (size_t i = 0; i < cc.buffer.length(); i++)
+			for (size_t i = 0; i < cc.length; i++)
 				cerr << "^";
 		}
 
@@ -68,7 +68,7 @@ namespace Corrosive {
 		return cerr;
 	}
 
-	void throw_specific_error(const Cursor& c, std::string_view text) {
+	void throw_specific_error(Cursor& c, std::string_view text) {
 
 		std::stringstream cerr = throw_error_header(c);
 		cerr << text;
@@ -76,7 +76,7 @@ namespace Corrosive {
 	}
 
 
-	void throw_cannot_cast_error(const Cursor& c, Type* from, Type* to) {
+	void throw_cannot_cast_error(Cursor& c, Type* from, Type* to) {
 
 		std::stringstream cerr = throw_error_header(c);
 		cerr << "Cannot cast from '";
@@ -88,7 +88,7 @@ namespace Corrosive {
 	}
 
 
-	void throw_cannot_implicit_cast_error(const Cursor& c, Type* from, Type* to) {
+	void throw_cannot_implicit_cast_error(Cursor& c, Type* from, Type* to) {
 
 		std::stringstream cerr = throw_error_header(c);
 		cerr << "Cannot implicitly cast from '";
@@ -100,30 +100,30 @@ namespace Corrosive {
 	}
 
 
-	void throw_eof_error(const Cursor& c, std::string_view during) {
+	void throw_eof_error(Cursor& c, std::string_view during) {
 
 		std::stringstream cerr = throw_error_header(c);
 		cerr << "End of file found during " << during;
 		throw string_exception(std::move(cerr.str()));
 	}
-	void throw_not_a_name_error(const Cursor& c) {
+	void throw_not_a_name_error(Cursor& c) {
 
 		std::stringstream cerr = throw_error_header(c);
-		cerr << "Symbol '" << c.buffer << "' is not a valid name";
+		cerr << "Symbol '" << c.buffer() << "' is not a valid name";
 		throw string_exception(std::move(cerr.str()));
 	}
 
-	void throw_variable_not_found_error(const Cursor& c) {
+	void throw_variable_not_found_error(Cursor& c) {
 
 		std::stringstream cerr = throw_error_header(c);
-		cerr << "Variable with the name '" << c.buffer << "' was not found";
+		cerr << "Variable with the name '" << c.buffer() << "' was not found";
 		throw string_exception(std::move(cerr.str()));
 	}
 
-	void throw_wrong_token_error(const Cursor& c, std::string_view expected) {
+	void throw_wrong_token_error(Cursor& c, std::string_view expected) {
 
 		std::stringstream cerr = throw_error_header(c);
-		cerr << "Token '" << c.buffer << "' found but parser expected " << expected;
+		cerr << "Token '" << c.buffer() << "' found but parser expected " << expected;
 		throw string_exception(std::move(cerr.str()));
 	}
 

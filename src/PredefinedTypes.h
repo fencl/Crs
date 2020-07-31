@@ -105,8 +105,6 @@ namespace Corrosive {
 		Compiler* owner;
 
 		void setup(Compiler& compiler);
-	private:
-		void setup_type(Compiler& compiler, std::string_view name, Type*& into, ILSize size, ILDataType ildt,ILContext runtime);
 	};
 }
 

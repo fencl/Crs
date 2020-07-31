@@ -18,22 +18,27 @@ namespace Corrosive {
 		if (compile_state == 0) {
 			compile_state = 1;
 
-			if (is_generic) {
-				Cursor c = annotation;
+			type = std::make_unique<TypeFunctionTemplate>();
+			type->owner = this;
+
+			if (ast_node->has_body() && ((AstFunctionNode*)ast_node)->is_generic) {
 				compiler->push_workspace(parent);
-
+				RecognizedToken tok;
+				Cursor c = load_cursor(((AstFunctionNode*)ast_node)->annotation, ast_node->get_source(), tok);
+				c.move(tok);
 				while (true) {
-
-
+					if (tok != RecognizedToken::Symbol) {
+						throw_not_a_name_error(c);
+					}
 					Cursor name = c;
-					c.move();
-					if (c.tok != RecognizedToken::Colon) {
+					c.move(tok);
+					if (tok != RecognizedToken::Colon) {
 						throw_wrong_token_error(c, "':'");
 					}
-					c.move();
+					c.move(tok);
 					Cursor err = c;
 					CompileValue value;
-					Expression::parse(*compiler, c, value, CompileType::eval);
+					Expression::parse(*compiler, c, tok, value, CompileType::eval);
 					Expression::rvalue(*compiler, value, CompileType::eval);
 
 					if (value.type != compiler->types()->t_type) {
@@ -47,11 +52,10 @@ namespace Corrosive {
 					generic_ctx.generate_heap_size += t->size().eval(compiler->global_module(), compiler_arch);
 					generic_ctx.generic_layout.push_back(std::make_tuple(name, t));
 
-
-					if (c.tok == RecognizedToken::Comma) {
-						c.move();
+					if (tok == RecognizedToken::Comma) {
+						c.move(tok);
 					}
-					else if (c.tok == RecognizedToken::CloseParenthesis) {
+					else if (tok == RecognizedToken::CloseParenthesis) {
 						break;
 					}
 					else {
@@ -73,7 +77,9 @@ namespace Corrosive {
 
 		}
 		else {
-			throw_specific_error(name, "compile cycle");
+			RecognizedToken tok;
+			Cursor c = load_cursor(ast_node->name, ast_node->get_source(), tok);
+			throw_specific_error(c, "compile cycle");
 		}
 	}
 
@@ -91,22 +97,27 @@ namespace Corrosive {
 			type = std::make_unique<TypeStructureTemplate>();
 			type->owner = this;
 
-			if (is_generic) {
-				Cursor c = annotation;
 
+			RecognizedToken tok;
+
+			if (ast_node->is_generic) {
+				Cursor c = load_cursor(ast_node->annotation, ast_node->get_source(), tok);
+				c.move(tok);
 				compiler->push_workspace(parent);
 
 				while (true) {
-
+					if (tok != RecognizedToken::Symbol) {
+						throw_not_a_name_error(c);
+					}
 					Cursor name = c;
-					c.move();
-					if (c.tok != RecognizedToken::Colon) {
+					c.move(tok);
+					if (tok != RecognizedToken::Colon) {
 						throw_wrong_token_error(c, "':'");
 					}
-					c.move();
+					c.move(tok);
 					Cursor err = c;
 					CompileValue value;
-					Expression::parse(*compiler, c, value, CompileType::eval);
+					Expression::parse(*compiler, c, tok, value, CompileType::eval);
 					Expression::rvalue(*compiler, value, CompileType::eval);
 
 					if (value.type != compiler->types()->t_type) {
@@ -115,21 +126,16 @@ namespace Corrosive {
 
 					Type* t = compiler->evaluator()->pop_register_value<Type*>();
 
-					/*if (t->type() != TypeInstanceType::type_structure_instance && t->type() != TypeInstanceType::type_template && t->type() != TypeInstanceType::type_function) {
-						throw_specific_error(err, "Type does not point to instance");
-						return false;
-					}*/
-
 					t->compile();
 
 					generic_ctx.generate_heap_size += t->size().eval(compiler->global_module(), compiler_arch);
 					generic_ctx.generic_layout.push_back(std::make_tuple(name, t));
 
 
-					if (c.tok == RecognizedToken::Comma) {
-						c.move();
+					if (tok == RecognizedToken::Comma) {
+						c.move(tok);
 					}
-					else if (c.tok == RecognizedToken::CloseParenthesis) {
+					else if (tok == RecognizedToken::CloseParenthesis) {
 						break;
 					}
 					else {
@@ -153,7 +159,9 @@ namespace Corrosive {
 
 		}
 		else {
-			throw_specific_error(name, "compile cycle");
+			RecognizedToken tok;
+			Cursor c = load_cursor(ast_node->name, ast_node->get_source(), tok);
+			throw_specific_error(c, "compile cycle");
 		}
 	}
 
@@ -171,23 +179,25 @@ namespace Corrosive {
 			type->owner = this;
 
 
-
-			if (is_generic) {
-				Cursor c = annotation;
-
+			if (ast_node->is_generic) {
 				compiler->push_workspace(parent);
+				RecognizedToken tok;
+				Cursor c = load_cursor(ast_node->annotation, ast_node->get_source(), tok);
+				c.move(tok);
 
 				while (true) {
-
+					if (tok != RecognizedToken::Symbol) {
+						throw_not_a_name_error(c);
+					}
 					Cursor name = c;
-					c.move();
-					if (c.tok != RecognizedToken::Colon) {
+					c.move(tok);
+					if (tok != RecognizedToken::Colon) {
 						throw_wrong_token_error(c, "':'");
 					}
-					c.move();
+					c.move(tok);
 					Cursor err = c;
 					CompileValue value;
-					Expression::parse(*compiler, c, value, CompileType::eval);
+					Expression::parse(*compiler, c, tok, value, CompileType::eval);
 					Expression::rvalue(*compiler, value, CompileType::eval);
 
 					if (value.type != compiler->types()->t_type) {
@@ -196,21 +206,16 @@ namespace Corrosive {
 
 					Type* t = compiler->evaluator()->pop_register_value<Type*>();
 
-					/*if (t->type() != TypeInstanceType::type_structure_instance && t->type() != TypeInstanceType::type_template && t->type() != TypeInstanceType::type_function) {
-						throw_specific_error(err, "Type does not point to instance");
-						return false;
-					}*/
-
 					t->compile();
 
 					generic_ctx.generate_heap_size += t->size().eval(compiler->global_module(), compiler_arch);
 					generic_ctx.generic_layout.push_back(std::make_tuple(name, t));
 
 
-					if (c.tok == RecognizedToken::Comma) {
-						c.move();
+					if (tok == RecognizedToken::Comma) {
+						c.move(tok);
 					}
-					else if (c.tok == RecognizedToken::CloseParenthesis) {
+					else if (tok == RecognizedToken::CloseParenthesis) {
 						break;
 					}
 					else {
@@ -232,7 +237,9 @@ namespace Corrosive {
 
 		}
 		else {
-			throw_specific_error(name, "compile cycle");
+			RecognizedToken tok;
+			Cursor c = load_cursor(ast_node->name, ast_node->get_source(), tok);
+			throw_specific_error(c, "compile cycle");
 		}
 	}
 
@@ -242,15 +249,17 @@ namespace Corrosive {
 		StructureInstance* new_inst = nullptr;
 		unsigned char* new_key = nullptr;
 
+		Source* src = ast_node->get_source();
+
 		compiler->evaluator()->stack_push();
 		compiler->compiler_stack()->push();
 
-		if (!is_generic) {
-			if (singe_instance == nullptr) {
-				singe_instance = std::make_unique<StructureInstance>();
-				new_inst = singe_instance.get();
+		if (!ast_node->is_generic) {
+			if (single_instance == nullptr) {
+				single_instance = std::make_unique<StructureInstance>();
+				new_inst = single_instance.get();
 			}
-			out = singe_instance.get();
+			out = single_instance.get();
 		}
 		else {
 			unsigned char* key = argdata;
@@ -286,78 +295,74 @@ namespace Corrosive {
 
 
 		if (new_inst != nullptr) {
+			new_inst->ast_node = ast_node;
 			new_inst->type = std::make_unique<TypeStructureInstance>();
 			new_inst->type->owner = new_inst;
 			new_inst->parent = parent;
 			new_inst->compiler = compiler;
-			new_inst->name = name;
-			new_inst->namespace_type = NamespaceType::t_struct_instance;
 			new_inst->generic_inst.key = new_key;
 			new_inst->generic_inst.generator = &generic_ctx;
+			new_inst->context = ast_node->context;
+
+			RecognizedToken tok;
 
 			new_inst->generic_inst.insert_key_on_stack(*compiler);
 
 			compiler->push_scope_context(ILContext::compile);
 			compiler->push_workspace(new_inst);
 
-			for (auto&& m : member_funcs) {
-				Cursor c = m.type;
-				//TODO we could probably skip the catalogue stage and build the functiontemplate directly in the structure template
-
+			for (auto&& m : ast_node->functions) {
 
 				std::unique_ptr<FunctionTemplate> ft = std::make_unique<FunctionTemplate>();
-				ft->context = m.context;
-				ft->name = m.name;
+
+				ft->ast_node = m.get();
 				ft->compiler = compiler;
-				ft->annotation = m.annotation;
-				ft->is_generic = m.annotation.tok != RecognizedToken::Eof;
 				ft->parent = new_inst;
 				ft->generic_ctx.generator = &new_inst->generic_inst;
-				ft->decl_type = m.type;
-				ft->block = m.block;
 
-				ft->type = std::make_unique<TypeFunctionTemplate>();
-				ft->type->owner = ft.get();
-
-				if (new_inst->name_table.find(m.name.buffer) != new_inst->name_table.end()) {
-					throw_specific_error(m.name, "Name already exists in the structure");
+				if (new_inst->name_table.find(m->name_string) != new_inst->name_table.end()) {
+					Cursor c = load_cursor(m->name, src, tok);
+					throw_specific_error(c, "Name already exists in the structure");
 				}
 
-				new_inst->name_table[m.name.buffer] = std::make_pair((uint8_t)2, (uint32_t)new_inst->subfunctions.size());
+				new_inst->name_table[m->name_string] = std::make_pair((uint8_t)2, (uint32_t)new_inst->subfunctions.size());
 				new_inst->subfunctions.push_back(std::move(ft));
 			}
 
-			for (auto&& t : member_templates) {
-				Cursor tc = t.cursor;
-				std::unique_ptr<StructureTemplate> decl;
-				StructureTemplate::parse(*compiler, tc, new_inst, &new_inst->generic_inst, decl);
+			for (auto&& t : ast_node->structures) {
+				std::unique_ptr<StructureTemplate> decl = std::make_unique<StructureTemplate>();
+				decl->ast_node = t.get();
+				decl->compiler = compiler;
+				decl->parent = new_inst;
+				decl->generic_ctx.generator = &new_inst->generic_inst;
 
-				if (new_inst->name_table.find(decl->name.buffer) != new_inst->name_table.end()) {
-					throw_specific_error(decl->name, "Name already exists in the structure");
+				if (new_inst->name_table.find(t->name_string) != new_inst->name_table.end()) {
+					Cursor c = load_cursor(t->name, src, tok);
+					throw_specific_error(c, "Name already exists in the structure");
 				}
 
-				new_inst->name_table[decl->name.buffer] = std::make_pair((uint8_t)1, (uint32_t)new_inst->subtemplates.size());
+				new_inst->name_table[t->name_string] = std::make_pair((uint8_t)1, (uint32_t)new_inst->subtemplates.size());
 				new_inst->subtemplates.push_back(std::move(decl));
 			}
 
 
 
-			for (auto&& m : member_implementation) {
-				Cursor c = m.type;
-				CompileValue value;
+			for (auto&& m : ast_node->implementations) {
 
+				CompileValue value;
+				Cursor c = load_cursor(m->trait, src, tok);
 				Cursor err = c;
-				Expression::parse(*compiler, c, value, CompileType::eval);
+				Expression::parse(*compiler, c, tok, value, CompileType::eval);
 				Expression::rvalue(*compiler, value, CompileType::eval);
 
 				if (value.type != compiler->types()->t_type) {
-					throw_specific_error(m.type, "Expected type value");
+					throw_specific_error(err, "Expected type value");
 				}
 
 				Type* t = compiler->evaluator()->pop_register_value<Type*>();
 
 				if (t->type() != TypeInstanceType::type_trait) {
-					throw_specific_error(m.type, "Expected trait instance type");
+					throw_specific_error(err, "Expected trait instance type");
 				}
 
 				t->compile();
@@ -367,62 +372,67 @@ namespace Corrosive {
 					throw_specific_error(err, "This trait was already implemented");
 				}
 				else {
-					std::vector<std::unique_ptr<FunctionInstance>> trait(tt->owner->member_funcs.size());
+					std::vector<std::unique_ptr<FunctionInstance>> trait(tt->owner->member_declarations.size());
 
 					unsigned int func_count = 0;
-					for (auto&& f : m.functions) {
+					for (auto&& f : m->functions) {
 
 						std::unique_ptr<FunctionInstance> ft = std::make_unique<FunctionInstance>();
 						ft->compile_state = 0;
 						ft->generic_inst.generator = &generic_ctx;
 						ft->generic_inst.key = new_key;
 						ft->compiler = compiler;
-
-						Cursor err;
-						ft->block = f.block;
-						if (f.name.buffer == "<s>") {
-							ft->name = tt->owner->member_funcs.back().name;
-							err = m.type;
-						}
-						else {
-							ft->name = f.name;
-							err = ft->name;
-						}
+						ft->ast_node = f.get();
 						ft->parent = (Namespace*)this;
 
-						auto ttid = tt->owner->member_table.find(ft->name.buffer);
+						std::string_view name_str;
+						Cursor name_c;
+						if (!m->fast) {
+							name_str = f->name_string;
+							name_c = load_cursor(f->name, src, tok);
+						}
+						else {
+							name_str = tt->owner->ast_node->declarations[0]->name_string;
+							name_c = load_cursor(tt->owner->ast_node->declarations[0]->name, src, tok);
+						}
+
+						auto ttid = tt->owner->member_table.find(name_str);
 
 						if (ttid == tt->owner->member_table.end()) {
-							throw_specific_error(err, "Implemented trait has no function with this name");
+							throw_specific_error(name_c, "Implemented trait has no function with this name");
 						}
 						else if (trait[ttid->second] != nullptr) {
-							throw_specific_error(err, "Funtion with the same name already exists in the implementation");
+							throw_specific_error(name_c, "Funtion with the same name already exists in the implementation");
 						}
 
 
 						func_count += 1;
-						auto& fundecl = tt->owner->member_funcs[ttid->second];
-						ft->context = fundecl.ctx;
+						auto& fundecl = tt->owner->member_declarations[ttid->second];
 
-						auto& args = compiler->types()->argument_array_storage.get(fundecl.type->argument_array_id);
+						if (f->context != fundecl->ptr_context) {
+							throw_specific_error(name_c, "Funtion has different context");
+						}
 
-						Cursor c = f.type;
-						c.move();
-						if (c.tok != RecognizedToken::CloseParenthesis) {
+						auto& args = compiler->types()->argument_array_storage.get(fundecl->argument_array_id);
+
+						c = load_cursor(f->type, src, tok);
+						c.move(tok);
+
+						if (tok != RecognizedToken::CloseParenthesis) {
 							while (true) {
-								if (c.tok != RecognizedToken::Symbol) {
+								if (tok != RecognizedToken::Symbol) {
 									throw_not_a_name_error(c);
 								}
 								Cursor name = c;
-								c.move();
-								if (c.tok != RecognizedToken::Colon) {
+								c.move(tok);
+								if (tok != RecognizedToken::Colon) {
 									throw_wrong_token_error(c, "':'");
 								}
-								c.move();
+								c.move(tok);
 
 								Cursor err = c;
 								CompileValue res;
-								Expression::parse(*compiler, c, res, CompileType::eval);
+								Expression::parse(*compiler, c, tok, res, CompileType::eval);
 								Expression::rvalue(*compiler, res, CompileType::eval);
 								if (res.type != compiler->types()->t_type) {
 									throw_specific_error(err, "Expected type");
@@ -449,10 +459,10 @@ namespace Corrosive {
 									ft->arguments.push_back(std::make_pair(name, argt));
 								}
 
-								if (c.tok == RecognizedToken::Comma) {
-									c.move();
+								if (tok == RecognizedToken::Comma) {
+									c.move(tok);
 								}
-								else if (c.tok == RecognizedToken::CloseParenthesis) {
+								else if (tok == RecognizedToken::CloseParenthesis) {
 									break;
 								}
 								else {
@@ -465,12 +475,12 @@ namespace Corrosive {
 							throw_specific_error(c, "Trait function declaration lacks arguments from the original");
 						}
 
-						c.move();
+						c.move(tok);
 
-						if (c.tok != RecognizedToken::OpenBrace) {
+						if (tok != RecognizedToken::OpenBrace) {
 							Cursor err = c;
 							CompileValue res;
-							Expression::parse(*compiler, c, res, CompileType::eval);
+							Expression::parse(*compiler, c, tok, res, CompileType::eval);
 							Expression::rvalue(*compiler, res, CompileType::eval);
 
 							if (res.type != compiler->types()->t_type) {
@@ -478,7 +488,7 @@ namespace Corrosive {
 							}
 							Type* rett = compiler->evaluator()->pop_register_value<Type*>();
 
-							Type* req_type = fundecl.type->return_type;
+							Type* req_type = fundecl->return_type;
 							if (rett != req_type) {
 								throw_specific_error(err, "Return type does not match the type of the original trait function");
 							}
@@ -490,20 +500,20 @@ namespace Corrosive {
 							ft->returns.second = compiler->types()->t_void;
 						}
 
-
 						std::vector<Type*> argtypes;
 						for (auto&& a : ft->arguments) {
 							argtypes.push_back(a.second);
 						}
 
-						ft->type = compiler->types()->load_or_register_function_type(ILCallingConvention::bytecode, std::move(argtypes), ft->returns.second, ft->context);
+						ft->type = compiler->types()->load_or_register_function_type(ILCallingConvention::bytecode, std::move(argtypes), ft->returns.second, ft->ast_node->context);
 						ft->compile_state = 1;
 						trait[ttid->second] = std::move(ft);
 
 					}
 
-					if (func_count != tt->owner->member_funcs.size()) {
-						throw_specific_error(m.type, "Trait implementation is missing some functions");
+					if (func_count != tt->owner->member_declarations.size()) {
+						Cursor c = load_cursor(m->trait, src, tok);
+						throw_specific_error(c, "Trait implementation is missing some functions");
 					}
 
 					if (tt->owner->generic_inst.generator == &compiler->types()->tr_copy->generic_ctx) {
@@ -536,16 +546,19 @@ namespace Corrosive {
 				}
 			}
 
-			for (auto&& m : member_vars) {
-				Cursor c = m.type;
+			for (auto&& m : ast_node->variables) {
+
+				bool composite = m->alias;
+
 
 				CompileValue value;
 
+				Cursor c = load_cursor(m->type, src, tok);
 				Cursor err = c;
-				Expression::parse(*compiler, c, value, CompileType::eval);
+				Expression::parse(*compiler, c, tok, value, CompileType::eval);
 				Expression::rvalue(*compiler, value, CompileType::eval);
 				if (value.type != compiler->types()->t_type) {
-					throw_specific_error(m.type, "Expected type value");
+					throw_specific_error(err, "Expected type value");
 				}
 
 				Type* m_t = compiler->evaluator()->pop_register_value<Type*>();
@@ -566,25 +579,12 @@ namespace Corrosive {
 					}
 				}
 
-				new_inst->member_table[m.name.buffer] = std::make_pair((uint16_t)new_inst->member_vars.size(), MemberTableEntryType::var);
-				if (m.composite) {
+				new_inst->member_table[m->name_string] = std::make_pair((uint16_t)new_inst->member_vars.size(), MemberTableEntryType::var);
+				if (composite) {
 					new_inst->member_composites.push_back((uint16_t)new_inst->member_vars.size());
 				}
 				new_inst->member_vars.push_back(std::make_pair(m_t, 0));
 			}
-
-			if (new_inst->context == ILContext::runtime) {
-				for (auto&& f : new_inst->subfunctions) {
-					f->context = ILContext::runtime;
-				}
-			}
-
-			if (new_inst->context == ILContext::compile) {
-				for (auto&& f : new_inst->subfunctions) {
-					f->context = ILContext::compile;
-				}
-			}
-
 
 			compiler->pop_workspace();
 			compiler->pop_scope_context();
@@ -600,17 +600,18 @@ namespace Corrosive {
 	void TraitTemplate::generate(unsigned char* argdata, TraitInstance*& out) {
 		TraitInstance* new_inst = nullptr;
 		unsigned char* new_key = nullptr;
+		Source* src = ast_node->get_source();
 
 
 		compiler->evaluator()->stack_push();
 		compiler->compiler_stack()->push();
 
-		if (!is_generic) {
-			if (singe_instance == nullptr) {
-				singe_instance = std::make_unique<TraitInstance>();
-				new_inst = singe_instance.get();
+		if (!ast_node->is_generic) {
+			if (single_instance == nullptr) {
+				single_instance = std::make_unique<TraitInstance>();
+				new_inst = single_instance.get();
 			}
-			out = singe_instance.get();
+			out = single_instance.get();
 		}
 		else {
 			unsigned char* key = argdata;
@@ -634,9 +635,6 @@ namespace Corrosive {
 					new_offset += c_size;
 				}
 
-				//memcpy(new_offset, old_offset, generic_ctx.generate_heap_size);
-
-
 				instances->emplace(new_key, std::make_pair(std::move(new_key_inst), std::move(inst)));
 
 			}
@@ -651,38 +649,28 @@ namespace Corrosive {
 			new_inst->type->owner = new_inst;
 			new_inst->compiler = compiler;
 			new_inst->parent = parent;
-			new_inst->name = name;
 			new_inst->generic_inst.key = new_key;
 			new_inst->generic_inst.generator = &generic_ctx;
-
 			new_inst->generic_inst.insert_key_on_stack(*compiler);
+			new_inst->ast_node = ast_node;
 
 			compiler->push_workspace(parent);
 
-			for (auto&& m : member_funcs) {
 
-
-
-				TraitInstanceMemberRecord member;
-				member.name = m.name;
-				member.definition = m.type;
-				member.ctx = m.ctx;
-				Cursor c = member.definition;
+			for (auto&& m : ast_node->declarations) {
 
 				std::vector<Type*> args;
 				Type* ret_type;
 
-				if (c.tok != RecognizedToken::OpenParenthesis) {
-					throw_wrong_token_error(c, "'('");
-				}
+				RecognizedToken tok;
+				Cursor c = load_cursor(m->type, src, tok);
+				c.move(tok);
 
-				c.move();
-
-				if (c.tok != RecognizedToken::CloseParenthesis) {
+				if (tok != RecognizedToken::CloseParenthesis) {
 					while (true) {
 						Cursor err = c;
 						CompileValue val;
-						Expression::parse(*compiler, c, val, CompileType::eval);
+						Expression::parse(*compiler, c, tok, val, CompileType::eval);
 						Expression::rvalue(*compiler, val, CompileType::eval);
 
 						if (val.type != compiler->types()->t_type) {
@@ -690,10 +678,10 @@ namespace Corrosive {
 						}
 						Type* t = compiler->evaluator()->pop_register_value<Type*>();
 						args.push_back(t);
-						if (c.tok == RecognizedToken::Comma) {
-							c.move();
+						if (tok == RecognizedToken::Comma) {
+							c.move(tok);
 						}
-						else if (c.tok == RecognizedToken::CloseParenthesis) {
+						else if (tok == RecognizedToken::CloseParenthesis) {
 							break;
 						}
 						else {
@@ -701,15 +689,15 @@ namespace Corrosive {
 						}
 					}
 				}
-				c.move();
+				c.move(tok);
 
-				if (c.tok == RecognizedToken::Semicolon) {
+				if (tok == RecognizedToken::Semicolon) {
 					ret_type = compiler->types()->t_void;
 				}
 				else {
 					Cursor err = c;
 					CompileValue val;
-					Expression::parse(*compiler, c, val, CompileType::eval);
+					Expression::parse(*compiler, c, tok, val, CompileType::eval);
 					Expression::rvalue(*compiler, val, CompileType::eval);
 
 					if (val.type != compiler->types()->t_type) {
@@ -720,10 +708,10 @@ namespace Corrosive {
 				}
 
 
-				member.type = compiler->types()->load_or_register_function_type(ILCallingConvention::bytecode, std::move(args), ret_type, ILContext::both);
+				TypeFunction* type = compiler->types()->load_or_register_function_type(ILCallingConvention::bytecode, std::move(args), ret_type, ILContext::both);
 
-				new_inst->member_table[m.name.buffer] = (uint16_t)new_inst->member_funcs.size();
-				new_inst->member_funcs.push_back(std::move(member));
+				new_inst->member_table[m->name_string] = (uint16_t)new_inst->member_declarations.size();
+				new_inst->member_declarations.push_back(type);
 			}
 
 			compiler->pop_workspace();
@@ -742,12 +730,12 @@ namespace Corrosive {
 		compiler->evaluator()->stack_push();
 		compiler->compiler_stack()->push();
 
-		if (!is_generic) {
-			if (singe_instance == nullptr) {
-				singe_instance = std::make_unique<FunctionInstance>();
-				new_inst = singe_instance.get();
+		if (!(ast_node->has_body() && ((AstFunctionNode*)ast_node)->is_generic)) {
+			if (single_instance == nullptr) {
+				single_instance = std::make_unique<FunctionInstance>();
+				new_inst = single_instance.get();
 			}
-			out = singe_instance.get();
+			out = single_instance.get();
 		}
 		else {
 
@@ -785,14 +773,14 @@ namespace Corrosive {
 
 
 		if (new_inst != nullptr) {
+
+
 			new_inst->compile_state = 0;
 			new_inst->parent = parent;
 			new_inst->compiler = compiler;
 			new_inst->generic_inst.key = new_key;
 			new_inst->generic_inst.generator = &generic_ctx;
-			new_inst->block = block;
-			new_inst->name = name;
-			new_inst->context = context;
+			new_inst->ast_node = ast_node;
 
 			new_inst->generic_inst.insert_key_on_stack(*compiler);
 
@@ -800,22 +788,26 @@ namespace Corrosive {
 
 			CompileValue cvres;
 
-			Cursor cc = decl_type;
-			cc.move();
-			if (cc.tok != RecognizedToken::CloseParenthesis) {
+			RecognizedToken tok;
+			Cursor c = load_cursor(ast_node->type, ast_node->get_source(), tok);
+			c.move(tok);
+			if (tok != RecognizedToken::CloseParenthesis) {
 				while (true) {
 
-					Cursor argname = cc;
-					if (block.src) {
-						cc.move();
-						if (cc.tok != RecognizedToken::Colon) {
-							throw_wrong_token_error(cc, "':'");
+					Cursor argname = c;
+					if (ast_node->has_body()) {
+						if (tok != RecognizedToken::Symbol) {
+							throw_not_a_name_error(c);
 						}
-						cc.move();
+						c.move(tok);
+						if (tok != RecognizedToken::Colon) {
+							throw_wrong_token_error(c, "':'");
+						}
+						c.move(tok);
 					}
 
-					Cursor err = cc;
-					Expression::parse(*compiler, cc, cvres, CompileType::eval);
+					Cursor err = c;
+					Expression::parse(*compiler, c, tok, cvres, CompileType::eval);
 					Expression::rvalue(*compiler, cvres, CompileType::eval);
 
 					if (cvres.type != compiler->types()->t_type) {
@@ -824,23 +816,23 @@ namespace Corrosive {
 					Type* t = compiler->evaluator()->pop_register_value<Type*>();
 					new_inst->arguments.push_back(std::make_pair(argname, t));
 
-					if (cc.tok == RecognizedToken::Comma) {
-						cc.move();
+					if (tok == RecognizedToken::Comma) {
+						c.move(tok);
 					}
-					else if (cc.tok == RecognizedToken::CloseParenthesis) {
-						cc.move();
+					else if (tok == RecognizedToken::CloseParenthesis) {
+						c.move(tok);
 						break;
 					}
 					else {
-						throw_wrong_token_error(cc, "',' or ')'");
+						throw_wrong_token_error(c, "',' or ')'");
 					}
 				}
 			}
-			else { cc.move(); }
+			else { c.move(tok); }
 
-			if (cc.tok != RecognizedToken::OpenBrace && cc.tok != RecognizedToken::Semicolon) {
-				Cursor err = cc;
-				Expression::parse(*compiler, cc, cvres, CompileType::eval);
+			if (tok != RecognizedToken::OpenBrace && tok != RecognizedToken::Semicolon) {
+				Cursor err = c;
+				Expression::parse(*compiler, c, tok, cvres, CompileType::eval);
 				Expression::rvalue(*compiler, cvres, CompileType::eval);
 
 				if (cvres.type != compiler->types()->t_type) {
@@ -859,7 +851,7 @@ namespace Corrosive {
 				argtypes.push_back(a.second);
 			}
 
-			new_inst->type = compiler->types()->load_or_register_function_type(ILCallingConvention::bytecode, std::move(argtypes), new_inst->returns.second, new_inst->context);
+			new_inst->type = compiler->types()->load_or_register_function_type(ILCallingConvention::bytecode, std::move(argtypes), new_inst->returns.second, new_inst->ast_node->context);
 			new_inst->compile_state = 1;
 
 			compiler->pop_workspace();
@@ -872,19 +864,19 @@ namespace Corrosive {
 	void FunctionInstance::compile() {
 		if (compile_state == 1) {
 			compile_state = 2;
-			if (block.src) {
+
+			if (ast_node->has_body()) {
 				type->compile();
 				auto func = compiler->global_module()->create_function();
 				this->func = func;
 				func->decl_id = type->il_function_decl;
-				func->alias = name.buffer;
+				func->alias = ast_node->name_string;
 
 				ILBlock* b = func->create_and_append_block();
 				b->alias = "entry";
 
-
 				compiler->push_workspace(parent);
-				compiler->push_scope_context(context);
+				compiler->push_scope_context(ast_node->context);
 				compiler->push_function(func, returns.second);
 				compiler->push_scope(b);
 
@@ -915,17 +907,18 @@ namespace Corrosive {
 				for (auto&& a : arguments) {
 
 					a.second->compile();
-					if (a.second->context() == ILContext::compile && context != ILContext::compile) {
+					if (a.second->context() == ILContext::compile && ast_node->context != ILContext::compile) {
 						Cursor err = a.first;
-						err.move();
-						err.move();
+						RecognizedToken tmp;
+						err.move(tmp);
+						err.move(tmp);
 						throw_specific_error(err, "Type is marked for compile time use only");
 					}
 
 					a.second->compile();
 					uint16_t id = func->local_stack_lifetime.append(a.second->size());
 
-					compiler->stack()->push_item(a.first.buffer, a.second, id, StackItemTag::regular);
+					compiler->stack()->push_item(a.first.buffer(), a.second, id, StackItemTag::regular);
 				}
 
 
@@ -951,16 +944,19 @@ namespace Corrosive {
 				}
 
 
-				if (returns.second->context() == ILContext::compile && context != ILContext::compile) {
+				if (returns.second->context() == ILContext::compile && ast_node->context != ILContext::compile) {
 					throw_specific_error(returns.first, "Type is marked for compile time use only");
 				}
 
 
 				compile_state = 3;
-
-				Cursor cb = block;
+				Source* src = ast_node->get_source();
+				RecognizedToken tok;
+				Cursor name = load_cursor(ast_node->name, src, tok);
+				Cursor cb = load_cursor(((AstFunctionNode*)ast_node)->block, src, tok);
 				BlockTermination term;
-				Statement::parse_inner_block(*compiler, cb, term, true, &name);
+				cb.move(tok);
+				Statement::parse_inner_block(*compiler, cb, tok, term, true, &name);
 
 
 				//func->dump();
@@ -984,7 +980,7 @@ namespace Corrosive {
 			else {
 				auto func = compiler->global_module()->create_ext_function();
 				this->func = func;
-				func->alias = name.buffer;
+				func->alias = ast_node->name_string;
 				compile_state = 3;
 			}
 		}
@@ -992,10 +988,14 @@ namespace Corrosive {
 
 		}
 		else if (compile_state == 2) {
-			throw_specific_error(name, "Build cycle");
+			RecognizedToken tok;
+			Cursor c = load_cursor(ast_node->name, ast_node->get_source(), tok);
+			throw_specific_error(c, "Build cycle");
 		}
 		else if (compile_state == 0) {
-			throw_specific_error(name, "Build cycle");
+			RecognizedToken tok;
+			Cursor c = load_cursor(ast_node->name, ast_node->get_source(), tok);
+			throw_specific_error(c, "Build cycle");
 		}
 	}
 
@@ -1370,13 +1370,13 @@ namespace Corrosive {
 
 			for (uint32_t i = 0; i < subfunctions.size(); ++i) {
 				auto gf = subfunctions[i].get();
-				if (!gf->is_generic) {
+				if (!(gf->ast_node->has_body() && ((AstFunctionNode*)gf->ast_node)->is_generic)) {
 					gf->compile();
 					FunctionInstance* fi;
 					gf->generate(nullptr, fi);
 
 					if (fi->arguments.size() > 0 && fi->arguments[0].second == type.get()->generate_reference()) {
-						member_table.insert(std::make_pair(fi->name.buffer, std::make_pair<uint16_t, MemberTableEntryType>((uint16_t)i, MemberTableEntryType::func)));
+						member_table.insert(std::make_pair(fi->ast_node->name_string, std::make_pair<uint16_t, MemberTableEntryType>((uint16_t)i, MemberTableEntryType::func)));
 					}
 				}
 			}
@@ -1442,7 +1442,9 @@ namespace Corrosive {
 
 		}
 		else {
-			throw_specific_error(name, "Build cycle");
+			RecognizedToken tok;
+			Cursor c = load_cursor(((AstStructureNode*)ast_node)->name, ast_node->get_source(), tok);
+			throw_specific_error(c, "Build cycle");
 		}
 	}
 
@@ -1460,7 +1462,7 @@ namespace Corrosive {
 			for (auto key_l = generator->generic_layout.rbegin(); key_l != generator->generic_layout.rend(); key_l++) {
 
 				uint16_t sid = compiler.evaluator()->mask_local(key_ptr);
-				compiler.compiler_stack()->push_item(std::get<0>(*key_l).buffer, std::get<1>(*key_l), sid, StackItemTag::alias);
+				compiler.compiler_stack()->push_item(std::get<0>(*key_l).buffer(), std::get<1>(*key_l), sid, StackItemTag::alias);
 
 				key_ptr += std::get<1>(*key_l)->size().eval(compiler.global_module(), compiler_arch);
 			}
@@ -1474,11 +1476,11 @@ namespace Corrosive {
 	void TraitInstance::generate_vtable(StructureInstance* forinst, uint32_t& optid) {
 		forinst->compile();
 
-		std::unique_ptr<void* []> vtable = std::make_unique<void* []>(member_funcs.size());
+		std::unique_ptr<void* []> vtable = std::make_unique<void* []>(member_declarations.size());
 
 		auto& f_table = forinst->traitfunctions[this];
 		size_t id = 0;
-		for (auto&& m_func : member_funcs) {
+		for (auto&& m_func : member_declarations) {
 			FunctionInstance* finst = f_table[id].get();
 			finst->compile();
 			vtable[id] = finst->func;

@@ -292,23 +292,23 @@ namespace Corrosive {
 	}
 
 	void TypeStructureInstance::print(std::ostream& os) {
-		os << owner->name.buffer;
+		os << ((AstStructureNode*)owner->ast_node)->name_string;
 	}
 
 	void TypeTraitInstance::print(std::ostream& os) {
-		os << owner->name.buffer;
+		os << owner->ast_node->name_string;
 	}
 
 	void TypeStructureTemplate::print(std::ostream& os) {
-		os << owner->name.buffer;
+		os << owner->ast_node->name_string;
 	}
 
 	void TypeFunctionTemplate::print(std::ostream& os) {
-		os << owner->name.buffer;
+		os << owner->ast_node->name_string;
 	}
 
 	void TypeTraitTemplate::print(std::ostream& os) {
-		os << owner->name.buffer;
+		os << owner->ast_node->name_string;
 	}
 
 	void TypeReference::print(std::ostream& os) {
@@ -406,7 +406,7 @@ namespace Corrosive {
 
 	ILContext TypeArray::context() { return owner->context(); }
 
-	ILContext TypeTraitInstance::context() { return owner->context; }
+	ILContext TypeTraitInstance::context() { return owner->ast_node->context; }
 
 	ILContext TypeStructureInstance::context() {
 		return owner->context;

@@ -10,16 +10,70 @@
 #include "Error.h"
 #include "ConstantManager.h"
 #include "Compiler.h"
+#include "Ast.h"
 
 namespace Corrosive {
+
+
+	bool operator < (const SourceRange& l, const SourceRange& r) {
+		return l.offset+l.length <= r.offset;
+	}
+	
+	bool operator == (const SourceRange& l, const SourceRange& r) {
+		return l.offset <= r.offset + r.length && r.offset <= l.offset+l.length;
+	}
+
+	size_t Cursor::line() {
+		if (src == nullptr) return 0;
+
+		return src->get_line(*this);
+	}
+
+	size_t Source::get_line(Cursor c) {
+		if (c.src != this) {
+			return 0;
+		}
+
+		SourceRange range;
+		range.length = c.length;
+		range.offset = c.offset;
+		return lines[range];
+	}
 
 	void Source::register_debug(Compiler& compiler) {
 		if (debug_id == UINT16_MAX) {
 			debug_id = compiler.evaluator()->register_debug_source(name);
 		}
+
+		size_t l = 0;
+		size_t off = 0;
+		std::string_view src = data();
+		bool next = true;
+		while (next) {
+			size_t pos = src.find("\n", off);
+			if (pos == src.npos) {
+				pos = src.length()-1;
+				next = false;
+			}
+			else {
+				++pos;
+			}
+
+
+			SourceRange range;
+			range.length = pos - off;
+			range.offset = off;
+
+			if (range.length > 0) {
+				lines[range] = l;
+			}
+
+			++l;
+			off = pos;
+		}
 	}
 
-	std::string_view const Source::data() const {
+	std::string_view const Source::data() {
 		return std::string_view(buffer);
 	}	
 
@@ -51,13 +105,13 @@ namespace Corrosive {
 		name = nm;
 	}
 
-	void Source::read_after(Cursor& out, const Cursor& c) const {
-		read(out, c.offset + c.buffer.length(), c.left + (unsigned int)c.buffer.length(), c.top);
+	void Source::read_after(Cursor& out, const Cursor& c, RecognizedToken& tok) {
+		read(out, c.offset + c.length,tok);
 	}
 
-	Cursor Source::read_first() const {
+	Cursor Source::read_first(RecognizedToken& tok) {
 		Cursor c;
-		read(c, 0, 0, 0);
+		read(c, 0, tok);
 		return c;
 	}
 
@@ -69,26 +123,24 @@ namespace Corrosive {
 		return false;
 	}
 
-	Cursor Cursor::next() const {
+	std::string_view Cursor::buffer() const {
+		return src->data().substr(offset, length);
+	}
+
+	Cursor Cursor::next(RecognizedToken& tok) const {
 		Cursor c;
-		((Corrosive::Source*)src)->read_after(c, *this);
+		((Corrosive::Source*)src)->read_after(c, *this, tok);
 		return c;
 	}
 
-	void Cursor::move() {
-		((Corrosive::Source*)src)->read_after(*this, *this);
+	void Cursor::move(RecognizedToken& tok) {
+		((Corrosive::Source*)src)->read_after(*this, *this, tok);
 	}
 
-	void Source::read(Cursor& out, size_t offset, unsigned int left, unsigned int top) const {
+	void Source::read(Cursor& out, size_t offset, RecognizedToken& tok) {
 		while (true) {
 			while (offset < buffer.size() && isspace(buffer[offset]))
 			{
-				if (buffer[offset] == '\n')
-				{
-					left = 0;
-					top++;
-				}
-
 				offset++;
 			}
 
@@ -97,12 +149,6 @@ namespace Corrosive {
 
 				while (offset < buffer.size() && (buffer[offset] != '/' || buffer[offset - 1] != '*'))
 				{
-					if (buffer[offset] == '\n')
-					{
-						left = 0;
-						top++;
-					}
-
 					offset++;
 				}
 				offset++;
@@ -112,13 +158,7 @@ namespace Corrosive {
 
 				while (offset < buffer.size())
 				{
-					if (buffer[offset] == '\n')
-					{
-						left = 0;
-						top++;
-						break;
-					}
-
+					if (buffer[offset] == '\n') break;
 					offset++;
 				}
 
@@ -132,19 +172,16 @@ namespace Corrosive {
 			if (isalpha(buffer[offset]) || buffer[offset] == '_')
 			{
 				size_t start = offset;
-				unsigned int sleft = left;
 
 				while (isalnum(buffer[offset]) || buffer[offset] == '_')
 				{
 					offset++;
-					left++;
 				}
 				out.src = this;
 				out.offset = start;
-				out.left = sleft;
-				out.top = top;
-				out.buffer = data().substr(start, offset - start);
-				out.tok = RecognizedToken::Symbol;
+				out.length = offset - start;
+
+				tok = RecognizedToken::Symbol;
 
 				return;
 			}
@@ -156,7 +193,6 @@ namespace Corrosive {
 				bool isusg = false;
 
 				size_t start = offset;
-				unsigned int sleft = left;
 
 				while (isdigit(buffer[offset]) || buffer[offset] == '.')
 				{
@@ -164,56 +200,50 @@ namespace Corrosive {
 						floatt = true;
 
 					offset++;
-					left++;
 				}
 
 				if (buffer[offset] == 'd' && floatt) {
 					doublet = true;
 					offset++;
-					left++;
 				}
 
 				if (buffer[offset] == 'u' && !floatt) {
 					isusg = true;
 					offset++;
-					left++;
 				}
 
 				if (buffer[offset] == 'l' && !floatt) {
 					islong = true;
 					offset++;
-					left++;
 				}
 
 				out.src = this;
 				out.offset = start;
-				out.left = sleft;
-				out.top = top;
-				out.buffer = data().substr(start, offset - start);
+				out.length = offset - start;
+				
 				if (floatt) {
 					if (doublet)
-						out.tok = (RecognizedToken::DoubleNumber);
+						tok = (RecognizedToken::DoubleNumber);
 					else
-						out.tok = (RecognizedToken::FloatNumber);
+						tok = (RecognizedToken::FloatNumber);
 				}
 				else if (islong) {
 					if (isusg)
-						out.tok = (RecognizedToken::UnsignedLongNumber);
+						tok = (RecognizedToken::UnsignedLongNumber);
 					else
-						out.tok = (RecognizedToken::LongNumber);
+						tok = (RecognizedToken::LongNumber);
 				}
 				else {
 					if (isusg)
-						out.tok = (RecognizedToken::UnsignedNumber);
+						tok = (RecognizedToken::UnsignedNumber);
 					else
-						out.tok = (RecognizedToken::Number);
+						tok = (RecognizedToken::Number);
 				}
 
 
 				return;
 			} else if (buffer[offset] == '"') {
 				size_t start = offset;
-				unsigned int sleft = left;
 
 				bool escaped = false;
 				while (true) {
@@ -223,9 +253,7 @@ namespace Corrosive {
 					if (offset >= buffer.size() || boff == '\n') {
 						out.src = this;
 						out.offset = start;
-						out.left = sleft;
-						out.top = top;
-						out.buffer = data().substr(start, offset - start);
+						out.length = offset - start;
 						throw_specific_error(out, "String literal not closed");
 					}
 					else if (boff == '"' && !escaped) {
@@ -243,19 +271,15 @@ namespace Corrosive {
 
 				offset++;
 
-				left += (unsigned int)(offset - start);
 
-				out.tok = RecognizedToken::String;
+				tok = RecognizedToken::String;
 				out.src = this;
 				out.offset = start;
-				out.left = sleft;
-				out.top = top;
-				out.buffer = data().substr(start, offset - start);
+				out.length = offset - start;
 			}
 			else
 			{
 				size_t start = offset;
-				unsigned int sleft = left;
 
 				char c = buffer[offset++];
 				char nc = '\0';
@@ -266,107 +290,104 @@ namespace Corrosive {
 
 				switch (c)
 				{
-					case '@': out.tok = (RecognizedToken::At); break;
-					case '[': out.tok = (RecognizedToken::OpenBracket); break;
-					case ']': out.tok = (RecognizedToken::CloseBracket); break;
-					case '{': out.tok = (RecognizedToken::OpenBrace); break;
-					case '}': out.tok = (RecognizedToken::CloseBrace); break;
-					case '(': out.tok = (RecognizedToken::OpenParenthesis); break;
-					case ')': out.tok = (RecognizedToken::CloseParenthesis); break;
+					case '@': tok = (RecognizedToken::At); break;
+					case '[': tok = (RecognizedToken::OpenBracket); break;
+					case ']': tok = (RecognizedToken::CloseBracket); break;
+					case '{': tok = (RecognizedToken::OpenBrace); break;
+					case '}': tok = (RecognizedToken::CloseBrace); break;
+					case '(': tok = (RecognizedToken::OpenParenthesis); break;
+					case ')': tok = (RecognizedToken::CloseParenthesis); break;
 					case '+': switch (nc)
 					{
-						case '=': offset++; out.tok = (RecognizedToken::PlusEquals); break;
-						default: out.tok = (RecognizedToken::Plus); break;
+						case '=': offset++; tok = (RecognizedToken::PlusEquals); break;
+						default: tok = (RecognizedToken::Plus); break;
 					} break;
 					case '-': switch (nc)
 					{
-						case '=': offset++; out.tok = (RecognizedToken::MinusEquals); break;
-						case '>': offset++; out.tok = (RecognizedToken::Arrow); break;
-						default: out.tok = (RecognizedToken::Minus); break;
+						case '=': offset++; tok = (RecognizedToken::MinusEquals); break;
+						case '>': offset++; tok = (RecognizedToken::Arrow); break;
+						default: tok = (RecognizedToken::Minus); break;
 					}break;
 					case '*': switch (nc)
 					{
-						case '=': offset++; out.tok = (RecognizedToken::StarEquals); break;
-						default: out.tok = (RecognizedToken::Star); break;
+						case '=': offset++; tok = (RecognizedToken::StarEquals); break;
+						default: tok = (RecognizedToken::Star); break;
 					} break;
 					case '/': switch (nc)
 					{
-						case '=': offset++; out.tok = (RecognizedToken::SlashEquals); break;
-						default: out.tok = (RecognizedToken::Slash); break;
+						case '=': offset++; tok = (RecognizedToken::SlashEquals); break;
+						default: tok = (RecognizedToken::Slash); break;
 					} break;
-					case ';': out.tok = (RecognizedToken::Semicolon); break;
-					case ',': out.tok = (RecognizedToken::Comma); break;
-					case '.': out.tok = (RecognizedToken::Dot); break;
-					case '%': out.tok = (RecognizedToken::Percent); break;
-					case '^': out.tok = (RecognizedToken::Xor); break;
-					case '\\': out.tok = (RecognizedToken::Backslash); break;
-					case '?': out.tok = (RecognizedToken::QestionMark); break;
+					case ';': tok = (RecognizedToken::Semicolon); break;
+					case ',': tok = (RecognizedToken::Comma); break;
+					case '.': tok = (RecognizedToken::Dot); break;
+					case '%': tok = (RecognizedToken::Percent); break;
+					case '^': tok = (RecognizedToken::Xor); break;
+					case '\\': tok = (RecognizedToken::Backslash); break;
+					case '?': tok = (RecognizedToken::QestionMark); break;
 					case '!': switch (nc)
 						{
-						case '=': offset++; out.tok = (RecognizedToken::NotEquals); break;
-						default: out.tok = (RecognizedToken::ExclamationMark); break;
+						case '=': offset++; tok = (RecognizedToken::NotEquals); break;
+						default: tok = (RecognizedToken::ExclamationMark); break;
 						} break;
 					case '>': switch (nc)
 						{
-						case '=': offset++; out.tok = (RecognizedToken::GreaterOrEqual); break;
-						default: out.tok = (RecognizedToken::GreaterThan); break;
+						case '=': offset++; tok = (RecognizedToken::GreaterOrEqual); break;
+						default: tok = (RecognizedToken::GreaterThan); break;
 						}break;
 					case '<': switch (nc)
 						{
-						case '=': offset++; out.tok = (RecognizedToken::LessOrEqual); break;
-						case '-': offset++; out.tok = (RecognizedToken::BackArrow); break;
-						default: out.tok = (RecognizedToken::LessThan); break;
+						case '=': offset++; tok = (RecognizedToken::LessOrEqual); break;
+						case '-': offset++; tok = (RecognizedToken::BackArrow); break;
+						default: tok = (RecognizedToken::LessThan); break;
 						}break;
 					case ':': switch (nc)
 						{
-						case ':': offset++; out.tok = (RecognizedToken::DoubleColon); break;
-						case '=': offset++; out.tok = (RecognizedToken::ColonEquals); break;
-						default: out.tok = (RecognizedToken::Colon); break;
+						case ':': offset++; tok = (RecognizedToken::DoubleColon); break;
+						case '=': offset++; tok = (RecognizedToken::ColonEquals); break;
+						default: tok = (RecognizedToken::Colon); break;
 						}break;
 					case '|': switch (nc)
 						{
-						case '|': offset++; out.tok = (RecognizedToken::DoubleOr); break;
-						default: out.tok = (RecognizedToken::Or); break;
+						case '|': offset++; tok = (RecognizedToken::DoubleOr); break;
+						default: tok = (RecognizedToken::Or); break;
 						}break;
 					case '&': switch (nc)
 						{
-						case '&': offset++; out.tok = (RecognizedToken::DoubleAnd); break;
-						default: out.tok = (RecognizedToken::And); break;
+						case '&': offset++; tok = (RecognizedToken::DoubleAnd); break;
+						default: tok = (RecognizedToken::And); break;
 						}break;
 					case '=': switch (nc)
 						{
-						case '=': offset++; out.tok = (RecognizedToken::DoubleEquals); break;
-						default: out.tok = (RecognizedToken::Equals); break;
+						case '=': offset++; tok = (RecognizedToken::DoubleEquals); break;
+						default: tok = (RecognizedToken::Equals); break;
 						}break;
 
-					default: out.tok = (RecognizedToken::Unknown); break;
+					default: tok = (RecognizedToken::Unknown); break;
 				}
 
 
-				left += (unsigned int)(offset - start);
 
 				out.src = this;
 				out.offset = start;
-				out.left = sleft;
-				out.top = top;
-				out.buffer = data().substr(start, offset - start);
+				out.length = offset - start;
 				return;
 			}
 		}
 		else {
-			out.tok = (RecognizedToken::Eof);
+			tok = RecognizedToken::Eof;
 			out.src = this;
 			out.offset = offset+1;
-			out.left = left+1;
-			out.top = top;
-			out.buffer = "<eof>";
+			out.length = 0;
 		}
 
 	}
 
-	void Cursor::move_matching() {
+	void Cursor::move_matching(RecognizedToken& tok) {
 		if (src != nullptr && (tok == RecognizedToken::OpenBrace || tok == RecognizedToken::OpenParenthesis)) {
 			src->move_matching(*this);
+			if (tok == RecognizedToken::OpenBrace) tok = RecognizedToken::CloseBrace;
+			if (tok == RecognizedToken::OpenParenthesis) tok = RecognizedToken::CloseParenthesis;
 		}
 	}
 
@@ -375,55 +396,60 @@ namespace Corrosive {
 	}
 
 	void Source::pair_tokens() {
-		Cursor c = read_first();
+		RecognizedToken tok;
+		Cursor c = read_first(tok);
 		int level_braces = 0;
 		int level_parenthesies = 0;
 		std::vector<Cursor> open_braces;
 		std::vector<Cursor> open_parenthesies;
 
-		while (c.tok != RecognizedToken::Eof) {
+		while (tok != RecognizedToken::Eof) {
 			
-			if (c.tok == RecognizedToken::OpenBrace) {
-				open_braces.push_back(c);
-				level_braces++;
-			}
-			else if (c.tok == RecognizedToken::OpenParenthesis) {
-				open_parenthesies.push_back(c);
-				level_parenthesies++;
-			}
-			else if (c.tok == RecognizedToken::CloseBrace) {
-				if (level_braces > 0) {
-					token_pair[open_braces.back().offset] = c;
-					open_braces.pop_back();
-					level_braces--;
-				}
-				else {
-					throw_specific_error(c, "There was no '{' to match this brace");
-				}
-			}
-			else if (c.tok == RecognizedToken::CloseParenthesis) {
-				if (level_parenthesies > 0) {
-					token_pair[open_parenthesies.back().offset] = c;
-					open_parenthesies.pop_back();
-					level_parenthesies--;
-				}
-				else {
-					throw_specific_error(c, "There was no '{' to match this brace");
-				}
+			switch (tok)
+			{
+				case RecognizedToken::OpenBrace:
+					open_braces.push_back(c);
+					level_braces++;
+					break;
+				case RecognizedToken::OpenParenthesis:
+					open_parenthesies.push_back(c);
+					level_parenthesies++;
+					break;
+				case RecognizedToken::CloseBrace:
+					if (level_braces > 0) {
+						token_pair[open_braces.back().offset] = c;
+						open_braces.pop_back();
+						level_braces--;
+					}
+					else {
+						throw_specific_error(c, "There was no '}' to match this brace");
+					}
+					break;
+
+				case RecognizedToken::CloseParenthesis:
+					if (level_parenthesies > 0) {
+						token_pair[open_parenthesies.back().offset] = c;
+						open_parenthesies.pop_back();
+						level_parenthesies--;
+					}
+					else {
+						throw_specific_error(c, "There was no ')' to match this parenthesis");
+					}
+					break;
 			}
 
-			c.move();
+			c.move(tok);
 		}
 
 		if (level_braces != 0) {
 			throw_specific_error(open_braces.back(), "There was no '}' to close this block");
 		}
 		if (level_parenthesies != 0) {
-			throw_specific_error(open_parenthesies.back(), "There was no '}' to close this block");
+			throw_specific_error(open_parenthesies.back(), "There was no ')' to close this block");
 		}
 	}
 
-	void Source::require(Compiler& compiler, std::filesystem::path file, const Source* src) 
+	void Source::require(Compiler& compiler, std::filesystem::path file, Source* src) 
 	{
 		std::filesystem::path abs;
 		if (src) {
@@ -438,14 +464,21 @@ namespace Corrosive {
 
 		auto f = compiler.included_sources.find(abs);
 		if (f == compiler.included_sources.end()) {
-			auto std_src = std::make_unique<Source>();
-			std_src->path = abs;
-			std_src->load(abs.generic_string().c_str());
-			std_src->pair_tokens();
-			std_src->register_debug(compiler);
-			Cursor c_std = std_src->read_first();
-			compiler.included_sources[std::move(abs)] = std::move(std_src);
-			Declaration::parse_global(compiler,c_std, compiler.global_namespace());
+			auto new_src = std::make_unique<Source>();
+			new_src->path = abs;
+			new_src->load(abs.generic_string().c_str());
+			new_src->register_debug(compiler);
+			new_src->pair_tokens();
+			auto ptr = new_src.get();
+			compiler.included_sources[std::move(abs)] = std::move(new_src);
+			ptr->root_node = AstRootNode::parse(ptr);
+			ptr->root_node->populate(&compiler);
+			for (auto&& r : ptr->root_node->require) {
+				RecognizedToken tok;
+				Cursor c = load_cursor(r, ptr,tok);
+				auto lit = compiler.constant_manager()->register_string_literal(c);
+				Source::require(compiler, lit.first, ptr);
+			}
 		}
 	}
 

@@ -498,11 +498,11 @@ namespace Corrosive {
 			}break;
 
 			case ILSizeType::word: {
-				std::cout << value << "*w";
+				std::cout << value << "w";
 			}break;
 
 			case ILSizeType::table: {
-				std::cout << "[" << value << "]";
+				std::cout << "[T " << value << "]";
 			}break;
 		}
 	}

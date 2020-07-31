@@ -25,8 +25,9 @@ namespace Corrosive {
 		if (res == string_holders.end()) {
 			std::string holder;
 			bool escaped = false;
-			for (size_t i = 1; i < c.buffer.size() - 1; ++i) {
-				char chr = c.buffer[i];
+			auto buf = c.buffer();
+			for (size_t i = 1; i < c.length - 1; ++i) {
+				char chr = buf[i];
 				if (!escaped) {
 					if (chr == '\\') {
 						escaped = true;

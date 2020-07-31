@@ -13,6 +13,7 @@
 #include "ConstantManager.h"
 #include <memory>
 #include "Compiler.h"
+#include "Ast.h"
 
 // for library test
 #include <Windows.h>
@@ -75,7 +76,7 @@ namespace Corrosive {
 		auto lib = eval->pop_register_value<void*>();
 		FreeLibrary((HMODULE)lib);
 	}
-	
+
 	int crs_main() {
 		static_assert(sizeof(void*) == sizeof(size_t), "Error, size_t and void* must be the same size");
 		static_assert(sizeof(double) == 8, "Error, double must be 64bit"); // TODO lets maybe create wrapper class to ensure correct format

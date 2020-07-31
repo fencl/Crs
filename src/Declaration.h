@@ -11,6 +11,7 @@
 #include <map>
 #include "Type.h"
 #include "IL/IL.h"
+#include "Ast.h"
 
 namespace Corrosive {
 	class Compiler;
@@ -48,9 +49,9 @@ namespace Corrosive {
 	class Namespace {
 	public:
 		virtual ~Namespace();
-		NamespaceType namespace_type;
+		AstRegularNode* ast_node;
 
-		Cursor name;
+		//Cursor name;
 		Namespace* parent = nullptr;
 		std::map<std::string_view, std::pair<uint8_t, uint32_t>> name_table;
 
@@ -59,9 +60,6 @@ namespace Corrosive {
 		std::vector<std::unique_ptr<FunctionTemplate>> subfunctions;
 		std::vector<std::unique_ptr<TraitTemplate>> subtraits;
 
-
-		static void parse_inner(Compiler& compiler, Cursor& c, Namespace* into, GenericInstance* gen_inst);
-		static void parse(Compiler& compiler, Cursor& c, std::unique_ptr<Namespace>& into);
 		void find_name(std::string_view name, Namespace*& subnamespace, StructureTemplate*& subtemplate, FunctionTemplate*& subfunction, TraitTemplate*& subtrait);
 	};
 
@@ -83,8 +81,8 @@ namespace Corrosive {
 		std::vector<uint16_t>													 member_composites;
 		std::map<TraitInstance*, std::vector<std::unique_ptr<FunctionInstance>>> traitfunctions;
 
-		uint16_t pass_array_id = 0;
-		bool pass_array_operator = false;
+		uint16_t		pass_array_id = 0;
+		bool			pass_array_operator = false;
 
 		StructureInstanceType structure_type = StructureInstanceType::normal_structure;
 
@@ -117,63 +115,21 @@ namespace Corrosive {
 		unsigned int compile_state = 0;
 	};
 
-	struct StructureTemplateMemberVar {
-		Cursor name;
-		Cursor type;
-		bool composite;
-	};
-
-	struct StructureTemplateMemberFunc {
-		Cursor name;
-		Cursor annotation;
-		Cursor type;
-		Cursor block;
-		ILContext context;
-	};
-
-	struct StructureTemplateImplFunc {
-		Cursor name;
-		Cursor type;
-		Cursor block;
-	};
-
-	struct StructureTemplateSubtemplate {
-		Cursor cursor;
-	};
-
-	struct StructureTemplateImpl {
-		Cursor type;
-		std::vector<StructureTemplateImplFunc> functions;
-	};
-
 
 	class StructureTemplate {
 	public:
-		Namespace* parent = nullptr;
-		Cursor name;
-		Cursor annotation;
+		Compiler*			compiler;
+		Namespace*			parent;
+		GenericContext		generic_ctx;
+		AstStructureNode*	ast_node;
 
 		std::unique_ptr<TypeStructureTemplate> type;
 
-		std::unique_ptr<StructureInstance> singe_instance = nullptr;
-
-		bool is_generic = false;
-
-		GenericContext generic_ctx;
-
-		std::vector<StructureTemplateMemberVar> member_vars;
-		std::vector<StructureTemplateMemberFunc> member_funcs;
-		std::vector<StructureTemplateSubtemplate> member_templates;
-		std::vector<StructureTemplateImpl> member_implementation;
-
-
-		Compiler* compiler;
 		void generate(unsigned char* argdata, StructureInstance*& out);
 		void compile();
 
-		static void parse(Compiler& compiler, Cursor& c, Namespace* parent, GenericInstance* gen_inst, std::unique_ptr<StructureTemplate>& into);
-
 		unsigned int compile_state = 0;
+
 
 	private:
 		struct GenericTemplateCompare {
@@ -182,67 +138,39 @@ namespace Corrosive {
 		};
 		GenericTemplateCompare gen_template_cmp;
 	public:
+		std::unique_ptr<StructureInstance> single_instance = nullptr;
 		std::unique_ptr<std::map<unsigned char*, std::pair<std::unique_ptr<unsigned char[]>, std::unique_ptr<StructureInstance>>, GenericTemplateCompare>> instances = nullptr;
 	};
 
 	class TraitTemplate;
-
-	struct TraitInstanceMemberRecord {
-		Cursor definition;
-		Cursor name;
-		TypeFunction* type;
-		ILContext ctx = ILContext::both;
-	};
-
 	class TraitInstance {
 	public:
 		Compiler* compiler;
 
-		std::map<std::string_view, uint16_t> member_table;
-
-		std::vector<TraitInstanceMemberRecord> member_funcs;
-
-		std::map<StructureInstance*, uint32_t> vtable_instances;
+		std::map<std::string_view, uint16_t>	member_table;
+		std::map<StructureInstance*, uint32_t>	vtable_instances;
+		std::vector<TypeFunction*>				member_declarations;
 
 		void generate_vtable(StructureInstance* forinst, uint32_t& optid);
 
-		Cursor name;
-		Namespace* parent = nullptr;
-
-		ILContext context = ILContext::both;
-
-		GenericInstance generic_inst;
+		Namespace*		parent;
+		GenericInstance	generic_inst;
+		AstTraitNode*	ast_node;
 
 		std::unique_ptr<TypeTraitInstance> type;
 	};
 
-	struct TraitTemplateMemberFunc {
-		Cursor name;
-		Cursor type;
-		ILContext ctx = ILContext::both;
-	};
-
 	class TraitTemplate {
 	public:
-		Namespace* parent = nullptr;
-		Cursor name;
-		Cursor annotation;
+		Namespace*		parent;
+		AstTraitNode*	ast_node;
+		GenericContext	generic_ctx;
+		Compiler*		compiler;
 
 		std::unique_ptr<TypeTraitTemplate> type;
 
-		std::unique_ptr<TraitInstance> singe_instance = nullptr;
-
-		bool is_generic = false;
-
-		GenericContext generic_ctx;
-
-		std::vector<TraitTemplateMemberFunc> member_funcs;
-
-		Compiler* compiler;
 		void generate(unsigned char* argdata, TraitInstance*& out);
 		void compile();
-
-		static void parse(Compiler& compiler, Cursor& c, Namespace* parent, GenericInstance* gen_inst, std::unique_ptr<TraitTemplate>& into);
 
 		unsigned int compile_state = 0;
 
@@ -253,53 +181,38 @@ namespace Corrosive {
 		};
 		GenericTemplateCompare gen_template_cmp;
 	public:
+		std::unique_ptr<TraitInstance> single_instance = nullptr;
 		std::unique_ptr<std::map<unsigned char*, std::pair<std::unique_ptr<unsigned char[]>, std::unique_ptr<TraitInstance>>, GenericTemplateCompare>> instances = nullptr;
 	};
 
 	class FunctionInstance {
 	public:
-		ILFunction* func = nullptr;
-		Namespace* parent;
 
-		Cursor block;
-		Cursor name;
-
-		TypeFunction* type;
-
+		Compiler*		compiler;
+		ILFunction*		func = nullptr;
+		Namespace*		parent;
+		TypeFunction*	type;
 		GenericInstance generic_inst;
 
-		std::vector<std::pair<Cursor, Type*>> arguments;
-		std::pair<Cursor, Type*> returns;
-		ILContext context = ILContext::both;
+		std::vector<std::pair<Cursor, Type*>>	arguments;
+		std::pair<Cursor, Type*>				returns;
 
+		AstFunctionDeclarationNode* ast_node;
 
-		Compiler* compiler;
 		void compile();
 
 		unsigned int compile_state = 0;
-
 	};
 
 	class FunctionTemplate {
 	public:
+		Namespace*						parent = nullptr;
+		AstFunctionDeclarationNode*		ast_node;
+		GenericContext					generic_ctx;
+		Compiler*						compiler;
 
-		Namespace* parent = nullptr;
-		Cursor name;
-		Cursor annotation;
-		Cursor decl_type;
-		Cursor block;
-
-		ILContext context = ILContext::both;
 		std::unique_ptr<TypeFunctionTemplate> type;
 
-		//StructureInstance* template_parent = nullptr;
-		std::unique_ptr<FunctionInstance> singe_instance = nullptr;
-
-		GenericContext generic_ctx;
-
-		bool is_generic = false;
-
-		Compiler* compiler;
 		void generate(unsigned char* argdata, FunctionInstance*& out);
 		void compile();
 
@@ -311,12 +224,8 @@ namespace Corrosive {
 		};
 		GenericTemplateCompare gen_template_cmp;
 	public:
+		std::unique_ptr<FunctionInstance> single_instance = nullptr;
 		std::unique_ptr<std::map<unsigned char*, std::pair<std::unique_ptr<unsigned char[]>, std::unique_ptr<FunctionInstance>>, GenericTemplateCompare>> instances = nullptr;
-	};
-
-	class Declaration {
-	public:
-		static void parse_global(Compiler& compiler, Cursor& c, Namespace* into);
 	};
 
 }

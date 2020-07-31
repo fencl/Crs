@@ -14,15 +14,15 @@ namespace Corrosive {
 	class Statement {
 	public:
 
-		static void parse(Compiler& compiler, Cursor& c, CompileType copm_type, BlockTermination& termination);
-		static void parse_inner_block(Compiler& compiler, Cursor& c, BlockTermination& termination, bool exit_returns = false, Cursor* err = nullptr);
+		static void parse(Compiler& compiler, Cursor& c, RecognizedToken& tok, CompileType copm_type, BlockTermination& termination);
+		static void parse_inner_block(Compiler& compiler, Cursor& c, RecognizedToken& tok, BlockTermination& termination, bool exit_returns = false, Cursor* err = nullptr);
 
-		static void parse_if(Compiler& compiler, Cursor& c, BlockTermination& termination);
-		static void parse_while(Compiler& compiler, Cursor& c, BlockTermination& termination);
+		static void parse_if(Compiler& compiler, Cursor& c, RecognizedToken& tok, BlockTermination& termination);
+		static void parse_while(Compiler& compiler, Cursor& c, RecognizedToken& tok, BlockTermination& termination);
 
-		static void parse_return(Compiler& compiler, Cursor& c);
-		static void parse_make(Compiler& compiler, Cursor& c);
-		static void parse_let(Compiler& compiler, Cursor& c);
+		static void parse_return(Compiler& compiler, Cursor& c, RecognizedToken& tok);
+		static void parse_make(Compiler& compiler, Cursor& c, RecognizedToken& tok);
+		static void parse_let(Compiler& compiler, Cursor& c, RecognizedToken& tok);
 	};
 
 }

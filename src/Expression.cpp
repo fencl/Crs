@@ -466,12 +466,12 @@ namespace Corrosive {
 		}
 	}
 
-	void Expression::parse(Compiler& compiler, Cursor& c, CompileValue& res, CompileType cpt, bool require_output) {
+	void Expression::parse(Compiler& compiler, Cursor& c,RecognizedToken& tok, CompileValue& res, CompileType cpt, bool require_output) {
 		CompileValue val;
-		parse_or(compiler,c, val, cpt);
+		parse_or(compiler,c,tok, val, cpt);
 
-		if (c.tok == RecognizedToken::Equals || c.tok == RecognizedToken::BackArrow) {
-			bool do_copy = c.tok == RecognizedToken::Equals;
+		if (tok == RecognizedToken::Equals || tok == RecognizedToken::BackArrow) {
+			bool do_copy = tok == RecognizedToken::Equals;
 
 			if (!val.lvalue) {
 				throw_specific_error(c, "Left assignment must be modifiable lvalue");
@@ -486,11 +486,11 @@ namespace Corrosive {
 				}
 			}
 
-			c.move();
+			c.move(tok);
 			Cursor err = c;
 
 			CompileValue val2;
-			Expression::parse(compiler,c, val2, cpt);
+			Expression::parse(compiler,c,tok, val2, cpt);
 			Operand::cast(compiler,err, val2, val.type, cpt, true);
 
 			if (!val2.lvalue) {
@@ -511,15 +511,15 @@ namespace Corrosive {
 				val.type = compiler.types()->t_void;
 			}
 		}
-		else if (c.tok == RecognizedToken::PlusEquals || c.tok == RecognizedToken::MinusEquals || c.tok == RecognizedToken::StarEquals || c.tok == RecognizedToken::SlashEquals) {
+		else if (tok == RecognizedToken::PlusEquals || tok == RecognizedToken::MinusEquals || tok == RecognizedToken::StarEquals || tok == RecognizedToken::SlashEquals) {
 			unsigned char op = 0;
-			if (c.tok == RecognizedToken::PlusEquals) {
+			if (tok == RecognizedToken::PlusEquals) {
 				op = 1;
 			}
-			else if (c.tok == RecognizedToken::MinusEquals) {
+			else if (tok == RecognizedToken::MinusEquals) {
 				op = 2;
 			}
-			else if (c.tok == RecognizedToken::StarEquals) {
+			else if (tok == RecognizedToken::StarEquals) {
 				op = 3;
 			}
 			else {
@@ -551,11 +551,11 @@ namespace Corrosive {
 			}
 			Expression::rvalue(compiler,val, cpt);
 
-			c.move();
+			c.move(tok);
 			Cursor err = c;
 
 			CompileValue val2;
-			Expression::parse(compiler,c, val2, cpt);
+			Expression::parse(compiler,c,tok, val2, cpt);
 			Expression::rvalue(compiler,val2, cpt);
 			if (!Operand::is_numeric_value(val2.type)) {
 				throw_specific_error(err, "Expected numeric value");
@@ -597,14 +597,14 @@ namespace Corrosive {
 		res = val;
 	}
 
-	void Expression::parse_and(Compiler& compiler, Cursor& c, CompileValue& res, CompileType cpt) {
+	void Expression::parse_and(Compiler& compiler, Cursor& c, RecognizedToken& tok, CompileValue& res, CompileType cpt) {
 
 		ILBlock* fallback = nullptr;
 		CompileValue value;
 		Cursor err = c;
-		Expression::parse_operators(compiler,c, value, cpt);
+		Expression::parse_operators(compiler,c,tok, value, cpt);
 
-		while (c.tok == RecognizedToken::DoubleAnd) {
+		while (tok == RecognizedToken::DoubleAnd) {
 
 			Operand::cast(compiler,err, value, compiler.types()->t_bool, cpt, true);
 			/*if (value.t != compiler.types()->t_bool) {
@@ -614,7 +614,7 @@ namespace Corrosive {
 
 			Expression::rvalue(compiler,value, cpt);
 
-			c.move();
+			c.move(tok);
 
 			if (cpt == CompileType::eval) {
 				uint8_t v = compiler.evaluator()->read_register_value<uint8_t>();
@@ -622,7 +622,7 @@ namespace Corrosive {
 				compiler.evaluator()->pop_register_value<uint8_t>();
 				CompileValue right;
 				err = c;
-				Expression::parse_operators(compiler,c, right, cpt);
+				Expression::parse_operators(compiler,c,tok, right, cpt);
 				Expression::rvalue(compiler,right, cpt);
 				Operand::cast(compiler,err, right, compiler.types()->t_bool, cpt, true);
 
@@ -650,8 +650,7 @@ namespace Corrosive {
 				compiler.push_scope(positive_block);
 
 				err = c;
-				Expression::parse_operators(compiler,c, value, cpt);
-				//if (!Expression::rvalue(value, cpt)) return false;
+				Expression::parse_operators(compiler,c,tok, value, cpt);
 
 			}
 
@@ -680,24 +679,19 @@ namespace Corrosive {
 
 
 
-	void Expression::parse_or(Compiler& compiler, Cursor& c, CompileValue& res, CompileType cpt) {
+	void Expression::parse_or(Compiler& compiler, Cursor& c,RecognizedToken& tok, CompileValue& res, CompileType cpt) {
 
 		ILBlock* fallback = nullptr;
 
 		CompileValue value;
 		Cursor err;
-		Expression::parse_and(compiler,c, value, cpt);
+		Expression::parse_and(compiler,c,tok, value, cpt);
 
-		while (c.tok == RecognizedToken::DoubleOr) {
+		while (tok == RecognizedToken::DoubleOr) {
 			Operand::cast(compiler,err, value, compiler.types()->t_bool, cpt, true);
-			/*if (value.t != compiler.types()->t_bool) {
-				throw_specific_error(c, "Operation requires left operand to be boolean");
-				return false;
-			}*/
-
 			Expression::rvalue(compiler,value, cpt);
 
-			c.move();
+			c.move(tok);
 
 
 			if (cpt == CompileType::eval) {
@@ -705,7 +699,7 @@ namespace Corrosive {
 
 				compiler.evaluator()->pop_register_value<uint8_t>();
 				CompileValue right;
-				Expression::parse_and(compiler,c, right, cpt);
+				Expression::parse_and(compiler,c,tok, right, cpt);
 				Expression::rvalue(compiler,right, cpt);
 				Operand::cast(compiler,err, right, compiler.types()->t_bool, cpt, true);
 
@@ -733,7 +727,7 @@ namespace Corrosive {
 				compiler.push_scope(positive_block);
 
 				err = c;
-				Expression::parse_and(compiler,c, value, cpt);
+				Expression::parse_and(compiler,c,tok, value, cpt);
 			}
 
 		}
@@ -762,7 +756,7 @@ namespace Corrosive {
 		res = value;
 	}
 
-	void Expression::parse_operators(Compiler& compiler, Cursor& c, CompileValue& res, CompileType cpt) {
+	void Expression::parse_operators(Compiler& compiler, Cursor& c, RecognizedToken& tok, CompileValue& res, CompileType cpt) {
 
 		int op_type[5] = { -1 };
 		Cursor op_cursors[5];
@@ -774,13 +768,13 @@ namespace Corrosive {
 		while (true) {
 			CompileValue value;
 			Cursor err = c;
-			Operand::parse(compiler,c, value, cpt);
+			Operand::parse(compiler,c,tok, value, cpt);
 			int op_v = -1;
 			int op_t = -1;
 
 			Cursor opc = c;
 
-			switch (c.tok)
+			switch (tok)
 			{
 
 				case RecognizedToken::And: {
@@ -865,7 +859,7 @@ namespace Corrosive {
 				op_cursors[op_v] = opc;
 				current_layer = op_v;
 
-				c.move();
+				c.move(tok);
 			}
 			else {
 				res = value;
