@@ -15,7 +15,9 @@ namespace Corrosive {
 
 		ILEvaluator* evaluator() { return e.get(); }
 		ILBlock* scope() { return s.back(); }
-		ILBlock* scope_exit() { return se.back(); }
+		ILBlock* loop_break() { return lb.back().first; }
+		ILBlock* loop_continue() { return lb.back().second; }
+		bool has_loop() { return lb.size() > 0; }
 		DefaultTypes* types() { return &dt; }
 		ILContext scope_context() { return sc.back(); }
 		Namespace* workspace() { return nm.back(); }
@@ -35,18 +37,20 @@ namespace Corrosive {
 		void push_scope(ILBlock* sc) { s.push_back(sc); }
 		void pop_scope() { s.pop_back(); }
 
-		void push_scope_exit(ILBlock* scexit) { se.push_back(scexit); }
-		void pop_scope_exit() { se.pop_back(); }
-
 		void push_workspace(Namespace* nspc) { nm.push_back(nspc); }
 		void pop_workspace() { nm.pop_back(); }
 
 		void push_function(ILBytecodeFunction* t, Type* rtt) { wf.push_back(t); rt.push_back(rtt); }
 		void pop_function() { wf.pop_back(); rt.pop_back(); }
 
+		void push_loop_blocks(ILBlock* break_b, ILBlock* continue_b) { lb.push_back(std::make_pair(break_b, continue_b)); }
+		void pop_loop_blocks() { lb.pop_back(); }
+
+		void switch_scope(ILBlock* sblock) { s.back() = sblock; }
+
 		std::vector<ILBlock*> s;
-		std::vector<ILBlock*> se;
 		std::vector<Type*> rt;
+		std::vector<std::pair<ILBlock*,ILBlock*>> lb;
 		std::vector<ILContext> sc;
 		std::vector<Namespace*> nm;
 		std::vector<ILBytecodeFunction*> wf;

@@ -90,12 +90,6 @@ namespace Corrosive {
 
 		Source std_lib;
 
-		TraitTemplate* tr_copy;
-		TraitTemplate* tr_move;
-		TraitTemplate* tr_compare;
-		TraitTemplate* tr_drop;
-		TraitTemplate* tr_ctor;
-
 		FunctionInstance* f_build_reference;
 		FunctionInstance* f_build_array;
 		FunctionInstance* f_build_slice;

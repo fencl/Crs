@@ -13,7 +13,6 @@ namespace Corrosive {
 		static void rvalue(Compiler& compiler, CompileValue& value, CompileType cpt);
 
 		static void copy_from_rvalue(Type* me, CompileType cpt, bool me_top = true);
-		static void move_from_rvalue(Type* me, CompileType cpt, bool me_top = true);
 
 		static ILDataType arithmetic_type(Type* type);
 		static Type* arithmetic_result(Compiler& compiler, Type* type_left, Type* type_right);

@@ -484,9 +484,6 @@ namespace Corrosive {
 
 	}
 
-
-
-
 	void Operand::parse_const_type_function(Compiler& compiler, Cursor& c, RecognizedToken& tok, FunctionInstance*& func, Type*& type, ILSize& type_size) {
 		Namespace* namespace_inst = nullptr;
 		StructureTemplate* struct_inst = nullptr;
@@ -706,84 +703,6 @@ namespace Corrosive {
 
 			ret.lvalue = false;
 			ret.type = compiler.types()->t_size;
-		}
-		else if (buf == "default") {
-			c.move(tok);
-
-			CompileValue type_val;
-			Cursor err = c;
-			Operand::parse(compiler, c,tok, type_val, cpt);
-
-			if (type_val.type->type() == TypeInstanceType::type_structure_instance && type_val.lvalue) {
-				type_val.type->compile();
-
-				if (cpt == CompileType::compile) {
-					//ILBuilder::build_duplicate(compiler.scope(), ILDataType::ptr);
-					type_val.type->build_construct();
-				}
-				else {
-					type_val.type->construct(compiler.evaluator()->pop_register_value<unsigned char*>());
-				}
-			}
-			else if (type_val.type->type() == TypeInstanceType::type_reference) {
-				TypeReference* tr = (TypeReference*)type_val.type;
-				tr->owner->compile();
-				Expression::rvalue(compiler, type_val, cpt);
-
-				if (cpt == CompileType::compile) {
-					//ILBuilder::build_duplicate(compiler.scope(), ILDataType::ptr);
-					tr->owner->build_construct();
-				}
-				else {
-					tr->owner->construct(compiler.evaluator()->pop_register_value<unsigned char*>());
-				}
-
-			}
-			else {
-				throw_specific_error(err, "Expected lvalue of structure or equivalent reference");
-			}
-
-			ret.type = compiler.types()->t_void;
-			ret.lvalue = false;
-		}
-		else if (buf == "drop") {
-			c.move(tok);
-
-			CompileValue type_val;
-			Cursor err = c;
-			Operand::parse(compiler, c,tok, type_val, cpt);
-
-			if (type_val.type->type() == TypeInstanceType::type_structure_instance && type_val.lvalue) {
-
-				type_val.type->compile();
-
-				if (cpt == CompileType::compile) {
-					type_val.type->build_drop();
-				}
-				else {
-					type_val.type->drop(compiler.evaluator()->pop_register_value<unsigned char*>());
-				}
-
-			}
-			else if (type_val.type->type() == TypeInstanceType::type_reference) {
-				TypeReference* tr = (TypeReference*)type_val.type;
-				tr->owner->compile();
-				tr->compile();
-				Expression::rvalue(compiler, type_val, cpt);
-
-				if (cpt == CompileType::compile) {
-					tr->owner->build_drop();
-				}
-				else {
-					tr->owner->drop(compiler.evaluator()->pop_register_value<unsigned char*>());
-				}
-			}
-			else {
-				throw_specific_error(err, "Expected lvalue of structure or equivalent reference");
-			}
-
-			ret.type = compiler.types()->t_void;
-			ret.lvalue = false;
 		}
 		else if (buf == "type") {
 
@@ -1306,9 +1225,9 @@ namespace Corrosive {
 
 		StackItem sitm;
 		while (compiler.compiler_stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) {
-			if (sitm.type->has_special_destructor()) {
+			/*if (sitm.type->has_special_destructor()) {
 				sitm.type->drop(compiler.evaluator()->stack_ptr(sitm.id));
-			}
+			}*/
 		}
 
 		// ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
@@ -1389,9 +1308,9 @@ namespace Corrosive {
 		// ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
 		StackItem sitm;
 		while (compiler->compiler_stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) {
-			if (sitm.type->has_special_destructor()) {
+			/*if (sitm.type->has_special_destructor()) {
 				sitm.type->drop(eval->stack_ptr(sitm.id));
-			}
+			}*/
 		}
 		// ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
 
@@ -1830,17 +1749,19 @@ namespace Corrosive {
 
 
 	void Operand::parse_double_colon_operator(Compiler& compiler, CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType cpt) {
-		c.move(tok);
+		if (ret.type->type() != TypeInstanceType::type_structure_instance && ret.type != compiler.types()->t_type) {
+			throw_specific_error(c, "Operator :: is only supported on structure instances");
+		}
 
 		if (cpt == CompileType::compile) {
-			throw_specific_error(c, "Operation :: is not supported in runtime context");
-
+			throw_specific_error(c, "Operator :: is not supported in runtime context");
 		}
 
 		if (ret.type != compiler.types()->t_type) {
 			throw_specific_error(c, "left operator is not a type instance");
-
 		}
+
+		c.move(tok);
 
 		if (cpt == CompileType::eval) {
 			Expression::rvalue(compiler, ret, cpt);
@@ -1919,10 +1840,10 @@ namespace Corrosive {
 				local_return_id = compiler.target()->local_stack_lifetime.append(retval.type->size());
 				compiler.temp_stack()->push_item("$tmp", retval.type, local_return_id, StackItemTag::regular);
 
-				if (retval.type->has_special_constructor()) {
+				/*if (retval.type->has_special_constructor()) {
 					ILBuilder::build_local(compiler.scope(), local_return_id);
 					retval.type->build_construct();
-				}
+				}*/
 
 				ILBuilder::build_local(compiler.scope(), local_return_id);
 			}
@@ -1954,9 +1875,9 @@ namespace Corrosive {
 
 				compiler.compiler_stack()->push_item("$tmp", retval.type, sid, StackItemTag::regular);
 
-				if (retval.type->has_special_constructor()) {
+				/*if (retval.type->has_special_constructor()) {
 					retval.type->construct(memory_place);
-				}
+				}*/
 
 				ILBuilder::eval_local(compiler.evaluator(), sid);
 			}

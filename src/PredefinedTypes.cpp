@@ -53,7 +53,7 @@ namespace Corrosive {
 	void DefaultTypes::setup(Compiler& compiler) {
 		owner = &compiler;
 
-		std_lib.load_data("trait(T:type) Copy {fn Copy: (&T);}\ntrait(T:type) Move {fn Move: (&T);}\ntrait(T:type) Compare {fn Compare: (&T) i8;}\ntrait Drop {fn Drop: ();}\ntrait Default {fn Default: ();}\n"
+		std_lib.load_data(
 			"fn(T: type) copy_slice: (to: []T, from: []T) { let i=0; while(i<from.count) { to[i] = from[i]; i = i+1;} }\n"
 			"fn(T: type) invalidate_slice: (slice: &[]T) { (*slice).ptr = null; (*slice).size=0; }\n"
 			"namespace compiler {\n"
@@ -97,14 +97,6 @@ namespace Corrosive {
 		primitives[(unsigned char)ILDataType::f32] = t_f32;
 		primitives[(unsigned char)ILDataType::f64] = t_f64;
 		primitives[(unsigned char)ILDataType::word] = t_size;
-
-		
-
-		tr_copy = compiler.global_namespace()->subtraits[compiler.global_namespace()->name_table["Copy"].second].get();
-		tr_move = compiler.global_namespace()->subtraits[compiler.global_namespace()->name_table["Move"].second].get();
-		tr_compare = compiler.global_namespace()->subtraits[compiler.global_namespace()->name_table["Compare"].second].get();
-		tr_drop = compiler.global_namespace()->subtraits[compiler.global_namespace()->name_table["Drop"].second].get();
-		tr_ctor = compiler.global_namespace()->subtraits[compiler.global_namespace()->name_table["Default"].second].get();
 
 		f_build_reference = compiler.register_ext_function({ "compiler","reference_of" }, Operand::priv_build_reference);
 		f_build_array = compiler.register_ext_function({ "compiler","array_of" }, Operand::priv_build_array);

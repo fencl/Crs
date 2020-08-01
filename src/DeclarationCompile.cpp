@@ -277,7 +277,7 @@ namespace Corrosive {
 				new_key = new_key_inst.get();
 
 				for (auto l = generic_ctx.generic_layout.rbegin(); l != generic_ctx.generic_layout.rend(); l++) {
-					std::get<1>(*l)->move(new_offset, old_offset);
+					std::get<1>(*l)->copy(new_offset, old_offset);
 					size_t c_size = std::get<1>(*l)->size().eval(compiler->global_module(), compiler_arch);
 					old_offset += c_size;
 					new_offset += c_size;
@@ -515,31 +515,7 @@ namespace Corrosive {
 						Cursor c = load_cursor(m->trait, src, tok);
 						throw_specific_error(c, "Trait implementation is missing some functions");
 					}
-
-					if (tt->owner->generic_inst.generator == &compiler->types()->tr_copy->generic_ctx) {
-						new_inst->impl_copy = trait.begin()->get();
-						new_inst->impl_copy->parent = new_inst;
-					}
-
-					if (tt->owner->generic_inst.generator == &compiler->types()->tr_move->generic_ctx) {
-						new_inst->impl_move = trait.begin()->get();
-						new_inst->impl_move->parent = new_inst;
-					}
-
-					if (tt->owner->generic_inst.generator == &compiler->types()->tr_compare->generic_ctx) {
-						new_inst->impl_compare = trait.begin()->get();
-						new_inst->impl_compare->parent = new_inst;
-					}
-
-					if (tt->owner->generic_inst.generator == &compiler->types()->tr_drop->generic_ctx) {
-						new_inst->impl_drop = trait.begin()->get();
-						new_inst->impl_drop->parent = new_inst;
-					}
-
-					if (tt->owner->generic_inst.generator == &compiler->types()->tr_ctor->generic_ctx) {
-						new_inst->impl_ctor = trait.begin()->get();
-						new_inst->impl_ctor->parent = new_inst;
-					}
+					
 
 					new_inst->traitfunctions[tt->owner] = std::move(trait);
 
@@ -629,7 +605,7 @@ namespace Corrosive {
 				unsigned char* new_offset = new_key_inst.get();
 
 				for (auto l = generic_ctx.generic_layout.rbegin(); l != generic_ctx.generic_layout.rend(); l++) {
-					std::get<1>(*l)->move(new_offset, old_offset);
+					std::get<1>(*l)->copy(new_offset, old_offset);
 					size_t c_size = std::get<1>(*l)->size().eval(compiler->global_module(), compiler_arch);
 					old_offset += c_size;
 					new_offset += c_size;
@@ -755,7 +731,7 @@ namespace Corrosive {
 				unsigned char* new_offset = new_key_inst.get();
 
 				for (auto l = generic_ctx.generic_layout.rbegin(); l != generic_ctx.generic_layout.rend(); l++) {
-					std::get<1>(*l)->move(new_offset, old_offset);
+					std::get<1>(*l)->copy(new_offset, old_offset);
 					size_t c_size = std::get<1>(*l)->size().eval(compiler->global_module(), compiler_arch);
 					old_offset += c_size;
 					new_offset += c_size;
@@ -880,7 +856,6 @@ namespace Corrosive {
 				compiler->push_function(func, returns.second);
 				compiler->push_scope(b);
 
-
 				compiler->evaluator()->stack_push();
 				compiler->compiler_stack()->push();
 				generic_inst.insert_key_on_stack(*compiler);
@@ -925,14 +900,7 @@ namespace Corrosive {
 
 				uint16_t argid = (uint16_t)(arguments.size() - (ret_rval_stack ? 0 : 1));
 				for (auto a = arguments.rbegin(); a != arguments.rend(); a++) {
-
-					if (a->second->has_special_constructor()) {
-						ILBuilder::build_local(compiler->scope(), argid);
-						a->second->build_construct();
-					}
-
 					ILBuilder::build_local(compiler->scope(), argid);
-
 					Expression::copy_from_rvalue(a->second, CompileType::compile, false);
 
 					argid--;
@@ -999,262 +967,6 @@ namespace Corrosive {
 		}
 	}
 
-
-
-	void StructureInstance::build_automatic_constructor() {
-		auto func = compiler->global_module()->create_function();
-		func->alias = "auto_ctor";
-
-		ILBlock* block = func->create_and_append_block();
-		block->alias = "entry";
-		compiler->push_scope(block);
-
-		ILBuilder::build_accept(block, ILDataType::none);
-
-		uint16_t clones = 0;
-
-		for (size_t i = 0; i < member_vars.size(); ++i) {
-			if (member_vars[i].first->has_special_constructor()) {
-				clones++;
-			}
-		}
-
-		if (clones > 1) {
-			ILBuilder::build_clone(block, ILDataType::word, clones);
-		}
-
-		auto do_lmbda = [&block, this](size_t ind, std::pair<Type*, uint32_t>& c_var) {
-			if (c_var.first->has_special_constructor()) {
-
-				if (size.type == ILSizeType::table) {
-					ILBuilder::build_tableoffset(block, size.value, (uint16_t)ind);
-				}
-				else if (size.type == ILSizeType::absolute) {
-					ILBuilder::build_aoffset(block, c_var.second);
-				}
-				else if (size.type == ILSizeType::word) {
-					ILBuilder::build_woffset(block, c_var.second);
-				}
-
-				c_var.first->build_construct();
-			}
-		};
-
-		for (size_t ind = 0; ind < member_vars.size(); ++ind) {
-			do_lmbda(ind, member_vars[ind]);
-		}
-
-		ILBuilder::build_yield(block, ILDataType::none);
-		ILBuilder::build_ret(block, ILDataType::none);
-
-		auto_constructor = func;
-		compiler->pop_scope();
-	}
-
-	void StructureInstance::build_automatic_destructor() {
-		auto func = compiler->global_module()->create_function();
-		func->alias = "auto_drop";
-
-		ILBlock* block = func->create_and_append_block();
-		block->alias = "entry";
-		compiler->push_scope(block);
-
-		ILBuilder::build_accept(block, ILDataType::none);
-
-		uint16_t clones = 0;
-
-		for (size_t i = 0; i < member_vars.size(); ++i) {
-			if (member_vars[i].first->has_special_destructor()) {
-				clones++;
-			}
-		}
-
-		if (clones > 1) {
-			ILBuilder::build_clone(block, ILDataType::word, clones);
-		}
-
-
-		auto do_lmbda = [&block, this](size_t ind, std::pair<Type*, uint32_t>& c_var) {
-			if (c_var.first->has_special_destructor()) {
-
-				if (size.type == ILSizeType::table) {
-					ILBuilder::build_tableoffset(block, size.value, (uint16_t)ind);
-				}
-				else if (size.type == ILSizeType::absolute) {
-					ILBuilder::build_aoffset(block, c_var.second);
-				}
-				else if (size.type == ILSizeType::word) {
-					ILBuilder::build_woffset(block, c_var.second);
-				}
-
-				c_var.first->build_drop();
-			}
-		};
-
-		for (size_t ind = 0; ind < member_vars.size(); ++ind) {
-			do_lmbda(ind, member_vars[ind]);
-		}
-
-		ILBuilder::build_yield(block, ILDataType::none);
-		ILBuilder::build_ret(block, ILDataType::none);
-
-		auto_destructor = func;
-		compiler->pop_scope();
-	}
-
-	void StructureInstance::build_automatic_move() {
-		auto func = compiler->global_module()->create_function();
-		func->alias = "auto_move";
-
-		ILBlock* block = func->create_and_append_block();
-		block->alias = "entry";
-		compiler->push_scope(block);
-
-		ILBuilder::build_accept(block, ILDataType::none);
-
-
-		if (member_vars.size() > 1) {
-			ILBuilder::build_clone_pair(block, ILDataType::word, (uint16_t)(member_vars.size()));
-		}
-
-
-		auto do_lmbda = [&block, this](size_t ind, std::pair<Type*, uint32_t>& c_var) {
-			if (size.type == ILSizeType::table) {
-				ILBuilder::build_tableoffset_pair(block, size.value, (uint16_t)ind);
-			}
-			else if (size.type == ILSizeType::absolute) {
-				ILBuilder::build_aoffset_pair(block, c_var.second);
-			}
-			else if (size.type == ILSizeType::word) {
-				ILBuilder::build_woffset_pair(block, c_var.second);
-			}
-
-			if (c_var.first->has_special_move()) {
-				c_var.first->build_move();
-			}
-			else {
-				ILBuilder::build_memcpy_rev(compiler->scope(), c_var.first->size());
-			}
-		};
-
-		for (size_t ind = 0; ind < member_vars.size(); ++ind) {
-			do_lmbda(ind, member_vars[ind]);
-		}
-
-
-		ILBuilder::build_ret(block, ILDataType::none);
-
-		auto_move = func;
-		compiler->pop_scope();
-	}
-
-	void StructureInstance::build_automatic_copy() {
-		auto func = compiler->global_module()->create_function();
-		func->alias = "auto_copy";
-
-		ILBlock* block = func->create_and_append_block();
-		block->alias = "entry";
-		compiler->push_scope(block);
-
-		ILBuilder::build_accept(block, ILDataType::none);
-
-		if (member_vars.size() > 1) {
-			ILBuilder::build_clone_pair(block, ILDataType::word, (uint16_t)(member_vars.size()));
-		}
-
-		auto do_lmbda = [&block, this](size_t ind, std::pair<Type*, uint32_t>& c_var) {
-			if (size.type == ILSizeType::table) {
-				ILBuilder::build_tableoffset_pair(block, size.value, (uint16_t)ind);
-			}
-			else if (size.type == ILSizeType::absolute) {
-				ILBuilder::build_aoffset_pair(block, c_var.second);
-			}
-			else if (size.type == ILSizeType::word) {
-				ILBuilder::build_woffset_pair(block, c_var.second);
-			}
-
-			if (c_var.first->has_special_copy()) {
-				c_var.first->build_copy();
-			}
-			else {
-				ILBuilder::build_memcpy_rev(compiler->scope(), c_var.first->size());
-			}
-		};
-
-		for (size_t ind = 0; ind < member_vars.size(); ++ind) {
-			do_lmbda(ind, member_vars[ind]);
-		}
-
-		ILBuilder::build_ret(block, ILDataType::none);
-
-		auto_copy = func;
-		compiler->pop_scope();
-	}
-
-	void StructureInstance::build_automatic_compare() {
-		auto func = compiler->global_module()->create_function();
-		func->alias = "auto_compare";
-
-		ILBlock* block = func->create_and_append_block();
-		ILBlock* block_return = func->create_block();
-		block_return->alias = "exit";
-		ILBuilder::build_accept(block_return, ILDataType::i8);
-		ILBuilder::build_ret(block_return, ILDataType::i8);
-
-		block->alias = "entry";
-		compiler->push_scope(block);
-
-		ILBuilder::build_accept(block, ILDataType::none);
-
-		if (member_vars.size() > 1) {
-			ILBuilder::build_clone_pair(block, ILDataType::word, (uint16_t)(member_vars.size()));
-		}
-
-		auto do_lmbda = [&block, &func, &block_return, this](size_t ind, std::pair<Type*, uint32_t>& c_var) {
-			if (size.type == ILSizeType::table) {
-				ILBuilder::build_tableoffset_pair(compiler->scope(), size.value, (uint16_t)ind);
-			}
-			else if (size.type == ILSizeType::absolute) {
-				ILBuilder::build_aoffset_pair(compiler->scope(), c_var.second);
-			}
-			else if (size.type == ILSizeType::word) {
-				ILBuilder::build_woffset_pair(compiler->scope(), c_var.second);
-			}
-
-
-			if (c_var.first->has_special_compare()) {
-				c_var.first->build_compare();
-			}
-			else {
-				ILBuilder::build_memcmp_rev(compiler->scope(), c_var.first->size());
-			}
-
-			if (ind < member_vars.size() - 1) {
-				ILBlock* continue_block = func->create_and_append_block();
-
-				ILBuilder::build_discard(continue_block, ILDataType::i8);
-				ILBuilder::build_duplicate(compiler->scope(), ILDataType::i8);
-				ILBuilder::build_yield(compiler->scope(), ILDataType::i8);
-				ILBuilder::build_jmpz(compiler->scope(), continue_block, block_return);
-				compiler->pop_scope();
-				compiler->push_scope(continue_block);
-			}
-			else {
-				ILBuilder::build_yield(compiler->scope(), ILDataType::i8);
-				ILBuilder::build_jmp(compiler->scope(), block_return);
-			}
-		};
-
-		for (size_t ind = 0; ind < member_vars.size(); ++ind) {
-			do_lmbda(ind, member_vars[ind]);
-		}
-
-
-		func->append_block(block_return);
-		auto_compare = func;
-		compiler->pop_scope();
-	}
-
 	void StructureInstance::compile() {
 		if (compile_state == 0) {
 			compile_state = 1;
@@ -1267,25 +979,8 @@ namespace Corrosive {
 			uint32_t max_align = 0;
 			size = ILSize(ILSizeType::absolute, 0);
 
-			bool has_special_constructor = false;
-			bool has_special_destructor = false;
-			bool has_special_copy = false;
-			bool has_special_move = false;
-			bool has_special_compare = false;
-
 			for (auto&& m : member_vars) {
 				m.first->compile();
-
-				if (m.first->has_special_destructor())
-					has_special_destructor = true;
-				if (m.first->has_special_copy())
-					has_special_copy = true;
-				if (m.first->has_special_move())
-					has_special_move = true;
-				if (m.first->has_special_compare())
-					has_special_compare = true;
-				if (m.first->has_special_constructor())
-					has_special_constructor = true;
 
 				ILSize m_s = m.first->size();
 
@@ -1383,57 +1078,6 @@ namespace Corrosive {
 
 			compile_state = 3;
 
-			if (impl_copy) {
-				impl_copy->compile();
-				auto_copy = impl_copy->func;
-				has_special_copy = true;
-			}
-			else {
-				if (has_special_copy)
-					build_automatic_copy();
-			}
-
-			if (impl_move) {
-				impl_move->compile();
-				auto_move = impl_move->func;
-				has_special_move = true;
-			}
-			else {
-				if (has_special_move)
-					build_automatic_move();
-			}
-
-			if (impl_compare) {
-				impl_compare->compile();
-				auto_compare = impl_compare->func;
-				has_special_compare = true;
-			}
-			else {
-				if (has_special_compare)
-					build_automatic_compare();
-			}
-
-			if (impl_drop) {
-				impl_drop->compile();
-				auto_destructor = impl_drop->func;
-				has_special_destructor = true;
-			}
-			else {
-				if (has_special_destructor)
-					build_automatic_destructor();
-			}
-
-			if (impl_ctor) {
-				impl_ctor->compile();
-				auto_constructor = impl_ctor->func;
-				has_special_constructor = true;
-			}
-			else {
-				if (has_special_constructor)
-					build_automatic_constructor();
-			}
-
-
 			compiler->compiler_stack()->pop();
 			compiler->evaluator()->stack_pop();
 			compiler->pop_scope_context();
@@ -1449,14 +1093,11 @@ namespace Corrosive {
 	}
 
 	void GenericInstance::insert_key_on_stack(Compiler& compiler) {
-
-
 		if (generator != nullptr) {
 
 			if (generator->generator != nullptr) {
 				generator->generator->insert_key_on_stack(compiler);
 			}
-
 
 			unsigned char* key_ptr = key;
 			for (auto key_l = generator->generic_layout.rbegin(); key_l != generator->generic_layout.rend(); key_l++) {
@@ -1466,10 +1107,7 @@ namespace Corrosive {
 
 				key_ptr += std::get<1>(*key_l)->size().eval(compiler.global_module(), compiler_arch);
 			}
-
-
 		}
-
 	}
 
 

@@ -8,7 +8,7 @@
 namespace Corrosive {
 
 	enum class BlockTermination {
-		terminated, needs_exit, no_exit
+		terminated, continued, breaked
 	};
 
 	class Statement {

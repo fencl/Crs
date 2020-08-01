@@ -20,7 +20,6 @@ namespace Corrosive {
 
 
 	void ILBuilder::build_accept(ILBlock* block, ILDataType type) {
-
 		if (type != ILDataType::none) {
 			block->write_instruction(ILInstruction::accept);
 			block->write_const_type(type);

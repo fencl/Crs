@@ -92,7 +92,7 @@ namespace Corrosive {
 		ILContext		context = ILContext::both;
 		GenericInstance generic_inst;
 
-		ILFunction* auto_constructor = nullptr;
+		/*ILFunction* auto_constructor = nullptr;
 		ILFunction* auto_destructor = nullptr;
 		ILFunction* auto_copy = nullptr;
 		ILFunction* auto_move = nullptr;
@@ -108,7 +108,7 @@ namespace Corrosive {
 		void build_automatic_destructor();
 		void build_automatic_move();
 		void build_automatic_copy();
-		void build_automatic_compare();
+		void build_automatic_compare();*/
 
 		void compile();
 

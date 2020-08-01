@@ -13,146 +13,38 @@ namespace Corrosive {
 
 	void Expression::copy_from_rvalue(Type* me, CompileType cpt, bool me_top) {
 		if (cpt == CompileType::compile) {
-
-			if (me->has_special_copy()) {
+			if (me_top) {
 				if (me->rvalue_stacked()) {
-					if (!me_top) {
-						ILBuilder::build_swap(me->compiler()->scope(), ILDataType::word);
-					}
-					me->build_copy();
+					ILBuilder::build_memcpy_rev(me->compiler()->scope(), me->size());
 				}
 				else {
-					throw std::exception("Compiler error, structure with special copy should not have rvalue stacked");
+					ILBuilder::build_store_rev(me->compiler()->scope(), me->rvalue());
 				}
 			}
 			else {
-				if (me_top) {
-					if (me->rvalue_stacked()) {
-						ILBuilder::build_memcpy_rev(me->compiler()->scope(), me->size());
-					}
-					else {
-						ILBuilder::build_store_rev(me->compiler()->scope(), me->rvalue());
-					}
+				if (me->rvalue_stacked()) {
+					ILBuilder::build_memcpy(me->compiler()->scope(), me->size());
 				}
 				else {
-					if (me->rvalue_stacked()) {
-						ILBuilder::build_memcpy(me->compiler()->scope(), me->size());
-					}
-					else {
-						ILBuilder::build_store(me->compiler()->scope(), me->rvalue());
-					}
+					ILBuilder::build_store(me->compiler()->scope(), me->rvalue());
 				}
 			}
 		}
 		else {
-			if (me->has_special_copy()) {
+			if (me_top) {
 				if (me->rvalue_stacked()) {
-					if (me_top) {
-						unsigned char* copy_from = me->compiler()->evaluator()->pop_register_value<unsigned char*>();
-						unsigned char* copy_to = me->compiler()->evaluator()->pop_register_value<unsigned char*>();
-						me->copy(copy_to, copy_from);
-					}
-					else {
-						unsigned char* copy_to = me->compiler()->evaluator()->pop_register_value<unsigned char*>();
-						unsigned char* copy_from = me->compiler()->evaluator()->pop_register_value<unsigned char*>();
-						me->copy(copy_to, copy_from);
-					}
+					ILBuilder::eval_memcpy_rev(me->compiler()->evaluator(), me->size().eval(me->compiler()->global_module(), compiler_arch));
 				}
 				else {
-					throw std::exception("Compiler error, structure with special copy should not have rvalue stacked");
+					ILBuilder::eval_store_rev(me->compiler()->evaluator(), me->rvalue());
 				}
 			}
 			else {
-
-				if (me_top) {
-					if (me->rvalue_stacked()) {
-						ILBuilder::eval_memcpy_rev(me->compiler()->evaluator(), me->size().eval(me->compiler()->global_module(), compiler_arch));
-					}
-					else {
-						ILBuilder::eval_store_rev(me->compiler()->evaluator(), me->rvalue());
-					}
-				}
-				else {
-					if (me->rvalue_stacked()) {
-						ILBuilder::eval_memcpy(me->compiler()->evaluator(), me->size().eval(me->compiler()->global_module(), compiler_arch));
-					}
-					else {
-						ILBuilder::eval_store(me->compiler()->evaluator(), me->rvalue());
-					}
-				}
-			}
-		}
-
-	}
-
-	void Expression::move_from_rvalue(Type* me, CompileType cpt, bool me_top) {
-		if (cpt == CompileType::compile) {
-
-			if (me->has_special_move()) {
 				if (me->rvalue_stacked()) {
-					if (!me_top) {
-						ILBuilder::build_swap(me->compiler()->scope(), ILDataType::word);
-					}
-					me->build_move();
+					ILBuilder::eval_memcpy(me->compiler()->evaluator(), me->size().eval(me->compiler()->global_module(), compiler_arch));
 				}
 				else {
-					throw std::exception("Compiler error, structure with special copy should not have rvalue stacked");
-				}
-			}
-			else {
-				if (me_top) {
-					if (me->rvalue_stacked()) {
-						ILBuilder::build_memcpy_rev(me->compiler()->scope(), me->size());
-					}
-					else {
-						ILBuilder::build_store_rev(me->compiler()->scope(), me->rvalue());
-					}
-				}
-				else {
-					if (me->rvalue_stacked()) {
-						ILBuilder::build_memcpy(me->compiler()->scope(), me->size());
-					}
-					else {
-						ILBuilder::build_store(me->compiler()->scope(), me->rvalue());
-					}
-				}
-			}
-		}
-		else {
-			if (me->has_special_move()) {
-				if (me->rvalue_stacked()) {
-					if (me_top) {
-						unsigned char* copy_from = me->compiler()->evaluator()->pop_register_value<unsigned char*>();
-						unsigned char* copy_to = me->compiler()->evaluator()->pop_register_value<unsigned char*>();
-						me->move(copy_to, copy_from);
-					}
-					else {
-						unsigned char* copy_to = me->compiler()->evaluator()->pop_register_value<unsigned char*>();
-						unsigned char* copy_from = me->compiler()->evaluator()->pop_register_value<unsigned char*>();
-						me->move(copy_to, copy_from);
-					}
-				}
-				else {
-					throw std::exception("Compiler error, structure with special move should not have rvalue stacked");
-				}
-			}
-			else {
-
-				if (me_top) {
-					if (me->rvalue_stacked()) {
-						ILBuilder::eval_memcpy_rev(me->compiler()->evaluator(), me->size().eval(me->compiler()->global_module(), compiler_arch));
-					}
-					else {
-						ILBuilder::eval_store_rev(me->compiler()->evaluator(), me->rvalue());
-					}
-				}
-				else {
-					if (me->rvalue_stacked()) {
-						ILBuilder::eval_memcpy(me->compiler()->evaluator(), me->size().eval(me->compiler()->global_module(), compiler_arch));
-					}
-					else {
-						ILBuilder::eval_store(me->compiler()->evaluator(), me->rvalue());
-					}
+					ILBuilder::eval_store(me->compiler()->evaluator(), me->rvalue());
 				}
 			}
 		}
@@ -172,10 +64,6 @@ namespace Corrosive {
 				ILBuilder::eval_load(compiler.evaluator(), value.type->rvalue());
 			}
 		}
-		/*else if (!value.lvalue && value.t->type() == TypeInstanceType::type_reference) {
-			value.t = ((TypeReference*)value.t)->owner;
-			value.lvalue = true;
-		}*/
 	}
 
 	ILDataType Expression::arithmetic_type(Type* type) {
@@ -211,41 +99,22 @@ namespace Corrosive {
 			if ((l == 1 || l == 2) && left.type == right.type) {
 				int8_t eval_value = 0;
 
-				if (left.type->has_special_compare()) {
+				if (cpt == CompileType::compile) {
 					if (left.lvalue || left.type->rvalue_stacked()) {
-						if (cpt == CompileType::compile) {
-							left.type->build_compare();
-						}
-						else {
-							unsigned char* cmp_to = compiler.evaluator()->pop_register_value<unsigned char*>();
-							unsigned char* cmp_what = compiler.evaluator()->pop_register_value<unsigned char*>();
-							eval_value = left.type->compare(cmp_what, cmp_to);
-						}
+						ILBuilder::build_memcmp(compiler.scope(), left.type->size());
 					}
 					else {
-						throw_specific_error(c, "Compiler error, type should not be rvalue with specific compare function");
+						ILBuilder::build_rmemcmp(compiler.scope(), left.type->rvalue());
 					}
 				}
 				else {
-
-					if (cpt == CompileType::compile) {
-						if (left.lvalue || left.type->rvalue_stacked()) {
-							ILBuilder::build_memcmp(compiler.scope(), left.type->size());
-						}
-						else {
-							ILBuilder::build_rmemcmp(compiler.scope(), left.type->rvalue());
-						}
+					if (left.lvalue || left.type->rvalue_stacked()) {
+						ILBuilder::eval_memcmp(compiler.evaluator(), left.type->size().eval(compiler.global_module(), compiler_arch));
 					}
 					else {
-						if (left.lvalue || left.type->rvalue_stacked()) {
-							ILBuilder::eval_memcmp(compiler.evaluator(), left.type->size().eval(compiler.global_module(), compiler_arch));
-						}
-						else {
-							ILBuilder::eval_rmemcmp(compiler.evaluator(), left.type->rvalue());
-						}
-						eval_value = compiler.evaluator()->pop_register_value<int8_t>();
+						ILBuilder::eval_rmemcmp(compiler.evaluator(), left.type->rvalue());
 					}
-
+					eval_value = compiler.evaluator()->pop_register_value<int8_t>();
 				}
 
 				if (cpt == CompileType::compile) {
@@ -469,132 +338,130 @@ namespace Corrosive {
 	void Expression::parse(Compiler& compiler, Cursor& c,RecognizedToken& tok, CompileValue& res, CompileType cpt, bool require_output) {
 		CompileValue val;
 		parse_or(compiler,c,tok, val, cpt);
+		unsigned char op = 0;
+		switch (tok) {
+			case RecognizedToken::Equals: {
 
-		if (tok == RecognizedToken::Equals || tok == RecognizedToken::BackArrow) {
-			bool do_copy = tok == RecognizedToken::Equals;
-
-			if (!val.lvalue) {
-				throw_specific_error(c, "Left assignment must be modifiable lvalue");
-			}
-
-			if (require_output) {
-				if (cpt == CompileType::compile) {
-					ILBuilder::build_duplicate(compiler.scope(), ILDataType::word);
+				if (!val.lvalue) {
+					throw_specific_error(c, "Left assignment must be modifiable lvalue");
 				}
-				else {
-					ILBuilder::eval_duplicate(compiler.evaluator(), ILDataType::word);
+
+				if (require_output) {
+					if (cpt == CompileType::compile) {
+						ILBuilder::build_duplicate(compiler.scope(), ILDataType::word);
+					}
+					else {
+						ILBuilder::eval_duplicate(compiler.evaluator(), ILDataType::word);
+					}
 				}
-			}
 
-			c.move(tok);
-			Cursor err = c;
+				c.move(tok);
+				Cursor err = c;
 
-			CompileValue val2;
-			Expression::parse(compiler,c,tok, val2, cpt);
-			Operand::cast(compiler,err, val2, val.type, cpt, true);
-
-			if (!val2.lvalue) {
-				do_copy = false;
-			}
-
-			Expression::rvalue(compiler,val2, CompileType::compile);
-
-			if (do_copy) {
+				CompileValue val2;
+				Expression::parse(compiler, c, tok, val2, cpt);
+				Operand::cast(compiler, err, val2, val.type, cpt, true);
+				Expression::rvalue(compiler, val2, CompileType::compile);
 				Expression::copy_from_rvalue(val.type, cpt);
-			}
-			else {
-				Expression::move_from_rvalue(val.type, cpt);
-			}
 
-			if (!require_output) {
-				val.lvalue = false;
-				val.type = compiler.types()->t_void;
-			}
-		}
-		else if (tok == RecognizedToken::PlusEquals || tok == RecognizedToken::MinusEquals || tok == RecognizedToken::StarEquals || tok == RecognizedToken::SlashEquals) {
-			unsigned char op = 0;
-			if (tok == RecognizedToken::PlusEquals) {
-				op = 1;
-			}
-			else if (tok == RecognizedToken::MinusEquals) {
-				op = 2;
-			}
-			else if (tok == RecognizedToken::StarEquals) {
-				op = 3;
-			}
-			else {
-				op = 4;
-			}
+				if (!require_output) {
+					val.lvalue = false;
+					val.type = compiler.types()->t_void;
+				}
+			} break;
+			case RecognizedToken::PlusEquals:
+			case RecognizedToken::MinusEquals:
+			case RecognizedToken::StarEquals:
+			case RecognizedToken::SlashEquals: {
 
-			if (!Operand::is_numeric_value(val.type)) {
-				throw_specific_error(c, "Left assignment must be numeric type");
-			}
+				switch (tok) {
+					case RecognizedToken::PlusEquals: op = 1; break;
+					case RecognizedToken::MinusEquals: op = 2; break;
+					case RecognizedToken::StarEquals: op = 3; break;
+					case RecognizedToken::SlashEquals: op = 4; break;
+				}
 
-			if (!val.lvalue) {
-				throw_specific_error(c, "Left assignment must be modifiable lvalue");
-			}
+				if (!Operand::is_numeric_value(val.type)) {
+					throw_specific_error(c, "Left assignment must be numeric type");
+				}
 
-			if (require_output) {
+				if (!val.lvalue) {
+					throw_specific_error(c, "Left assignment must be modifiable lvalue");
+				}
+
+				if (require_output) {
+					if (cpt == CompileType::compile) {
+						ILBuilder::build_duplicate(compiler.scope(), ILDataType::word);
+					}
+					else {
+						ILBuilder::eval_duplicate(compiler.evaluator(), ILDataType::word);
+					}
+				}
+
 				if (cpt == CompileType::compile) {
 					ILBuilder::build_duplicate(compiler.scope(), ILDataType::word);
 				}
 				else {
 					ILBuilder::eval_duplicate(compiler.evaluator(), ILDataType::word);
 				}
-			}
+				Expression::rvalue(compiler, val, cpt);
 
-			if (cpt == CompileType::compile) {
-				ILBuilder::build_duplicate(compiler.scope(), ILDataType::word);
-			}
-			else {
-				ILBuilder::eval_duplicate(compiler.evaluator(), ILDataType::word);
-			}
-			Expression::rvalue(compiler,val, cpt);
+				c.move(tok);
+				Cursor err = c;
 
-			c.move(tok);
-			Cursor err = c;
+				CompileValue val2;
+				Expression::parse(compiler, c, tok, val2, cpt);
+				Expression::rvalue(compiler, val2, cpt);
+				if (!Operand::is_numeric_value(val2.type)) {
+					throw_specific_error(err, "Expected numeric value");
+				}
 
-			CompileValue val2;
-			Expression::parse(compiler,c,tok, val2, cpt);
-			Expression::rvalue(compiler,val2, cpt);
-			if (!Operand::is_numeric_value(val2.type)) {
-				throw_specific_error(err, "Expected numeric value");
-			}
+				if (cpt == CompileType::compile) {
+					if (op == 1)
+						ILBuilder::build_add(compiler.scope(), val.type->rvalue(), val2.type->rvalue());
+					else if (op == 2)
+						ILBuilder::build_sub(compiler.scope(), val.type->rvalue(), val2.type->rvalue());
+					else if (op == 3)
+						ILBuilder::build_mul(compiler.scope(), val.type->rvalue(), val2.type->rvalue());
+					else
+						ILBuilder::build_div(compiler.scope(), val.type->rvalue(), val2.type->rvalue());
 
-			if (cpt == CompileType::compile) {
-				if (op == 1)
-					ILBuilder::build_add(compiler.scope(), val.type->rvalue(), val2.type->rvalue());
-				else if (op == 2)
-					ILBuilder::build_sub(compiler.scope(), val.type->rvalue(), val2.type->rvalue());
-				else if (op == 3)
-					ILBuilder::build_mul(compiler.scope(), val.type->rvalue(), val2.type->rvalue());
-				else
-					ILBuilder::build_div(compiler.scope(), val.type->rvalue(), val2.type->rvalue());
+					ILBuilder::build_cast(compiler.scope(), ILBuilder::arith_result(val.type->rvalue(), val2.type->rvalue()), val.type->rvalue());
+					ILBuilder::build_store_rev(compiler.scope(), val.type->rvalue());
+				}
+				else {
+					if (op == 1)
+						ILBuilder::eval_add(compiler.evaluator(), val.type->rvalue(), val2.type->rvalue());
+					else if (op == 2)
+						ILBuilder::eval_sub(compiler.evaluator(), val.type->rvalue(), val2.type->rvalue());
+					else if (op == 3)
+						ILBuilder::eval_mul(compiler.evaluator(), val.type->rvalue(), val2.type->rvalue());
+					else
+						ILBuilder::eval_div(compiler.evaluator(), val.type->rvalue(), val2.type->rvalue());
 
-				ILBuilder::build_cast(compiler.scope(), ILBuilder::arith_result(val.type->rvalue(), val2.type->rvalue()), val.type->rvalue());
-				ILBuilder::build_store_rev(compiler.scope(), val.type->rvalue());
-			}
-			else {
-				if (op == 1)
-					ILBuilder::eval_add(compiler.evaluator(), val.type->rvalue(), val2.type->rvalue());
-				else if (op == 2)
-					ILBuilder::eval_sub(compiler.evaluator(), val.type->rvalue(), val2.type->rvalue());
-				else if (op == 3)
-					ILBuilder::eval_mul(compiler.evaluator(), val.type->rvalue(), val2.type->rvalue());
-				else
-					ILBuilder::eval_div(compiler.evaluator(), val.type->rvalue(), val2.type->rvalue());
+					ILBuilder::eval_cast(compiler.evaluator(), ILBuilder::arith_result(val.type->rvalue(), val2.type->rvalue()), val.type->rvalue());
+					ILBuilder::eval_store_rev(compiler.evaluator(), val.type->rvalue());
+				}
 
-				ILBuilder::eval_cast(compiler.evaluator(), ILBuilder::arith_result(val.type->rvalue(), val2.type->rvalue()), val.type->rvalue());
-				ILBuilder::eval_store_rev(compiler.evaluator(), val.type->rvalue());
-			}
-
-			if (!require_output) {
-				val.lvalue = false;
-				val.type = compiler.types()->t_void;
-			}
+				if (!require_output) {
+					val.lvalue = false;
+					val.type = compiler.types()->t_void;
+				}
+			} break;
 		}
 
 		res = val;
+		if (!require_output && val.type != compiler.types()->t_void) {
+			if (res.lvalue || res.type->rvalue_stacked()) {
+				ILBuilder::build_forget(compiler.scope(), ILDataType::word);
+			}
+			else {
+				ILBuilder::build_forget(compiler.scope(), res.type->rvalue());
+			}
+
+			res.lvalue = false;
+			res.type = compiler.types()->t_void;
+		}
 	}
 
 	void Expression::parse_and(Compiler& compiler, Cursor& c, RecognizedToken& tok, CompileValue& res, CompileType cpt) {

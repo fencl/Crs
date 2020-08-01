@@ -102,7 +102,7 @@ namespace Corrosive {
 			std::chrono::steady_clock::time_point compile_begin = std::chrono::steady_clock::now();
 
 
-			Source::require(c, "../test/test.crs");
+			Source::require(c, "../test/test2.crs");
 
 			ILFunction* main = nullptr;
 
