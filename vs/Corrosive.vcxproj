@@ -43,7 +43,6 @@
     <ClCompile Include="..\src\ConstantManager.cpp" />
     <ClCompile Include="..\src\Declaration.cpp" />
     <ClCompile Include="..\src\DeclarationCompile.cpp" />
-    <ClCompile Include="..\src\DeclarationParse.cpp" />
     <ClCompile Include="..\src\Error.cpp" />
     <ClCompile Include="..\src\Expression.cpp" />
     <ClCompile Include="..\src\IL\IL.cpp" />

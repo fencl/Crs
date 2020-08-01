@@ -6,10 +6,8 @@
 #include <iostream>
 
 namespace Corrosive {
-
-
-	void Statement::parse_inner_block(Compiler& compiler, Cursor& c,RecognizedToken& tok, BlockTermination& termination, bool exit_returns, Cursor* err) {
-
+	template <typename Func>
+	void parse_inner_block_func(Compiler& compiler, Cursor& c, RecognizedToken& tok, BlockTermination& termination, bool exit_returns, Cursor* err, Func&& f) {
 		StackItem sitm;
 		ILBlock* b_exit = compiler.target()->create_block();
 		b_exit->alias = "exit";
@@ -31,7 +29,7 @@ namespace Corrosive {
 				ILBuilder::build_debug(compiler.scope(), UINT16_MAX, top);
 			}*/
 
-			Statement::parse(compiler,c,tok, CompileType::compile, termination);
+			Statement::parse(compiler, c, tok, CompileType::compile, termination);
 
 			if (termination == BlockTermination::terminated && tok != RecognizedToken::CloseBrace) {
 				throw_specific_error(c, "Instruction after the current branch has been terminated");
@@ -46,16 +44,18 @@ namespace Corrosive {
 				d++;
 			}
 
-			if (d>0)
+			if (d > 0)
 				compiler.target()->local_stack_lifetime.pop();
 			else
 				compiler.target()->local_stack_lifetime.discard_push();
-			
+
 		}
 		c.move(tok);
 
+		f(termination);
+
 		auto ret = compiler.return_type();
-		ILBuilder::build_accept(b_exit, ret->rvalue_stacked()?ILDataType::none:ret->rvalue());
+		ILBuilder::build_accept(b_exit, ret->rvalue_stacked() ? ILDataType::none : ret->rvalue());
 
 
 
@@ -133,9 +133,9 @@ namespace Corrosive {
 			}
 		}
 		else if (termination == BlockTermination::no_exit) {
-			ILBuilder::build_yield(compiler.scope(), ILDataType::none);
 
 			if (!exit_returns) {
+				ILBuilder::build_yield(compiler.scope(), ILDataType::none);
 				ILBuilder::build_jmp(prev_scope, compiler.scope());
 			}
 			else {
@@ -152,9 +152,75 @@ namespace Corrosive {
 				}
 			}
 		}
-
-		
 		compiler.stack()->pop_block();
+	}
+
+	template <typename Func>
+	void parse_inner_block_wrap(Compiler& compiler, BlockTermination& termination, Func&& f) {
+		StackItem sitm;
+		ILBlock* b_exit = compiler.target()->create_block();
+		b_exit->alias = "exit";
+		compiler.push_scope_exit(b_exit);
+
+		termination = BlockTermination::no_exit;
+		f(termination);
+
+		auto ret = compiler.return_type();
+		ILBuilder::build_accept(b_exit, ret->rvalue_stacked() ? ILDataType::none : ret->rvalue());
+
+		while (compiler.stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) {
+			if (sitm.type->has_special_destructor()) {
+
+				if (termination != BlockTermination::terminated) {
+					ILBuilder::build_local(compiler.scope(), sitm.id);
+					sitm.type->build_drop();
+				}
+
+				if (termination != BlockTermination::no_exit) {
+					compiler.push_scope(compiler.scope_exit());
+					ILBuilder::build_local(compiler.scope(), sitm.id);
+					sitm.type->build_drop();
+					compiler.pop_scope();
+				}
+			}
+		}
+
+		compiler.target()->local_stack_lifetime.pop();
+
+
+		auto prev_scope = compiler.scope();
+		compiler.pop_scope();
+		compiler.pop_scope_exit();
+
+		if (termination == BlockTermination::terminated) {
+
+			compiler.target()->append_block(b_exit);
+			auto ret = compiler.return_type();
+			ILBuilder::build_yield(prev_scope, ret->rvalue_stacked() ? ILDataType::none : ret->rvalue());
+			ILBuilder::build_jmp(prev_scope, b_exit);
+			ILBuilder::build_yield(b_exit, ret->rvalue_stacked() ? ILDataType::none : ret->rvalue());
+			ILBuilder::build_jmp(b_exit, compiler.scope_exit());
+			
+		}
+		else if (termination == BlockTermination::needs_exit) {
+			compiler.target()->append_block(b_exit);
+			ILBuilder::build_yield(compiler.scope(), ILDataType::none);
+			ILBuilder::build_jmp(prev_scope, compiler.scope());
+			auto ret = compiler.return_type();
+			ILBuilder::build_yield(b_exit, ret->rvalue_stacked() ? ILDataType::none : ret->rvalue());
+			ILBuilder::build_jmp(b_exit, compiler.scope_exit());
+			
+		}
+		else if (termination == BlockTermination::no_exit) {
+			ILBuilder::build_yield(compiler.scope(), ILDataType::none);
+			ILBuilder::build_jmp(prev_scope, compiler.scope());
+		}
+		compiler.stack()->pop_block();
+	}
+
+
+	void Statement::parse_inner_block(Compiler& compiler, Cursor& c,RecognizedToken& tok, BlockTermination& termination, bool exit_returns, Cursor* err) {
+		parse_inner_block_func(compiler, c, tok, termination, exit_returns,err, [](BlockTermination& term) {});
 	}
 
 	void Statement::parse(Compiler& compiler, Cursor& c,RecognizedToken& tok, CompileType cmp, BlockTermination& termination) {
@@ -190,6 +256,11 @@ namespace Corrosive {
 				else if (buf == "while") {
 					compiler.target()->local_stack_lifetime.push();// temp lifetime push
 					parse_while(compiler, c,tok, termination);
+					return;
+				}
+				else if (buf == "for") {
+					compiler.target()->local_stack_lifetime.push();// temp lifetime push
+					parse_for(compiler, c,tok, termination);
 					return;
 				}
 			}break;
@@ -327,6 +398,13 @@ namespace Corrosive {
 				ILBuilder::build_jmpz(block_from, continue_block, block);
 			}
 			else {
+				if (term == BlockTermination::needs_exit || term == BlockTermination::terminated) {
+					termination = BlockTermination::needs_exit;
+				}
+				else {
+					termination = BlockTermination::no_exit;
+				}
+
 				throw_specific_error(c,"else can be followed only by { or if");
 			}
 		}
@@ -384,6 +462,95 @@ namespace Corrosive {
 
 		compiler.pop_scope();
 		compiler.push_scope(continue_block);
+
+		compiler.target()->append_block(continue_block);
+	}
+
+
+	void Statement::parse_for(Compiler& compiler, Cursor& c, RecognizedToken& tok, BlockTermination& termination) {
+		c.move(tok);
+		if (tok != RecognizedToken::OpenParenthesis) {
+			throw_wrong_token_error(c, "'('");
+		}
+
+		compiler.target()->local_stack_lifetime.push(); // temp lifetime push
+		ILBlock* block = compiler.target()->create_and_append_block();
+
+		ILBuilder::build_yield(compiler.scope(), ILDataType::none);
+		ILBuilder::build_jmp(compiler.scope(), block);
+
+		ILBlock* continue_block = compiler.target()->create_block();
+
+		compiler.pop_scope();
+		compiler.push_scope(continue_block);
+		compiler.push_scope(block);
+		compiler.target()->local_stack_lifetime.push(); // block lifetime push
+		compiler.stack()->push_block();
+		ILBuilder::build_accept(compiler.scope(), ILDataType::none);
+
+		parse_inner_block_wrap(compiler, termination, [&compiler, &c, &tok](BlockTermination& termination) {
+			Cursor cc = c;
+			Cursor err = cc;
+			RecognizedToken tok2;
+			cc.move(tok2);
+			Statement::parse(compiler, cc, tok2, CompileType::compile, termination);
+			
+
+			ILBlock* test_block = compiler.target()->create_and_append_block();
+			ILBuilder::build_yield(compiler.scope(), ILDataType::none);
+			ILBuilder::build_jmp(compiler.scope(), test_block);
+			compiler.pop_scope();
+			compiler.push_scope(test_block);
+			ILBuilder::build_accept(compiler.scope(), ILDataType::none);
+
+			CompileValue test_value;
+
+			err = cc;
+			Expression::parse(compiler, cc, tok2, test_value, CompileType::compile);
+			Operand::cast(compiler, err, test_value, compiler.types()->t_bool, CompileType::compile, false);
+			Expression::rvalue(compiler, test_value, CompileType::compile);
+
+			if (tok2 != RecognizedToken::Semicolon) {
+				throw_wrong_token_error(c, "';'");
+			}
+			cc.move(tok2);
+
+
+			c.move_matching(tok);
+			c.move(tok);
+			if (tok != RecognizedToken::OpenBrace) {
+				throw_wrong_token_error(c, "'{'");
+			}
+			c.move(tok);
+
+			ILBuilder::build_yield(test_block, ILDataType::none);
+			ILBlock* continue_block = compiler.target()->create_block();
+
+
+			ILBlock* block = compiler.target()->create_and_append_block();
+			block->alias = "for";
+			compiler.push_scope(block);
+			compiler.target()->local_stack_lifetime.push();// block lifetime push
+			compiler.stack()->push_block();
+			ILBuilder::build_accept(block, ILDataType::none);
+			bool term = false;
+			parse_inner_block_func(compiler, c, tok, termination, false, nullptr, [&compiler,&cc,&tok2](BlockTermination& term) {
+				CompileValue test_value;
+				Expression::parse(compiler, cc, tok2, test_value, CompileType::compile);
+			});
+
+
+
+			ILBuilder::build_jmpz(test_block, continue_block, block);
+
+			ILBuilder::build_accept(continue_block, ILDataType::none);
+
+
+			compiler.pop_scope();
+			compiler.push_scope(continue_block);
+
+			compiler.target()->append_block(continue_block);
+		});
 
 		compiler.target()->append_block(continue_block);
 	}

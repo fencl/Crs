@@ -19,6 +19,7 @@ namespace Corrosive {
 
 		static void parse_if(Compiler& compiler, Cursor& c, RecognizedToken& tok, BlockTermination& termination);
 		static void parse_while(Compiler& compiler, Cursor& c, RecognizedToken& tok, BlockTermination& termination);
+		static void parse_for(Compiler& compiler, Cursor& c, RecognizedToken& tok, BlockTermination& termination);
 
 		static void parse_return(Compiler& compiler, Cursor& c, RecognizedToken& tok);
 		static void parse_make(Compiler& compiler, Cursor& c, RecognizedToken& tok);
