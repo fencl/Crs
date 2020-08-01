@@ -62,6 +62,7 @@ namespace Corrosive {
 			"fn compile ext subtype_of: (type, []u8) type;\n"
 			"fn compile ext slice_of: (type) type;\n"
 			"fn compile ext type_size: (type) size;\n"
+			"fn compile ext require: ([]u8);\n"
 			"}"
 			, "standard_library<buffer>");
 
@@ -103,6 +104,10 @@ namespace Corrosive {
 		f_build_subtype = compiler.register_ext_function({ "compiler","subtype_of" }, Operand::priv_build_subtype);
 		f_build_slice = compiler.register_ext_function({ "compiler","slice_of" }, Operand::priv_build_slice);
 		f_type_size = compiler.register_ext_function({ "compiler","type_size" }, Operand::priv_type_size);
+		f_type_size = compiler.register_ext_function({ "compiler","require" }, Source::require_wrapper);
+
+		std::vector<Type*> args;
+		t_build_script = load_or_register_function_type(ILCallingConvention::bytecode, std::move(args), t_void, ILContext::compile);
 	}
 
 

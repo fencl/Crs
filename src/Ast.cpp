@@ -28,21 +28,21 @@ namespace Corrosive {
 			else if (buf == "trait") {
 				global->traits.push_back(AstTraitNode::parse(c, tok, global.get()));
 			}
-			else if (buf == "require") {
+			else if (buf == "compile") {
 				c.move(tok);
-				root->require.push_back(c.offset);
-				c.move(tok);
+				root->compile.push_back(c.offset);
 
-				if (tok != RecognizedToken::Semicolon) {
-					throw_wrong_token_error(c, "';'");
+				if (tok != RecognizedToken::OpenBrace) {
+					throw_wrong_token_error(c, "'{'");
 				}
+				c.move_matching(tok);
 				c.move(tok);
 			}
 			else if (buf == "static") {
 				global->statics.push_back(AstStaticNode::parse(c, tok, global.get()));
 			}
 			else {
-				throw_wrong_token_error(c, "namespace, fn, struct, trait, require or static");
+				throw_wrong_token_error(c, "namespace, fn, struct, trait, compile or static");
 			}
 
 		}
@@ -553,12 +553,15 @@ namespace Corrosive {
 		svar->name = c.offset;
 		svar->name_string = c.buffer();
 		c.move(tok);
-		if (tok != RecognizedToken::Colon) {
-			throw_wrong_token_error(c, "':'");
+
+
+		if (tok != RecognizedToken::Colon && tok != RecognizedToken::Equals) {
+			throw_wrong_token_error(c, "':' or '='");
 		}
+		svar->has_value = tok == RecognizedToken::Equals;
 		c.move(tok);
 		svar->type = c.offset;
-		
+
 		while (tok != RecognizedToken::Semicolon) {
 			if (tok == RecognizedToken::Eof) {
 				throw_eof_error(c, "parsing of static declaration");

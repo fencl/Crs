@@ -96,7 +96,7 @@ namespace Corrosive {
 		Compiler c;
 
 		ILEvaluator::sandbox_begin();
-
+		c.push_workspace(c.global_namespace());
 		try {
 
 			std::chrono::steady_clock::time_point compile_begin = std::chrono::steady_clock::now();
@@ -121,6 +121,7 @@ namespace Corrosive {
 			StaticInstance* f_static;
 
 			c.gn.find_name("main", f_nspc,f_stemp,f_ftemp,f_ttemp, f_static);
+
 
 			if (f_ftemp) {
 				FunctionInstance* finst;
@@ -174,7 +175,8 @@ namespace Corrosive {
 		catch (std::exception& e) {
 			std::cerr << e.what()<<"\n";
 		}
-		
+
+		c.pop_workspace();
 		ILEvaluator::sandbox_end();
 		return 0;
 	}

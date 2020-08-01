@@ -88,6 +88,8 @@ namespace Corrosive {
 		AstCursor name;
 		AstCursor type;
 		ILContext context;
+		bool has_value;
+
 		static std::unique_ptr<AstStaticNode> parse(Cursor& c, RecognizedToken& tok, AstNode* parent);
 	};
 
@@ -134,7 +136,7 @@ namespace Corrosive {
 
 	class AstRootNode : public AstNode {
 	public:
-		std::vector<AstCursor> require;
+		std::vector<AstCursor> compile;
 		Source* parent;
 		virtual Source* get_source() override { return parent; }
 		std::unique_ptr<AstNamespaceNode> global_namespace;

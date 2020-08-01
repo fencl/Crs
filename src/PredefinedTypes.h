@@ -73,6 +73,7 @@ namespace Corrosive {
 		Type* t_type;
 		Type* t_void;
 		Type* t_size;
+		TypeFunction* t_build_script;
 
 		Type* primitives [(unsigned char)ILDataType::undefined];
 

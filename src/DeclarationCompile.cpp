@@ -1163,19 +1163,39 @@ namespace Corrosive {
 			CompileValue typevalue;
 			Expression::parse(*compiler, c, tok, typevalue, CompileType::eval);
 			Expression::rvalue(*compiler, typevalue, CompileType::eval);
-			if (typevalue.type != compiler->types()->t_type) {
-				throw_cannot_cast_error(err, typevalue.type, compiler->types()->t_type);
+
+			
+			if (!ast_node->has_value) {
+				if (typevalue.type != compiler->types()->t_type) {
+					throw_cannot_cast_error(err, typevalue.type, compiler->types()->t_type);
+				}
+				type = compiler->evaluator()->pop_register_value<Type*>();
+				type->compile();
+
+
+
+				size_t size = type->size().eval(compiler->global_module(), compiler_arch);
+				sid = compiler->global_module()->register_static(nullptr, size);
 			}
-			type = compiler->evaluator()->pop_register_value<Type*>();
-			type->compile();
+			else {
+				type = typevalue.type;
+				size_t size = type->size().eval(compiler->global_module(), compiler_arch);
+
+				if (typevalue.lvalue || type->rvalue_stacked()) {
+					void* ptr = compiler->evaluator()->pop_register_value<void*>();
+					sid = compiler->global_module()->register_static((unsigned char*)ptr, size);
+				}
+				else {
+					ilsize_t storage;
+					compiler->evaluator()->pop_register_value_indirect(size,&storage);
+					sid = compiler->global_module()->register_static((unsigned char*)&storage, size);
+				}
+			}
 
 			if (type->context() != ILContext::both && type->context() != ast_node->context) {
 				throw_specific_error(err,"Type is not targeted for this context");
 			}
 
-			size_t size = type->size().eval(compiler->global_module(), compiler_arch);
-
-			sid = compiler->global_module()->register_static(nullptr, size);
 
 			compiler->compiler_stack()->pop();
 			compiler->evaluator()->stack_pop();

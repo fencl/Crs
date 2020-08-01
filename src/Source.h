@@ -42,6 +42,7 @@ namespace Corrosive {
 		std::unique_ptr<AstRootNode> root_node;
 
 		static void require(Compiler& compiler, std::filesystem::path file, Source* base=nullptr);
+		static void require_wrapper(ILEvaluator* eval);
 	private:
 		std::string buffer;
 		std::unordered_map<size_t, Cursor> token_pair;

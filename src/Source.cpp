@@ -11,6 +11,7 @@
 #include "ConstantManager.h"
 #include "Compiler.h"
 #include "Ast.h"
+#include "Statement.h"
 
 namespace Corrosive {
 
@@ -449,6 +450,50 @@ namespace Corrosive {
 		}
 	}
 
+	ILBytecodeFunction* compile_build_block(Compiler* compiler, Cursor& c) {
+		compiler->types()->t_build_script->compile();
+		auto func = compiler->global_module()->create_function();
+		func->decl_id = compiler->types()->t_build_script->il_function_decl;
+		func->alias = "build_script";
+
+		ILBlock* b = func->create_and_append_block();
+		b->alias = "entry";
+
+		compiler->push_function(func, compiler->types()->t_void);
+		compiler->push_scope(b);
+
+		compiler->evaluator()->stack_push();
+		compiler->compiler_stack()->push();
+
+		compiler->stack()->push();
+		compiler->temp_stack()->push();
+
+		compiler->target()->local_stack_lifetime.push();
+		compiler->stack()->push_block();
+		compiler->temp_stack()->push_block();
+
+
+		func->local_stack_lifetime.push();
+
+		RecognizedToken tok;
+		Cursor name = c;
+		BlockTermination term;
+		c.move(tok);
+		Statement::parse_inner_block(*compiler, c, tok, term, true, &name);
+
+		func->assert_flow();
+
+		compiler->temp_stack()->pop_block();
+
+		compiler->stack()->pop();
+		compiler->temp_stack()->pop();
+		compiler->compiler_stack()->pop();
+		compiler->evaluator()->stack_pop();
+		compiler->pop_function();
+
+		return func;
+	}
+
 	void Source::require(Compiler& compiler, std::filesystem::path file, Source* src) 
 	{
 		std::filesystem::path abs;
@@ -473,13 +518,36 @@ namespace Corrosive {
 			compiler.included_sources[std::move(abs)] = std::move(new_src);
 			ptr->root_node = AstRootNode::parse(ptr);
 			ptr->root_node->populate(&compiler);
-			for (auto&& r : ptr->root_node->require) {
+
+			
+
+			for (auto&& r : ptr->root_node->compile) {
 				RecognizedToken tok;
+
+				compiler.push_scope_context(ILContext::compile);
+
 				Cursor c = load_cursor(r, ptr,tok);
-				auto lit = compiler.constant_manager()->register_string_literal(c);
-				Source::require(compiler, lit.first, ptr);
+				auto fn = compile_build_block(&compiler,c);
+
+
+				auto save = compiler.evaluator()->tmp2;
+				compiler.evaluator()->tmp2 = ptr;
+				compiler.evaluator()->tmp1 = &compiler;
+				ILBuilder::eval_fncall(compiler.evaluator(), fn);
+				compiler.evaluator()->tmp2 = save;
+
+				compiler.pop_scope_context();
 			}
 		}
+	}
+
+	void Source::require_wrapper(ILEvaluator* eval)
+	{
+		size_t* ptr = eval->pop_register_value<size_t*>();
+		char* data = ((char**)ptr)[0];
+		size_t size = ptr[1];
+		std::basic_string_view<char> data_string(data, size);
+		Source::require(*(Compiler*)eval->tmp1, data_string, (Source*)eval->tmp2);
 	}
 
 }
