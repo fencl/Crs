@@ -11,11 +11,12 @@ namespace Corrosive {
 	}
 
 
-	void Namespace::find_name(std::string_view name, Namespace*& subnamespace, StructureTemplate*& subtemplate, FunctionTemplate*& subfunction, TraitTemplate*& subtrait) {
+	void Namespace::find_name(std::string_view name, Namespace*& subnamespace, StructureTemplate*& subtemplate, FunctionTemplate*& subfunction, TraitTemplate*& subtrait, StaticInstance*& substatic) {
 		subnamespace = nullptr;
 		subtemplate = nullptr;
 		subfunction = nullptr;
 		subtrait = nullptr;
+		substatic = nullptr;
 
 		auto res = name_table.find(name);
 		if (res != name_table.end()) {
@@ -25,10 +26,11 @@ namespace Corrosive {
 				case 1: subtemplate  = subtemplates[res->second.second].get(); return;
 				case 2: subfunction  = subfunctions[res->second.second].get(); return;
 				case 3: subtrait     = subtraits[res->second.second].get(); return;
+				case 4: substatic     = substatics[res->second.second].get(); return;
 			}
 		}
 		else if (parent) {
-			parent->find_name(name, subnamespace, subtemplate, subfunction, subtrait);
+			parent->find_name(name, subnamespace, subtemplate, subfunction, subtrait,substatic);
 		}
 	}
 

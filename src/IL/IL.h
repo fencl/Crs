@@ -56,7 +56,7 @@ namespace Corrosive {
 		roffset, offset, vtable, duplicate, duplicate2, swap, swap2,
 		memcpy, memcpy2, memcmp, memcmp2, rmemcmp, rmemcmp2,
 		rtoffset, rtoffset2, null, isnotzero, yield, discard, accept,
-		debug, constref, negative, negate, tableoffset, tableroffset, tableoffset2,
+		debug, constref, staticref, negative, negate, tableoffset, tableroffset, tableoffset2,
 		aoffset, aoffset2, woffset, woffset2, aroffset, wroffset, clone, clone2
 	};
 
@@ -322,6 +322,8 @@ namespace Corrosive {
 	class ILModule {
 	public:
 		std::vector<std::unique_ptr<unsigned char[]>> constant_memory;
+		std::vector<std::unique_ptr<unsigned char[]>> static_memory;
+
 		std::vector<std::unique_ptr<ILFunction>> functions;
 		std::vector<std::unique_ptr<void* []>> vtable_data;
 		std::vector<ILStructTable> structure_tables;
@@ -340,6 +342,7 @@ namespace Corrosive {
 		ILExtFunction* create_ext_function();
 
 		uint32_t register_constant(unsigned char* memory, size_t size);
+		uint32_t register_static(unsigned char* memory, size_t size);
 		uint32_t register_function_decl(std::tuple<ILCallingConvention, ILDataType, std::vector<ILDataType>> decl);
 		void dump_function_decl(uint32_t id);
 	};
@@ -380,6 +383,7 @@ namespace Corrosive {
 		static void eval_tableoffset_pair(ILEvaluator* eval_ctx, uint32_t tableid, uint16_t itemid);
 		static void eval_tableroffset(ILEvaluator* eval_ctx, ILDataType src, ILDataType dst, uint32_t tableid, uint16_t itemid);
 		static void eval_constref(ILEvaluator* eval_ctx, uint32_t constid);
+		static void eval_staticref(ILEvaluator* eval_ctx, uint32_t constid);
 		static void eval_debug(ILEvaluator* eval_ctx, uint16_t file, uint16_t line);
 		static void eval_load(ILEvaluator* eval_ctx, ILDataType type);
 		static void eval_store(ILEvaluator* eval_ctx, ILDataType type);
@@ -449,6 +453,7 @@ namespace Corrosive {
 		static void build_tableoffset(ILBlock* block, uint32_t tableid, uint16_t itemid);
 		static void build_tableoffset_pair(ILBlock* block, uint32_t tableid, uint16_t itemid);
 		static void build_constref(ILBlock* block, uint32_t constid);
+		static void build_staticref(ILBlock* block, uint32_t constid);
 		static void build_debug(ILBlock* block, uint16_t file, uint16_t line);
 		static void build_load(ILBlock* block, ILDataType type);
 		static void build_store(ILBlock* block, ILDataType type);

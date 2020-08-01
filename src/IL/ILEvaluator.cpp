@@ -513,6 +513,10 @@ namespace Corrosive {
 		eval_ctx->write_register_value(eval_ctx->parent->constant_memory[cid].get());
 	}
 
+	void ILBuilder::eval_staticref(ILEvaluator* eval_ctx, uint32_t cid) {
+		eval_ctx->write_register_value(eval_ctx->parent->static_memory[cid].get());
+	}
+
 	void ILBuilder::eval_debug(ILEvaluator* eval_ctx, uint16_t file, uint16_t line) {
 		eval_ctx->debug_file = file;
 		eval_ctx->debug_line = line;
@@ -1135,6 +1139,10 @@ namespace Corrosive {
 								case ILInstruction::constref: {
 									auto cid = *read_data_type(uint32_t);
 									eval_constref(eval_ctx, cid);
+								} break;
+								case ILInstruction::staticref: {
+									auto cid = *read_data_type(uint32_t);
+									eval_staticref(eval_ctx, cid);
 								} break;
 								case ILInstruction::rtoffset: {
 									eval_rtoffset(eval_ctx);

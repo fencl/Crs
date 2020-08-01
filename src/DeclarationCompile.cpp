@@ -312,7 +312,6 @@ namespace Corrosive {
 			compiler->push_workspace(new_inst);
 
 			for (auto&& m : ast_node->functions) {
-
 				std::unique_ptr<FunctionTemplate> ft = std::make_unique<FunctionTemplate>();
 
 				ft->ast_node = m.get();
@@ -345,6 +344,21 @@ namespace Corrosive {
 				new_inst->subtemplates.push_back(std::move(decl));
 			}
 
+			for (auto&& s : ast_node->statics) {
+				std::unique_ptr<StaticInstance> decl = std::make_unique<StaticInstance>();
+				decl->ast_node = s.get();
+				decl->compiler = compiler;
+				decl->parent = new_inst;
+				decl->generator = &new_inst->generic_inst;
+
+				if (new_inst->name_table.find(s->name_string) != new_inst->name_table.end()) {
+					Cursor c = load_cursor(s->name, src, tok);
+					throw_specific_error(c, "Name already exists in the structure");
+				}
+
+				new_inst->name_table[s->name_string] = std::make_pair((uint8_t)4, (uint32_t)new_inst->substatics.size());
+				new_inst->substatics.push_back(std::move(decl));
+			}
 
 
 			for (auto&& m : ast_node->implementations) {
@@ -1129,5 +1143,49 @@ namespace Corrosive {
 		uint32_t vtid = compiler->global_module()->register_vtable(std::move(vtable));
 		vtable_instances[forinst] = vtid;
 		optid = vtid;
+	}
+
+	void StaticInstance::compile() {
+		if (compile_state == 0) {
+			compile_state = 1;
+			compiler->push_scope_context(ILContext::compile);
+			compiler->evaluator()->stack_push();
+			compiler->compiler_stack()->push();
+
+			if (generator != nullptr) {
+				generator->insert_key_on_stack(*compiler);
+			}
+
+			RecognizedToken tok;
+			Cursor c = load_cursor(ast_node->type, ast_node->get_source(), tok);
+			Cursor err = c;
+
+			CompileValue typevalue;
+			Expression::parse(*compiler, c, tok, typevalue, CompileType::eval);
+			Expression::rvalue(*compiler, typevalue, CompileType::eval);
+			if (typevalue.type != compiler->types()->t_type) {
+				throw_cannot_cast_error(err, typevalue.type, compiler->types()->t_type);
+			}
+			type = compiler->evaluator()->pop_register_value<Type*>();
+			type->compile();
+
+			if (type->context() != ILContext::both && type->context() != ast_node->context) {
+				throw_specific_error(err,"Type is not targeted for this context");
+			}
+
+			size_t size = type->size().eval(compiler->global_module(), compiler_arch);
+
+			sid = compiler->global_module()->register_static(nullptr, size);
+
+			compiler->compiler_stack()->pop();
+			compiler->evaluator()->stack_pop();
+			compiler->pop_scope_context();
+			compile_state = 2;
+		}
+		else if (compile_state == 1) {
+			RecognizedToken tok;
+			Cursor c = load_cursor(ast_node->name, ast_node->get_source(), tok);
+			throw_specific_error(c, "Build cycle");
+		}
 	}
 }

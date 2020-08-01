@@ -24,9 +24,10 @@ namespace Corrosive {
 			StructureTemplate* next_struct = nullptr;
 			FunctionTemplate* next_func = nullptr;
 			TraitTemplate* next_trait = nullptr;
+			StaticInstance* next_static = nullptr;
 
 
-			nspc->find_name(p, next_nspc, next_struct, next_func, next_trait);
+			nspc->find_name(p, next_nspc, next_struct, next_func, next_trait, next_static);
 
 
 			if (next_nspc && !func) {

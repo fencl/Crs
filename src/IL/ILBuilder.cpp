@@ -85,6 +85,11 @@ namespace Corrosive {
 		block->write_instruction(ILInstruction::constref);
 		block->write_value(sizeof(uint32_t), (unsigned char*)&constid);
 	}
+	
+	void ILBuilder::build_staticref(ILBlock* block, uint32_t constid) {
+		block->write_instruction(ILInstruction::staticref);
+		block->write_value(sizeof(uint32_t), (unsigned char*)&constid);
+	}
 
 	void ILBuilder::build_call(ILBlock* block, uint32_t decl) {
 		block->write_instruction(ILInstruction::call);

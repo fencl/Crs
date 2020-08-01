@@ -38,8 +38,11 @@ namespace Corrosive {
 				}
 				c.move(tok);
 			}
+			else if (buf == "static") {
+				global->statics.push_back(AstStaticNode::parse(c, tok, global.get()));
+			}
 			else {
-				throw_wrong_token_error(c, "namespace, fn, struct, trait or require");
+				throw_wrong_token_error(c, "namespace, fn, struct, trait, require or static");
 			}
 
 		}
@@ -78,8 +81,11 @@ namespace Corrosive {
 			else if (buf == "trait") {
 				space->traits.push_back(AstTraitNode::parse(c, tok,space.get()));
 			}
+			else if (buf == "static") {
+				space->statics.push_back(AstStaticNode::parse(c, tok, space.get()));
+			}
 			else {
-				throw_wrong_token_error(c, "namespace, fn, struct or trait");
+				throw_wrong_token_error(c, "namespace, fn, struct, trait or static");
 			}
 		}
 
@@ -151,8 +157,11 @@ namespace Corrosive {
 			else if (buf == "impl") {
 				structure->implementations.push_back(AstImplementationNode::parse(c, tok, structure.get()));
 			}
+			else if (buf == "static") {
+				structure->statics.push_back(AstStaticNode::parse(c, tok, structure.get()));
+			}
 			else {
-				throw_wrong_token_error(c, "var, fn, struct, impl or trait");
+				throw_wrong_token_error(c, "var, fn, struct, impl, trait or static");
 			}
 		}
 
@@ -446,6 +455,12 @@ namespace Corrosive {
 			nspc->ast_node = n.get();
 			nspc->parent = into;
 
+			if (into->name_table.find(n->name_string)!= into->name_table.end()) {
+				RecognizedToken tok;
+				Cursor c = load_cursor(n->name, n->get_source(), tok);
+				throw_specific_error(c, "Name already exists in the namespace");
+			}
+
 			into->name_table[n->name_string] = std::make_pair<uint8_t,uint32_t>(0, (uint32_t)into->subnamespaces.size());
 			n->populate(compiler, nspc.get());
 			into->subnamespaces.push_back(std::move(nspc));
@@ -458,6 +473,11 @@ namespace Corrosive {
 			structure->parent = into;
 			structure->compiler = compiler;
 
+			if (into->name_table.find(n->name_string) != into->name_table.end()) {
+				RecognizedToken tok;
+				Cursor c = load_cursor(n->name, n->get_source(), tok);
+				throw_specific_error(c, "Name already exists in the namespace");
+			}
 			into->name_table[n->name_string] = std::make_pair<uint8_t, uint32_t>(1, (uint32_t)into->subtemplates.size());
 			into->subtemplates.push_back(std::move(structure));
 		}
@@ -468,6 +488,11 @@ namespace Corrosive {
 			function->parent = into;
 			function->compiler = compiler;
 
+			if (into->name_table.find(n->name_string) != into->name_table.end()) {
+				RecognizedToken tok;
+				Cursor c = load_cursor(n->name, n->get_source(), tok);
+				throw_specific_error(c, "Name already exists in the namespace");
+			}
 			into->name_table[n->name_string] = std::make_pair<uint8_t, uint32_t>(2, (uint32_t)into->subfunctions.size());
 			into->subfunctions.push_back(std::move(function));
 		}
@@ -478,8 +503,70 @@ namespace Corrosive {
 			trait->parent = into;
 			trait->compiler = compiler;
 
+			if (into->name_table.find(n->name_string) != into->name_table.end()) {
+				RecognizedToken tok;
+				Cursor c = load_cursor(n->name, n->get_source(), tok);
+				throw_specific_error(c, "Name already exists in the namespace");
+			}
 			into->name_table[n->name_string] = std::make_pair<uint8_t, uint32_t>(3, (uint32_t)into->subtraits.size());
 			into->subtraits.push_back(std::move(trait));
 		}
+
+		for (auto&& n : statics) {
+			std::unique_ptr<StaticInstance> substatic = std::make_unique<StaticInstance>();
+			substatic->ast_node = n.get();
+			substatic->parent = into;
+			substatic->compiler = compiler;
+
+			if (into->name_table.find(n->name_string) != into->name_table.end()) {
+				RecognizedToken tok;
+				Cursor c = load_cursor(n->name, n->get_source(), tok);
+				throw_specific_error(c, "Name already exists in the namespace");
+			}
+			into->name_table[n->name_string] = std::make_pair<uint8_t, uint32_t>(4, (uint32_t)into->substatics.size());
+			into->substatics.push_back(std::move(substatic));
+		}
+	}
+
+
+	std::unique_ptr<AstStaticNode> AstStaticNode::parse(Cursor& c, RecognizedToken& tok, AstNode* parent) {
+		auto svar = std::make_unique<AstStaticNode>();
+		svar->parent = parent;
+		c.move(tok);
+
+		auto buf = c.buffer();
+		if (buf == "compile") {
+			svar->context = ILContext::compile;
+			c.move(tok);
+		}
+		else if (buf == "runtime") {
+			svar->context = ILContext::runtime;
+			c.move(tok);
+		}
+		else {
+			svar->context = ILContext::both;
+		}
+
+		if (tok != RecognizedToken::Symbol) {
+			throw_not_a_name_error(c);
+		}
+		svar->name = c.offset;
+		svar->name_string = c.buffer();
+		c.move(tok);
+		if (tok != RecognizedToken::Colon) {
+			throw_wrong_token_error(c, "':'");
+		}
+		c.move(tok);
+		svar->type = c.offset;
+		
+		while (tok != RecognizedToken::Semicolon) {
+			if (tok == RecognizedToken::Eof) {
+				throw_eof_error(c, "parsing of static declaration");
+			}
+			c.move(tok);
+		}
+		c.move(tok);
+
+		return std::move(svar);
 	}
 }

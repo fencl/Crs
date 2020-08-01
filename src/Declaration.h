@@ -28,6 +28,7 @@ namespace Corrosive {
 	class TraitTemplate;
 	class FunctionTemplate;
 	class FunctionInstance;
+	class StaticInstance;
 
 	class GenericInstance;
 
@@ -59,8 +60,9 @@ namespace Corrosive {
 		std::vector<std::unique_ptr<StructureTemplate>> subtemplates;
 		std::vector<std::unique_ptr<FunctionTemplate>> subfunctions;
 		std::vector<std::unique_ptr<TraitTemplate>> subtraits;
+		std::vector<std::unique_ptr<StaticInstance>> substatics;
 
-		void find_name(std::string_view name, Namespace*& subnamespace, StructureTemplate*& subtemplate, FunctionTemplate*& subfunction, TraitTemplate*& subtrait);
+		void find_name(std::string_view name, Namespace*& subnamespace, StructureTemplate*& subtemplate, FunctionTemplate*& subfunction, TraitTemplate*& subtrait,StaticInstance*& substatic);
 	};
 
 	enum class StructureInstanceType {
@@ -92,27 +94,9 @@ namespace Corrosive {
 		ILContext		context = ILContext::both;
 		GenericInstance generic_inst;
 
-		/*ILFunction* auto_constructor = nullptr;
-		ILFunction* auto_destructor = nullptr;
-		ILFunction* auto_copy = nullptr;
-		ILFunction* auto_move = nullptr;
-		ILFunction* auto_compare = nullptr;
-
-		FunctionInstance* impl_copy = nullptr;
-		FunctionInstance* impl_move = nullptr;
-		FunctionInstance* impl_compare = nullptr;
-		FunctionInstance* impl_drop = nullptr;
-		FunctionInstance* impl_ctor = nullptr;
-
-		void build_automatic_constructor();
-		void build_automatic_destructor();
-		void build_automatic_move();
-		void build_automatic_copy();
-		void build_automatic_compare();*/
-
 		void compile();
 
-		unsigned int compile_state = 0;
+		unsigned char compile_state = 0;
 	};
 
 
@@ -128,7 +112,7 @@ namespace Corrosive {
 		void generate(unsigned char* argdata, StructureInstance*& out);
 		void compile();
 
-		unsigned int compile_state = 0;
+		unsigned char compile_state = 0;
 
 
 	private:
@@ -172,7 +156,7 @@ namespace Corrosive {
 		void generate(unsigned char* argdata, TraitInstance*& out);
 		void compile();
 
-		unsigned int compile_state = 0;
+		unsigned char compile_state = 0;
 
 	private:
 		struct GenericTemplateCompare {
@@ -216,7 +200,7 @@ namespace Corrosive {
 		void generate(unsigned char* argdata, FunctionInstance*& out);
 		void compile();
 
-		unsigned int compile_state = 0;
+		unsigned char compile_state = 0;
 	private:
 		struct GenericTemplateCompare {
 			FunctionTemplate* parent;
@@ -228,6 +212,18 @@ namespace Corrosive {
 		std::unique_ptr<std::map<unsigned char*, std::pair<std::unique_ptr<unsigned char[]>, std::unique_ptr<FunctionInstance>>, GenericTemplateCompare>> instances = nullptr;
 	};
 
+	class StaticInstance {
+	public:
+		unsigned char compile_state = 0;
+		Namespace* parent = nullptr;
+		AstStaticNode* ast_node;
+		Type* type;
+		Compiler* compiler;
+		GenericInstance* generator = nullptr;
+		uint32_t sid;
+
+		void compile();
+	};
 }
 
 #endif

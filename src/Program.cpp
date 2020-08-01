@@ -118,8 +118,9 @@ namespace Corrosive {
 			StructureTemplate* f_stemp;
 			FunctionTemplate* f_ftemp;
 			TraitTemplate* f_ttemp;
+			StaticInstance* f_static;
 
-			c.gn.find_name("main", f_nspc,f_stemp,f_ftemp,f_ttemp);
+			c.gn.find_name("main", f_nspc,f_stemp,f_ftemp,f_ttemp, f_static);
 
 			if (f_ftemp) {
 				FunctionInstance* finst;

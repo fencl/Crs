@@ -484,11 +484,12 @@ namespace Corrosive {
 
 	}
 
-	void Operand::parse_const_type_function(Compiler& compiler, Cursor& c, RecognizedToken& tok, FunctionInstance*& func, Type*& type, ILSize& type_size) {
+	void Operand::parse_const_type_function(Compiler& compiler, Cursor& c, RecognizedToken& tok, FunctionInstance*& func, Type*& type, StaticInstance*& s_inst, ILSize& type_size) {
 		Namespace* namespace_inst = nullptr;
 		StructureTemplate* struct_inst = nullptr;
 		FunctionTemplate* func_inst = nullptr;
 		TraitTemplate* trait_inst = nullptr;
+		StaticInstance* static_inst = nullptr;
 
 
 		compiler.push_scope_context(ILContext::compile);
@@ -496,9 +497,9 @@ namespace Corrosive {
 
 
 		Cursor err = c;
-		compiler.workspace()->find_name(c.buffer(), namespace_inst, struct_inst, func_inst, trait_inst);
+		compiler.workspace()->find_name(c.buffer(), namespace_inst, struct_inst, func_inst, trait_inst, static_inst);
 
-		if (namespace_inst == nullptr && struct_inst == nullptr && func_inst == nullptr && trait_inst == nullptr) {
+		if (namespace_inst == nullptr && struct_inst == nullptr && func_inst == nullptr && trait_inst == nullptr && static_inst == nullptr) {
 			throw_specific_error(c, "Path start point not found");
 		}
 
@@ -512,7 +513,7 @@ namespace Corrosive {
 			}
 			nm_err = c;
 
-			namespace_inst->find_name(c.buffer(), namespace_inst, struct_inst, func_inst, trait_inst);
+			namespace_inst->find_name(c.buffer(), namespace_inst, struct_inst, func_inst, trait_inst,static_inst);
 			c.move(tok);
 		}
 
@@ -547,7 +548,7 @@ namespace Corrosive {
 			Namespace* f_nspc;
 			TraitTemplate* f_ttemp;
 
-			inst->find_name(c.buffer(), f_nspc, struct_inst, func_inst, f_ttemp);
+			inst->find_name(c.buffer(), f_nspc, struct_inst, func_inst, f_ttemp, static_inst);
 
 			if (f_nspc || f_ttemp) {
 				throw_specific_error(c, "Only function may be brought in the runtime context");
@@ -589,6 +590,10 @@ namespace Corrosive {
 				return;
 			}
 
+		}
+		else if (static_inst!=nullptr) {
+			static_inst->compile();
+			s_inst = static_inst;
 		}
 		else {
 			throw_specific_error(nm_err, "Only function may be brought in the runtime context");
@@ -862,36 +867,50 @@ namespace Corrosive {
 				FunctionInstance* f = nullptr;
 				Type* t = nullptr;
 				ILSize t_s;
-				parse_const_type_function(compiler, c,tok, f, t, t_s);
+				StaticInstance* sinst = nullptr;
+				Cursor err = c;
+				parse_const_type_function(compiler, c,tok, f, t, sinst, t_s);
 
 				if (f) {
 					ILBuilder::build_fnptr(compiler.scope(), f->func);
 					ret.type = f->type;
+					ret.lvalue = false;
 				}
 				else if (t != nullptr) {
 
 					ILBuilder::build_const_type(compiler.scope(), t);
 					ret.type = compiler.types()->t_type;
+					ret.lvalue = false;
+				}
+				else if (sinst) {
+					if (sinst->ast_node->context != ILContext::both && sinst->ast_node->context != compiler.scope_context()) {
+						throw_specific_error(err, "Static declaration is not targeted for this context");
+					}
+
+					ILBuilder::build_staticref(compiler.scope(), sinst->sid);
+					ret.type = sinst->type;
+					ret.lvalue = true;
 				}
 				else {
 					ILBuilder::build_const_size(compiler.scope(), t_s);
 					ret.type = compiler.types()->t_size;
+					ret.lvalue = false;
 				}
 
-				ret.lvalue = false;
 			}
 			else {
 				Namespace* namespace_inst = nullptr;
 				StructureTemplate* struct_inst = nullptr;
 				FunctionTemplate* func_inst = nullptr;
 				TraitTemplate* trait_inst = nullptr;
+				StaticInstance* static_inst = nullptr;
 
 
 				Cursor err = c;
 
-				compiler.workspace()->find_name(c.buffer(), namespace_inst, struct_inst, func_inst, trait_inst);
+				compiler.workspace()->find_name(c.buffer(), namespace_inst, struct_inst, func_inst, trait_inst, static_inst);
 
-				if (namespace_inst == nullptr && struct_inst == nullptr && func_inst == nullptr && trait_inst == nullptr) {
+				if (namespace_inst == nullptr && struct_inst == nullptr && func_inst == nullptr && trait_inst == nullptr && static_inst == nullptr) {
 					throw_specific_error(c, "Path start point not found");
 				}
 
@@ -906,7 +925,7 @@ namespace Corrosive {
 					}
 					nm_err = c;
 
-					namespace_inst->find_name(c.buffer(), namespace_inst, struct_inst, func_inst, trait_inst);
+					namespace_inst->find_name(c.buffer(), namespace_inst, struct_inst, func_inst, trait_inst,static_inst);
 					c.move(tok);
 				}
 
@@ -1022,6 +1041,22 @@ namespace Corrosive {
 
 					ret.lvalue = false;
 					ret.type = compiler.types()->t_type;
+				}
+				else if (static_inst != nullptr) {
+					static_inst->compile();
+
+					if (static_inst->ast_node->context != ILContext::both && static_inst->ast_node->context != compiler.scope_context()) {
+						throw_specific_error(nm_err, "Static declaration is not targeted for this context");
+					}
+
+					if (cpt == CompileType::compile) {
+						ILBuilder::build_staticref(compiler.scope(), static_inst->sid);
+					}
+					else {
+						ILBuilder::eval_staticref(compiler.evaluator(), static_inst->sid);
+					}
+					ret.lvalue = true;
+					ret.type = static_inst->type;
 				}
 				else {
 					throw_specific_error(nm_err, "Path is pointing to a namespace");
@@ -1493,12 +1528,13 @@ namespace Corrosive {
 		if (t->type() == TypeInstanceType::type_structure_instance) {
 			TypeStructureInstance* tsi = (TypeStructureInstance*)t;
 
-			Corrosive::Namespace* nspc;
-			Corrosive::StructureTemplate* templ;
-			Corrosive::FunctionTemplate* ftempl;
-			Corrosive::TraitTemplate* trait;
+			Namespace* nspc;
+			StructureTemplate* templ;
+			FunctionTemplate* ftempl;
+			TraitTemplate* trait;
+			StaticInstance* static_inst;
 
-			tsi->owner->find_name(slice_str, nspc, templ, ftempl, trait);
+			tsi->owner->find_name(slice_str, nspc, templ, ftempl, trait, static_inst);
 
 			if (templ) {
 				templ->compile();
@@ -1775,44 +1811,78 @@ namespace Corrosive {
 			auto f = struct_inst->name_table.find(c.buffer());
 			if (f != struct_inst->name_table.end()) {
 
-				if (f->second.first != 1) {
-					throw_specific_error(c, "Target is not a structure");
+
+
+				switch (f->second.first)
+				{
+					case 1: {
+						StructureTemplate* tplt = struct_inst->subtemplates[f->second.second].get();
+
+						compiler.compiler_stack()->push();
+						compiler.evaluator()->stack_push();
+
+						/*if (tplt->generic_ctx.generator)
+							tplt->generic_ctx.generator->insert_key_on_stack(compiler.evaluator());*/
+
+
+						tplt->compile();
+
+						ret.lvalue = false;
+						ret.type = compiler.types()->t_type;
+
+						if (tplt->ast_node->is_generic) {
+							ILBuilder::eval_const_type(compiler.evaluator(), tplt->type.get());
+						}
+						else {
+							StructureInstance* inst = nullptr;
+
+							tplt->generate(compiler.evaluator()->local_stack_base.back(), inst);
+							ILBuilder::eval_const_type(compiler.evaluator(), inst->type.get());
+						}
+
+						compiler.evaluator()->stack_pop();
+						compiler.compiler_stack()->pop();
+
+						c.move(tok);
+					}break;
+					case 2: {
+
+						c.move(tok);
+						if (tok != RecognizedToken::OpenParenthesis) {
+							throw_wrong_token_error(c, "'('");
+						}
+
+						FunctionInstance* finst;
+						struct_inst->subfunctions[f->second.second]->generate(nullptr, finst);
+						finst->compile();
+
+						ILBuilder::eval_fnptr(compiler.evaluator(), finst->func);
+
+						ret.type = finst->type;
+						ret.lvalue = false;
+						function_call(compiler, ret, c, tok, cpt,0);
+					}break;
+
+					case 4: {
+						c.move(tok);
+						StaticInstance* sinst = struct_inst->substatics[f->second.second].get();
+						sinst->compile();
+						ret.lvalue = true;
+						ret.type = sinst->type;
+						ILBuilder::eval_staticref(compiler.evaluator(), sinst->sid);
+					} break;
+
+					default:
+						throw_specific_error(c, "Target is not a structure or static");
+						break;
 				}
 
-				StructureTemplate* tplt = struct_inst->subtemplates[f->second.second].get();
-
-				compiler.compiler_stack()->push();
-				compiler.evaluator()->stack_push();
-
-				/*if (tplt->generic_ctx.generator)
-					tplt->generic_ctx.generator->insert_key_on_stack(compiler.evaluator());*/
-
-
-				tplt->compile();
-
-				ret.lvalue = false;
-				if (tplt->ast_node->is_generic) {
-					ILBuilder::eval_const_type(compiler.evaluator(), tplt->type.get());
-				}
-				else {
-					StructureInstance* inst = nullptr;
-
-					tplt->generate(compiler.evaluator()->local_stack_base.back(), inst);
-					ILBuilder::eval_const_type(compiler.evaluator(), inst->type.get());
-				}
-
-				compiler.evaluator()->stack_pop();
-				compiler.compiler_stack()->pop();
+				
 			}
 			else {
 				throw_specific_error(c, "Structure instance does not contain a structure with this name");
 			}
 		}
-
-		ret.lvalue = false;
-		ret.type = compiler.types()->t_type;
-
-		c.move(tok);
 	}
 
 	void Operand::function_call(Compiler& compiler, CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType cpt, unsigned int argi) {

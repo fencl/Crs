@@ -259,6 +259,15 @@ namespace Corrosive {
 		return (uint32_t)constant_memory.size() - 1;
 	}
 
+	uint32_t ILModule::register_static(unsigned char* memory, size_t size) {
+		auto data = std::make_unique<unsigned char[]>(size);
+		if (memory != nullptr) {
+			memcpy(data.get(), memory, size);
+		}
+		static_memory.push_back(std::move(data));
+		return (uint32_t)static_memory.size() - 1;
+	}
+
 	void ILBytecodeFunction::calculate_stack(ILArchitecture arch) {
 		if (arch != calculated_for) {
 			calculated_local_stack_size = 0;
@@ -587,6 +596,11 @@ namespace Corrosive {
 				} break;
 				case ILInstruction::constref: {
 					std::cout << "   constref ";
+					auto ind = read_data_type(uint32_t);
+					std::cout << *ind << "\n";
+				} break;
+				case ILInstruction::staticref: {
+					std::cout << "   staticref ";
 					auto ind = read_data_type(uint32_t);
 					std::cout << *ind << "\n";
 				} break;
