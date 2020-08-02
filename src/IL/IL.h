@@ -196,11 +196,11 @@ namespace Corrosive {
 		std::vector<std::unique_ptr<ILBlock>>		blocks_memory;
 		std::set<ILBlock*>							return_blocks;
 
-		ILBlock* create_block();
-		ILBlock* create_and_append_block();
-		void		 append_block(ILBlock* block);
-		void		 dump();
-		bool		 assert_flow();
+		ILBlock*	create_block();
+		ILBlock*	create_and_append_block();
+		void		append_block(ILBlock* block);
+		void		dump();
+		bool		assert_flow();
 	};
 
 	class ILExtFunction : public ILFunction {

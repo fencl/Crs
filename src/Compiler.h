@@ -27,6 +27,7 @@ namespace Corrosive {
 		Namespace* global_namespace() { return target_global_namespace.get(); }
 		ILModule* global_module() { return target_module.get(); }
 		ConstantManager* constant_manager() { return &constant_stack_manager; }
+		std::vector<TypeFunction*>& defer_scope() { return defers.back(); }
 
 		FindNameResult find_name(std::string_view name) { return target_global_namespace->find_name(name); }
 
@@ -52,6 +53,10 @@ namespace Corrosive {
 
 		void push_source(Source* s) { source_stack.push_back(s); }
 		void pop_source() { source_stack.pop_back(); }
+
+		void push_defer_scope() { defers.push_back(std::vector<TypeFunction*>()); }
+		void pop_defer_scope() { defers.pop_back(); }
+
 		Source* source() { return source_stack.back(); }
 		void setup();
 
@@ -62,6 +67,7 @@ namespace Corrosive {
 		std::vector<Namespace*> outer_namespace_stack;
 		std::vector<ILBytecodeFunction*> working_function_stack;
 		std::vector<Source*> source_stack;
+		std::vector<std::vector<TypeFunction*>> defers;
 
 		std::map<std::filesystem::path, std::unique_ptr<Source>> included_sources;
 
@@ -101,6 +107,27 @@ namespace Corrosive {
 		void			eval_local(uint16_t id);
 
 		std::unique_ptr<ILModule> finalize();
+	};
+
+	class ScopeState {
+	public:
+		ScopeState();
+		ScopeState(ScopeState& state);
+		ScopeState(ScopeState&& state);
+
+		~ScopeState();
+		ScopeState& workspace(Namespace* nspc);
+		ScopeState& function(ILBytecodeFunction* function, Type* return_type);
+		ScopeState& context(ILContext context);
+		ScopeState& compiler_stack();
+		ScopeState& stack();
+
+	private:
+		bool set_workspace = false;
+		bool set_function = false;
+		bool set_context = false;
+		bool set_compiler_stack = false;
+		bool set_stack = false;
 	};
 }
 #endif

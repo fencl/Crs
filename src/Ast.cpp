@@ -222,8 +222,11 @@ namespace Corrosive {
 			throw_wrong_token_error(c, "'('");
 		}
 		AstCursor type = c.offset;
+		Cursor ct = c;
 		c.move_matching(tok);
 		c.move(tok);
+
+
 		// TODO: this is dumb
 		while (tok != RecognizedToken::OpenBrace && tok != RecognizedToken::Semicolon) {
 			if (tok == RecognizedToken::Eof) {
@@ -242,6 +245,43 @@ namespace Corrosive {
 			fun->type = type;
 			fun->name_string = name_string;
 			fun->parent = parent;
+
+			RecognizedToken tok1;
+			ct.move(tok1);
+			if (tok1 != RecognizedToken::CloseParenthesis) {
+				while (tok1 != RecognizedToken::Eof) {
+					if (tok1 != RecognizedToken::Symbol) {
+						throw_not_a_name_error(ct);
+					}
+					fun->argument_names.push_back(std::make_pair(ct.offset, ct.buffer()));
+
+					ct.move(tok1);
+					if (tok1 != RecognizedToken::Colon) {
+						throw_wrong_token_error(ct, "':'");
+					}
+
+					ct.move(tok1);
+					while (tok1 != RecognizedToken::CloseParenthesis && tok1 != RecognizedToken::Comma) {
+						if (tok1 == RecognizedToken::OpenParenthesis || tok1 == RecognizedToken::OpenBrace) {
+							ct.move_matching(tok1);
+						}
+						ct.move(tok1);
+					}
+
+					if (tok1 == RecognizedToken::Comma) {
+						ct.move(tok1);
+					}
+					else if (tok1 == RecognizedToken::CloseParenthesis) {
+						break;
+					}
+					else {
+						throw_wrong_token_error(ct, "',' or ')'");
+					}
+				}
+			}
+			ct.move(tok1);
+			fun->return_type = ct.offset;
+
 			c.move_matching(tok);
 			c.move(tok);
 			return std::move(fun);

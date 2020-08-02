@@ -70,6 +70,7 @@ namespace Corrosive {
 				}
 
 				Compiler::pop_compiler();
+
 				compiled_module = compiler->finalize();
 			}
 			std::chrono::steady_clock::time_point compile_end = std::chrono::steady_clock::now();
@@ -83,6 +84,8 @@ namespace Corrosive {
 				compiled_module->run(main);
 				std::chrono::steady_clock::time_point runtime_end = std::chrono::steady_clock::now();
 
+
+				std::cout << "========= ==== =========\n";
 				std::cout << "\ncompile time: " << std::chrono::duration_cast<std::chrono::milliseconds>(compile_end - compile_begin).count() << "[ms]\n";
 				std::cout << "runtime: " << std::chrono::duration_cast<std::chrono::milliseconds>(runtime_end - compile_end).count() << "[ms]\n" << std::endl;
 			}

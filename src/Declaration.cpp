@@ -26,6 +26,8 @@ namespace Corrosive {
 		else if (parent) {
 			return parent->find_name(name);
 		}
+
+		return nullptr;
 	}
 
 
@@ -33,14 +35,19 @@ namespace Corrosive {
 		unsigned char* loff = a;
 		unsigned char* roff = b;
 
-		for (auto&& l : parent->generic_ctx.generic_layout) {
-			int r = std::get<1>(l)->compare(loff,roff);
+		int r = memcmp(loff, roff, parent->generic_ctx.generate_heap_size);
+		if (r < 0) return true;
+		if (r > 0) return false;
+
+		/*for (auto&& l : parent->generic_ctx.generic_layout) {
+
+			size_t off = std::get<1>(l)->size().eval(Compiler::current()->global_module(), compiler_arch);
+			int r = memcmp(loff, roff, off);
 			if (r < 0) return true;
 			if (r > 0) return false;
-			size_t off = std::get<1>(l)->size().eval(Compiler::current()->global_module(),compiler_arch);
 			loff += off;
 			roff += off;
-		}
+		}*/
 
 		return false;
 	}
@@ -49,16 +56,19 @@ namespace Corrosive {
 		unsigned char* loff = a;
 		unsigned char* roff = b;
 
+		int r = memcmp(loff, roff, parent->generic_ctx.generate_heap_size);
+		if (r < 0) return true;
+		if (r > 0) return false;
 
-		for (auto&& l : parent->generic_ctx.generic_layout) {
+		/*for (auto&& l : parent->generic_ctx.generic_layout) {
 
-			int r = std::get<1>(l)->compare(loff, roff);
+			size_t off = std::get<1>(l)->size().eval(Compiler::current()->global_module(), compiler_arch);
+			int r = memcmp(loff, roff, off);
 			if (r < 0) return true;
 			if (r > 0) return false;
-			size_t off = std::get<1>(l)->size().eval(Compiler::current()->global_module(), compiler_arch);
 			loff += off;
 			roff += off;
-		}
+		}*/
 
 		return false;
 	}
@@ -67,15 +77,19 @@ namespace Corrosive {
 		unsigned char* loff = a;
 		unsigned char* roff = b;
 
-		for (auto&& l : parent->generic_ctx.generic_layout) {
-			int r = std::get<1>(l)->compare(loff, roff);
+		int r = memcmp(loff, roff, parent->generic_ctx.generate_heap_size);
+		if (r < 0) return true;
+		if (r > 0) return false;
+
+		/*for (auto&& l : parent->generic_ctx.generic_layout) {
+			size_t off = std::get<1>(l)->size().eval(Compiler::current()->global_module(), compiler_arch);
+			int r = memcmp(loff, roff, off);
 			if (r < 0) return true;
 			if (r > 0) return false;
 
-			size_t off = std::get<1>(l)->size().eval(Compiler::current()->global_module(), compiler_arch);
 			loff += off;
 			roff += off;
-		}
+		}*/
 
 		return false;
 	}

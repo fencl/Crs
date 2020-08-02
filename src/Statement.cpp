@@ -7,12 +7,22 @@
 
 namespace Corrosive {
 
+	void Statement::parse_inner_block_start(ILBlock* block) {
+		Compiler::current()->push_scope(block);
+		Compiler::current()->stack()->push_block();
+		Compiler::current()->target()->local_stack_lifetime.push(); // scope push
+		//Compiler::current()->push_defer_scope();
+	}
+
 	void Statement::parse_inner_block(Cursor& c,RecognizedToken& tok, BlockTermination& termination, bool exit_returns, Cursor* err) {
 		StackItem sitm;
-
+		bool no_temps = true;
 		termination = BlockTermination::continued;
 		while (tok != RecognizedToken::CloseBrace) {
 
+			Compiler::current()->temp_stack()->push();
+
+			Compiler::current()->target()->local_stack_lifetime.push(); // temp push
 			//TODO
 			/*if (c.src != nullptr) {
 				Source* src = (Source*)c.src;
@@ -30,14 +40,16 @@ namespace Corrosive {
 			}
 
 			int d = 0;
-			while (Compiler::current()->temp_stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) {
-				d++;
-			}
-
-			if (d > 0)
+			while (Compiler::current()->temp_stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) { d++; }
+			
+			if (d > 0) {
 				Compiler::current()->target()->local_stack_lifetime.pop();
+				no_temps = false;
+			}
 			else
 				Compiler::current()->target()->local_stack_lifetime.discard_push();
+
+			Compiler::current()->temp_stack()->pop();
 
 		}
 		c.move(tok);
@@ -45,15 +57,13 @@ namespace Corrosive {
 		auto ret = Compiler::current()->return_type();
 
 
+		// scope pop
 		int d = 0;
 		while (Compiler::current()->stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) { d++; }
-		if (d > 0)
+		if (d>0 || !no_temps)
 			Compiler::current()->target()->local_stack_lifetime.pop();
 		else
 			Compiler::current()->target()->local_stack_lifetime.discard_push();
-
-		Compiler::current()->target()->local_stack_lifetime.pop();
-
 
 		auto prev_scope = Compiler::current()->scope();
 		Compiler::current()->pop_scope();
@@ -76,6 +86,8 @@ namespace Corrosive {
 				}
 			}
 		}
+
+		//Compiler::current()->pop_defer_scope();
 		Compiler::current()->stack()->pop_block();
 	}
 
@@ -90,14 +102,11 @@ namespace Corrosive {
 			{
 				auto buf = c.buffer();
 				if (buf == "return") {
-					Compiler::current()->target()->local_stack_lifetime.push();// temp lifetime push
 					termination = BlockTermination::terminated;
 					parse_return(c,tok);
 					return; 
 				}else if (buf == "make") {
 					parse_make(c,tok);
-
-					Compiler::current()->target()->local_stack_lifetime.push();// temp lifetime push
 					return;
 				}
 				else if (buf == "let") {
@@ -105,20 +114,18 @@ namespace Corrosive {
 					return;
 				}
 				else if (buf == "if") {
-					Compiler::current()->target()->local_stack_lifetime.push();// temp lifetime push
 					parse_if(c,tok, termination);
 					return;
 				}
 				else if (buf == "while") {
-					Compiler::current()->target()->local_stack_lifetime.push();// temp lifetime push
 					parse_while(c,tok, termination);
 					return;
 				}
 				else if (buf == "for") {
-					Compiler::current()->target()->local_stack_lifetime.push();// temp lifetime push
 					parse_for(c,tok, termination);
 					return;
 				}
+				
 				else if (buf == "break") {
 					if (!Compiler::current()->has_loop()) {
 						throw_specific_error(c, "Break must be called from loop");
@@ -135,6 +142,7 @@ namespace Corrosive {
 					return;
 				}
 				else if (buf == "continue") {
+
 					if (!Compiler::current()->has_loop()) {
 						throw_specific_error(c, "Continue must be called from loop");
 					}
@@ -151,22 +159,15 @@ namespace Corrosive {
 
 			}break;
 			case RecognizedToken::OpenBrace: {
-				Compiler::current()->target()->local_stack_lifetime.push(); // temp lifetime push
 				c.move(tok);
 				ILBlock* block = Compiler::current()->target()->create_and_append_block();
 
-				ILBuilder::build_yield(Compiler::current()->scope(), ILDataType::none);
 				ILBuilder::build_jmp(Compiler::current()->scope(), block);
 
 				ILBlock* continue_block = Compiler::current()->target()->create_block();
 
-				Compiler::current()->pop_scope();
-				Compiler::current()->push_scope(continue_block);
-				Compiler::current()->push_scope(block);
-				Compiler::current()->target()->local_stack_lifetime.push(); // block lifetime push
-				Compiler::current()->stack()->push_block();
-				ILBuilder::build_accept(Compiler::current()->scope(), ILDataType::none);
-
+				Compiler::current()->switch_scope(continue_block);
+				parse_inner_block_start(block);
 				parse_inner_block(c,tok, termination);
 				Compiler::current()->target()->append_block(continue_block);
 				return;
@@ -175,7 +176,6 @@ namespace Corrosive {
 
 		//fallthrough if every other check fails, statement is plain expression
 
-		Compiler::current()->target()->local_stack_lifetime.push();// temp lifetime push
 		CompileValue ret_val;
 		Expression::parse(c,tok, ret_val, cmp, false);
 
@@ -208,17 +208,14 @@ namespace Corrosive {
 
 		ILBlock* continue_block = Compiler::current()->target()->create_block();
 
-		Compiler::current()->pop_scope();
-		Compiler::current()->push_scope(continue_block);
+		Compiler::current()->switch_scope(continue_block);
 
 
 		ILBlock* block = Compiler::current()->target()->create_and_append_block();
 		block->alias = "true";
-		Compiler::current()->push_scope(block);
-		Compiler::current()->target()->local_stack_lifetime.push();// block lifetime push
-		Compiler::current()->stack()->push_block();
-		ILBuilder::build_accept(Compiler::current()->scope(), ILDataType::none);
+
 		BlockTermination term = BlockTermination::continued;
+		Statement::parse_inner_block_start(block);
 		Statement::parse_inner_block(c,tok, term);
 
 
@@ -231,12 +228,11 @@ namespace Corrosive {
 
 				ILBlock* else_block = Compiler::current()->target()->create_and_append_block();
 				else_block->alias = "false";
-				Compiler::current()->push_scope(else_block);
-				Compiler::current()->target()->local_stack_lifetime.push();// block lifetime push
-				Compiler::current()->stack()->push_block();
-				ILBuilder::build_accept(Compiler::current()->scope(), ILDataType::none);
+
 				BlockTermination term2 = BlockTermination::continued;
+				Statement::parse_inner_block_start(else_block);
 				Statement::parse_inner_block(c,tok, term2);
+
 				if (term== BlockTermination::terminated && term2== BlockTermination::terminated) { termination = BlockTermination::terminated; }
 				else { termination = BlockTermination::continued; }
 
@@ -293,9 +289,7 @@ namespace Corrosive {
 
 		ILBlock* block = Compiler::current()->target()->create_and_append_block();
 		block->alias = "while_block";
-		Compiler::current()->push_scope(block);
-		Compiler::current()->target()->local_stack_lifetime.push();// block lifetime push
-		Compiler::current()->stack()->push_block();
+		Statement::parse_inner_block_start(block);
 		bool term = false;
 		Statement::parse_inner_block(c,tok, termination);
 		if (termination == BlockTermination::breaked) termination = BlockTermination::continued;
@@ -316,8 +310,6 @@ namespace Corrosive {
 		}
 
 
-		Compiler::current()->target()->local_stack_lifetime.push(); // temp lifetime push
-		Compiler::current()->target()->local_stack_lifetime.push(); // block lifetime push
 		Compiler::current()->stack()->push_block();
 
 
@@ -330,8 +322,7 @@ namespace Corrosive {
 
 		ILBlock* test_block = Compiler::current()->target()->create_and_append_block();
 		ILBuilder::build_jmp(Compiler::current()->scope(), test_block);
-		Compiler::current()->pop_scope();
-		Compiler::current()->push_scope(test_block);
+		Compiler::current()->switch_scope(test_block);
 
 		CompileValue test_value;
 
@@ -367,28 +358,11 @@ namespace Corrosive {
 
 		ILBlock* block = Compiler::current()->target()->create_and_append_block();
 		block->alias = "for";
-		Compiler::current()->push_scope(block);
-		Compiler::current()->target()->local_stack_lifetime.push(); // block lifetime push
-		Compiler::current()->stack()->push_block();
+
+		Statement::parse_inner_block_start(block);
 		bool term = false;
 		Statement::parse_inner_block(c, tok, termination);
 		if (termination == BlockTermination::breaked) termination = BlockTermination::continued;
-
-
-		StackItem sitm;
-		int d = 0;
-		while (Compiler::current()->temp_stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) { d++;  }
-		if (d > 0)
-			Compiler::current()->target()->local_stack_lifetime.pop();
-		else
-			Compiler::current()->target()->local_stack_lifetime.discard_push();
-
-		d = 0;
-		while (Compiler::current()->stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) { d++; }
-		if (d > 0)
-			Compiler::current()->target()->local_stack_lifetime.pop();
-		else
-			Compiler::current()->target()->local_stack_lifetime.discard_push();
 
 
 		Compiler::current()->pop_loop_blocks();
@@ -396,8 +370,7 @@ namespace Corrosive {
 
 		ILBuilder::build_jmpz(test_block, continue_block, block);
 
-		Compiler::current()->pop_scope();
-		Compiler::current()->push_scope(continue_block);
+		Compiler::current()->switch_scope(continue_block);
 
 		Compiler::current()->target()->append_block(continue_block);
 	}
@@ -406,7 +379,7 @@ namespace Corrosive {
 
 
 	void Statement::parse_return(Cursor& c, RecognizedToken& tok) {
-		
+
 		c.move(tok);
 		CompileValue ret_val;
 		Cursor err = c;
@@ -434,6 +407,7 @@ namespace Corrosive {
 	}
 
 	void Statement::parse_let(Cursor& c, RecognizedToken& tok) {
+		Compiler::current()->target()->local_stack_lifetime.discard_push(); // temp push
 
 		c.move(tok);
 		bool reference = false;
@@ -464,7 +438,8 @@ namespace Corrosive {
 		size_t let_holder;
 		uint32_t local_id = Compiler::current()->target()->local_stack_lifetime.append_unknown(let_holder);
 
-		Compiler::current()->target()->local_stack_lifetime.push(); // temp lifetime push
+
+		Compiler::current()->target()->local_stack_lifetime.push(); // temp push
 
 		Cursor err = c;
 		CompileValue val;
@@ -492,11 +467,7 @@ namespace Corrosive {
 		Compiler::current()->target()->local_stack_lifetime.resolve_unknown(let_holder,new_t->size());
 
 		Compiler::current()->stack()->push_item(name.buffer(), new_t, local_id, StackItemTag::regular);
-		/*if (new_t->has_special_constructor()) {
-			ILBuilder::build_local(Compiler::current()->scope(), local_id);
-			new_t->build_construct();
-		}*/
-
+	
 
 		ILBuilder::build_local(Compiler::current()->scope(), local_id);
 		Expression::copy_from_rvalue(new_t, CompileType::compile, false);
@@ -508,6 +479,8 @@ namespace Corrosive {
 	}
 
 	void Statement::parse_make(Cursor& c, RecognizedToken& tok) {
+
+		Compiler::current()->target()->local_stack_lifetime.discard_push(); // temp push
 		c.move(tok);
 
 		if (tok != RecognizedToken::Symbol) {
@@ -547,5 +520,7 @@ namespace Corrosive {
 			throw_wrong_token_error(c, "';'");
 		}
 		c.move(tok);
+
+		Compiler::current()->target()->local_stack_lifetime.push(); // temp push
 	}
 }

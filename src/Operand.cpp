@@ -326,14 +326,14 @@ namespace Corrosive {
 					Cursor err = c;
 					CompileValue t_res;
 
-					Compiler::current()->push_scope_context(ILContext::compile);
+					{
+						auto state = ScopeState().context(ILContext::compile);
 
-					Expression::parse(c,tok, t_res, CompileType::eval);
-					Expression::rvalue(t_res, CompileType::eval);
-
-					if (t_res.type != Compiler::current()->types()->t_type) {
-						throw_specific_error(err, "Expected type");
-
+						Expression::parse(c, tok, t_res, CompileType::eval);
+						Expression::rvalue(t_res, CompileType::eval);
+						if (t_res.type != Compiler::current()->types()->t_type) {
+							throw_specific_error(err, "Expected type");
+						}
 					}
 
 					auto to = Compiler::current()->evaluator()->pop_register_value<Type*>();
@@ -341,11 +341,8 @@ namespace Corrosive {
 
 					if (tok != RecognizedToken::CloseParenthesis) {
 						throw_wrong_token_error(c, "')'");
-
 					}
 					c.move(tok);
-
-					Compiler::current()->pop_scope_context();
 
 					err = c;
 					CompileValue value;
@@ -432,17 +429,18 @@ namespace Corrosive {
 						c.move(tok);
 
 
-						Compiler::current()->push_scope_context(ILContext::compile);
 
 						Cursor err = c;
 
 						CompileValue t_res;
-						Expression::parse(c,tok, t_res, CompileType::eval);
-						Expression::rvalue(t_res, CompileType::eval);
+						{
+							auto state = ScopeState().context(ILContext::compile);
+							Expression::parse(c, tok, t_res, CompileType::eval);
+							Expression::rvalue(t_res, CompileType::eval);
+						}
 
 						if (t_res.type != Compiler::current()->types()->t_type) {
 							throw_specific_error(err, "Expected type");
-
 						}
 
 						auto to = Compiler::current()->evaluator()->pop_register_value<Type*>();
@@ -487,7 +485,7 @@ namespace Corrosive {
 	void Operand::parse_const_type_function(Cursor& c, RecognizedToken& tok, FunctionInstance*& func, Type*& type, StaticInstance*& s_inst, ILSize& type_size) {
 	
 
-		Compiler::current()->push_scope_context(ILContext::compile);
+		auto state = ScopeState().context(ILContext::compile);
 
 
 
@@ -521,7 +519,7 @@ namespace Corrosive {
 			if (struct_inst->ast_node->is_generic) {
 				if (tok != RecognizedToken::OpenParenthesis) {
 					type = struct_inst->type.get();
-					Compiler::current()->pop_scope_context();
+
 					return;
 				}
 				c.move(tok);
@@ -535,7 +533,7 @@ namespace Corrosive {
 
 
 			if (tok != RecognizedToken::DoubleColon) {
-				Compiler::current()->pop_scope_context();
+
 				type = inst->type.get();
 				return;
 			}
@@ -557,7 +555,6 @@ namespace Corrosive {
 
 				func = inst;
 
-				Compiler::current()->pop_scope_context();
 				return;
 			}
 			else {
@@ -573,7 +570,6 @@ namespace Corrosive {
 				Operand::parse_generate_template(c,tok, func_inst, inst);
 				inst->compile();
 
-				Compiler::current()->pop_scope_context();
 				func = inst;
 				return;
 			}
@@ -589,7 +585,6 @@ namespace Corrosive {
 
 		}
 
-		Compiler::current()->pop_scope_context();
 	}
 
 
@@ -672,7 +667,7 @@ namespace Corrosive {
 		}
 		else if (buf == "typesize") {
 			c.move(tok);
-			Compiler::current()->push_scope_context(ILContext::compile);
+			auto state = ScopeState().context(ILContext::compile);
 
 			CompileValue type_val;
 			Cursor err = c;
@@ -685,7 +680,6 @@ namespace Corrosive {
 
 			auto tp = Compiler::current()->evaluator()->pop_register_value<Type*>();
 			tp->compile();
-			Compiler::current()->pop_scope_context();
 
 			if (cpt == CompileType::compile) {
 				ILBuilder::build_const_size(Compiler::current()->scope(), tp->size());
@@ -1201,8 +1195,8 @@ namespace Corrosive {
 		c.move(tok);
 
 
-		Compiler::current()->compiler_stack()->push();
-		Compiler::current()->stack_push();
+
+		auto state = ScopeState().compiler_stack();
 
 
 		std::vector<std::tuple<Cursor, Type*>>::reverse_iterator act_layout;
@@ -1235,20 +1229,8 @@ namespace Corrosive {
 
 		generating->generate(key_base, out);
 
-		// ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
-		// DROP WHOLE STACK
-
 		StackItem sitm;
-		while (Compiler::current()->compiler_stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) {
-			/*if (sitm.type->has_special_destructor()) {
-				sitm.type->drop(Compiler::current()->evaluator()->stack_ptr(sitm.id));
-			}*/
-		}
-
-		// ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
-
-		Compiler::current()->stack_pop();
-		Compiler::current()->compiler_stack()->pop();
+		while (Compiler::current()->compiler_stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) {}
 
 	}
 
@@ -1262,25 +1244,18 @@ namespace Corrosive {
 	void Operand::priv_build_build_template(ILEvaluator* eval) {
 		Type* gen_type = template_stack[template_sp - 1];
 		gen_type->compile();
-		Compiler::current()->compiler_stack()->push();
-		Compiler::current()->stack_push();
 
+		auto state = ScopeState().compiler_stack();
 
 		std::vector<std::tuple<Cursor, Type*>>::reverse_iterator act_layout;
 		std::vector<std::tuple<Cursor, Type*>>::reverse_iterator act_layout_it;
 		size_t gen_types = 0;
 
 		if (gen_type->type() == TypeInstanceType::type_structure_template) {
-			/*if (((TypeStructureTemplate*)gen_type)->owner->generic_ctx.generator != nullptr) {
-				((TypeStructureTemplate*)gen_type)->owner->generic_ctx.generator->insert_key_on_stack(eval);
-			}*/
 			act_layout = ((TypeStructureTemplate*)gen_type)->owner->generic_ctx.generic_layout.rbegin();
 			gen_types = ((TypeStructureTemplate*)gen_type)->owner->generic_ctx.generic_layout.size();
 		}
 		else if (gen_type->type() == TypeInstanceType::type_trait_template) {
-			/*if (((TypeTraitTemplate*)gen_type)->owner->generic_ctx.generator != nullptr) {
-				((TypeTraitTemplate*)gen_type)->owner->generic_ctx.generator->insert_key_on_stack(eval);
-			}*/
 			act_layout = ((TypeTraitTemplate*)gen_type)->owner->generic_ctx.generic_layout.rbegin();
 			gen_types = ((TypeTraitTemplate*)gen_type)->owner->generic_ctx.generic_layout.size();
 		}
@@ -1319,18 +1294,8 @@ namespace Corrosive {
 		}
 
 
-		// ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
 		StackItem sitm;
-		while (Compiler::current()->compiler_stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) {
-			/*if (sitm.type->has_special_destructor()) {
-				sitm.type->drop(eval->stack_ptr(sitm.id));
-			}*/
-		}
-		// ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
-
-		Compiler::current()->stack_pop();
-		Compiler::current()->compiler_stack()->pop();
-
+		while (Compiler::current()->compiler_stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) {}
 	}
 
 	Type* Operand::template_stack[1024];
@@ -1789,9 +1754,7 @@ namespace Corrosive {
 				{
 					case 1: {
 						StructureTemplate* tplt = struct_inst->subtemplates[f->second.second].get();
-
-						Compiler::current()->compiler_stack()->push();
-						Compiler::current()->stack_push();
+						auto state = ScopeState().compiler_stack();
 
 						/*if (tplt->generic_ctx.generator)
 							tplt->generic_ctx.generator->insert_key_on_stack(Compiler::current()->evaluator());*/
@@ -1812,8 +1775,6 @@ namespace Corrosive {
 							ILBuilder::eval_const_type(Compiler::current()->evaluator(), inst->type.get());
 						}
 
-						Compiler::current()->stack_pop();
-						Compiler::current()->compiler_stack()->pop();
 
 						c.move(tok);
 					}break;
@@ -1832,7 +1793,7 @@ namespace Corrosive {
 
 						ret.type = finst->type;
 						ret.lvalue = false;
-						function_call(ret, c, tok, cpt,0);
+						function_call(ret, c, tok, cpt, 0);
 					}break;
 
 					case 4: {
@@ -1881,12 +1842,6 @@ namespace Corrosive {
 			if (ft->return_type->rvalue_stacked()) {
 				local_return_id = Compiler::current()->target()->local_stack_lifetime.append(retval.type->size());
 				Compiler::current()->temp_stack()->push_item("$tmp", retval.type, local_return_id, StackItemTag::regular);
-
-				/*if (retval.type->has_special_constructor()) {
-					ILBuilder::build_local(Compiler::current()->scope(), local_return_id);
-					retval.type->build_construct();
-				}*/
-
 				ILBuilder::build_local(Compiler::current()->scope(), local_return_id);
 			}
 
@@ -1903,6 +1858,7 @@ namespace Corrosive {
 			if (ft->return_type->rvalue_stacked()) {
 				ILBuilder::build_local(Compiler::current()->scope(), local_return_id);
 			}
+			
 
 		}
 		else if (cpt == CompileType::eval) {
@@ -1916,11 +1872,6 @@ namespace Corrosive {
 				unsigned char* memory_place = Compiler::current()->stack_ptr(sid);
 
 				Compiler::current()->compiler_stack()->push_item("$tmp", retval.type, sid, StackItemTag::regular);
-
-				/*if (retval.type->has_special_constructor()) {
-					retval.type->construct(memory_place);
-				}*/
-
 				Compiler::current()->eval_local(sid);
 			}
 
@@ -1939,7 +1890,6 @@ namespace Corrosive {
 			if (ft->return_type->rvalue_stacked()) {
 				Compiler::current()->eval_local(local_stack_item.id);
 			}
-
 		}
 
 		ret.type = ft->return_type;

@@ -41,27 +41,9 @@ namespace Corrosive {
 
 		
 
-		virtual int8_t compare(unsigned char* me, unsigned char* p2);
-		//virtual void move(unsigned char* me, unsigned char* from);
-		virtual void copy(unsigned char* me, unsigned char* from);
-
-		//virtual void construct(unsigned char* me);
-		//virtual void drop(unsigned char* me);
-
-		/*virtual bool has_special_constructor();
-		virtual bool has_special_destructor();
-		virtual bool has_special_copy();
-		virtual bool has_special_move();
-		virtual bool has_special_compare();*/
-
+		//virtual int8_t compare(unsigned char* me, unsigned char* p2);
+		//virtual void copy(unsigned char* me, unsigned char* from);
 		virtual ILSize size();
-
-		/*virtual void build_construct();
-		virtual void build_drop();
-		virtual void build_move();
-		virtual void build_copy();
-		virtual void build_compare();*/
-
 		virtual bool rvalue_stacked();
 
 		virtual void print(std::ostream& os);
@@ -186,8 +168,6 @@ namespace Corrosive {
 		virtual ILContext context();
 		virtual ILSize size();
 		virtual void print(std::ostream& os);
-
-		
 	};
 
 	class TypeFunction : public Type {

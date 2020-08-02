@@ -55,6 +55,9 @@ namespace Corrosive {
 		bool is_generic;
 		AstCursor block;
 
+		std::vector<std::pair<AstCursor, std::string_view>> argument_names;
+		AstCursor return_type;
+
 		virtual bool has_body() override { return true; }
 
 		static std::unique_ptr<AstFunctionDeclarationNode> parse(Cursor& c, RecognizedToken& tok, AstNode* parent);

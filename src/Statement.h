@@ -15,6 +15,8 @@ namespace Corrosive {
 	public:
 
 		static void parse(Cursor& c, RecognizedToken& tok, CompileType copm_type, BlockTermination& termination);
+
+		static void parse_inner_block_start(ILBlock* block);
 		static void parse_inner_block(Cursor& c, RecognizedToken& tok, BlockTermination& termination, bool exit_returns = false, Cursor* err = nullptr);
 
 		static void parse_if(Cursor& c, RecognizedToken& tok, BlockTermination& termination);

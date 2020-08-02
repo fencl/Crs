@@ -451,7 +451,9 @@ namespace Corrosive {
 	}
 
 	ILBytecodeFunction* compile_build_block(Cursor& c) {
+
 		Compiler::current()->types()->t_build_script->compile();
+
 		auto func = Compiler::current()->global_module()->create_function();
 		func->decl_id = Compiler::current()->types()->t_build_script->il_function_decl;
 		func->alias = "build_script";
@@ -459,34 +461,15 @@ namespace Corrosive {
 		ILBlock* b = func->create_and_append_block();
 		b->alias = "entry";
 
-		Compiler::current()->push_function(func, Compiler::current()->types()->t_void);
-		Compiler::current()->push_scope(b);
-		Compiler::current()->stack_push();
-		Compiler::current()->compiler_stack()->push();
-		Compiler::current()->stack()->push();
-		Compiler::current()->temp_stack()->push();
-		Compiler::current()->target()->local_stack_lifetime.push();
-		Compiler::current()->stack()->push_block();
-		Compiler::current()->temp_stack()->push_block();
+		auto scope = ScopeState().function(func, Compiler::current()->types()->t_void).context(ILContext::compile).stack();
 
-
-		func->local_stack_lifetime.push();
-
+		Statement::parse_inner_block_start(b);
 		RecognizedToken tok;
 		Cursor name = c;
 		BlockTermination term;
 		c.move(tok);
 		Statement::parse_inner_block(c, tok, term, true, &name);
-
 		func->assert_flow();
-
-		Compiler::current()->temp_stack()->pop_block();
-		Compiler::current()->stack()->pop();
-		Compiler::current()->temp_stack()->pop();
-		Compiler::current()->compiler_stack()->pop();
-		Compiler::current()->stack_pop();
-		Compiler::current()->pop_function();
-
 		return func;
 	}
 
@@ -521,7 +504,6 @@ namespace Corrosive {
 				RecognizedToken tok;
 
 				Compiler::current()->push_scope_context(ILContext::compile);
-
 				Cursor c = load_cursor(r, ptr,tok);
 				auto fn = compile_build_block(c);
 				ILBuilder::eval_fncall(Compiler::current()->evaluator(), fn);

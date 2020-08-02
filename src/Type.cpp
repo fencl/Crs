@@ -11,7 +11,7 @@ namespace Corrosive {
 
 	extern jmp_buf sandbox;
 
-	int8_t Type::compare(unsigned char* me, unsigned char* to) {
+	/*int8_t Type::compare(unsigned char* me, unsigned char* to) {
 		if (setjmp(sandbox) == 0) {
 			return (int8_t)memcmp(me, to, size().eval(Compiler::current()->global_module(), compiler_arch));
 		}
@@ -29,7 +29,7 @@ namespace Corrosive {
 		else {
 			throw_runtime_handler_exception(Compiler::current()->evaluator());
 		}
-	}
+	}*/
 
 
 	// ==========================================================================   RVALUE

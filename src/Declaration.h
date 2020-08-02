@@ -200,8 +200,8 @@ namespace Corrosive {
 		TypeFunction*	type;
 		GenericInstance generic_inst;
 
-		std::vector<std::pair<Cursor, Type*>>	arguments;
-		std::pair<Cursor, Type*>				returns;
+		std::vector<Type*>	arguments;
+		Type*				returns;
 
 		AstFunctionDeclarationNode* ast_node;
 
