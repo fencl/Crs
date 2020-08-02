@@ -97,9 +97,7 @@ namespace Corrosive {
 		FunctionInstance* f_build_subtype;
 		FunctionInstance* f_type_size;
 
-		Compiler* owner;
-
-		void setup(Compiler& compiler);
+		void setup();
 	};
 }
 

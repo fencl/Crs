@@ -220,11 +220,6 @@ namespace Corrosive {
 	public:
 		using register_value = uint64_t;
 
-		void* tmp1;
-		void* tmp2;
-		void* tmp3;
-		void* tmp4;
-
 		ILModule* parent = nullptr;
 
 		static const inline size_t stack_size = 1024 * 4;

@@ -11,27 +11,23 @@ namespace Corrosive {
 	}
 
 
-	void Namespace::find_name(std::string_view name, Namespace*& subnamespace, StructureTemplate*& subtemplate, FunctionTemplate*& subfunction, TraitTemplate*& subtrait, StaticInstance*& substatic) {
-		subnamespace = nullptr;
-		subtemplate = nullptr;
-		subfunction = nullptr;
-		subtrait = nullptr;
-		substatic = nullptr;
-
+	FindNameResult Namespace::find_name(std::string_view name) {
 		auto res = name_table.find(name);
 		if (res != name_table.end()) {
 
 			switch (res->second.first) {
-				case 0: subnamespace = subnamespaces[res->second.second].get(); return;
-				case 1: subtemplate  = subtemplates[res->second.second].get(); return;
-				case 2: subfunction  = subfunctions[res->second.second].get(); return;
-				case 3: subtrait     = subtraits[res->second.second].get(); return;
-				case 4: substatic     = substatics[res->second.second].get(); return;
+				case 0: return subnamespaces[res->second.second].get();
+				case 1: return subtemplates[res->second.second].get();
+				case 2: return subfunctions[res->second.second].get();
+				case 3: return subtraits[res->second.second].get();
+				case 4: return substatics[res->second.second].get();
 			}
 		}
 		else if (parent) {
-			parent->find_name(name, subnamespace, subtemplate, subfunction, subtrait,substatic);
+			return parent->find_name(name);
 		}
+
+		return nullptr;
 	}
 
 
@@ -43,7 +39,7 @@ namespace Corrosive {
 			int r = std::get<1>(l)->compare(loff,roff);
 			if (r < 0) return true;
 			if (r > 0) return false;
-			size_t off = std::get<1>(l)->size().eval(parent->compiler->global_module(),compiler_arch);
+			size_t off = std::get<1>(l)->size().eval(Compiler::current()->global_module(),compiler_arch);
 			loff += off;
 			roff += off;
 		}
@@ -61,7 +57,7 @@ namespace Corrosive {
 			int r = std::get<1>(l)->compare(loff, roff);
 			if (r < 0) return true;
 			if (r > 0) return false;
-			size_t off = std::get<1>(l)->size().eval(parent->compiler->global_module(), compiler_arch);
+			size_t off = std::get<1>(l)->size().eval(Compiler::current()->global_module(), compiler_arch);
 			loff += off;
 			roff += off;
 		}
@@ -78,7 +74,7 @@ namespace Corrosive {
 			if (r < 0) return true;
 			if (r > 0) return false;
 
-			size_t off = std::get<1>(l)->size().eval(parent->compiler->global_module(), compiler_arch);
+			size_t off = std::get<1>(l)->size().eval(Compiler::current()->global_module(), compiler_arch);
 			loff += off;
 			roff += off;
 		}

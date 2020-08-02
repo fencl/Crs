@@ -37,7 +37,7 @@ namespace Corrosive {
 
 			return_type->compile();
 
-			auto& args = compiler()->types()->argument_array_storage.get(argument_array_id);
+			auto& args = Compiler::current()->types()->argument_array_storage.get(argument_array_id);
 
 			for (auto&& a : args) {
 				a->compile();
@@ -58,7 +58,7 @@ namespace Corrosive {
 				decl_args[0] = ILDataType::word;
 			}
 
-			il_function_decl = compiler()->global_module()->register_function_decl(std::make_tuple(call_conv,ret_t, std::move(decl_args)));
+			il_function_decl = Compiler::current()->global_module()->register_function_decl(std::make_tuple(call_conv,ret_t, std::move(decl_args)));
 		}
 	}
 }

@@ -93,39 +93,36 @@ namespace Corrosive {
 		}
 
 		
-		Compiler c;
+		auto compiler = Compiler::create();
+		Compiler::push_compiler(compiler.get());
 
 		ILEvaluator::sandbox_begin();
-		c.push_workspace(c.global_namespace());
+
 		try {
 
 			std::chrono::steady_clock::time_point compile_begin = std::chrono::steady_clock::now();
 
 
-			Source::require(c, "../test/test2.crs");
+			Source::require("../test/test2.crs");
 
 			ILFunction* main = nullptr;
 
-			c.register_ext_function({ "std","print_slice" }, print_provider);
-			c.register_ext_function({ "std","malloc" }, malloc_provider);
-			c.register_ext_function({ "std","free" }, free_provider);
-			c.register_ext_function({ "std","test" }, test_fun_provider);
-			c.register_ext_function({ "std","library","share" }, share_provider);
-			c.register_ext_function({ "std","library","function" }, function_provider);
-			c.register_ext_function({ "std","library","release" }, release_provider);
-
-			Namespace* f_nspc;
-			StructureTemplate* f_stemp;
-			FunctionTemplate* f_ftemp;
-			TraitTemplate* f_ttemp;
-			StaticInstance* f_static;
-
-			c.gn.find_name("main", f_nspc,f_stemp,f_ftemp,f_ttemp, f_static);
+			compiler->register_ext_function({ "std","print_slice" }, print_provider);
+			compiler->register_ext_function({ "std","malloc" }, malloc_provider);
+			compiler->register_ext_function({ "std","free" }, free_provider);
+			compiler->register_ext_function({ "std","test" }, test_fun_provider);
+			compiler->register_ext_function({ "std","library","share" }, share_provider);
+			compiler->register_ext_function({ "std","library","function" }, function_provider);
+			compiler->register_ext_function({ "std","library","release" }, release_provider);
+			
 
 
-			if (f_ftemp) {
+			auto res = compiler->gn.find_name("main");
+
+
+			if (auto fun = res.get_function()) {
 				FunctionInstance* finst;
-				f_ftemp->generate(nullptr, finst);
+				fun->generate(nullptr, finst);
 				finst->compile();
 				main = finst->func;
 			}
@@ -141,29 +138,29 @@ namespace Corrosive {
 				std::cout << "========= TEST =========\n";
 
 				std::chrono::steady_clock::time_point runtime_start = std::chrono::steady_clock::now();
-				c.push_scope_context(ILContext::runtime);
-				c.evaluator()->debug_file = UINT16_MAX;
-				c.evaluator()->debug_line = UINT16_MAX;
-				ILBuilder::eval_fncall(c.evaluator(), main);
-				uint64_t ret_val = c.evaluator()->pop_register_value<uint64_t>();
+				compiler->push_scope_context(ILContext::runtime);
+				compiler->evaluator()->debug_file = UINT16_MAX;
+				compiler->evaluator()->debug_line = UINT16_MAX;
+				ILBuilder::eval_fncall(compiler->evaluator(), main);
+				uint64_t ret_val = compiler->evaluator()->pop_register_value<uint64_t>();
 
 				std::chrono::steady_clock::time_point runtime_end = std::chrono::steady_clock::now();
 
 				std::cout << "\ntest result was: " << ret_val << "\n\n";
 
-				auto lr1b = (size_t)(c.evaluator()->register_stack_pointer_1b - c.evaluator()->register_stack_1b);
+				auto lr1b = (size_t)(compiler->evaluator()->register_stack_pointer_1b - compiler->evaluator()->register_stack_1b);
 				
 				std::cout << "leaked 1 byte registers: " << lr1b << "\n";
-				auto lr2b = (size_t)(c.evaluator()->register_stack_pointer_2b - c.evaluator()->register_stack_2b);
+				auto lr2b = (size_t)(compiler->evaluator()->register_stack_pointer_2b - compiler->evaluator()->register_stack_2b);
 				std::cout << "leaked 2 byte registers: " << lr2b << "\n";
-				auto lr4b = (size_t)(c.evaluator()->register_stack_pointer_4b - c.evaluator()->register_stack_4b);
+				auto lr4b = (size_t)(compiler->evaluator()->register_stack_pointer_4b - compiler->evaluator()->register_stack_4b);
 				std::cout << "leaked 4 byte registers: " << lr4b << "\n";
-				auto lr8b = (size_t)(c.evaluator()->register_stack_pointer_8b - c.evaluator()->register_stack_8b);
+				auto lr8b = (size_t)(compiler->evaluator()->register_stack_pointer_8b - compiler->evaluator()->register_stack_8b);
 				std::cout << "leaked 8 byte registers: " << lr8b << "\n\n";
 
 				std::cout << "leaked allocations: " << allocated_counter << "\n";
 
-				c.pop_scope_context();
+				compiler->pop_scope_context();
 
 				std::cout << "\ncompile time: " << std::chrono::duration_cast<std::chrono::milliseconds>(compile_end - compile_begin).count() << "[ms]\n";
 				std::cout << "runtime: " << std::chrono::duration_cast<std::chrono::milliseconds>(runtime_end - compile_end).count() << "[ms]\n" << std::endl;
@@ -176,8 +173,10 @@ namespace Corrosive {
 			std::cerr << e.what()<<"\n";
 		}
 
-		c.pop_workspace();
 		ILEvaluator::sandbox_end();
+
+		Compiler::pop_compiler();
+
 		return 0;
 	}
 }

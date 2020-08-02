@@ -22,7 +22,7 @@ namespace Corrosive {
 	class Source {
 	public:
 		uint16_t debug_id = UINT16_MAX;
-		void register_debug(Compiler& compiler);
+		void register_debug();
 		std::map<SourceRange, size_t> lines;
 
 		size_t get_line(Cursor c);
@@ -41,7 +41,7 @@ namespace Corrosive {
 		void move_matching(Cursor& c) const;
 		std::unique_ptr<AstRootNode> root_node;
 
-		static void require(Compiler& compiler, std::filesystem::path file, Source* base=nullptr);
+		static void require(std::filesystem::path file, Source* base=nullptr);
 		static void require_wrapper(ILEvaluator* eval);
 	private:
 		std::string buffer;

@@ -11,7 +11,7 @@
 namespace Corrosive {
 	class Compiler {
 	public:
-		Compiler();
+		bool initialized = false;
 
 		ILEvaluator* evaluator() { return e.get(); }
 		ILBlock* scope() { return s.back(); }
@@ -48,12 +48,18 @@ namespace Corrosive {
 
 		void switch_scope(ILBlock* sblock) { s.back() = sblock; }
 
+		void push_source(Source* s) { src.push_back(s); }
+		void pop_source() { src.pop_back(); }
+		Source* source() { return src.back(); }
+		void setup();
+
 		std::vector<ILBlock*> s;
 		std::vector<Type*> rt;
 		std::vector<std::pair<ILBlock*,ILBlock*>> lb;
 		std::vector<ILContext> sc;
 		std::vector<Namespace*> nm;
 		std::vector<ILBytecodeFunction*> wf;
+		std::vector<Source*> src;
 
 		std::map<std::filesystem::path, std::unique_ptr<Source>> included_sources;
 
@@ -67,6 +73,12 @@ namespace Corrosive {
 		ConstantManager cmgr;
 
 		FunctionInstance* register_ext_function(std::initializer_list<const char*> path, void(*ptr)(ILEvaluator*));
+
+		static thread_local std::vector<Compiler*> c;
+		static void push_compiler(Compiler* c);
+		static void pop_compiler();
+		static Compiler* current();
+		static std::unique_ptr<Compiler> create();
 	};
 }
 #endif

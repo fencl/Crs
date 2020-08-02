@@ -43,7 +43,36 @@ namespace Corrosive {
 	public:
 		GenericContext* generator = nullptr;
 		unsigned char* key = nullptr;
-		void insert_key_on_stack(Compiler& compiler);
+		void insert_key_on_stack();
+	};
+
+	enum class FindNameResultType : size_t {
+		None = 0,
+		Namespace = 1,
+		Structure = 2,
+		Function = 3,
+		Trait = 4,
+		Static = 5
+	};
+
+	class FindNameResult {
+	public:
+		FindNameResultType type() { return (FindNameResultType)value.index(); }
+		Namespace* get_namespace() { return type() == FindNameResultType::Namespace?std::get<1>(value):nullptr; }
+		StructureTemplate* get_structure() { return type() == FindNameResultType::Structure ? std::get<2>(value) : nullptr; }
+		FunctionTemplate* get_function() { return type() == FindNameResultType::Function ? std::get<3>(value) : nullptr; }
+		TraitTemplate* get_trait() { return type() == FindNameResultType::Trait ? std::get<4>(value) : nullptr; }
+		StaticInstance* get_static() { return type() == FindNameResultType::Static ? std::get<5>(value) : nullptr; }
+
+		FindNameResult(nullptr_t v) :value(v) {}
+		FindNameResult(Namespace* v) :value(v) {}
+		FindNameResult(StructureTemplate* v) :value(v) {}
+		FindNameResult(FunctionTemplate* v) :value(v) {}
+		FindNameResult(TraitTemplate* v) :value(v) {}
+		FindNameResult(StaticInstance* v) :value(v) {}
+
+	private:
+		std::variant<nullptr_t, Namespace*, StructureTemplate*, FunctionTemplate*, TraitTemplate*, StaticInstance*> value;
 	};
 
 
@@ -62,7 +91,7 @@ namespace Corrosive {
 		std::vector<std::unique_ptr<TraitTemplate>> subtraits;
 		std::vector<std::unique_ptr<StaticInstance>> substatics;
 
-		void find_name(std::string_view name, Namespace*& subnamespace, StructureTemplate*& subtemplate, FunctionTemplate*& subfunction, TraitTemplate*& subtrait,StaticInstance*& substatic);
+		FindNameResult find_name(std::string_view name);
 	};
 
 	enum class StructureInstanceType {
@@ -75,7 +104,6 @@ namespace Corrosive {
 
 	class StructureInstance : public Namespace {
 	public:
-		Compiler* compiler;
 		std::unique_ptr<TypeStructureInstance> type;
 
 		std::map<std::string_view, std::pair<uint16_t, MemberTableEntryType>>	 member_table;
@@ -102,7 +130,6 @@ namespace Corrosive {
 
 	class StructureTemplate {
 	public:
-		Compiler*			compiler;
 		Namespace*			parent;
 		GenericContext		generic_ctx;
 		AstStructureNode*	ast_node;
@@ -129,8 +156,6 @@ namespace Corrosive {
 	class TraitTemplate;
 	class TraitInstance {
 	public:
-		Compiler* compiler;
-
 		std::map<std::string_view, uint16_t>	member_table;
 		std::map<StructureInstance*, uint32_t>	vtable_instances;
 		std::vector<TypeFunction*>				member_declarations;
@@ -149,7 +174,6 @@ namespace Corrosive {
 		Namespace*		parent;
 		AstTraitNode*	ast_node;
 		GenericContext	generic_ctx;
-		Compiler*		compiler;
 
 		std::unique_ptr<TypeTraitTemplate> type;
 
@@ -171,8 +195,6 @@ namespace Corrosive {
 
 	class FunctionInstance {
 	public:
-
-		Compiler*		compiler;
 		ILFunction*		func = nullptr;
 		Namespace*		parent;
 		TypeFunction*	type;
@@ -193,7 +215,6 @@ namespace Corrosive {
 		Namespace*						parent = nullptr;
 		AstFunctionDeclarationNode*		ast_node;
 		GenericContext					generic_ctx;
-		Compiler*						compiler;
 
 		std::unique_ptr<TypeFunctionTemplate> type;
 
@@ -218,7 +239,6 @@ namespace Corrosive {
 		Namespace* parent = nullptr;
 		AstStaticNode* ast_node;
 		Type* type;
-		Compiler* compiler;
 		GenericInstance* generator = nullptr;
 		uint32_t sid;
 

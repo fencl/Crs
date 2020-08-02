@@ -124,7 +124,7 @@ namespace Corrosive {
 		std::vector<std::unique_ptr<AstFunctionDeclarationNode>> functions;
 		std::vector<std::unique_ptr<AstStaticNode>> statics;
 
-		void populate(Compiler* compiler, Namespace* into);
+		void populate(Namespace* into);
 	};
 
 	class AstNamedNamespaceNode : public AstNamespaceNode {
@@ -142,7 +142,7 @@ namespace Corrosive {
 		std::unique_ptr<AstNamespaceNode> global_namespace;
 		static std::unique_ptr<AstRootNode> parse(Source* src);
 
-		void populate(Compiler* compiler);
+		void populate();
 	};
 
 	

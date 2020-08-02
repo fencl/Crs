@@ -8,7 +8,7 @@ namespace Corrosive {
 	const char* PredefinedNamespace = "corrosive";
 
 
-	void setup_type(Compiler& compiler, std::string_view name, Type*& into, ILSize size, ILDataType ildt, ILContext context, AstRootNode* root) {
+	void setup_type(std::string_view name, Type*& into, ILSize size, ILDataType ildt, ILContext context, AstRootNode* root) {
 
 		std::unique_ptr<AstStructureNode> node = std::make_unique<AstStructureNode>();
 		node->is_generic = false;
@@ -16,12 +16,10 @@ namespace Corrosive {
 		node->parent = root;
 
 		std::unique_ptr<StructureTemplate> s = std::make_unique<StructureTemplate>();
-		s->compiler = &compiler;
 		s->ast_node = node.get();
 		Cursor c;
 
-		s->parent = compiler.global_namespace();
-		s->compiler = &compiler;
+		s->parent = Compiler::current()->global_namespace();
 
 		s->compile_state = 2;
 		s->single_instance = std::make_unique<StructureInstance>();
@@ -33,14 +31,13 @@ namespace Corrosive {
 		s->single_instance->structure_type = StructureInstanceType::primitive_structure;
 		s->single_instance->type = std::make_unique<TypeStructureInstance>();
 		s->single_instance->type->owner = s->single_instance.get();
-		s->single_instance->compiler = &compiler;
 		s->single_instance->ast_node = node.get();
 
 
 		into = s->single_instance->type.get();
 
-		compiler.global_namespace()->name_table[name] = std::make_pair((uint8_t)1, (uint32_t)compiler.global_namespace()->subtemplates.size());
-		compiler.global_namespace()->subtemplates.push_back(std::move(s));
+		 Compiler::current()->global_namespace()->name_table[name] = std::make_pair((uint8_t)1, (uint32_t)Compiler::current()->global_namespace()->subtemplates.size());
+		 Compiler::current()->global_namespace()->subtemplates.push_back(std::move(s));
 
 		root->global_namespace->structures.push_back(std::move(node));
 	}
@@ -50,8 +47,7 @@ namespace Corrosive {
 		return primitives[(unsigned char)rval];
 	}
 
-	void DefaultTypes::setup(Compiler& compiler) {
-		owner = &compiler;
+	void DefaultTypes::setup() {
 
 		std_lib.load_data(
 			"fn(T: type) copy_slice: (to: []T, from: []T) { let i=0; while(i<from.count) { to[i] = from[i]; i = i+1;} }\n"
@@ -67,25 +63,25 @@ namespace Corrosive {
 			, "standard_library<buffer>");
 
 		std_lib.pair_tokens();
-		std_lib.register_debug(compiler);
+		std_lib.register_debug();
 		std_lib.root_node = AstRootNode::parse(&std_lib);
-		std_lib.root_node->populate(&compiler);
+		std_lib.root_node->populate();
 
-		setup_type(compiler, "void", t_void, { ILSizeType::absolute,0 }, ILDataType::none, ILContext::both, std_lib.root_node.get());
-		setup_type(compiler, "i8", t_i8, { ILSizeType::absolute,1 }, ILDataType::i8, ILContext::both, std_lib.root_node.get());
-		setup_type(compiler, "bool", t_bool, { ILSizeType::absolute,1 }, ILDataType::i8, ILContext::both, std_lib.root_node.get());
-		setup_type(compiler, "i16", t_i16, { ILSizeType::absolute,2 }, ILDataType::i16, ILContext::both, std_lib.root_node.get());
-		setup_type(compiler, "i32", t_i32, { ILSizeType::absolute,4 }, ILDataType::i32, ILContext::both, std_lib.root_node.get());
-		setup_type(compiler, "u8", t_u8, { ILSizeType::absolute,1 }, ILDataType::u8, ILContext::both, std_lib.root_node.get());
-		setup_type(compiler, "u16", t_u16, { ILSizeType::absolute,2 }, ILDataType::u16, ILContext::both, std_lib.root_node.get());
-		setup_type(compiler, "u32", t_u32, { ILSizeType::absolute,4 }, ILDataType::u32, ILContext::both, std_lib.root_node.get());
-		setup_type(compiler, "f32", t_f32, { ILSizeType::absolute,4 }, ILDataType::f32, ILContext::both, std_lib.root_node.get());
-		setup_type(compiler, "f64", t_f64, { ILSizeType::absolute,8 }, ILDataType::f64, ILContext::both, std_lib.root_node.get());
-		setup_type(compiler, "i64", t_i64, { ILSizeType::absolute,8 }, ILDataType::i64, ILContext::both, std_lib.root_node.get());
-		setup_type(compiler, "u64", t_u64, { ILSizeType::absolute,8 }, ILDataType::u64, ILContext::both, std_lib.root_node.get());
-		setup_type(compiler, "ptr", t_ptr, { ILSizeType::word,1 }, ILDataType::word, ILContext::both, std_lib.root_node.get());
-		setup_type(compiler, "size", t_size, { ILSizeType::word,1 }, ILDataType::word, ILContext::both, std_lib.root_node.get());
-		setup_type(compiler, "type", t_type, { ILSizeType::word,1 }, ILDataType::word, ILContext::compile, std_lib.root_node.get());
+		setup_type("void", t_void, { ILSizeType::absolute,0 }, ILDataType::none, ILContext::both, std_lib.root_node.get());
+		setup_type("i8", t_i8, { ILSizeType::absolute,1 }, ILDataType::i8, ILContext::both, std_lib.root_node.get());
+		setup_type("bool", t_bool, { ILSizeType::absolute,1 }, ILDataType::i8, ILContext::both, std_lib.root_node.get());
+		setup_type("i16", t_i16, { ILSizeType::absolute,2 }, ILDataType::i16, ILContext::both, std_lib.root_node.get());
+		setup_type("i32", t_i32, { ILSizeType::absolute,4 }, ILDataType::i32, ILContext::both, std_lib.root_node.get());
+		setup_type("u8", t_u8, { ILSizeType::absolute,1 }, ILDataType::u8, ILContext::both, std_lib.root_node.get());
+		setup_type("u16", t_u16, { ILSizeType::absolute,2 }, ILDataType::u16, ILContext::both, std_lib.root_node.get());
+		setup_type("u32", t_u32, { ILSizeType::absolute,4 }, ILDataType::u32, ILContext::both, std_lib.root_node.get());
+		setup_type("f32", t_f32, { ILSizeType::absolute,4 }, ILDataType::f32, ILContext::both, std_lib.root_node.get());
+		setup_type("f64", t_f64, { ILSizeType::absolute,8 }, ILDataType::f64, ILContext::both, std_lib.root_node.get());
+		setup_type("i64", t_i64, { ILSizeType::absolute,8 }, ILDataType::i64, ILContext::both, std_lib.root_node.get());
+		setup_type("u64", t_u64, { ILSizeType::absolute,8 }, ILDataType::u64, ILContext::both, std_lib.root_node.get());
+		setup_type("ptr", t_ptr, { ILSizeType::word,1 }, ILDataType::word, ILContext::both, std_lib.root_node.get());
+		setup_type("size", t_size, { ILSizeType::word,1 }, ILDataType::word, ILContext::both, std_lib.root_node.get());
+		setup_type("type", t_type, { ILSizeType::word,1 }, ILDataType::word, ILContext::compile, std_lib.root_node.get());
 
 		primitives[(unsigned char)ILDataType::u8] = t_u8;
 		primitives[(unsigned char)ILDataType::u16] = t_u16;
@@ -99,12 +95,12 @@ namespace Corrosive {
 		primitives[(unsigned char)ILDataType::f64] = t_f64;
 		primitives[(unsigned char)ILDataType::word] = t_size;
 
-		f_build_reference = compiler.register_ext_function({ "compiler","reference_of" }, Operand::priv_build_reference);
-		f_build_array = compiler.register_ext_function({ "compiler","array_of" }, Operand::priv_build_array);
-		f_build_subtype = compiler.register_ext_function({ "compiler","subtype_of" }, Operand::priv_build_subtype);
-		f_build_slice = compiler.register_ext_function({ "compiler","slice_of" }, Operand::priv_build_slice);
-		f_type_size = compiler.register_ext_function({ "compiler","type_size" }, Operand::priv_type_size);
-		f_type_size = compiler.register_ext_function({ "compiler","require" }, Source::require_wrapper);
+		f_build_reference = Compiler::current()->register_ext_function({ "compiler","reference_of" }, Operand::priv_build_reference);
+		f_build_array = Compiler::current()->register_ext_function({ "compiler","array_of" }, Operand::priv_build_array);
+		f_build_subtype = Compiler::current()->register_ext_function({ "compiler","subtype_of" }, Operand::priv_build_subtype);
+		f_build_slice = Compiler::current()->register_ext_function({ "compiler","slice_of" }, Operand::priv_build_slice);
+		f_type_size = Compiler::current()->register_ext_function({ "compiler","type_size" }, Operand::priv_type_size);
+		f_type_size = Compiler::current()->register_ext_function({ "compiler","require" }, Source::require_wrapper);
 
 		std::vector<Type*> args;
 		t_build_script = load_or_register_function_type(ILCallingConvention::bytecode, std::move(args), t_void, ILContext::compile);
@@ -128,7 +124,6 @@ namespace Corrosive {
 		else {
 			std::unique_ptr<TypeFunction> tf = std::make_unique<TypeFunction>();
 			tf->argument_array_id = arg_id.first;
-			tf->owner = owner;
 			tf->call_conv = call_conv;
 			tf->return_type = return_type;
 			tf->ptr_context = ctx;

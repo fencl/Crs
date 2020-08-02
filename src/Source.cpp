@@ -41,9 +41,9 @@ namespace Corrosive {
 		return lines[range];
 	}
 
-	void Source::register_debug(Compiler& compiler) {
+	void Source::register_debug() {
 		if (debug_id == UINT16_MAX) {
-			debug_id = compiler.evaluator()->register_debug_source(name);
+			debug_id = Compiler::current()->evaluator()->register_debug_source(name);
 		}
 
 		size_t l = 0;
@@ -450,27 +450,24 @@ namespace Corrosive {
 		}
 	}
 
-	ILBytecodeFunction* compile_build_block(Compiler* compiler, Cursor& c) {
-		compiler->types()->t_build_script->compile();
-		auto func = compiler->global_module()->create_function();
-		func->decl_id = compiler->types()->t_build_script->il_function_decl;
+	ILBytecodeFunction* compile_build_block(Cursor& c) {
+		Compiler::current()->types()->t_build_script->compile();
+		auto func = Compiler::current()->global_module()->create_function();
+		func->decl_id = Compiler::current()->types()->t_build_script->il_function_decl;
 		func->alias = "build_script";
 
 		ILBlock* b = func->create_and_append_block();
 		b->alias = "entry";
 
-		compiler->push_function(func, compiler->types()->t_void);
-		compiler->push_scope(b);
-
-		compiler->evaluator()->stack_push();
-		compiler->compiler_stack()->push();
-
-		compiler->stack()->push();
-		compiler->temp_stack()->push();
-
-		compiler->target()->local_stack_lifetime.push();
-		compiler->stack()->push_block();
-		compiler->temp_stack()->push_block();
+		Compiler::current()->push_function(func, Compiler::current()->types()->t_void);
+		Compiler::current()->push_scope(b);
+		Compiler::current()->evaluator()->stack_push();
+		Compiler::current()->compiler_stack()->push();
+		Compiler::current()->stack()->push();
+		Compiler::current()->temp_stack()->push();
+		Compiler::current()->target()->local_stack_lifetime.push();
+		Compiler::current()->stack()->push_block();
+		Compiler::current()->temp_stack()->push_block();
 
 
 		func->local_stack_lifetime.push();
@@ -479,22 +476,21 @@ namespace Corrosive {
 		Cursor name = c;
 		BlockTermination term;
 		c.move(tok);
-		Statement::parse_inner_block(*compiler, c, tok, term, true, &name);
+		Statement::parse_inner_block(c, tok, term, true, &name);
 
 		func->assert_flow();
 
-		compiler->temp_stack()->pop_block();
-
-		compiler->stack()->pop();
-		compiler->temp_stack()->pop();
-		compiler->compiler_stack()->pop();
-		compiler->evaluator()->stack_pop();
-		compiler->pop_function();
+		Compiler::current()->temp_stack()->pop_block();
+		Compiler::current()->stack()->pop();
+		Compiler::current()->temp_stack()->pop();
+		Compiler::current()->compiler_stack()->pop();
+		Compiler::current()->evaluator()->stack_pop();
+		Compiler::current()->pop_function();
 
 		return func;
 	}
 
-	void Source::require(Compiler& compiler, std::filesystem::path file, Source* src) 
+	void Source::require(std::filesystem::path file, Source* src) 
 	{
 		std::filesystem::path abs;
 		if (src) {
@@ -507,37 +503,32 @@ namespace Corrosive {
 			abs = std::filesystem::absolute(file);
 		}
 
-		auto f = compiler.included_sources.find(abs);
-		if (f == compiler.included_sources.end()) {
+		auto f = Compiler::current()->included_sources.find(abs);
+		if (f == Compiler::current()->included_sources.end()) {
 			auto new_src = std::make_unique<Source>();
 			new_src->path = abs;
 			new_src->load(abs.generic_string().c_str());
-			new_src->register_debug(compiler);
+			new_src->register_debug();
 			new_src->pair_tokens();
 			auto ptr = new_src.get();
-			compiler.included_sources[std::move(abs)] = std::move(new_src);
+			Compiler::current()->included_sources[std::move(abs)] = std::move(new_src);
 			ptr->root_node = AstRootNode::parse(ptr);
-			ptr->root_node->populate(&compiler);
+			ptr->root_node->populate();
 
-			
+			Compiler::current()->push_source(ptr);
 
 			for (auto&& r : ptr->root_node->compile) {
 				RecognizedToken tok;
 
-				compiler.push_scope_context(ILContext::compile);
+				Compiler::current()->push_scope_context(ILContext::compile);
 
 				Cursor c = load_cursor(r, ptr,tok);
-				auto fn = compile_build_block(&compiler,c);
-
-
-				auto save = compiler.evaluator()->tmp2;
-				compiler.evaluator()->tmp2 = ptr;
-				compiler.evaluator()->tmp1 = &compiler;
-				ILBuilder::eval_fncall(compiler.evaluator(), fn);
-				compiler.evaluator()->tmp2 = save;
-
-				compiler.pop_scope_context();
+				auto fn = compile_build_block(c);
+				ILBuilder::eval_fncall(Compiler::current()->evaluator(), fn);
+				Compiler::current()->pop_scope_context();
 			}
+
+			Compiler::current()->pop_source();
 		}
 	}
 
@@ -547,7 +538,7 @@ namespace Corrosive {
 		char* data = ((char**)ptr)[0];
 		size_t size = ptr[1];
 		std::basic_string_view<char> data_string(data, size);
-		Source::require(*(Compiler*)eval->tmp1, data_string, (Source*)eval->tmp2);
+		Source::require(data_string, Compiler::current()->source());
 	}
 
 }

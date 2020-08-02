@@ -13,10 +13,10 @@ namespace Corrosive {
 
 	int8_t Type::compare(unsigned char* me, unsigned char* to) {
 		if (setjmp(sandbox) == 0) {
-			return (int8_t)memcmp(me, to, size().eval(compiler()->global_module(), compiler_arch));
+			return (int8_t)memcmp(me, to, size().eval(Compiler::current()->global_module(), compiler_arch));
 		}
 		else {
-			throw_runtime_handler_exception(compiler()->evaluator());
+			throw_runtime_handler_exception(Compiler::current()->evaluator());
 		}
 
 		return 0;
@@ -24,10 +24,10 @@ namespace Corrosive {
 
 	void Type::copy(unsigned char* me, unsigned char* from) {
 		if (setjmp(sandbox) == 0) {
-			memcpy(me, from, size().eval(compiler()->global_module(), compiler_arch));
+			memcpy(me, from, size().eval(Compiler::current()->global_module(), compiler_arch));
 		}
 		else {
-			throw_runtime_handler_exception(compiler()->evaluator());
+			throw_runtime_handler_exception(Compiler::current()->evaluator());
 		}
 	}
 
@@ -112,9 +112,9 @@ namespace Corrosive {
 			std::unique_ptr<TypeArray> ti = std::make_unique<TypeArray>();
 			ti->owner = this;
 			
-			ti->table = compiler()->global_module()->register_array_table();
-			compiler()->global_module()->array_tables[ti->table].count = count;
-			compiler()->global_module()->array_tables[ti->table].element = size();
+			ti->table = Compiler::current()->global_module()->register_array_table();
+			Compiler::current()->global_module()->array_tables[ti->table].count = count;
+			Compiler::current()->global_module()->array_tables[ti->table].element = size();
 			TypeArray* rt = ti.get();
 			arrays[count] = std::move(ti);
 			return rt;
@@ -163,7 +163,7 @@ namespace Corrosive {
 	}
 
 	void TypeArray::print(std::ostream& os) {
-		os << "[" << compiler()->global_module()->array_tables[table].count << "]";
+		os << "[" << Compiler::current()->global_module()->array_tables[table].count << "]";
 		owner->print(os);
 	}
 
@@ -176,7 +176,7 @@ namespace Corrosive {
 			os << " runtime";
 		}
 		os << "(";
-		std::vector<Type*> args = owner->types()->argument_array_storage.get(argument_array_id);
+		std::vector<Type*> args = Compiler::current()->types()->argument_array_storage.get(argument_array_id);
 		for (auto arg = args.begin(); arg != args.end(); arg++) {
 			if (arg != args.begin())
 				os << ", ";
@@ -252,18 +252,5 @@ namespace Corrosive {
 	ILContext TypeStructureInstance::context() {
 		return owner->context;
 	}
-
-
-	Compiler* Type::compiler() { return nullptr; }
-	Compiler* TypeReference::compiler() { return owner->compiler(); }
-	Compiler* TypeSlice::compiler() { return owner->compiler(); }
-	Compiler* TypeArray::compiler() { return owner->compiler(); }
-	Compiler* TypeTraitInstance::compiler() { return owner->compiler; }
-	Compiler* TypeStructureInstance::compiler() { return owner->compiler; }
-	Compiler* TypeFunction::compiler() { return owner; }
-	Compiler* TypeTemplate::compiler() { return owner->owner; }
-	Compiler* TypeTraitTemplate::compiler() { return owner->compiler; }
-	Compiler* TypeFunctionTemplate::compiler() { return owner->compiler; }
-	Compiler* TypeStructureTemplate::compiler() { return owner->compiler; }
 
 }

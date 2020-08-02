@@ -444,12 +444,12 @@ namespace Corrosive {
 	}
 
 
-	void AstRootNode::populate(Compiler* compiler) {
-		global_namespace->populate(compiler,compiler->global_namespace());
+	void AstRootNode::populate() {
+		global_namespace->populate(Compiler::current()->global_namespace());
 	}
 
 
-	void AstNamespaceNode::populate(Compiler* compiler, Namespace* into) {
+	void AstNamespaceNode::populate(Namespace* into) {
 		for (auto&& n : namespaces) {
 			std::unique_ptr<Namespace> nspc = std::make_unique<Namespace>();
 			nspc->ast_node = n.get();
@@ -462,7 +462,7 @@ namespace Corrosive {
 			}
 
 			into->name_table[n->name_string] = std::make_pair<uint8_t,uint32_t>(0, (uint32_t)into->subnamespaces.size());
-			n->populate(compiler, nspc.get());
+			n->populate(nspc.get());
 			into->subnamespaces.push_back(std::move(nspc));
 
 		}
@@ -471,7 +471,6 @@ namespace Corrosive {
 			std::unique_ptr<StructureTemplate> structure = std::make_unique<StructureTemplate>();
 			structure->ast_node = n.get();
 			structure->parent = into;
-			structure->compiler = compiler;
 
 			if (into->name_table.find(n->name_string) != into->name_table.end()) {
 				RecognizedToken tok;
@@ -486,7 +485,6 @@ namespace Corrosive {
 			std::unique_ptr<FunctionTemplate> function = std::make_unique<FunctionTemplate>();
 			function->ast_node = n.get();
 			function->parent = into;
-			function->compiler = compiler;
 
 			if (into->name_table.find(n->name_string) != into->name_table.end()) {
 				RecognizedToken tok;
@@ -501,7 +499,6 @@ namespace Corrosive {
 			std::unique_ptr<TraitTemplate> trait = std::make_unique<TraitTemplate>();
 			trait->ast_node = n.get();
 			trait->parent = into;
-			trait->compiler = compiler;
 
 			if (into->name_table.find(n->name_string) != into->name_table.end()) {
 				RecognizedToken tok;
@@ -516,7 +513,6 @@ namespace Corrosive {
 			std::unique_ptr<StaticInstance> substatic = std::make_unique<StaticInstance>();
 			substatic->ast_node = n.get();
 			substatic->parent = into;
-			substatic->compiler = compiler;
 
 			if (into->name_table.find(n->name_string) != into->name_table.end()) {
 				RecognizedToken tok;
