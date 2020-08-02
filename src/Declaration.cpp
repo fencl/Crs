@@ -26,8 +26,6 @@ namespace Corrosive {
 		else if (parent) {
 			return parent->find_name(name);
 		}
-
-		return nullptr;
 	}
 
 

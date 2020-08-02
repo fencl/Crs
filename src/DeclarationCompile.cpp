@@ -88,7 +88,7 @@ namespace Corrosive {
 		if (compile_state == 0) {
 			compile_state = 1;
 
-			Compiler::current()->evaluator()->stack_push();
+			Compiler::current()->stack_push();
 			Compiler::current()->compiler_stack()->push();
 			if (generic_ctx.generator != nullptr) {
 				generic_ctx.generator->insert_key_on_stack();
@@ -150,7 +150,7 @@ namespace Corrosive {
 				Compiler::current()->pop_workspace();
 			}
 
-			Compiler::current()->evaluator()->stack_pop();
+			Compiler::current()->stack_pop();
 			Compiler::current()->compiler_stack()->pop();
 
 			compile_state = 2;
@@ -169,7 +169,7 @@ namespace Corrosive {
 		if (compile_state == 0) {
 			compile_state = 1;
 
-			Compiler::current()->evaluator()->stack_push();
+			Compiler::current()->stack_push();
 			Compiler::current()->compiler_stack()->push();
 			if (generic_ctx.generator != nullptr) {
 				generic_ctx.generator->insert_key_on_stack();
@@ -229,7 +229,7 @@ namespace Corrosive {
 				Compiler::current()->pop_workspace();
 			}
 
-			Compiler::current()->evaluator()->stack_pop();
+			Compiler::current()->stack_pop();
 			Compiler::current()->compiler_stack()->pop();
 			compile_state = 2;
 		}
@@ -251,7 +251,7 @@ namespace Corrosive {
 
 		Source* src = ast_node->get_source();
 
-		Compiler::current()->evaluator()->stack_push();
+		Compiler::current()->stack_push();
 		Compiler::current()->compiler_stack()->push();
 
 		if (!ast_node->is_generic) {
@@ -578,7 +578,7 @@ namespace Corrosive {
 
 
 		Compiler::current()->compiler_stack()->pop();
-		Compiler::current()->evaluator()->stack_pop();
+		Compiler::current()->stack_pop();
 	}
 
 
@@ -588,7 +588,7 @@ namespace Corrosive {
 		Source* src = ast_node->get_source();
 
 
-		Compiler::current()->evaluator()->stack_push();
+		Compiler::current()->stack_push();
 		Compiler::current()->compiler_stack()->push();
 
 		if (!ast_node->is_generic) {
@@ -702,7 +702,7 @@ namespace Corrosive {
 		}
 
 		Compiler::current()->compiler_stack()->pop();
-		Compiler::current()->evaluator()->stack_pop();
+		Compiler::current()->stack_pop();
 
 	}
 
@@ -711,7 +711,7 @@ namespace Corrosive {
 		FunctionInstance* new_inst = nullptr;
 		unsigned char* new_key = nullptr;
 
-		Compiler::current()->evaluator()->stack_push();
+		Compiler::current()->stack_push();
 		Compiler::current()->compiler_stack()->push();
 
 		if (!(ast_node->has_body() && ((AstFunctionNode*)ast_node)->is_generic)) {
@@ -841,7 +841,7 @@ namespace Corrosive {
 		}
 
 		Compiler::current()->compiler_stack()->pop();
-		Compiler::current()->evaluator()->stack_pop();
+		Compiler::current()->stack_pop();
 	}
 
 	void FunctionInstance::compile() {
@@ -863,7 +863,7 @@ namespace Corrosive {
 				Compiler::current()->push_function(func, returns.second);
 				Compiler::current()->push_scope(b);
 
-				Compiler::current()->evaluator()->stack_push();
+				Compiler::current()->stack_push();
 				Compiler::current()->compiler_stack()->push();
 				generic_inst.insert_key_on_stack();
 
@@ -944,7 +944,7 @@ namespace Corrosive {
 				Compiler::current()->stack()->pop();
 				Compiler::current()->temp_stack()->pop();
 				Compiler::current()->compiler_stack()->pop();
-				Compiler::current()->evaluator()->stack_pop();
+				Compiler::current()->stack_pop();
 
 				Compiler::current()->pop_workspace();
 				Compiler::current()->pop_scope_context();
@@ -978,7 +978,7 @@ namespace Corrosive {
 		if (compile_state == 0) {
 			compile_state = 1;
 			Compiler::current()->push_scope_context(ILContext::compile);
-			Compiler::current()->evaluator()->stack_push();
+			Compiler::current()->stack_push();
 			Compiler::current()->compiler_stack()->push();
 			generic_inst.insert_key_on_stack();
 
@@ -1086,7 +1086,7 @@ namespace Corrosive {
 			compile_state = 3;
 
 			Compiler::current()->compiler_stack()->pop();
-			Compiler::current()->evaluator()->stack_pop();
+			Compiler::current()->stack_pop();
 			Compiler::current()->pop_scope_context();
 		}
 		else if (compile_state == 3) {
@@ -1109,7 +1109,7 @@ namespace Corrosive {
 			unsigned char* key_ptr = key;
 			for (auto key_l = generator->generic_layout.rbegin(); key_l != generator->generic_layout.rend(); key_l++) {
 
-				uint16_t sid = Compiler::current()->evaluator()->mask_local(key_ptr);
+				uint16_t sid = Compiler::current()->mask_local(key_ptr);
 				Compiler::current()->compiler_stack()->push_item(std::get<0>(*key_l).buffer(), std::get<1>(*key_l), sid, StackItemTag::alias);
 
 				key_ptr += std::get<1>(*key_l)->size().eval(Compiler::current()->global_module(), compiler_arch);
@@ -1142,7 +1142,7 @@ namespace Corrosive {
 		if (compile_state == 0) {
 			compile_state = 1;
 			Compiler::current()->push_scope_context(ILContext::compile);
-			Compiler::current()->evaluator()->stack_push();
+			Compiler::current()->stack_push();
 			Compiler::current()->compiler_stack()->push();
 
 			if (generator != nullptr) {
@@ -1191,7 +1191,7 @@ namespace Corrosive {
 
 
 			Compiler::current()->compiler_stack()->pop();
-			Compiler::current()->evaluator()->stack_pop();
+			Compiler::current()->stack_pop();
 			Compiler::current()->pop_scope_context();
 			compile_state = 2;
 		}

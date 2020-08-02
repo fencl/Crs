@@ -13,64 +13,67 @@ namespace Corrosive {
 	public:
 		bool initialized = false;
 
-		ILEvaluator* evaluator() { return e.get(); }
-		ILBlock* scope() { return s.back(); }
-		ILBlock* loop_break() { return lb.back().first; }
-		ILBlock* loop_continue() { return lb.back().second; }
-		bool has_loop() { return lb.size() > 0; }
-		DefaultTypes* types() { return &dt; }
-		ILContext scope_context() { return sc.back(); }
-		Namespace* workspace() { return nm.back(); }
-		StackManager* stack() { return &rts; }
-		StackManager* compiler_stack() { return &cps; }
-		StackManager* temp_stack() { return &tms; }
-		Namespace* global_namespace() { return &gn; }
-		ILModule* global_module() { return &m; }
-		ConstantManager* constant_manager() { return &cmgr; }
+		ILEvaluator* evaluator() { return compiler_evaluator.get(); }
+		ILBlock* scope() { return scope_stack.back(); }
+		ILBlock* loop_break() { return loop_block_stack.back().first; }
+		ILBlock* loop_continue() { return loop_block_stack.back().second; }
+		bool has_loop() { return loop_block_stack.size() > 0; }
+		DefaultTypes* types() { return default_types.get(); }
+		ILContext scope_context() { return scope_context_stack.back(); }
+		Namespace* workspace() { return outer_namespace_stack.back(); }
+		StackManager* stack() { return &runtime_stack_manager; }
+		StackManager* compiler_stack() { return &compiler_stack_manager; }
+		StackManager* temp_stack() { return &temporary_stack_manager; }
+		Namespace* global_namespace() { return target_global_namespace.get(); }
+		ILModule* global_module() { return target_module.get(); }
+		ConstantManager* constant_manager() { return &constant_stack_manager; }
 
-		ILBytecodeFunction* target() { return wf.back(); };
-		Type* return_type() { return rt.back(); }
+		FindNameResult find_name(std::string_view name) { return target_global_namespace->find_name(name); }
 
-		void push_scope_context(ILContext ctx) { sc.push_back(ctx); }
-		void pop_scope_context() { sc.pop_back(); }
+		ILBytecodeFunction* target() { return working_function_stack.back(); };
+		Type* return_type() { return return_type_stack.back(); }
 
-		void push_scope(ILBlock* sc) { s.push_back(sc); }
-		void pop_scope() { s.pop_back(); }
+		void push_scope_context(ILContext ctx) { scope_context_stack.push_back(ctx); }
+		void pop_scope_context() { scope_context_stack.pop_back(); }
 
-		void push_workspace(Namespace* nspc) { nm.push_back(nspc); }
-		void pop_workspace() { nm.pop_back(); }
+		void push_scope(ILBlock* sc) { scope_stack.push_back(sc); }
+		void pop_scope() { scope_stack.pop_back(); }
 
-		void push_function(ILBytecodeFunction* t, Type* rtt) { wf.push_back(t); rt.push_back(rtt); }
-		void pop_function() { wf.pop_back(); rt.pop_back(); }
+		void push_workspace(Namespace* nspc) { outer_namespace_stack.push_back(nspc); }
+		void pop_workspace() { outer_namespace_stack.pop_back(); }
 
-		void push_loop_blocks(ILBlock* break_b, ILBlock* continue_b) { lb.push_back(std::make_pair(break_b, continue_b)); }
-		void pop_loop_blocks() { lb.pop_back(); }
+		void push_function(ILBytecodeFunction* t, Type* rtt) { working_function_stack.push_back(t); return_type_stack.push_back(rtt); }
+		void pop_function() { working_function_stack.pop_back(); return_type_stack.pop_back(); }
 
-		void switch_scope(ILBlock* sblock) { s.back() = sblock; }
+		void push_loop_blocks(ILBlock* break_b, ILBlock* continue_b) { loop_block_stack.push_back(std::make_pair(break_b, continue_b)); }
+		void pop_loop_blocks() { loop_block_stack.pop_back(); }
 
-		void push_source(Source* s) { src.push_back(s); }
-		void pop_source() { src.pop_back(); }
-		Source* source() { return src.back(); }
+		void switch_scope(ILBlock* sblock) { scope_stack.back() = sblock; }
+
+		void push_source(Source* s) { source_stack.push_back(s); }
+		void pop_source() { source_stack.pop_back(); }
+		Source* source() { return source_stack.back(); }
 		void setup();
 
-		std::vector<ILBlock*> s;
-		std::vector<Type*> rt;
-		std::vector<std::pair<ILBlock*,ILBlock*>> lb;
-		std::vector<ILContext> sc;
-		std::vector<Namespace*> nm;
-		std::vector<ILBytecodeFunction*> wf;
-		std::vector<Source*> src;
+		std::vector<ILBlock*> scope_stack;
+		std::vector<Type*> return_type_stack;
+		std::vector<std::pair<ILBlock*,ILBlock*>> loop_block_stack;
+		std::vector<ILContext> scope_context_stack;
+		std::vector<Namespace*> outer_namespace_stack;
+		std::vector<ILBytecodeFunction*> working_function_stack;
+		std::vector<Source*> source_stack;
 
 		std::map<std::filesystem::path, std::unique_ptr<Source>> included_sources;
 
-		ILModule m;
-		DefaultTypes dt;
-		Namespace gn;
-		std::unique_ptr<ILEvaluator> e = std::make_unique<ILEvaluator>();
-		StackManager rts;
-		StackManager cps;
-		StackManager tms;
-		ConstantManager cmgr;
+		std::unique_ptr<ILModule> target_module = std::make_unique<ILModule>();
+		std::unique_ptr<DefaultTypes> default_types = std::make_unique<DefaultTypes>();
+		std::unique_ptr<Namespace> target_global_namespace = std::make_unique<Namespace>();
+		std::unique_ptr<ILEvaluator> compiler_evaluator = std::make_unique<ILEvaluator>();
+
+		StackManager runtime_stack_manager;
+		StackManager compiler_stack_manager;
+		StackManager temporary_stack_manager;
+		ConstantManager constant_stack_manager;
 
 		FunctionInstance* register_ext_function(std::initializer_list<const char*> path, void(*ptr)(ILEvaluator*));
 
@@ -79,6 +82,25 @@ namespace Corrosive {
 		static void pop_compiler();
 		static Compiler* current();
 		static std::unique_ptr<Compiler> create();
+
+
+		static const inline size_t stack_size = 1024 * 4;
+		unsigned char memory_stack[stack_size];
+
+		std::vector<size_t> local_stack_size;
+		std::vector<unsigned char*> local_stack_base;
+		std::vector<std::vector<unsigned char*>> local_stack_offsets;
+
+		uint16_t		mask_local(unsigned char* ptr);
+		void			pop_mask_local();
+		uint16_t		push_local(ILSize size);
+		void			pop_local(ILSize size);
+		void			stack_push(size_t align = 1);
+		void			stack_pop();
+		unsigned char*	stack_ptr(uint16_t id);
+		void			eval_local(uint16_t id);
+
+		std::unique_ptr<ILModule> finalize();
 	};
 }
 #endif

@@ -218,12 +218,13 @@ namespace Corrosive {
 
 	class ILEvaluator {
 	public:
-		using register_value = uint64_t;
-
 		ILModule* parent = nullptr;
 
 		static const inline size_t stack_size = 1024 * 4;
 		unsigned char memory_stack[stack_size];
+		unsigned char* stack_pointer = memory_stack;
+		unsigned char* stack_base = memory_stack;
+		unsigned char* stack_base_aligned = memory_stack;
 
 		uint8_t register_stack_1b[stack_size];
 		uint8_t* register_stack_pointer_1b = register_stack_1b;
@@ -247,18 +248,6 @@ namespace Corrosive {
 
 		std::vector<std::string> debug_file_names;
 		uint16_t register_debug_source(std::string name);
-
-		std::vector<size_t> local_stack_size;
-		std::vector<unsigned char*> local_stack_base;
-		std::vector<std::vector<unsigned char*>> local_stack_offsets;
-
-		uint16_t		mask_local(unsigned char* ptr);
-		void			pop_mask_local();
-		uint16_t		push_local(ILSize size);
-		void			pop_local(ILSize size);
-		void			stack_push(size_t align = 1);
-		void			stack_pop();
-		unsigned char*	stack_ptr(uint16_t id);
 
 		static void sandbox_begin();
 		static void sandbox_end();
@@ -345,6 +334,8 @@ namespace Corrosive {
 		uint32_t register_static(unsigned char* memory, size_t size);
 		uint32_t register_function_decl(std::tuple<ILCallingConvention, ILDataType, std::vector<ILDataType>> decl);
 		void dump_function_decl(uint32_t id);
+
+		void run(ILFunction* func);
 	};
 
 	void abi_dynamic_call(ILEvaluator* eval, ILCallingConvention conv, void* ptr, std::tuple<ILCallingConvention, ILDataType, std::vector<ILDataType>>& decl);
@@ -398,7 +389,6 @@ namespace Corrosive {
 		static void eval_negate(ILEvaluator* eval_ctx);
 		static void eval_rmemcmp(ILEvaluator* eval_ctx, ILDataType type);
 		static void eval_rmemcmp_rev(ILEvaluator* eval_ctx, ILDataType type);
-		static void eval_local(ILEvaluator* eval_ctx, uint16_t id);
 		static void eval_isnotzero(ILEvaluator* eval_ctx, ILDataType type);
 		static void eval_rtoffset(ILEvaluator* eval_ctx);
 		static void eval_rtoffset_rev(ILEvaluator* eval_ctx);

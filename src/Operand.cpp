@@ -177,8 +177,8 @@ namespace Corrosive {
 
 
 				if (to->rvalue_stacked()) {
-					uint16_t sid = Compiler::current()->evaluator()->push_local(to->size());
-					unsigned char* memory_place = Compiler::current()->evaluator()->stack_ptr(sid);
+					uint16_t sid = Compiler::current()->push_local(to->size());
+					unsigned char* memory_place = Compiler::current()->stack_ptr(sid);
 					Compiler::current()->compiler_stack()->push_item("$tmp", to, sid, StackItemTag::regular);
 
 					ILBuilder::eval_const_ptr(Compiler::current()->evaluator(), memory_place);
@@ -846,7 +846,7 @@ namespace Corrosive {
 				c.move(tok);
 			}
 			else if (cpt != CompileType::compile && Compiler::current()->compiler_stack()->find(c.buffer(), sitm)) {
-				ILBuilder::eval_local(Compiler::current()->evaluator(), sitm.id);
+				Compiler::current()->eval_local(sitm.id);
 				ret.type = sitm.type;
 				ret.lvalue = true;
 				c.move(tok);
@@ -1202,7 +1202,7 @@ namespace Corrosive {
 
 
 		Compiler::current()->compiler_stack()->push();
-		Compiler::current()->evaluator()->stack_push();
+		Compiler::current()->stack_push();
 
 
 		std::vector<std::tuple<Cursor, Type*>>::reverse_iterator act_layout;
@@ -1215,15 +1215,15 @@ namespace Corrosive {
 		act_layout = generating->generic_ctx.generic_layout.rbegin();
 		act_layout_size = generating->generic_ctx.generic_layout.size();
 
-		unsigned char* key_base = Compiler::current()->evaluator()->local_stack_base.back();
+		unsigned char* key_base = Compiler::current()->local_stack_base.back();
 
 
 		for (size_t arg_i = act_layout_size - 1; arg_i >= 0 && arg_i < act_layout_size; arg_i--) {
 
 			Type* type = std::get<1>(*act_layout);
 
-			uint16_t sid = Compiler::current()->evaluator()->push_local(type->size());
-			unsigned char* data_place = Compiler::current()->evaluator()->stack_ptr(sid);
+			uint16_t sid = Compiler::current()->push_local(type->size());
+			unsigned char* data_place = Compiler::current()->stack_ptr(sid);
 			Compiler::current()->compiler_stack()->push_item(std::get<0>(*act_layout).buffer(), type, sid, StackItemTag::regular);
 
 
@@ -1247,7 +1247,7 @@ namespace Corrosive {
 
 		// ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
 
-		Compiler::current()->evaluator()->stack_pop();
+		Compiler::current()->stack_pop();
 		Compiler::current()->compiler_stack()->pop();
 
 	}
@@ -1263,7 +1263,7 @@ namespace Corrosive {
 		Type* gen_type = template_stack[template_sp - 1];
 		gen_type->compile();
 		Compiler::current()->compiler_stack()->push();
-		eval->stack_push();
+		Compiler::current()->stack_push();
 
 
 		std::vector<std::tuple<Cursor, Type*>>::reverse_iterator act_layout;
@@ -1288,7 +1288,7 @@ namespace Corrosive {
 
 
 
-		unsigned char* key_base = eval->local_stack_base.back() + eval->local_stack_size.back();
+		unsigned char* key_base = Compiler::current()->local_stack_base.back() + Compiler::current()->local_stack_size.back();
 
 
 		act_layout_it = act_layout;
@@ -1296,8 +1296,8 @@ namespace Corrosive {
 
 			Type* type = std::get<1>((*act_layout_it));
 
-			uint16_t local_id = eval->push_local(type->size());
-			unsigned char* data_place = eval->stack_ptr(local_id);
+			uint16_t local_id = Compiler::current()->push_local(type->size());
+			unsigned char* data_place = Compiler::current()->stack_ptr(local_id);
 			Compiler::current()->compiler_stack()->push_item(std::get<0>(*act_layout_it).buffer(), type, local_id, StackItemTag::regular);
 
 
@@ -1328,7 +1328,7 @@ namespace Corrosive {
 		}
 		// ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
 
-		eval->stack_pop();
+		Compiler::current()->stack_pop();
 		Compiler::current()->compiler_stack()->pop();
 
 	}
@@ -1791,7 +1791,7 @@ namespace Corrosive {
 						StructureTemplate* tplt = struct_inst->subtemplates[f->second.second].get();
 
 						Compiler::current()->compiler_stack()->push();
-						Compiler::current()->evaluator()->stack_push();
+						Compiler::current()->stack_push();
 
 						/*if (tplt->generic_ctx.generator)
 							tplt->generic_ctx.generator->insert_key_on_stack(Compiler::current()->evaluator());*/
@@ -1808,11 +1808,11 @@ namespace Corrosive {
 						else {
 							StructureInstance* inst = nullptr;
 
-							tplt->generate(Compiler::current()->evaluator()->local_stack_base.back(), inst);
+							tplt->generate(Compiler::current()->local_stack_base.back(), inst);
 							ILBuilder::eval_const_type(Compiler::current()->evaluator(), inst->type.get());
 						}
 
-						Compiler::current()->evaluator()->stack_pop();
+						Compiler::current()->stack_pop();
 						Compiler::current()->compiler_stack()->pop();
 
 						c.move(tok);
@@ -1912,8 +1912,8 @@ namespace Corrosive {
 			ILBuilder::eval_callstart(Compiler::current()->evaluator());
 
 			if (ft->return_type->rvalue_stacked()) {
-				uint16_t sid = Compiler::current()->evaluator()->push_local(retval.type->size());
-				unsigned char* memory_place = Compiler::current()->evaluator()->stack_ptr(sid);
+				uint16_t sid = Compiler::current()->push_local(retval.type->size());
+				unsigned char* memory_place = Compiler::current()->stack_ptr(sid);
 
 				Compiler::current()->compiler_stack()->push_item("$tmp", retval.type, sid, StackItemTag::regular);
 
@@ -1921,7 +1921,7 @@ namespace Corrosive {
 					retval.type->construct(memory_place);
 				}*/
 
-				ILBuilder::eval_local(Compiler::current()->evaluator(), sid);
+				Compiler::current()->eval_local(sid);
 			}
 
 			Operand::read_arguments(c,tok, argi, ft, cpt);
@@ -1937,7 +1937,7 @@ namespace Corrosive {
 			ILBuilder::eval_call(Compiler::current()->evaluator(), ft->il_function_decl);
 
 			if (ft->return_type->rvalue_stacked()) {
-				ILBuilder::eval_local(Compiler::current()->evaluator(), local_stack_item.id);
+				Compiler::current()->eval_local(local_stack_item.id);
 			}
 
 		}
@@ -2324,10 +2324,10 @@ namespace Corrosive {
 									ret.lvalue = true;
 								}
 								else {
-									uint32_t local_id = Compiler::current()->evaluator()->push_local(ret.type->size());
+									uint32_t local_id = Compiler::current()->push_local(ret.type->size());
 									Compiler::current()->compiler_stack()->push_item("$tmp", ret.type, local_id, StackItemTag::regular);
 									ILBuilder::eval_store(Compiler::current()->evaluator(), ret.type->rvalue());
-									ILBuilder::eval_local(Compiler::current()->evaluator(), local_id);
+									Compiler::current()->eval_local(local_id);
 									ret.lvalue = true;
 								}
 							}
@@ -2386,16 +2386,16 @@ namespace Corrosive {
 			ILBuilder::build_local(Compiler::current()->scope(), local_id);
 		}
 		else {
-			uint32_t local_id = Compiler::current()->evaluator()->push_local(slice->size());
+			uint32_t local_id = Compiler::current()->push_local(slice->size());
 			Compiler::current()->compiler_stack()->push_item("$tmp", slice, local_id, StackItemTag::regular);
 			ILBuilder::eval_constref(Compiler::current()->evaluator(), lit.second);
-			ILBuilder::eval_local(Compiler::current()->evaluator(), local_id);
+			Compiler::current()->eval_local(local_id);
 			ILBuilder::eval_store(Compiler::current()->evaluator(), ILDataType::word);
 			ILBuilder::eval_const_size(Compiler::current()->evaluator(), lit.first.length());
-			ILBuilder::eval_local(Compiler::current()->evaluator(), local_id);
+			Compiler::current()->eval_local(local_id);
 			ILBuilder::eval_woffset(Compiler::current()->evaluator(), 1);
 			ILBuilder::eval_store(Compiler::current()->evaluator(), ILDataType::word);
-			ILBuilder::eval_local(Compiler::current()->evaluator(), local_id);
+			Compiler::current()->eval_local(local_id);
 		}
 
 		c.move(tok);

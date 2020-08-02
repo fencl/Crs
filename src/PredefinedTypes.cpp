@@ -3,6 +3,10 @@
 #include "Operand.h"
 #include "Compiler.h"
 
+
+// for library test
+#include <Windows.h>
+
 namespace Corrosive {
 
 	const char* PredefinedNamespace = "corrosive";
@@ -47,6 +51,71 @@ namespace Corrosive {
 		return primitives[(unsigned char)rval];
 	}
 
+
+	void print_provider(ILEvaluator* eval) {
+		auto ptr = eval->pop_register_value<size_t*>();
+		const char* text = *(const char**)ptr;
+		size_t size = ptr[1];
+		std::basic_string_view<char> sv(text, size);
+		std::cout << sv;
+	}
+
+	size_t allocated_counter = 0;
+
+	void malloc_provider(ILEvaluator* eval) {
+		auto size = eval->pop_register_value<size_t>();
+		auto ref = malloc(size);
+		eval->write_register_value(ref);
+		++allocated_counter;
+	}
+
+	void free_provider(ILEvaluator* eval) {
+		auto ref = eval->pop_register_value<void*>();
+		free(ref);
+		--allocated_counter;
+	}
+
+	void share_provider(ILEvaluator* eval) {
+		auto ptr = eval->pop_register_value<size_t*>();
+		const char* text = *(const char**)ptr;
+		size_t size = ptr[1];
+		std::basic_string_view<char> sv(text, size);
+		void* lib = LoadLibraryA(std::string(sv).c_str());
+		eval->write_register_value<void*>(lib);
+	}
+
+	void function_provider(ILEvaluator* eval) {
+		auto ptr = eval->pop_register_value<size_t*>();
+		const char* text = *(const char**)ptr;
+		size_t size = ptr[1];
+		std::basic_string_view<char> sv(text, size);
+		auto lib = eval->pop_register_value<void*>();
+		eval->write_register_value<void*>(GetProcAddress((HMODULE)lib, std::string(sv).c_str()));
+	}
+
+
+	void release_provider(ILEvaluator* eval) {
+		auto lib = eval->pop_register_value<void*>();
+		FreeLibrary((HMODULE)lib);
+	}
+
+
+	void DefaultTypes::ask_for(ILEvaluator* eval) {
+		size_t* ptr = eval->pop_register_value<size_t*>();
+		char* data = ((char**)ptr)[0];
+		size_t size = ptr[1];
+		std::basic_string_view<char> data_string(data, size);
+
+		if (data_string == "compiler_standard_libraries") {
+			Compiler::current()->register_ext_function({ "std","print_slice" }, print_provider);
+			Compiler::current()->register_ext_function({ "std","malloc" }, malloc_provider);
+			Compiler::current()->register_ext_function({ "std","free" }, free_provider);
+			Compiler::current()->register_ext_function({ "std","library","share" }, share_provider);
+			Compiler::current()->register_ext_function({ "std","library","function" }, function_provider);
+			Compiler::current()->register_ext_function({ "std","library","release" }, release_provider);
+		}
+	}
+
 	void DefaultTypes::setup() {
 
 		std_lib.load_data(
@@ -59,6 +128,7 @@ namespace Corrosive {
 			"fn compile ext slice_of: (type) type;\n"
 			"fn compile ext type_size: (type) size;\n"
 			"fn compile ext require: ([]u8);\n"
+			"fn compile ext ask_for: ([]u8);\n"
 			"}"
 			, "standard_library<buffer>");
 
@@ -101,6 +171,7 @@ namespace Corrosive {
 		f_build_slice = Compiler::current()->register_ext_function({ "compiler","slice_of" }, Operand::priv_build_slice);
 		f_type_size = Compiler::current()->register_ext_function({ "compiler","type_size" }, Operand::priv_type_size);
 		f_type_size = Compiler::current()->register_ext_function({ "compiler","require" }, Source::require_wrapper);
+		f_type_size = Compiler::current()->register_ext_function({ "compiler","ask_for" }, DefaultTypes::ask_for);
 
 		std::vector<Type*> args;
 		t_build_script = load_or_register_function_type(ILCallingConvention::bytecode, std::move(args), t_void, ILContext::compile);

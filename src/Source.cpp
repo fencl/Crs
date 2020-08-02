@@ -461,7 +461,7 @@ namespace Corrosive {
 
 		Compiler::current()->push_function(func, Compiler::current()->types()->t_void);
 		Compiler::current()->push_scope(b);
-		Compiler::current()->evaluator()->stack_push();
+		Compiler::current()->stack_push();
 		Compiler::current()->compiler_stack()->push();
 		Compiler::current()->stack()->push();
 		Compiler::current()->temp_stack()->push();
@@ -484,7 +484,7 @@ namespace Corrosive {
 		Compiler::current()->stack()->pop();
 		Compiler::current()->temp_stack()->pop();
 		Compiler::current()->compiler_stack()->pop();
-		Compiler::current()->evaluator()->stack_pop();
+		Compiler::current()->stack_pop();
 		Compiler::current()->pop_function();
 
 		return func;

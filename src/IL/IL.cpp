@@ -314,61 +314,19 @@ namespace Corrosive {
 	}
 
 
-	uint16_t ILEvaluator::mask_local(unsigned char* ptr) {
-		auto& ls = local_stack_offsets.back();
-		ls.push_back(ptr);
-		return (uint16_t)(ls.size() - 1);
-	}
+	void ILModule::run(ILFunction* func) {
+		auto eval = std::make_unique<ILEvaluator>();
+		eval->parent = this;
+		ILBuilder::eval_fncall(eval.get(), func);
 
-	void ILEvaluator::pop_mask_local() {
-		local_stack_offsets.pop_back();
-	}
-
-	uint16_t ILEvaluator::push_local(ILSize size) {
-		auto& lss = local_stack_size.back();
-		auto& lsb = local_stack_base.back();
-		auto& ls = local_stack_offsets.back();
-
-		size_t sz = size.eval(parent, compiler_arch);
-
-		ls.push_back(lsb + lss);
-		lss += sz;
-
-		return (uint16_t)(ls.size() - 1);
-	}
-
-	void ILEvaluator::pop_local(ILSize size) {
-		auto& lss = local_stack_size.back();
-		size_t sz = size.eval(parent, compiler_arch);
-		lss -= sz;
-		local_stack_offsets.pop_back();
-	}
-
-
-	void ILEvaluator::stack_push(size_t align) {
-		if (local_stack_base.size() == 0) {
-			size_t new_base = (size_t)(memory_stack);
-			new_base = _align_up(new_base, align);
-			local_stack_base.push_back((unsigned char*)new_base);
-		}
-		else {
-			size_t new_base = (size_t)(local_stack_base.back() + local_stack_size.back());
-			new_base = _align_up(new_base, align);
-			local_stack_base.push_back((unsigned char*)new_base);
-		}
-
-		local_stack_size.push_back(0);
-		local_stack_offsets.push_back(std::move(decltype(local_stack_offsets)::value_type()));
-	}
-
-	void ILEvaluator::stack_pop() {
-		local_stack_base.pop_back();
-		local_stack_size.pop_back();
-		local_stack_offsets.pop_back();
-	}
-
-	unsigned char* ILEvaluator::stack_ptr(uint16_t id) {
-		return local_stack_offsets.back()[id];
+		auto lr1b = (size_t)(eval->register_stack_pointer_1b - eval->register_stack_1b);
+		if (lr1b > 0) { std::cout << "leaked 1 byte registers: " << lr1b << "\n"; }
+		auto lr2b = (size_t)(eval->register_stack_pointer_2b - eval->register_stack_2b);
+		if (lr2b) { std::cout << "leaked 2 byte registers: " << lr2b << "\n"; }
+		auto lr4b = (size_t)(eval->register_stack_pointer_4b - eval->register_stack_4b);
+		if (lr4b) { std::cout << "leaked 4 byte registers: " << lr4b << "\n"; }
+		auto lr8b = (size_t)(eval->register_stack_pointer_8b - eval->register_stack_8b);
+		if (lr8b) { std::cout << "leaked 8 byte registers: " << lr8b << "\n"; }
 	}
 
 

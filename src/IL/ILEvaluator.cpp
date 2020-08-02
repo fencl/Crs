@@ -564,7 +564,6 @@ namespace Corrosive {
 	}
 
 	void ILBuilder::eval_store_rev(ILEvaluator* eval_ctx, ILDataType type) {
-
 		if (setjmp(sandbox) == 0) {
 			ilsize_t storage;
 			size_t regs = eval_ctx->compile_time_register_size(type);
@@ -575,10 +574,6 @@ namespace Corrosive {
 		else {
 			throw_runtime_handler_exception(eval_ctx);
 		}
-	}
-
-	void ILBuilder::eval_local(ILEvaluator* eval_ctx, uint16_t id) {
-		eval_const_ptr(eval_ctx, eval_ctx->stack_ptr(id));
 	}
 
 	void ILBuilder::eval_duplicate(ILEvaluator* eval_ctx, ILDataType type) {
@@ -858,9 +853,16 @@ namespace Corrosive {
 					ILBlock* block = bytecode_fun->blocks[0];
 					bool running = true;
 
-					eval_ctx->stack_push(bytecode_fun->calculated_local_stack_alignment);
-					eval_ctx->local_stack_size.back() = bytecode_fun->calculated_local_stack_size;
-					unsigned char* lstack_base = eval_ctx->local_stack_base.back();
+					unsigned char* lstack_base = eval_ctx->stack_base;
+					unsigned char* lstack_base_aligned = eval_ctx->stack_base_aligned;
+					unsigned char* lstack_pointer = eval_ctx->stack_pointer;
+
+					eval_ctx->stack_base = eval_ctx->stack_pointer;
+					eval_ctx->stack_base_aligned = (unsigned char*)_align_up((size_t)eval_ctx->stack_base, bytecode_fun->calculated_local_stack_alignment);
+					eval_ctx->stack_pointer = eval_ctx->stack_base_aligned + bytecode_fun->calculated_local_stack_size;
+
+
+					unsigned char* local_base = eval_ctx->stack_base_aligned;
 
 					size_t instr = 0;
 
@@ -1174,7 +1176,7 @@ namespace Corrosive {
 								case ILInstruction::local: {
 									auto id = *read_data_type(uint16_t);
 									auto& offset = bytecode_fun->calculated_local_offsets[id];
-									eval_const_ptr(eval_ctx, lstack_base + offset);
+									eval_const_ptr(eval_ctx, local_base + offset);
 								} break;
 
 								case ILInstruction::tableoffset: {
@@ -1267,7 +1269,9 @@ namespace Corrosive {
 				returned:
 
 					eval_ctx->callstack_debug.pop_back();
-					eval_ctx->stack_pop();
+					eval_ctx->stack_pointer = lstack_pointer;
+					eval_ctx->stack_base_aligned = lstack_base_aligned;
+					eval_ctx->stack_base = lstack_base;
 				}
 				else {
 					auto ext_fun = (ILExtFunction*)fun;
