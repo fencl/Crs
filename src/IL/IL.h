@@ -156,7 +156,7 @@ namespace Corrosive {
 
 
 	enum class ILLifetimeEvent : unsigned char {
-		push, pop, append
+		push=100, pop=127, append=255
 	};
 
 	struct ILLifetime {

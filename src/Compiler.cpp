@@ -124,7 +124,7 @@ namespace Corrosive {
 
 	ScopeState::~ScopeState() {
 		if (set_workspace) { Compiler::current()->pop_workspace(); }
-		if (set_function) { Compiler::current()->pop_function(); }
+		if (set_function) { Compiler::current()->pop_function(); Compiler::current()->pop_defer_function(); }
 		if (set_context) { Compiler::current()->pop_scope_context(); }
 		if (set_stack) { Compiler::current()->stack()->pop(); }
 		if (set_compiler_stack) { Compiler::current()->compiler_stack()->pop(); Compiler::current()->stack_pop(); }
@@ -154,7 +154,7 @@ namespace Corrosive {
 	}
 
 	ScopeState& ScopeState::workspace(Namespace* nspc) { if (!set_workspace) { set_workspace = true; Compiler::current()->push_workspace(nspc); } return *this; }
-	ScopeState& ScopeState::function(ILBytecodeFunction* fun, Type* return_type) { if (!set_function) { set_function = true; Compiler::current()->push_function(fun,return_type); } return *this; }
+	ScopeState& ScopeState::function(ILBytecodeFunction* fun, Type* return_type) { if (!set_function) { set_function = true; Compiler::current()->push_function(fun, return_type); Compiler::current()->push_defer_function(); } return *this; }
 	ScopeState& ScopeState::context(ILContext ctx) { if (!set_context) { set_context = true; Compiler::current()->push_scope_context(ctx); } return *this; }
 	ScopeState& ScopeState::stack() { if (!set_stack) { set_stack = true; Compiler::current()->stack()->push(); } return *this; }
 	ScopeState& ScopeState::compiler_stack() { if (!set_compiler_stack) { set_compiler_stack = true; Compiler::current()->compiler_stack()->push(); Compiler::current()->stack_push(); } return *this; }

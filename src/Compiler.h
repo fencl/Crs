@@ -27,7 +27,9 @@ namespace Corrosive {
 		Namespace* global_namespace() { return target_global_namespace.get(); }
 		ILModule* global_module() { return target_module.get(); }
 		ConstantManager* constant_manager() { return &constant_stack_manager; }
-		std::vector<TypeFunction*>& defer_scope() { return defers.back(); }
+
+		std::vector<TypeFunction*>& defer_scope() { return defers.back().back(); }
+		std::vector<std::vector<TypeFunction*>>& defer_function() { return defers.back(); }
 
 		FindNameResult find_name(std::string_view name) { return target_global_namespace->find_name(name); }
 
@@ -54,12 +56,19 @@ namespace Corrosive {
 		void push_source(Source* s) { source_stack.push_back(s); }
 		void pop_source() { source_stack.pop_back(); }
 
-		void push_defer_scope() { defers.push_back(std::vector<TypeFunction*>()); }
-		void pop_defer_scope() { defers.pop_back(); }
+		void push_defer_function() { defers.push_back(std::vector<std::vector<TypeFunction*>>()); }
+		void pop_defer_function() { defers.pop_back(); }
+
+		void push_defer_scope() { defers.back().push_back(std::vector<TypeFunction*>()); }
+		void pop_defer_scope() { defers.back().pop_back(); }
 
 		Source* source() { return source_stack.back(); }
 		void setup();
 
+		void targets_defer(bool v) { statement_targets_defer = v; }
+		bool targets_defer() { return statement_targets_defer; }
+
+		bool statement_targets_defer = false;
 		std::vector<ILBlock*> scope_stack;
 		std::vector<Type*> return_type_stack;
 		std::vector<std::pair<ILBlock*,ILBlock*>> loop_block_stack;
@@ -67,7 +76,7 @@ namespace Corrosive {
 		std::vector<Namespace*> outer_namespace_stack;
 		std::vector<ILBytecodeFunction*> working_function_stack;
 		std::vector<Source*> source_stack;
-		std::vector<std::vector<TypeFunction*>> defers;
+		std::vector<std::vector<std::vector<TypeFunction*>>> defers;
 
 		std::map<std::filesystem::path, std::unique_ptr<Source>> included_sources;
 

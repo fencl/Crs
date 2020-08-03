@@ -842,9 +842,10 @@ namespace Corrosive {
 			auto& declaration = eval_ctx->parent->function_decl[decl];
 
 			void* ptr = eval_ctx->callstack.back();
+			eval_ctx->callstack.pop_back();
+
 			if (std::get<0>(declaration) == ILCallingConvention::bytecode) {
 				ILFunction* fun = (ILFunction*)ptr;
-				eval_ctx->callstack.pop_back();
 				eval_ctx->callstack_debug.push_back(std::make_tuple(eval_ctx->debug_line, eval_ctx->debug_file, std::string_view(fun->alias)));
 
 				if (auto bytecode_fun = dynamic_cast<ILBytecodeFunction*>(fun)) {
@@ -1283,7 +1284,6 @@ namespace Corrosive {
 				}
 			}
 			else {
-				eval_ctx->callstack.pop_back();
 				eval_ctx->callstack_debug.push_back(std::make_tuple(eval_ctx->debug_line, eval_ctx->debug_file, "External code"));
 				
 				abi_dynamic_call(eval_ctx, std::get<0>(declaration), ptr, declaration);

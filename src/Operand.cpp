@@ -198,7 +198,6 @@ namespace Corrosive {
 					to->compile();
 					uint32_t local_id = Compiler::current()->target()->local_stack_lifetime.append(to->size());
 					Compiler::current()->temp_stack()->push_item("$tmp", to, local_id, StackItemTag::regular);
-
 					ILBuilder::build_local(Compiler::current()->scope(), local_id);
 					ILBuilder::build_store(Compiler::current()->scope(), ILDataType::word);
 					ILBuilder::build_vtable(Compiler::current()->scope(), vtableid);
@@ -1842,6 +1841,7 @@ namespace Corrosive {
 			if (ft->return_type->rvalue_stacked()) {
 				local_return_id = Compiler::current()->target()->local_stack_lifetime.append(retval.type->size());
 				Compiler::current()->temp_stack()->push_item("$tmp", retval.type, local_return_id, StackItemTag::regular);
+
 				ILBuilder::build_local(Compiler::current()->scope(), local_return_id);
 			}
 
@@ -1853,15 +1853,26 @@ namespace Corrosive {
 			c.move(tok);
 			ft->compile();
 
-			ILBuilder::build_call(Compiler::current()->scope(), ft->il_function_decl);
+			if (!Compiler::current()->targets_defer() || tok != RecognizedToken::Semicolon) {
+				ILBuilder::build_call(Compiler::current()->scope(), ft->il_function_decl);
 
-			if (ft->return_type->rvalue_stacked()) {
-				ILBuilder::build_local(Compiler::current()->scope(), local_return_id);
+				if (ft->return_type->rvalue_stacked()) {
+					ILBuilder::build_local(Compiler::current()->scope(), local_return_id);
+				}
+
+
+				ret.type = ft->return_type;
+				ret.lvalue = false;
 			}
-			
+			else {
+				Compiler::current()->defer_scope().push_back(ft);
+
+				ret.type = Compiler::current()->types()->t_void;
+				ret.lvalue = true;
+			}
 
 		}
-		else if (cpt == CompileType::eval) {
+		else {
 
 			StackItem local_stack_item;
 
@@ -1890,10 +1901,11 @@ namespace Corrosive {
 			if (ft->return_type->rvalue_stacked()) {
 				Compiler::current()->eval_local(local_stack_item.id);
 			}
+
+			ret.type = ft->return_type;
+			ret.lvalue = false;
 		}
 
-		ret.type = ft->return_type;
-		ret.lvalue = false;
 	}
 
 	void Operand::structure_element_offset(CompileValue& ret, uint16_t id, CompileType cpt) {
@@ -2269,6 +2281,7 @@ namespace Corrosive {
 								if (cpt == CompileType::compile) {
 									uint32_t local_id = Compiler::current()->target()->local_stack_lifetime.append(ret.type->size());
 									Compiler::current()->temp_stack()->push_item("$tmp", ret.type, local_id, StackItemTag::regular);
+									
 									ILBuilder::build_store(Compiler::current()->scope(), ret.type->rvalue());
 									ILBuilder::build_local(Compiler::current()->scope(), local_id);
 									ret.lvalue = true;
@@ -2322,6 +2335,7 @@ namespace Corrosive {
 		auto lit = Compiler::current()->constant_manager()->register_string_literal(c);
 
 		Type* slice = Compiler::current()->types()->t_u8->generate_slice();
+		slice->compile();
 
 		if (cpt == CompileType::compile) {
 			uint32_t local_id = Compiler::current()->target()->local_stack_lifetime.append(slice->size());
