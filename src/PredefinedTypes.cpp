@@ -53,9 +53,11 @@ namespace Corrosive {
 
 
 	void print_provider(ILEvaluator* eval) {
-		auto ptr = eval->pop_register_value<size_t*>();
-		const char* text = *(const char**)ptr;
-		size_t size = ptr[1];
+
+		auto ptr = eval->pop_register_value<dword_t>();
+		const char* text = (const char*)ptr.p1;
+		size_t size = (size_t)ptr.p2;
+
 		std::basic_string_view<char> sv(text, size);
 		std::cout << sv;
 	}
@@ -76,18 +78,18 @@ namespace Corrosive {
 	}
 
 	void share_provider(ILEvaluator* eval) {
-		auto ptr = eval->pop_register_value<size_t*>();
-		const char* text = *(const char**)ptr;
-		size_t size = ptr[1];
+		auto ptr = eval->pop_register_value<dword_t>();
+		const char* text = (const char*)ptr.p1;
+		size_t size = (size_t)ptr.p2;
 		std::basic_string_view<char> sv(text, size);
 		void* lib = LoadLibraryA(std::string(sv).c_str());
 		eval->write_register_value<void*>(lib);
 	}
 
 	void function_provider(ILEvaluator* eval) {
-		auto ptr = eval->pop_register_value<size_t*>();
-		const char* text = *(const char**)ptr;
-		size_t size = ptr[1];
+		auto ptr = eval->pop_register_value<dword_t>();
+		const char* text = (const char*)ptr.p1;
+		size_t size = (size_t)ptr.p2;
 		std::basic_string_view<char> sv(text, size);
 		auto lib = eval->pop_register_value<void*>();
 		eval->write_register_value<void*>(GetProcAddress((HMODULE)lib, std::string(sv).c_str()));
@@ -101,9 +103,10 @@ namespace Corrosive {
 
 
 	void DefaultTypes::ask_for(ILEvaluator* eval) {
-		size_t* ptr = eval->pop_register_value<size_t*>();
-		char* data = ((char**)ptr)[0];
-		size_t size = ptr[1];
+
+		auto ptr = eval->pop_register_value<dword_t>();
+		const char* data = (const char*)ptr.p1;
+		size_t size = (size_t)ptr.p2;
 		std::basic_string_view<char> data_string(data, size);
 
 		if (data_string == "compiler_standard_libraries") {

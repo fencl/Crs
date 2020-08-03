@@ -423,6 +423,15 @@ namespace Corrosive {
 
 	void Statement::parse_return(Cursor& c, RecognizedToken& tok) {
 
+		bool has_defer = false;
+		for (auto ds = Compiler::current()->defer_function().rbegin(); ds != Compiler::current()->defer_function().rend(); ds++) {
+			for (auto d = ds->rbegin(); d != ds->rend(); d++) {
+				has_defer = true;
+				break;
+			}
+			if (has_defer) break;
+		}
+
 		c.move(tok);
 		CompileValue ret_val;
 		Cursor err = c;
@@ -436,6 +445,13 @@ namespace Corrosive {
 			ILBuilder::build_load(Compiler::current()->scope(), ILDataType::word);
 			Expression::copy_from_rvalue(Compiler::current()->return_type(), CompileType::compile, false);
 		}
+		else {
+			if (has_defer) {
+				ILBuilder::build_yield(Compiler::current()->scope(), Compiler::current()->return_type()->rvalue());
+			}
+		}
+
+		
 
 		for (auto ds = Compiler::current()->defer_function().rbegin(); ds != Compiler::current()->defer_function().rend(); ds++) {
 			for (auto d = ds->rbegin(); d != ds->rend(); d++) {
@@ -450,11 +466,19 @@ namespace Corrosive {
 		}
 
 
-
 		if (Compiler::current()->return_type()->rvalue_stacked()) {
 			ILBuilder::build_ret(Compiler::current()->scope(), ILDataType::none);
 		}
 		else {
+
+			if (has_defer) {
+				ILBlock* exit_block = Compiler::current()->target()->create_and_append_block();
+				exit_block->alias = "exit_block";
+				ILBuilder::build_jmp(Compiler::current()->scope(), exit_block);
+				Compiler::current()->switch_scope(exit_block);
+				ILBuilder::build_accept(exit_block, Compiler::current()->return_type()->rvalue());
+			}
+
 			ILBuilder::build_ret(Compiler::current()->scope(), Compiler::current()->return_type()->rvalue());
 		}
 

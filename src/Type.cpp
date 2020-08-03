@@ -39,7 +39,7 @@ namespace Corrosive {
 	}
 	
 	bool TypeSlice::rvalue_stacked() {
-		return true;
+		return false;
 	}
 
 	bool TypeStructureInstance::rvalue_stacked() {
@@ -71,7 +71,7 @@ namespace Corrosive {
 	}
 
 	ILDataType TypeSlice::rvalue() {
-		return ILDataType::word;
+		return ILDataType::dword;
 	}
 
 	ILDataType TypeFunction::rvalue() {

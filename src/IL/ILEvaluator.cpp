@@ -60,8 +60,13 @@ namespace Corrosive {
 				case 3:
 				case 4:
 					memcpy(register_stack_pointer_4b++, value, size); break;
-				default:
+				case 5:
+				case 6:
+				case 7:
+				case 8:
 					memcpy(register_stack_pointer_8b++, value, size); break;
+				default:
+					memcpy(register_stack_pointer_8b++, value, size); register_stack_pointer_8b++; break;
 			}
 		}
 		else {
@@ -82,7 +87,13 @@ namespace Corrosive {
 				case 3:
 				case 4:
 					memcpy(into, --register_stack_pointer_4b, size); break;
+				case 5:
+				case 6:
+				case 7:
+				case 8:
+					memcpy(into, --register_stack_pointer_8b, size); break;
 				default:
+					--register_stack_pointer_8b;
 					memcpy(into, --register_stack_pointer_8b, size); break;
 			}
 		}
@@ -428,6 +439,8 @@ namespace Corrosive {
 				return 8;
 			case Corrosive::ILDataType::word:
 				return sizeof(void*);
+			case Corrosive::ILDataType::dword:
+				return 2*sizeof(void*);
 			case Corrosive::ILDataType::none:
 				return 0;
 			case Corrosive::ILDataType::undefined:
@@ -511,6 +524,11 @@ namespace Corrosive {
 
 	void ILBuilder::eval_constref(ILEvaluator* eval_ctx, uint32_t cid) {
 		eval_ctx->write_register_value(eval_ctx->parent->constant_memory[cid].get());
+	}
+	
+	void ILBuilder::eval_const_slice(ILEvaluator* eval_ctx, uint32_t cid, uint64_t v) {
+		dword_t val = { eval_ctx->parent->constant_memory[cid].get() , (void*)v };
+		eval_ctx->write_register_value(val);
 	}
 
 	void ILBuilder::eval_staticref(ILEvaluator* eval_ctx, uint32_t cid) {
@@ -731,7 +749,7 @@ namespace Corrosive {
 		table.calculate(eval_ctx->parent, compiler_arch);
 		ilsize_t storage;
 		eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(src), &storage);
-		storage >>= table.calculated_offsets[itemid];
+		storage = storage >> table.calculated_offsets[itemid];
 		eval_ctx->write_register_value_indirect(eval_ctx->compile_time_register_size(dst), &storage);
 	}
 
@@ -1255,6 +1273,11 @@ namespace Corrosive {
 								case ILInstruction::f32: eval_const_f32(eval_ctx, *read_data_type(float)); break;
 								case ILInstruction::f64: eval_const_f64(eval_ctx, *read_data_type(double)); break;
 								case ILInstruction::word: eval_const_ptr(eval_ctx, *read_data_type(void*)); break;
+								case ILInstruction::slice: {
+									uint32_t cid = *read_data_type(uint32_t);
+									uint64_t s = *read_data_type(uint64_t);
+									eval_const_slice(eval_ctx, cid, s); 
+								}break;
 								case ILInstruction::size: eval_const_size(eval_ctx, read_data_type(ILSize)->eval(eval_ctx->parent, compiler_arch)); break;
 
 							}

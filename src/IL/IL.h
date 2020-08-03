@@ -40,7 +40,7 @@ namespace Corrosive {
 	};
 
 	enum class ILInstruction : unsigned char {
-		u8, i8, u16, i16, u32, i32, u64, i64, f32, f64, word, size,
+		u8, i8, u16, i16, u32, i32, u64, i64, f32, f64, word, dword, size, slice,
 
 		add, sub, div, mul, rem,
 		bit_and, bit_or, bit_xor,
@@ -61,7 +61,7 @@ namespace Corrosive {
 	};
 
 	enum class ILDataType : unsigned char {
-		i8, u8, i16, u16, i32, u32, i64, u64, f32, f64, word, none, undefined
+		i8, u8, i16, u16, i32, u32, i64, u64, f32, f64, word, none, dword, undefined
 	};
 
 	enum class ILArchitecture : unsigned char {
@@ -153,7 +153,23 @@ namespace Corrosive {
 		void memmove(std::list<std::unique_ptr<ILBlockData>>::iterator& pool, size_t& memoff, size_t off);
 	};
 
+	struct dword_t {
+		void* p1;
+		void* p2;
+	};
 
+	class uint128_t {
+	private:
+		uint64_t a;
+		uint64_t b;
+	public:
+		uint128_t() {}
+		uint128_t(const uint128_t& v): a(v.a), b(v.b) {}
+		uint128_t(int v) : a(v), b(0) {};
+		bool operator == (const int& v) { return a == v && b == 0; }
+		uint128_t operator << (size_t v) { uint128_t r; r.a = (a << v); r.b = (b << v) | (a >> (64 - v)); return r; }
+		uint128_t operator >> (size_t v) { uint128_t r; r.b = (b >> v); r.a = (a >> v) | (b << (64 - v)); return r; }
+	};
 
 	enum class ILLifetimeEvent : unsigned char {
 		push=100, pop=127, append=255
@@ -208,7 +224,7 @@ namespace Corrosive {
 		void (*ptr)(ILEvaluator*) = nullptr;
 	};
 
-	using ilsize_t = uint64_t; // max register size for all architectures (temp storage)
+	using ilsize_t = uint128_t; // max register size for all architectures (temp storage)
 
 	enum class ILInsintric : unsigned char {
 		push_template, build_template, type_dynamic_cast
@@ -267,8 +283,13 @@ namespace Corrosive {
 				case 3:
 				case 4:
 					return *(T*)(register_stack_pointer_4b - 1);
-				default:
+				case 5:
+				case 6:
+				case 7:
+				case 8:
 					return *(T*)(register_stack_pointer_8b - 1);
+				default:
+					return *(T*)(register_stack_pointer_8b - 2);
 			}
 		}
 
@@ -281,8 +302,14 @@ namespace Corrosive {
 				case 3:
 				case 4:
 					return *(T*)(--register_stack_pointer_4b);
+				case 5:
+				case 6:
+				case 7:
+				case 8:
+					return *(T*)(--register_stack_pointer_8b);
 				default:
-					return *(T*)(--register_stack_pointer_8b );
+					--register_stack_pointer_8b;
+					return *(T*)(--register_stack_pointer_8b);
 			}
 		}
 
@@ -296,8 +323,13 @@ namespace Corrosive {
 				case 3:
 				case 4:
 					*(T*)(register_stack_pointer_4b++) = v; break;
-				default:
+				case 5:
+				case 6:
+				case 7:
+				case 8:
 					*(T*)(register_stack_pointer_8b++) = v; break;
+				default:
+					*(T*)(register_stack_pointer_8b++) = v; register_stack_pointer_8b++; break;
 			}
 		}
 	};
@@ -356,6 +388,7 @@ namespace Corrosive {
 		static void eval_const_type(ILEvaluator* eval_ctx, void* value);
 		static void eval_const_ptr(ILEvaluator* eval_ctx, void* value);
 		static void eval_const_size(ILEvaluator* eval_ctx, size_t   value);
+		static void eval_const_slice(ILEvaluator* eval_ctx, uint32_t constid, uint64_t size);
 
 		static void build_const_i8(ILBlock* block, int8_t   value);
 		static void build_const_i16(ILBlock* block, int16_t  value);
@@ -369,6 +402,7 @@ namespace Corrosive {
 		static void build_const_f64(ILBlock* block, double   value);
 		static void build_const_type(ILBlock* block, void* value);
 		static void build_const_size(ILBlock* block, ILSize   value);
+		static void build_const_slice(ILBlock* block, uint32_t constid, uint64_t size);
 
 		static void eval_tableoffset(ILEvaluator* eval_ctx, uint32_t tableid, uint16_t itemid);
 		static void eval_tableoffset_pair(ILEvaluator* eval_ctx, uint32_t tableid, uint16_t itemid);

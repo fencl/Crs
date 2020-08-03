@@ -56,7 +56,7 @@ namespace Corrosive {
 				Compiler::push_compiler(compiler.get());
 
 				Source::require("../test/test2.crs");
-				Compiler::current()->register_ext_function({ "std","test" }, test_fun_provider);
+				//Compiler::current()->register_ext_function({ "std","test" }, test_fun_provider);
 				auto res = compiler->find_name("main");
 
 				if (auto fun = res.get_function()) {

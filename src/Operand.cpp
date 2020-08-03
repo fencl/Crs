@@ -1457,10 +1457,9 @@ namespace Corrosive {
 	}
 
 	void Operand::priv_build_subtype(ILEvaluator* eval) {
-
-		auto slice_ptr = eval->pop_register_value<size_t*>();
-		char* slice_data = (char*)slice_ptr[0];
-		size_t slice_size = slice_ptr[1];
+		auto ptr = eval->pop_register_value<dword_t>();
+		const char* slice_data = (const char*)ptr.p1;
+		size_t slice_size = (size_t)ptr.p2;
 
 		std::string_view slice_str(slice_data, slice_size);
 
@@ -2091,13 +2090,10 @@ namespace Corrosive {
 
 				c.move(tok);
 
-				//ret.lvalue is the original: lvalue.x will be lvalue, rvalue.x will be rvalue
 				ret.type = Compiler::current()->types()->t_size;
 
 			}
 			else if (buf == "ptr") {
-				Expression::rvalue(ret, cpt);
-
 				if (cpt == CompileType::compile) {
 					if (ret.lvalue) {
 
@@ -2106,7 +2102,7 @@ namespace Corrosive {
 						ILBuilder::build_load(Compiler::current()->scope(), ILDataType::word);
 					}
 					else {
-						ILBuilder::build_cast(Compiler::current()->scope(), ret.type->rvalue(), ILDataType::word);
+						ILBuilder::build_wroffset(Compiler::current()->scope(), ret.type->rvalue(), ILDataType::word, 0);
 					}
 				}
 				else {
@@ -2117,12 +2113,13 @@ namespace Corrosive {
 						ILBuilder::eval_load(Compiler::current()->evaluator(), ILDataType::word);
 					}
 					else {
-						ILBuilder::build_cast(Compiler::current()->scope(), ret.type->rvalue(), ILDataType::word);
+
+						ILBuilder::eval_wroffset(Compiler::current()->evaluator(), ret.type->rvalue(), ILDataType::word, 0);
 					}
 				}
 
 				c.move(tok);
-				//ret.lvalue is the original: lvalue.x will be lvalue, rvalue.x will be rvalue
+
 				ret.type = Compiler::current()->types()->t_ptr;
 
 			}
@@ -2212,7 +2209,9 @@ namespace Corrosive {
 						ILBuilder::build_woffset(Compiler::current()->scope(), (uint32_t)off);
 					}
 					else {
-						std::cout << "???"; // not invented yet
+						ILBuilder::build_wroffset(Compiler::current()->scope(), ret.type->rvalue(), ILDataType::word, 1);
+						ILBuilder::build_load(Compiler::current()->scope(), ILDataType::word);
+						ILBuilder::build_woffset(Compiler::current()->scope(), (uint32_t)off);
 					}
 				}
 				else {
@@ -2222,7 +2221,9 @@ namespace Corrosive {
 						ILBuilder::eval_woffset(Compiler::current()->evaluator(), (uint32_t)off);
 					}
 					else {
-						std::cout << "???"; // not invented yet
+						ILBuilder::eval_wroffset(Compiler::current()->evaluator(), ret.type->rvalue(), ILDataType::word, 1);
+						ILBuilder::eval_load(Compiler::current()->evaluator(), ILDataType::word);
+						ILBuilder::eval_woffset(Compiler::current()->evaluator(), (uint32_t)off);
 					}
 				}
 
@@ -2338,7 +2339,7 @@ namespace Corrosive {
 		slice->compile();
 
 		if (cpt == CompileType::compile) {
-			uint32_t local_id = Compiler::current()->target()->local_stack_lifetime.append(slice->size());
+			/*uint32_t local_id = Compiler::current()->target()->local_stack_lifetime.append(slice->size());
 			Compiler::current()->temp_stack()->push_item("$tmp", slice, local_id, StackItemTag::regular);
 			ILBuilder::build_constref(Compiler::current()->scope(), lit.second);
 			ILBuilder::build_local(Compiler::current()->scope(), local_id);
@@ -2347,10 +2348,11 @@ namespace Corrosive {
 			ILBuilder::build_local(Compiler::current()->scope(), local_id);
 			ILBuilder::build_woffset(Compiler::current()->scope(), 1);
 			ILBuilder::build_store(Compiler::current()->scope(), ILDataType::word);
-			ILBuilder::build_local(Compiler::current()->scope(), local_id);
+			ILBuilder::build_local(Compiler::current()->scope(), local_id);*/
+			ILBuilder::build_const_slice(Compiler::current()->scope(), lit.second, (uint64_t)lit.first.length());
 		}
 		else {
-			uint32_t local_id = Compiler::current()->push_local(slice->size());
+			/*uint32_t local_id = Compiler::current()->push_local(slice->size());
 			Compiler::current()->compiler_stack()->push_item("$tmp", slice, local_id, StackItemTag::regular);
 			ILBuilder::eval_constref(Compiler::current()->evaluator(), lit.second);
 			Compiler::current()->eval_local(local_id);
@@ -2359,7 +2361,8 @@ namespace Corrosive {
 			Compiler::current()->eval_local(local_id);
 			ILBuilder::eval_woffset(Compiler::current()->evaluator(), 1);
 			ILBuilder::eval_store(Compiler::current()->evaluator(), ILDataType::word);
-			Compiler::current()->eval_local(local_id);
+			Compiler::current()->eval_local(local_id);*/
+			ILBuilder::eval_const_slice(Compiler::current()->evaluator(), lit.second, (uint64_t)lit.first.length());
 		}
 
 		c.move(tok);

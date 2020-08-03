@@ -193,6 +193,7 @@ namespace Corrosive {
 			case ILDataType::f32: std::cout << "f32"; break;
 			case ILDataType::f64: std::cout << "f64"; break;
 			case ILDataType::word:  std::cout << "w"; break;
+			case ILDataType::dword:  std::cout << "dw"; break;
 			case ILDataType::none: std::cout << "none"; break;
 			default: std::cout << "error";
 		}
@@ -946,6 +947,9 @@ namespace Corrosive {
 					std::cout << *address << " \"" << parent->blocks_memory[*address]->alias << "\"\n";
 					break;
 				}
+
+				case ILInstruction::slice: std::cout << "   slice constref " << *read_data_type(uint32_t) <<", " << *read_data_type(uint64_t) << "\n"; break;
+
 				case ILInstruction::u8:  std::cout << "   u8 " << (uint16_t)*read_data_type(uint8_t) << "\n"; break;
 				case ILInstruction::u16: std::cout << "   u16 " << *read_data_type(uint16_t) << "\n"; break;
 				case ILInstruction::u32: std::cout << "   u32 " << *read_data_type(uint32_t) << "\n"; break;
