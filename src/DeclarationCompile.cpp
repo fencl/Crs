@@ -44,6 +44,7 @@ namespace Corrosive {
 					Cursor err = c;
 					CompileValue value;
 					Expression::parse(c, tok, value, CompileType::eval);
+					Operand::deref(value, CompileType::eval);
 					Expression::rvalue(value, CompileType::eval);
 
 					if (value.type != Compiler::current()->types()->t_type) {
@@ -124,6 +125,7 @@ namespace Corrosive {
 					Cursor err = c;
 					CompileValue value;
 					Expression::parse(c, tok, value, CompileType::eval);
+					Operand::deref(value, CompileType::eval);
 					Expression::rvalue(value, CompileType::eval);
 
 					if (value.type != Compiler::current()->types()->t_type) {
@@ -203,6 +205,7 @@ namespace Corrosive {
 					Cursor err = c;
 					CompileValue value;
 					Expression::parse(c, tok, value, CompileType::eval);
+					Operand::deref(value, CompileType::eval);
 					Expression::rvalue(value, CompileType::eval);
 
 					if (value.type != Compiler::current()->types()->t_type) {
@@ -372,6 +375,7 @@ namespace Corrosive {
 				Cursor c = load_cursor(m->trait, src, tok);
 				Cursor err = c;
 				Expression::parse(c, tok, value, CompileType::eval);
+				Operand::deref(value, CompileType::eval);
 				Expression::rvalue(value, CompileType::eval);
 
 				if (value.type != Compiler::current()->types()->t_type) {
@@ -451,6 +455,7 @@ namespace Corrosive {
 								Cursor err = c;
 								CompileValue res;
 								Expression::parse(c, tok, res, CompileType::eval);
+								Operand::deref(value, CompileType::eval);
 								Expression::rvalue(res, CompileType::eval);
 								if (res.type != Compiler::current()->types()->t_type) {
 									throw_specific_error(err, "Expected type");
@@ -499,6 +504,7 @@ namespace Corrosive {
 							Cursor err = c;
 							CompileValue res;
 							Expression::parse(c, tok, res, CompileType::eval);
+							Operand::deref(value, CompileType::eval);
 							Expression::rvalue(res, CompileType::eval);
 
 							if (res.type != Compiler::current()->types()->t_type) {
@@ -549,6 +555,7 @@ namespace Corrosive {
 				Cursor c = load_cursor(m->type, src, tok);
 				Cursor err = c;
 				Expression::parse(c, tok, value, CompileType::eval);
+				Operand::deref(value, CompileType::eval);
 				Expression::rvalue(value, CompileType::eval);
 				if (value.type != Compiler::current()->types()->t_type) {
 					throw_specific_error(err, "Expected type value");
@@ -658,6 +665,7 @@ namespace Corrosive {
 						Cursor err = c;
 						CompileValue val;
 						Expression::parse(c, tok, val, CompileType::eval);
+						Operand::deref(val, CompileType::eval);
 						Expression::rvalue(val, CompileType::eval);
 
 						if (val.type != Compiler::current()->types()->t_type) {
@@ -685,6 +693,7 @@ namespace Corrosive {
 					Cursor err = c;
 					CompileValue val;
 					Expression::parse(c, tok, val, CompileType::eval);
+					Operand::deref(val, CompileType::eval);
 					Expression::rvalue(val, CompileType::eval);
 
 					if (val.type != Compiler::current()->types()->t_type) {
@@ -786,6 +795,7 @@ namespace Corrosive {
 
 					Cursor err = c;
 					Expression::parse(c, tok, cvres, CompileType::eval);
+					Operand::deref(cvres, CompileType::eval);
 					Expression::rvalue(cvres, CompileType::eval);
 
 					if (cvres.type != Compiler::current()->types()->t_type) {
@@ -811,6 +821,7 @@ namespace Corrosive {
 			if (tok != RecognizedToken::OpenBrace && tok != RecognizedToken::Semicolon) {
 				Cursor err = c;
 				Expression::parse(c, tok, cvres, CompileType::eval);
+				Operand::deref(cvres, CompileType::eval);
 				Expression::rvalue(cvres, CompileType::eval);
 
 				if (cvres.type != Compiler::current()->types()->t_type) {
@@ -1126,6 +1137,7 @@ namespace Corrosive {
 
 			CompileValue typevalue;
 			Expression::parse(c, tok, typevalue, CompileType::eval);
+			Operand::deref(typevalue, CompileType::eval);
 			Expression::rvalue(typevalue, CompileType::eval);
 
 			

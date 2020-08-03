@@ -67,7 +67,7 @@ namespace Corrosive {
 	}
 
 	ILDataType Expression::arithmetic_type(Type* type) {
-		if (type->type() != TypeInstanceType::type_structure_instance && type->type() != TypeInstanceType::type_reference) {
+		if (type->type() != TypeInstanceType::type_structure_instance || type == Compiler::current()->types()->t_ptr) {
 			return ILDataType::none;
 		}
 
@@ -96,7 +96,8 @@ namespace Corrosive {
 		Type* result_type = nullptr;
 
 		if (!(result_type = Expression::arithmetic_result(left.type, right.type))) {
-			if ((l == 1 || l == 2) && left.type == right.type) {
+			if ((l == 1 || l == 2) && (left.type == right.type)) {
+
 				int8_t eval_value = 0;
 
 				if (cpt == CompileType::compile) {
@@ -339,8 +340,11 @@ namespace Corrosive {
 		CompileValue val;
 		parse_or(c,tok, val, cpt);
 		unsigned char op = 0;
+		bool assign = false;
 		switch (tok) {
-			case RecognizedToken::Equals: {
+			case RecognizedToken::Equals:
+				Operand::deref(val, cpt);
+			case RecognizedToken::ColonEquals: {
 
 				if (!val.lvalue) {
 					throw_specific_error(c, "Left assignment must be modifiable lvalue");
@@ -373,6 +377,7 @@ namespace Corrosive {
 			case RecognizedToken::MinusEquals:
 			case RecognizedToken::StarEquals:
 			case RecognizedToken::SlashEquals: {
+				Operand::deref(val, cpt);
 
 				switch (tok) {
 					case RecognizedToken::PlusEquals: op = 1; break;
@@ -473,6 +478,7 @@ namespace Corrosive {
 
 		while (tok == RecognizedToken::DoubleAnd) {
 
+			Operand::deref(value, cpt);
 			Operand::cast(err, value, Compiler::current()->types()->t_bool, cpt, true);
 			/*if (value.t != Compiler::current()->types()->t_bool) {
 				throw_specific_error(c, "Operation requires left operand to be boolean");
@@ -490,6 +496,7 @@ namespace Corrosive {
 				CompileValue right;
 				err = c;
 				Expression::parse_operators(c,tok, right, cpt);
+				Operand::deref(right, cpt);
 				Expression::rvalue(right, cpt);
 				Operand::cast(err, right, Compiler::current()->types()->t_bool, cpt, true);
 
@@ -525,6 +532,7 @@ namespace Corrosive {
 
 		if (fallback != nullptr && cpt == CompileType::compile) {
 
+			Operand::deref(value, cpt);
 			Operand::cast(err, value, Compiler::current()->types()->t_bool, cpt, true);
 
 			Expression::rvalue(value, cpt);
@@ -555,6 +563,7 @@ namespace Corrosive {
 		Expression::parse_and(c,tok, value, cpt);
 
 		while (tok == RecognizedToken::DoubleOr) {
+			Operand::deref(value, cpt);
 			Operand::cast(err, value, Compiler::current()->types()->t_bool, cpt, true);
 			Expression::rvalue(value, cpt);
 
@@ -567,6 +576,7 @@ namespace Corrosive {
 				Compiler::current()->evaluator()->pop_register_value<uint8_t>();
 				CompileValue right;
 				Expression::parse_and(c,tok, right, cpt);
+				Operand::deref(right, cpt);
 				Expression::rvalue(right, cpt);
 				Operand::cast(err, right, Compiler::current()->types()->t_bool, cpt, true);
 
@@ -601,6 +611,7 @@ namespace Corrosive {
 
 		if (fallback != nullptr && cpt == CompileType::compile) {
 
+			Operand::deref(value, cpt);
 			Operand::cast(err, value, Compiler::current()->types()->t_bool, cpt, true);
 
 			Expression::rvalue(value, cpt);
@@ -703,6 +714,7 @@ namespace Corrosive {
 			}
 
 			if (op_v >= 0 || current_layer >= 0) {
+				Operand::deref(value, cpt);
 				Expression::rvalue(value, cpt);
 			}
 

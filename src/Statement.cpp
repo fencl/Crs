@@ -12,6 +12,8 @@ namespace Corrosive {
 		Compiler::current()->stack()->push_block();
 		Compiler::current()->target()->local_stack_lifetime.push(); // scope push
 		Compiler::current()->push_defer_scope();
+
+		Compiler::current()->compiler_stack()->push_block();
 	}
 
 	void Statement::parse_inner_block(Cursor& c,RecognizedToken& tok, BlockTermination& termination, bool exit_returns, Cursor* err) {
@@ -93,6 +95,7 @@ namespace Corrosive {
 
 		Compiler::current()->pop_defer_scope();
 		Compiler::current()->stack()->pop_block();
+		Compiler::current()->compiler_stack()->pop_block();
 	}
 
 	void Statement::parse(Cursor& c,RecognizedToken& tok, CompileType cmp, BlockTermination& termination) {
@@ -221,6 +224,7 @@ namespace Corrosive {
 
 		CompileValue ret_val;
 		Expression::parse(c,tok, ret_val, cmp, false);
+		Operand::deref(ret_val, CompileType::compile);
 
 		if (tok != RecognizedToken::Semicolon) {
 			throw_wrong_token_error(c, "';'");
@@ -235,6 +239,7 @@ namespace Corrosive {
 		Cursor err = c;
 
 		Expression::parse(c,tok, test_value, CompileType::compile);
+		Operand::deref(test_value, CompileType::compile);
 		Operand::cast(err, test_value, Compiler::current()->types()->t_bool, CompileType::compile, false);
 		Expression::rvalue(test_value, CompileType::compile);
 
@@ -316,6 +321,7 @@ namespace Corrosive {
 		Cursor err = c;
 
 		Expression::parse(c,tok, test_value, CompileType::compile);
+		Operand::deref(test_value, CompileType::compile);
 		Operand::cast(err, test_value, Compiler::current()->types()->t_bool, CompileType::compile, false);
 		Expression::rvalue(test_value, CompileType::compile);
 
@@ -371,6 +377,7 @@ namespace Corrosive {
 
 		err = cc;
 		Expression::parse(cc, tok2, test_value, CompileType::compile);
+		Operand::deref(test_value, CompileType::compile);
 		Operand::cast(err, test_value, Compiler::current()->types()->t_bool, CompileType::compile, false);
 		Expression::rvalue(test_value, CompileType::compile);
 
@@ -395,6 +402,7 @@ namespace Corrosive {
 		Compiler::current()->push_scope(increment_block);
 
 		Expression::parse(cc, tok2, test_value, CompileType::compile, false);
+		Operand::deref(test_value, CompileType::compile);
 		ILBuilder::build_jmp(increment_block, test_block);
 
 		Compiler::current()->push_loop_blocks(continue_block, increment_block);
@@ -436,6 +444,8 @@ namespace Corrosive {
 		CompileValue ret_val;
 		Cursor err = c;
 		Expression::parse(c,tok, ret_val, CompileType::compile);
+		Operand::deref(ret_val, CompileType::compile);
+
 		Type* to = Compiler::current()->return_type();
 		Operand::cast(err, ret_val, to, CompileType::compile, false);
 		Expression::rvalue(ret_val, CompileType::compile);
@@ -492,8 +502,14 @@ namespace Corrosive {
 
 	void Statement::parse_let(Cursor& c, RecognizedToken& tok) {
 		//Compiler::current()->target()->local_stack_lifetime.discard_push(); // temp push
+		bool compile = false;
 
 		c.move(tok);
+		if (c.buffer() == "compile") {
+			compile = true;
+			c.move(tok);
+		}
+
 		bool reference = false;
 		if (tok == RecognizedToken::And) {
 			reference = true;
@@ -519,42 +535,76 @@ namespace Corrosive {
 		
 		c.move(tok);
 
-		size_t let_holder;
-		uint32_t local_id = Compiler::current()->target()->local_stack_lifetime.append_unknown(let_holder);
+		if (!compile) {
+			size_t let_holder;
+			uint32_t local_id = Compiler::current()->target()->local_stack_lifetime.append_unknown(let_holder);
+
+			Cursor err = c;
+			CompileValue val;
+			Expression::parse(c, tok, val, CompileType::compile);
+			Operand::deref(val, CompileType::compile);
+
+			if (!reference) {
+				Expression::rvalue(val, CompileType::compile);
+			}
+			else {
+				if (!val.lvalue) {
+					throw_specific_error(err, "Cannot create reference to rvalue");
+				}
+			}
+			Type* new_t = val.type;
+			new_t->compile();
+
+			if (new_t->context() != ILContext::both && Compiler::current()->scope_context() != new_t->context()) {
+				throw_specific_error(err, "Type was not designed for this context");
+			}
+
+			if (reference) {
+				new_t = new_t->generate_reference();
+			}
+
+			Compiler::current()->target()->local_stack_lifetime.resolve_unknown(let_holder, new_t->size());
+			Compiler::current()->stack()->push_item(name.buffer(), new_t, local_id, StackItemTag::regular);
 
 
-		//Compiler::current()->target()->local_stack_lifetime.push(); // temp push
-
-		Cursor err = c;
-		CompileValue val;
-		Expression::parse(c,tok, val, CompileType::compile);
-
-		if (!reference) {			
-			Expression::rvalue(val, CompileType::compile);
+			ILBuilder::build_local(Compiler::current()->scope(), local_id);
+			Expression::copy_from_rvalue(new_t, CompileType::compile, false);
 		}
 		else {
-			if (!val.lvalue) {
-				throw_specific_error(err, "Cannot create reference to rvalue");
+			auto scope = ScopeState().context(ILContext::compile);
+
+			Cursor err = c;
+			CompileValue val;
+			Expression::parse(c, tok, val, CompileType::eval);
+			Operand::deref(val, CompileType::eval);
+
+			if (!reference) {
+				Expression::rvalue(val, CompileType::eval);
 			}
+			else {
+				if (!val.lvalue) {
+					throw_specific_error(err, "Cannot create reference to rvalue");
+				}
+			}
+			Type* new_t = val.type;
+			new_t->compile();
+
+			if (new_t->context() != ILContext::both && Compiler::current()->scope_context() != new_t->context()) {
+				throw_specific_error(err, "Type was not designed for this context");
+			}
+
+			if (reference) {
+				new_t = new_t->generate_reference();
+			}
+
+			uint16_t loc_id = Compiler::current()->push_local(new_t->size());
+			uint8_t* loc_ptr = Compiler::current()->stack_ptr(loc_id);
+
+			Compiler::current()->compiler_stack()->push_item(name.buffer(), new_t, loc_id, StackItemTag::regular);
+
+			ILBuilder::eval_const_ptr(Compiler::current()->evaluator(), loc_ptr);
+			Expression::copy_from_rvalue(new_t, CompileType::eval, false);
 		}
-		Type* new_t = val.type;
-		new_t->compile();
-
-		if (new_t->context() != ILContext::both && Compiler::current()->scope_context() != new_t->context()) {
-			throw_specific_error(err, "Type was not designed for this context");
-		}
-
-		if (reference) {
-			new_t = new_t->generate_reference();
-		}
-
-		Compiler::current()->target()->local_stack_lifetime.resolve_unknown(let_holder,new_t->size());
-
-		Compiler::current()->stack()->push_item(name.buffer(), new_t, local_id, StackItemTag::regular);
-	
-
-		ILBuilder::build_local(Compiler::current()->scope(), local_id);
-		Expression::copy_from_rvalue(new_t, CompileType::compile, false);
 		
 		if (tok != RecognizedToken::Semicolon) {
 			throw_wrong_token_error(c, "';'");
@@ -582,6 +632,7 @@ namespace Corrosive {
 		Compiler::current()->push_scope_context(ILContext::compile);
 
 		Expression::parse(c,tok, val, CompileType::eval);
+		Operand::deref(val, CompileType::compile);
 		Expression::rvalue(val, CompileType::eval);
 
 		if (val.type != Compiler::current()->types()->t_type) {

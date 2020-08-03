@@ -122,8 +122,9 @@ namespace Corrosive {
 	void DefaultTypes::setup() {
 
 		std_lib.load_data(
+			"static compile ptr = &void;\n"
 			"fn(T: type) copy_slice: (to: []T, from: []T) { let i=0; while(i<from.count) { to[i] = from[i]; i = i+1;} }\n"
-			"fn(T: type) invalidate_slice: (slice: &[]T) { (*slice).ptr = null; (*slice).size=0; }\n"
+			"fn(T: type) invalidate_slice: (slice: &[]T) { slice.ptr = null; slice.size=0; }\n"
 			"namespace compiler {\n"
 			"fn compile ext reference_of: (type) type;\n"
 			"fn compile ext array_of: (type, u32) type;\n"
@@ -152,9 +153,11 @@ namespace Corrosive {
 		setup_type("f64", t_f64, { ILSizeType::absolute,8 }, ILDataType::f64, ILContext::both, std_lib.root_node.get());
 		setup_type("i64", t_i64, { ILSizeType::absolute,8 }, ILDataType::i64, ILContext::both, std_lib.root_node.get());
 		setup_type("u64", t_u64, { ILSizeType::absolute,8 }, ILDataType::u64, ILContext::both, std_lib.root_node.get());
-		setup_type("ptr", t_ptr, { ILSizeType::word,1 }, ILDataType::word, ILContext::both, std_lib.root_node.get());
+		//setup_type("ptr", t_ptr, { ILSizeType::word,1 }, ILDataType::word, ILContext::both, std_lib.root_node.get());
 		setup_type("size", t_size, { ILSizeType::word,1 }, ILDataType::word, ILContext::both, std_lib.root_node.get());
 		setup_type("type", t_type, { ILSizeType::word,1 }, ILDataType::word, ILContext::compile, std_lib.root_node.get());
+
+		t_ptr = t_void->generate_reference();
 
 		primitives[(unsigned char)ILDataType::u8] = t_u8;
 		primitives[(unsigned char)ILDataType::u16] = t_u16;

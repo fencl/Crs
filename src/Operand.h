@@ -24,12 +24,14 @@ namespace Corrosive {
 		static void priv_build_build_template(ILEvaluator* eval);
 		static void priv_type_size(ILEvaluator* eval);
 
+
 		static Type* template_stack[1024];
 		static uint16_t template_sp;
 
+		static void deref(CompileValue& val, CompileType cpt);
 		static void function_call(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType cpt, unsigned int argi);
 		static void structure_element_offset(CompileValue& ret, uint16_t id, CompileType cpt);
-		static void parse_const_type_function(Cursor& c, RecognizedToken& tok, FunctionInstance*& func,Type*& type, StaticInstance*& s_inst,ILSize& type_size);
+		static void parse_const_type_function(Cursor& c, RecognizedToken& tok, CompileValue& res);
 		static void parse_expression(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType copm_type);
 		static void parse_reference(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType copm_type);
 		static void parse_array_type(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType copm_type);

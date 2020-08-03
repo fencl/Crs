@@ -64,6 +64,7 @@ namespace Corrosive {
 		TraitTemplate* get_trait() { return type() == FindNameResultType::Trait ? std::get<4>(value) : nullptr; }
 		StaticInstance* get_static() { return type() == FindNameResultType::Static ? std::get<5>(value) : nullptr; }
 
+		FindNameResult() : value(nullptr) {}
 		FindNameResult(nullptr_t v) :value(v) {}
 		FindNameResult(Namespace* v) :value(v) {}
 		FindNameResult(StructureTemplate* v) :value(v) {}

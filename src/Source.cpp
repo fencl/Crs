@@ -461,7 +461,7 @@ namespace Corrosive {
 		ILBlock* b = func->create_and_append_block();
 		b->alias = "entry";
 
-		auto scope = ScopeState().function(func, Compiler::current()->types()->t_void).context(ILContext::compile).stack();
+		auto scope = ScopeState().function(func, Compiler::current()->types()->t_void).context(ILContext::compile).stack().compiler_stack();
 
 		Statement::parse_inner_block_start(b);
 		RecognizedToken tok;
