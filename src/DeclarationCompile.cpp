@@ -312,6 +312,8 @@ namespace Corrosive {
 			new_inst->generic_inst.generator = &generic_ctx;
 			new_inst->context = ast_node->context;
 
+			auto state = ScopeState().workspace(new_inst);
+
 			RecognizedToken tok;
 
 			new_inst->generic_inst.insert_key_on_stack();
@@ -463,11 +465,11 @@ namespace Corrosive {
 									ft->arguments.push_back(argt);
 								}
 								else {
-									if (ft->arguments.size() - 1 >= args.size()) {
+									if (ft->arguments.size() >= args.size()) {
 										throw_specific_error(err, "There are more arguments than in the original trait function");
 									}
 
-									Type* req_type = args[ft->arguments.size() - 1];
+									Type* req_type = args[ft->arguments.size()];
 									if (argt != req_type) {
 										throw_specific_error(err, "Argument does not match the type of the original trait function");
 									}
@@ -487,7 +489,7 @@ namespace Corrosive {
 							}
 						}
 
-						if (ft->arguments.size() != args.size() + 1) {
+						if (ft->arguments.size() != args.size()) {
 							throw_specific_error(c, "Trait function declaration lacks arguments from the original");
 						}
 
@@ -644,6 +646,7 @@ namespace Corrosive {
 			for (auto&& m : ast_node->declarations) {
 
 				std::vector<Type*> args;
+				args.push_back(Compiler::current()->types()->t_ptr);
 				Type* ret_type;
 
 				RecognizedToken tok;
@@ -690,7 +693,6 @@ namespace Corrosive {
 					Type* t = Compiler::current()->evaluator()->pop_register_value<Type*>();
 					ret_type = t;
 				}
-
 
 				TypeFunction* type = Compiler::current()->types()->load_or_register_function_type(ILCallingConvention::bytecode, std::move(args), ret_type, ILContext::both);
 

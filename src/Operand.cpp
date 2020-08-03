@@ -175,42 +175,17 @@ namespace Corrosive {
 
 			if (cpt == CompileType::eval) {
 
-
-				if (to->rvalue_stacked()) {
-					uint16_t sid = Compiler::current()->push_local(to->size());
-					unsigned char* memory_place = Compiler::current()->stack_ptr(sid);
-					Compiler::current()->compiler_stack()->push_item("$tmp", to, sid, StackItemTag::regular);
-
-					ILBuilder::eval_const_ptr(Compiler::current()->evaluator(), memory_place);
-					ILBuilder::eval_store(Compiler::current()->evaluator(), ILDataType::word);
-					ILBuilder::eval_vtable(Compiler::current()->evaluator(), vtableid);
-					ILBuilder::eval_const_ptr(Compiler::current()->evaluator(), memory_place + sizeof(void*));
-					ILBuilder::eval_store(Compiler::current()->evaluator(), ILDataType::word);
-					ILBuilder::eval_const_ptr(Compiler::current()->evaluator(), memory_place);
-				}
-				else {
-					ILBuilder::eval_vtable(Compiler::current()->evaluator(), vtableid); // there is two pointers on register stack, if i read 2x pointer size register it will read the right value
-				}
+				ILBuilder::eval_vtable(Compiler::current()->evaluator(), vtableid);
+				ILBuilder::eval_combine_dword(Compiler::current()->evaluator());
 
 			}
 			else {
-				if (to->rvalue_stacked()) {
-					to->compile();
-					uint32_t local_id = Compiler::current()->target()->local_stack_lifetime.append(to->size());
-					Compiler::current()->temp_stack()->push_item("$tmp", to, local_id, StackItemTag::regular);
-					ILBuilder::build_local(Compiler::current()->scope(), local_id);
-					ILBuilder::build_store(Compiler::current()->scope(), ILDataType::word);
-					ILBuilder::build_vtable(Compiler::current()->scope(), vtableid);
-					ILBuilder::build_local(Compiler::current()->scope(), local_id);
-					ILBuilder::build_woffset(Compiler::current()->scope(), 1);
-					ILBuilder::build_store(Compiler::current()->scope(), ILDataType::word);
-					ILBuilder::build_local(Compiler::current()->scope(), local_id);
-				}
-				else {
-					std::cout << "???"; // two pointers require 128 int on x64, not yet implemented
-				}
-			}
 
+				ILBuilder::build_vtable(Compiler::current()->scope(), vtableid);
+				ILBuilder::build_combine_dword(Compiler::current()->scope());
+
+			}
+			res.lvalue = false;
 			res.type = to;
 
 
@@ -1873,16 +1848,16 @@ namespace Corrosive {
 		}
 		else {
 
-			StackItem local_stack_item;
+			uint16_t local_stack_item;
 
 			ILBuilder::eval_callstart(Compiler::current()->evaluator());
 
 			if (ft->return_type->rvalue_stacked()) {
-				uint16_t sid = Compiler::current()->push_local(retval.type->size());
-				unsigned char* memory_place = Compiler::current()->stack_ptr(sid);
+				local_stack_item = Compiler::current()->push_local(retval.type->size());
+				unsigned char* memory_place = Compiler::current()->stack_ptr(local_stack_item);
 
-				Compiler::current()->compiler_stack()->push_item("$tmp", retval.type, sid, StackItemTag::regular);
-				Compiler::current()->eval_local(sid);
+				Compiler::current()->compiler_stack()->push_item("$tmp", retval.type, local_stack_item, StackItemTag::regular);
+				Compiler::current()->eval_local(local_stack_item);
 			}
 
 			Operand::read_arguments(c,tok, argi, ft, cpt);
@@ -1898,7 +1873,7 @@ namespace Corrosive {
 			ILBuilder::eval_call(Compiler::current()->evaluator(), ft->il_function_decl);
 
 			if (ft->return_type->rvalue_stacked()) {
-				Compiler::current()->eval_local(local_stack_item.id);
+				Compiler::current()->eval_local(local_stack_item);
 			}
 
 			ret.type = ft->return_type;
@@ -2147,87 +2122,90 @@ namespace Corrosive {
 			}
 
 			Expression::rvalue(ret, cpt);
+
 			c.move(tok);
 			if (tok == RecognizedToken::OpenParenthesis) {
 				if (cpt == CompileType::compile) {
-					if (ret.type->rvalue_stacked()) {
+					ILBuilder::build_split_dword(Compiler::current()->scope());
+					ILBuilder::build_woffset(Compiler::current()->scope(), (uint32_t)off);
+					ILBuilder::build_load(Compiler::current()->scope(), ILDataType::word);
+					ILBuilder::build_callstart(Compiler::current()->scope());
+				}
+				else {
+					ILBuilder::eval_split_dword(Compiler::current()->evaluator());
+					ILBuilder::eval_woffset(Compiler::current()->evaluator(), (uint32_t)off);
+					ILBuilder::eval_load(Compiler::current()->evaluator(), ILDataType::word);
+					ILBuilder::eval_callstart(Compiler::current()->evaluator());
+				}
 
-						ILBuilder::build_duplicate(Compiler::current()->scope(), ILDataType::word);
+				uint32_t local_return_id = 0;
+				unsigned char* memory_place = nullptr;
 
-						ILBuilder::build_woffset(Compiler::current()->scope(), 1);
-						ILBuilder::build_load(Compiler::current()->scope(), ILDataType::word);
-						ILBuilder::build_woffset(Compiler::current()->scope(), (uint32_t)off);
-						ILBuilder::build_load(Compiler::current()->scope(), ILDataType::word);
-						ILBuilder::build_callstart(Compiler::current()->scope());
-
-						ILBuilder::build_load(Compiler::current()->scope(), ILDataType::word);
-					}
-					else {
-						throw_specific_error(c, "Compiler error, trait object was placed inside register, but register trait call was not implemented");
+				if (cpt == CompileType::compile) {
+					if (mf->return_type->rvalue_stacked()) {
+						local_return_id = Compiler::current()->target()->local_stack_lifetime.append(mf->return_type->size());
+						Compiler::current()->temp_stack()->push_item("$tmp", mf->return_type, local_return_id, StackItemTag::regular);
+						ILBuilder::build_local(Compiler::current()->scope(), local_return_id);
 					}
 				}
 				else {
-					if (ret.type->rvalue_stacked()) {
-
-						ILBuilder::eval_duplicate(Compiler::current()->evaluator(), ILDataType::word);
-
-						ILBuilder::eval_woffset(Compiler::current()->evaluator(), 1);
-						ILBuilder::eval_load(Compiler::current()->evaluator(), ILDataType::word);
-						ILBuilder::eval_woffset(Compiler::current()->evaluator(), (uint32_t)off);
-						ILBuilder::eval_load(Compiler::current()->evaluator(), ILDataType::word);
-						ILBuilder::eval_callstart(Compiler::current()->evaluator());
-
-						ILBuilder::eval_load(Compiler::current()->evaluator(), ILDataType::word);
-					}
-					else {
-						throw_specific_error(c, "Compiler error, trait object was placed inside register, but register trait call was not implemented");
+					if (mf->return_type->rvalue_stacked()) {
+						uint16_t sid = Compiler::current()->push_local(mf->return_type->size());
+						memory_place = Compiler::current()->stack_ptr(sid);
+						Compiler::current()->compiler_stack()->push_item("$tmp", mf->return_type, sid, StackItemTag::regular);
+						Compiler::current()->eval_local(sid);
 					}
 				}
 
 				c.move(tok);
 				unsigned int argi = 1;
 				Operand::read_arguments(c,tok, argi, mf, cpt);
-				c.move(tok);
 
 				mf->compile();
 
-				if (cpt == CompileType::compile) {
-					ILBuilder::build_call(Compiler::current()->scope(), mf->il_function_decl);
+				c.move(tok);
+
+				if (!Compiler::current()->targets_defer() || tok!=RecognizedToken::Semicolon) {
+					if (cpt == CompileType::compile) {
+						ILBuilder::build_call(Compiler::current()->scope(), mf->il_function_decl);
+
+						if (mf->return_type->rvalue_stacked()) {
+							ILBuilder::build_local(Compiler::current()->scope(), local_return_id);
+						}
+					}
+					else {
+						ILBuilder::eval_call(Compiler::current()->evaluator(), mf->il_function_decl);
+
+						if (mf->return_type->rvalue_stacked()) {
+							ILBuilder::eval_const_ptr(Compiler::current()->evaluator(), memory_place);
+						}
+					}
+
+					ret.lvalue = false;
+					ret.type = mf->return_type;
 				}
 				else {
-					ILBuilder::eval_call(Compiler::current()->evaluator(), mf->il_function_decl);
+					Compiler::current()->defer_scope().push_back(mf);
+
+					ret.lvalue = true;
+					ret.type = Compiler::current()->types()->t_void;
 				}
 
-				ret.lvalue = false;
-				ret.type = mf->return_type;
+
 			}
 			else {
 				if (cpt == CompileType::compile) {
-					if (ret.type->rvalue_stacked()) {
-						ILBuilder::build_woffset(Compiler::current()->scope(), 1);
-						ILBuilder::build_load(Compiler::current()->scope(), ILDataType::word);
-						ILBuilder::build_woffset(Compiler::current()->scope(), (uint32_t)off);
-					}
-					else {
-						ILBuilder::build_wroffset(Compiler::current()->scope(), ret.type->rvalue(), ILDataType::word, 1);
-						ILBuilder::build_load(Compiler::current()->scope(), ILDataType::word);
-						ILBuilder::build_woffset(Compiler::current()->scope(), (uint32_t)off);
-					}
+					ILBuilder::build_high_word(Compiler::current()->scope());
+					ILBuilder::build_woffset(Compiler::current()->scope(), (uint32_t)off);
+					ILBuilder::build_load(Compiler::current()->scope(), ILDataType::word);
 				}
 				else {
-					if (ret.type->rvalue_stacked()) {
-						ILBuilder::eval_woffset(Compiler::current()->evaluator(), 1);
-						ILBuilder::eval_load(Compiler::current()->evaluator(), ILDataType::word);
-						ILBuilder::eval_woffset(Compiler::current()->evaluator(), (uint32_t)off);
-					}
-					else {
-						ILBuilder::eval_wroffset(Compiler::current()->evaluator(), ret.type->rvalue(), ILDataType::word, 1);
-						ILBuilder::eval_load(Compiler::current()->evaluator(), ILDataType::word);
-						ILBuilder::eval_woffset(Compiler::current()->evaluator(), (uint32_t)off);
-					}
+					ILBuilder::eval_high_word(Compiler::current()->evaluator());
+					ILBuilder::eval_woffset(Compiler::current()->evaluator(), (uint32_t)off);
+					ILBuilder::eval_load(Compiler::current()->evaluator(), ILDataType::word);
 				}
 
-				ret.lvalue = true;
+				ret.lvalue = false;
 				ret.type = mf;
 			}
 		}

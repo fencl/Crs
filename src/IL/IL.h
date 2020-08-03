@@ -57,7 +57,7 @@ namespace Corrosive {
 		memcpy, memcpy2, memcmp, memcmp2, rmemcmp, rmemcmp2,
 		rtoffset, rtoffset2, null, isnotzero, yield, discard, accept,
 		debug, constref, staticref, negative, negate, tableoffset, tableroffset, tableoffset2,
-		aoffset, aoffset2, woffset, woffset2, aroffset, wroffset, clone, clone2
+		aoffset, aoffset2, woffset, woffset2, aroffset, wroffset, clone, clone2, combinedw, splitdw, highdw
 	};
 
 	enum class ILDataType : unsigned char {
@@ -404,6 +404,9 @@ namespace Corrosive {
 		static void build_const_size(ILBlock* block, ILSize   value);
 		static void build_const_slice(ILBlock* block, uint32_t constid, uint64_t size);
 
+		static void eval_combine_dword(ILEvaluator* eval_ctx);
+		static void eval_high_word(ILEvaluator* eval_ctx);
+		static void eval_split_dword(ILEvaluator* eval_ctx);
 		static void eval_tableoffset(ILEvaluator* eval_ctx, uint32_t tableid, uint16_t itemid);
 		static void eval_tableoffset_pair(ILEvaluator* eval_ctx, uint32_t tableid, uint16_t itemid);
 		static void eval_tableroffset(ILEvaluator* eval_ctx, ILDataType src, ILDataType dst, uint32_t tableid, uint16_t itemid);
@@ -467,6 +470,10 @@ namespace Corrosive {
 
 		static ILDataType arith_result(ILDataType l, ILDataType r);
 
+
+		static void build_combine_dword(ILBlock* block);
+		static void build_high_word(ILBlock* block);
+		static void build_split_dword(ILBlock* block);
 		static void build_duplicate(ILBlock* block, ILDataType type);
 		static void build_clone(ILBlock* block, ILDataType type, uint16_t times);
 		static void build_duplicate_pair(ILBlock* block, ILDataType type);

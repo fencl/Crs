@@ -757,6 +757,18 @@ namespace Corrosive {
 					std::cout << "   null\n";
 				} break;
 
+				case ILInstruction::combinedw: {
+					std::cout << "   combine [dword]\n";
+				} break;
+
+				case ILInstruction::highdw: {
+					std::cout << "   high [word]\n";
+				} break;
+
+				case ILInstruction::splitdw: {
+					std::cout << "   split [dword]\n";
+				} break;
+
 				case ILInstruction::isnotzero: {
 					std::cout << "   isnotzero [";
 					dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
@@ -876,7 +888,7 @@ namespace Corrosive {
 					dump_data_type(from_t);
 					std::cout << "] -> [";
 					dump_data_type(to_t);
-					std::cout << "] " << off << "\n";
+					std::cout << "] " << (uint32_t)off << "\n";
 
 					break;
 				}
@@ -890,7 +902,7 @@ namespace Corrosive {
 					dump_data_type(from_t);
 					std::cout << "] -> [";
 					dump_data_type(to_t);
-					std::cout << "] " << off << "\n";
+					std::cout << "] " << (uint32_t)off << "\n";
 
 					break;
 				}

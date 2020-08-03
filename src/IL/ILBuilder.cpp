@@ -627,5 +627,15 @@ namespace Corrosive {
 		}
 	}
 
+	void ILBuilder::build_combine_dword(ILBlock* block) {
+		block->write_instruction(ILInstruction::combinedw);
+	}
+	void ILBuilder::build_split_dword(ILBlock* block) {
+		block->write_instruction(ILInstruction::splitdw);
+	}
+	void ILBuilder::build_high_word(ILBlock* block) {
+		block->write_instruction(ILInstruction::highdw);
+	}
+
 
 }

@@ -47,7 +47,7 @@ namespace Corrosive {
 	}
 
 	bool TypeTraitInstance::rvalue_stacked() {
-		return true;
+		return false;
 	}
 	
 	ILDataType Type::rvalue() {
@@ -67,7 +67,7 @@ namespace Corrosive {
 	}
 
 	ILDataType TypeTraitInstance::rvalue() {
-		return ILDataType::word;
+		return ILDataType::dword;
 	}
 
 	ILDataType TypeSlice::rvalue() {

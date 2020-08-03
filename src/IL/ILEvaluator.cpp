@@ -535,6 +535,25 @@ namespace Corrosive {
 		eval_ctx->write_register_value(eval_ctx->parent->static_memory[cid].get());
 	}
 
+
+	void ILBuilder::eval_combine_dword(ILEvaluator* eval_ctx) {
+		void* p2 = eval_ctx->pop_register_value<void*>();
+		void* p1 = eval_ctx->pop_register_value<void*>();
+		dword_t dw = {p1,p2};
+		eval_ctx->write_register_value(dw);
+	}
+	
+	void ILBuilder::eval_split_dword(ILEvaluator* eval_ctx) {
+		dword_t dw = eval_ctx->pop_register_value<dword_t>();
+		eval_ctx->write_register_value(dw.p1);
+		eval_ctx->write_register_value(dw.p2);
+	}
+
+	void ILBuilder::eval_high_word(ILEvaluator* eval_ctx) {
+		dword_t dw = eval_ctx->pop_register_value<dword_t>();
+		eval_ctx->write_register_value(dw.p2);
+	}
+
 	void ILBuilder::eval_debug(ILEvaluator* eval_ctx, uint16_t file, uint16_t line) {
 		eval_ctx->debug_file = file;
 		eval_ctx->debug_line = line;
@@ -1240,6 +1259,16 @@ namespace Corrosive {
 
 								case ILInstruction::negate: {
 									eval_negate(eval_ctx);
+								} break;
+
+								case ILInstruction::combinedw: {
+									eval_combine_dword(eval_ctx);
+								} break;
+								case ILInstruction::highdw: {
+									eval_high_word(eval_ctx);
+								} break;
+								case ILInstruction::splitdw: {
+									eval_split_dword(eval_ctx);
 								} break;
 
 								case ILInstruction::forget: {
