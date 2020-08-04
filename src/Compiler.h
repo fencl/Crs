@@ -105,11 +105,14 @@ namespace Corrosive {
 		std::vector<size_t> local_stack_size;
 		std::vector<unsigned char*> local_stack_base;
 		std::vector<std::vector<unsigned char*>> local_stack_offsets;
+		std::vector<std::vector<std::pair<size_t,size_t>>> local_push_sizes;
 
 		uint16_t		mask_local(unsigned char* ptr);
 		void			pop_mask_local();
 		uint16_t		push_local(ILSize size);
 		void			pop_local(ILSize size);
+		void			stack_push_block();
+		void            stack_pop_block();
 		void			stack_push(size_t align = 1);
 		void			stack_pop();
 		unsigned char*	stack_ptr(uint16_t id);

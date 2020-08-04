@@ -65,6 +65,7 @@ namespace Corrosive {
 		local_stack_offsets.pop_back();
 	}
 
+	// TODO align?
 	uint16_t Compiler::push_local(ILSize size) {
 		auto& lss = local_stack_size.back();
 		auto& lsb = local_stack_base.back();
@@ -99,10 +100,26 @@ namespace Corrosive {
 		}
 
 		local_stack_size.push_back(0);
+		local_push_sizes.push_back(std::vector<std::pair<size_t,size_t>>());
 		local_stack_offsets.push_back(std::move(decltype(local_stack_offsets)::value_type()));
+		stack_push_block();
+	}
+
+
+	void Compiler::stack_push_block() {
+		local_push_sizes.back().push_back(std::make_pair(local_stack_size.back(), local_stack_offsets.back().size()));
+	}
+
+	void Compiler::stack_pop_block() {
+		auto b = local_push_sizes.back().back();
+		local_stack_size.back() = b.first;
+		local_stack_offsets.back().resize(b.second);
+		local_push_sizes.back().pop_back();
 	}
 
 	void Compiler::stack_pop() {
+		stack_pop_block();
+		local_push_sizes.pop_back();
 		local_stack_base.pop_back();
 		local_stack_size.pop_back();
 		local_stack_offsets.pop_back();
