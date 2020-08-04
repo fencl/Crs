@@ -867,7 +867,7 @@ namespace Corrosive {
 					Statement::parse_inner_block_start(b);
 
 					bool ret_rval_stack = false;
-					uint16_t return_ptr_local_id = 0;
+					stackid_t return_ptr_local_id = 0;
 
 					returns->compile();
 
@@ -888,7 +888,7 @@ namespace Corrosive {
 						}
 
 						a->compile();
-						uint16_t id = func->local_stack_lifetime.append(a->size());
+						stackid_t id = func->local_stack_lifetime.append(a->size());
 
 						Compiler::current()->stack()->push_item(((AstFunctionNode*)ast_node)->argument_names[i].second, a, id, StackItemTag::regular);
 					}
@@ -898,7 +898,7 @@ namespace Corrosive {
 					uint16_t argid = (uint16_t)(arguments.size() - (ret_rval_stack ? 0 : 1));
 					for (auto a = arguments.rbegin(); a != arguments.rend(); a++) {
 						ILBuilder::build_local(Compiler::current()->scope(), argid);
-						Expression::copy_from_rvalue(*a, CompileType::compile, false);
+						Expression::copy_from_rvalue(*a, CompileType::compile);
 
 						argid--;
 					}
@@ -926,8 +926,8 @@ namespace Corrosive {
 					Statement::parse_inner_block(cb, tok, term, true, &name);
 
 
-					//func->dump();
-					//std::cout << std::endl;
+					func->dump();
+					std::cout << std::endl;
 
 					func->assert_flow();
 				}
@@ -1088,7 +1088,7 @@ namespace Corrosive {
 			unsigned char* key_ptr = key;
 			for (auto key_l = generator->generic_layout.rbegin(); key_l != generator->generic_layout.rend(); key_l++) {
 
-				uint16_t sid = Compiler::current()->mask_local(key_ptr);
+				stackid_t sid = Compiler::current()->mask_local(key_ptr);
 				Compiler::current()->compiler_stack()->push_item(std::get<0>(*key_l).buffer(), std::get<1>(*key_l), sid, StackItemTag::alias);
 
 				key_ptr += std::get<1>(*key_l)->size().eval(Compiler::current()->global_module(), compiler_arch);

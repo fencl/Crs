@@ -55,10 +55,10 @@ namespace Corrosive {
 
 
 
-	uint16_t Compiler::mask_local(unsigned char* ptr) {
+	stackid_t Compiler::mask_local(unsigned char* ptr) {
 		auto& ls = local_stack_offsets.back();
 		ls.push_back(ptr);
-		return (uint16_t)(ls.size() - 1);
+		return (stackid_t)(ls.size() - 1);
 	}
 
 	void Compiler::pop_mask_local() {
@@ -66,7 +66,7 @@ namespace Corrosive {
 	}
 
 	// TODO align?
-	uint16_t Compiler::push_local(ILSize size) {
+	stackid_t Compiler::push_local(ILSize size) {
 		auto& lss = local_stack_size.back();
 		auto& lsb = local_stack_base.back();
 		auto& ls = local_stack_offsets.back();
@@ -76,7 +76,7 @@ namespace Corrosive {
 		ls.push_back(lsb + lss);
 		lss += sz;
 
-		return (uint16_t)(ls.size() - 1);
+		return (stackid_t)(ls.size() - 1);
 	}
 
 	void Compiler::pop_local(ILSize size) {
@@ -125,12 +125,12 @@ namespace Corrosive {
 		local_stack_offsets.pop_back();
 	}
 
-	unsigned char* Compiler::stack_ptr(uint16_t id) {
+	unsigned char* Compiler::stack_ptr(stackid_t id) {
 		return local_stack_offsets.back()[id];
 	}
 
 
-	void Compiler::eval_local(uint16_t id) {
+	void Compiler::eval_local(stackid_t id) {
 		compiler_evaluator->write_register_value<void*>(stack_ptr(id));
 	}
 

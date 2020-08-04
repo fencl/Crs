@@ -1220,13 +1220,13 @@ namespace Corrosive {
 
 			Type* type = std::get<1>(*act_layout);
 
-			uint16_t sid = Compiler::current()->push_local(type->size());
+			stackid_t sid = Compiler::current()->push_local(type->size());
 			unsigned char* data_place = Compiler::current()->stack_ptr(sid);
 			Compiler::current()->compiler_stack()->push_item(std::get<0>(*act_layout).buffer(), type, sid, StackItemTag::regular);
 
 
 			Compiler::current()->evaluator()->write_register_value(data_place);
-			Expression::copy_from_rvalue(type, CompileType::eval, false);
+			Expression::copy_from_rvalue(type, CompileType::eval);
 
 			act_layout++;
 		}
@@ -1275,13 +1275,13 @@ namespace Corrosive {
 
 			Type* type = std::get<1>((*act_layout_it));
 
-			uint16_t local_id = Compiler::current()->push_local(type->size());
+			stackid_t local_id = Compiler::current()->push_local(type->size());
 			unsigned char* data_place = Compiler::current()->stack_ptr(local_id);
 			Compiler::current()->compiler_stack()->push_item(std::get<0>(*act_layout_it).buffer(), type, local_id, StackItemTag::regular);
 
 
 			eval->write_register_value(data_place);
-			Expression::copy_from_rvalue(type, CompileType::eval, false);
+			Expression::copy_from_rvalue(type, CompileType::eval);
 
 			act_layout_it++;
 		}
@@ -1841,7 +1841,7 @@ namespace Corrosive {
 
 		if (cpt == CompileType::compile) {
 
-			uint16_t local_return_id = 0;
+			stackid_t local_return_id = 0;
 
 
 			ILBuilder::build_callstart(Compiler::current()->scope());
@@ -1881,7 +1881,7 @@ namespace Corrosive {
 		}
 		else {
 
-			uint16_t local_stack_item;
+			stackid_t local_stack_item;
 
 			ILBuilder::eval_callstart(Compiler::current()->evaluator());
 
@@ -2173,8 +2173,7 @@ namespace Corrosive {
 					ILBuilder::eval_callstart(Compiler::current()->evaluator());
 				}
 
-				uint32_t local_return_id = 0;
-				unsigned char* memory_place = nullptr;
+				stackid_t local_return_id = 0;
 
 				if (cpt == CompileType::compile) {
 					if (mf->return_type->rvalue_stacked()) {
@@ -2185,10 +2184,9 @@ namespace Corrosive {
 				}
 				else {
 					if (mf->return_type->rvalue_stacked()) {
-						uint16_t sid = Compiler::current()->push_local(mf->return_type->size());
-						memory_place = Compiler::current()->stack_ptr(sid);
-						Compiler::current()->compiler_stack()->push_item("$tmp", mf->return_type, sid, StackItemTag::regular);
-						Compiler::current()->eval_local(sid);
+						local_return_id = Compiler::current()->push_local(mf->return_type->size());
+						Compiler::current()->compiler_stack()->push_item("$tmp", mf->return_type, local_return_id, StackItemTag::regular);
+						Compiler::current()->eval_local(local_return_id);
 					}
 				}
 
@@ -2212,7 +2210,7 @@ namespace Corrosive {
 						ILBuilder::eval_call(Compiler::current()->evaluator(), mf->il_function_decl);
 
 						if (mf->return_type->rvalue_stacked()) {
-							ILBuilder::eval_const_ptr(Compiler::current()->evaluator(), memory_place);
+							Compiler::current()->eval_local(local_return_id);
 						}
 					}
 
@@ -2279,7 +2277,7 @@ namespace Corrosive {
 							// rvalues will be stored in temporary memory location
 							if (!ret.lvalue && !ret.type->rvalue_stacked()) {
 								if (cpt == CompileType::compile) {
-									uint32_t local_id = Compiler::current()->target()->local_stack_lifetime.append(ret.type->size());
+									stackid_t local_id = Compiler::current()->target()->local_stack_lifetime.append(ret.type->size());
 									Compiler::current()->temp_stack()->push_item("$tmp", ret.type, local_id, StackItemTag::regular);
 									
 									ILBuilder::build_store(Compiler::current()->scope(), ret.type->rvalue());
@@ -2287,7 +2285,7 @@ namespace Corrosive {
 									ret.lvalue = true;
 								}
 								else {
-									uint32_t local_id = Compiler::current()->push_local(ret.type->size());
+									stackid_t local_id = Compiler::current()->push_local(ret.type->size());
 									Compiler::current()->compiler_stack()->push_item("$tmp", ret.type, local_id, StackItemTag::regular);
 									ILBuilder::eval_store(Compiler::current()->evaluator(), ret.type->rvalue());
 									Compiler::current()->eval_local(local_id);

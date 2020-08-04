@@ -29,7 +29,7 @@ namespace Corrosive {
 		stack_state.back().pop_back();
 	}
 
-	void StackManager::push_item(std::string_view name, Type* t, uint16_t id, StackItemTag tag) {
+	void StackManager::push_item(std::string_view name, Type* t, stackid_t id, StackItemTag tag) {
 		size_t previous = SIZE_MAX;
 
 		auto prev = stack_namespace.back().find(name);

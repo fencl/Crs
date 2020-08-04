@@ -708,7 +708,7 @@ namespace Corrosive {
 		if (Compiler::current()->return_type()->rvalue_stacked()) {
 			ILBuilder::build_local(Compiler::current()->scope(), 0);
 			ILBuilder::build_load(Compiler::current()->scope(), ILDataType::word);
-			Expression::copy_from_rvalue(Compiler::current()->return_type(), CompileType::compile, false);
+			Expression::copy_from_rvalue(Compiler::current()->return_type(), CompileType::compile);
 		}
 		else {
 			if (has_defer) {
@@ -786,7 +786,7 @@ namespace Corrosive {
 
 		if (Statement::runtime(compile)) {
 			size_t let_holder;
-			uint32_t local_id = Compiler::current()->target()->local_stack_lifetime.append_unknown(let_holder);
+			stackid_t local_id = Compiler::current()->target()->local_stack_lifetime.append_unknown(let_holder);
 
 			Cursor err = c;
 			CompileValue val;
@@ -817,7 +817,7 @@ namespace Corrosive {
 
 
 			ILBuilder::build_local(Compiler::current()->scope(), local_id);
-			Expression::copy_from_rvalue(new_t, CompileType::compile, false);
+			Expression::copy_from_rvalue(new_t, CompileType::compile);
 		}
 		else {
 
@@ -845,13 +845,13 @@ namespace Corrosive {
 				new_t = new_t->generate_reference();
 			}
 
-			uint16_t loc_id = Compiler::current()->push_local(new_t->size());
+			stackid_t loc_id = Compiler::current()->push_local(new_t->size());
 			uint8_t* loc_ptr = Compiler::current()->stack_ptr(loc_id);
 
 			Compiler::current()->compiler_stack()->push_item(name.buffer(), new_t, loc_id, StackItemTag::regular);
 
 			ILBuilder::eval_const_ptr(Compiler::current()->evaluator(), loc_ptr);
-			Expression::copy_from_rvalue(new_t, CompileType::eval, false);
+			Expression::copy_from_rvalue(new_t, CompileType::eval);
 		}
 		
 		if (tok != RecognizedToken::Semicolon) {
@@ -899,7 +899,7 @@ namespace Corrosive {
 			}
 
 			ILSize s = new_t->size();
-			uint32_t local_id = Compiler::current()->target()->local_stack_lifetime.append(s);
+			stackid_t local_id = Compiler::current()->target()->local_stack_lifetime.append(s);
 			Compiler::current()->stack()->push_item(name.buffer(), new_t, local_id, StackItemTag::regular);
 		}
 		else {
@@ -923,7 +923,7 @@ namespace Corrosive {
 			}
 
 			ILSize s = new_t->size();
-			uint16_t local_id = Compiler::current()->push_local(s);
+			stackid_t local_id = Compiler::current()->push_local(s);
 			Compiler::current()->compiler_stack()->push_item(name.buffer(), new_t, local_id, StackItemTag::regular);
 		}
 

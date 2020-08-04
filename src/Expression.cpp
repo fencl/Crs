@@ -11,46 +11,43 @@
 namespace Corrosive {
 
 
-	void Expression::copy_from_rvalue(Type* me, CompileType cpt, bool me_top) {
+	void Expression::copy_from_rvalue(Type* me, CompileType cpt) {
 		if (cpt == CompileType::compile) {
-			if (me_top) {
-				if (me->rvalue_stacked()) {
-					ILBuilder::build_memcpy_rev(Compiler::current()->scope(), me->size());
-				}
-				else {
-					ILBuilder::build_store_rev(Compiler::current()->scope(), me->rvalue());
-				}
+			if (me->rvalue_stacked()) {
+				ILBuilder::build_memcpy(Compiler::current()->scope(), me->size());
 			}
 			else {
-				if (me->rvalue_stacked()) {
-					ILBuilder::build_memcpy(Compiler::current()->scope(), me->size());
-				}
-				else {
-					ILBuilder::build_store(Compiler::current()->scope(), me->rvalue());
-				}
+				ILBuilder::build_store(Compiler::current()->scope(), me->rvalue());
 			}
 		}
 		else {
-			if (me_top) {
-				if (me->rvalue_stacked()) {
-					ILBuilder::eval_memcpy_rev(Compiler::current()->evaluator(), me->size().eval(Compiler::current()->global_module(), compiler_arch));
-				}
-				else {
-					ILBuilder::eval_store_rev(Compiler::current()->evaluator(), me->rvalue());
-				}
+			if (me->rvalue_stacked()) {
+				ILBuilder::eval_memcpy(Compiler::current()->evaluator(), me->size().eval(Compiler::current()->global_module(), compiler_arch));
 			}
 			else {
-				if (me->rvalue_stacked()) {
-					ILBuilder::eval_memcpy(Compiler::current()->evaluator(), me->size().eval(Compiler::current()->global_module(), compiler_arch));
-				}
-				else {
-					ILBuilder::eval_store(Compiler::current()->evaluator(), me->rvalue());
-				}
+				ILBuilder::eval_store(Compiler::current()->evaluator(), me->rvalue());
 			}
 		}
 	}
 
-
+	void Expression::copy_from_rvalue_reverse(Type* me, CompileType cpt) {
+		if (cpt == CompileType::compile) {
+			if (me->rvalue_stacked()) {
+				ILBuilder::build_memcpy_rev(Compiler::current()->scope(), me->size());
+			}
+			else {
+				ILBuilder::build_store_rev(Compiler::current()->scope(), me->rvalue());
+			}
+		}
+		else {
+			if (me->rvalue_stacked()) {
+				ILBuilder::eval_memcpy_rev(Compiler::current()->evaluator(), me->size().eval(Compiler::current()->global_module(), compiler_arch));
+			}
+			else {
+				ILBuilder::eval_store_rev(Compiler::current()->evaluator(), me->rvalue());
+			}
+		}
+	}
 
 	void Expression::rvalue(CompileValue& value, CompileType cpt) {
 		if (value.lvalue && !value.type->rvalue_stacked()) {
@@ -366,7 +363,7 @@ namespace Corrosive {
 				Expression::parse(c, tok, val2, cpt);
 				Operand::cast(err, val2, val.type, cpt, true);
 				Expression::rvalue(val2, CompileType::compile);
-				Expression::copy_from_rvalue(val.type, cpt);
+				Expression::copy_from_rvalue_reverse(val.type, cpt);
 
 				if (!require_output) {
 					val.lvalue = false;

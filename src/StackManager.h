@@ -16,7 +16,7 @@ namespace Corrosive {
 		Type* type;
 		std::string_view name;
 		size_t previous;
-		uint16_t id;
+		stackid_t id;
 		StackItemTag tag;
 	};
 
@@ -30,7 +30,7 @@ namespace Corrosive {
 		void pop_block();
 
 		bool pop_item(StackItem& sitm);
-		void push_item(std::string_view name, Type* type, uint16_t id, StackItemTag tag);
+		void push_item(std::string_view name, Type* type, stackid_t id, StackItemTag tag);
 		bool find(std::string_view name, StackItem& sitm);
 
 		

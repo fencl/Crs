@@ -12,7 +12,8 @@ namespace Corrosive {
 		static void parse(Cursor& c,RecognizedToken& tok, CompileValue& res, CompileType comp_type, bool require_output = true);
 		static void rvalue(CompileValue& value, CompileType cpt);
 
-		static void copy_from_rvalue(Type* me, CompileType cpt, bool me_top = true);
+		static void copy_from_rvalue(Type* me, CompileType cpt);
+		static void copy_from_rvalue_reverse(Type* me, CompileType cpt);
 
 		static ILDataType arithmetic_type(Type* type);
 		static Type* arithmetic_result(Type* type_left, Type* type_right);
