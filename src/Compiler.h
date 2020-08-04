@@ -9,6 +9,11 @@
 #include "Declaration.h"
 
 namespace Corrosive {
+
+	enum class CompileTimeBlockState {
+		run, jump_over, jump_back
+	};
+
 	class Compiler {
 	public:
 		bool initialized = false;
@@ -45,8 +50,8 @@ namespace Corrosive {
 		void push_workspace(Namespace* nspc) { outer_namespace_stack.push_back(nspc); }
 		void pop_workspace() { outer_namespace_stack.pop_back(); }
 
-		void push_function(ILBytecodeFunction* t, Type* rtt) { working_function_stack.push_back(t); return_type_stack.push_back(rtt); }
-		void pop_function() { working_function_stack.pop_back(); return_type_stack.pop_back(); }
+		void push_function(ILBytecodeFunction* t, Type* rtt) { working_function_stack.push_back(t); return_type_stack.push_back(rtt); compile_loop_state_stack.push_back(std::vector<CompileTimeBlockState*>()); }
+		void pop_function() { working_function_stack.pop_back(); return_type_stack.pop_back(); compile_loop_state_stack.pop_back(); }
 
 		void push_loop_blocks(ILBlock* break_b, ILBlock* continue_b) { loop_block_stack.push_back(std::make_pair(break_b, continue_b)); }
 		void pop_loop_blocks() { loop_block_stack.pop_back(); }
@@ -65,6 +70,12 @@ namespace Corrosive {
 		Source* source() { return source_stack.back(); }
 		void setup();
 
+		void push_compile_loop_state(CompileTimeBlockState& state) { compile_loop_state_stack.back().push_back(&state); }
+		void pop_compile_loop_state() { compile_loop_state_stack.back().pop_back(); }
+		CompileTimeBlockState& compile_loop_state() { return *compile_loop_state_stack.back().back(); }
+		bool compile_in_loop() { return compile_loop_state_stack.back().size() > 0; }
+
+		std::vector<std::vector<CompileTimeBlockState*>> compile_loop_state_stack;
 		std::vector<ILBlock*> scope_stack;
 		std::vector<Type*> return_type_stack;
 		std::vector<std::pair<ILBlock*,ILBlock*>> loop_block_stack;

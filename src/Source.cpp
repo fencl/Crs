@@ -502,11 +502,14 @@ namespace Corrosive {
 
 			for (auto&& r : ptr->root_node->compile) {
 				RecognizedToken tok;
-				auto scope = ScopeState().context(ILContext::compile);
+				auto scope = ScopeState().context(ILContext::compile).compiler_stack().function(nullptr,nullptr);
 
 				Cursor c = load_cursor(r, ptr,tok);
-				auto fn = compile_build_block(c);
-				ILBuilder::eval_fncall(Compiler::current()->evaluator(), fn);
+
+				BlockTermination termination;
+				Statement::parse(c, tok, termination, ForceCompile::single);
+				//auto fn = compile_build_block(c);
+				//ILBuilder::eval_fncall(Compiler::current()->evaluator(), fn);
 			}
 
 			Compiler::current()->pop_source();

@@ -14,7 +14,6 @@ namespace Corrosive {
 
 	enum class ForceCompile {
 		force, single, no, inlineblock
-
 	};
 
 	class Statement {

@@ -51,16 +51,20 @@ namespace Corrosive {
 
 			Statement::parse(c, tok, termination, new_fc);
 
-			if (force_compile == ForceCompile::no || force_compile == ForceCompile::inlineblock) {
-				if (termination != BlockTermination::continued && tok != RecognizedToken::CloseBrace) {
-					throw_specific_error(c, "Instruction after the current branch has been terminated");
-				}
+			if (termination != BlockTermination::continued && tok != RecognizedToken::CloseBrace) {
+				throw_specific_error(c, "Instruction after the current branch has been terminated");
+			}
+
+			if (Statement::runtime(force_compile)) {
 
 				while (Compiler::current()->temp_stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) { d++; }
 
 				Compiler::current()->temp_stack()->pop();
 			}
 
+			if (Compiler::current()->compile_in_loop()) {
+				if (Compiler::current()->compile_loop_state() != CompileTimeBlockState::run) break;
+			}
 		}
 		c.move(tok);
 
@@ -126,6 +130,10 @@ namespace Corrosive {
 			c.move(tok);
 		}
 		else if (c.buffer() == "runtime") {
+			if (!Compiler::current()->target()) {
+				throw_specific_error(c, "Statement is not compiled");
+			}
+
 			if (!Statement::runtime(compile)) compile = ForceCompile::inlineblock;
 			c.move(tok);
 		}
@@ -141,7 +149,10 @@ namespace Corrosive {
 			{
 				auto buf = c.buffer();
 				if (buf == "return") {
-					if (!Statement::runtime(compile)) { throw_specific_error(c, "Return is not available as compile time operation"); }
+					if (!Compiler::current()->target()) {
+						throw_specific_error(c, "Statement is not compiled");
+					}
+
 					termination = BlockTermination::terminated;
 					parse_return(c,tok);
 					return; 
@@ -168,52 +179,67 @@ namespace Corrosive {
 				
 				else if (buf == "break") {
 
-					if (!Statement::runtime(compile)) { throw_specific_error(c, "Break is not (yet) available as compile time operation"); }
-					
-					for (auto d = Compiler::current()->defer_scope().rbegin(); d != Compiler::current()->defer_scope().rend(); d++) {
-						ILBuilder::build_call(Compiler::current()->scope(), (*d)->il_function_decl);
-						if ((*d)->return_type->rvalue_stacked()) {
-							ILBuilder::build_forget(Compiler::current()->scope(), ILDataType::word);
-						}
-						else {
-							ILBuilder::build_forget(Compiler::current()->scope(), (*d)->return_type->rvalue());
-						}
-					}
+					if (Statement::runtime(compile)) {
 
-					if (!Compiler::current()->has_loop()) {
-						throw_specific_error(c, "Break must be called from loop");
-					}
+						for (auto d = Compiler::current()->defer_scope().rbegin(); d != Compiler::current()->defer_scope().rend(); d++) {
+							ILBuilder::build_call(Compiler::current()->scope(), (*d)->il_function_decl);
+							if ((*d)->return_type->rvalue_stacked()) {
+								ILBuilder::build_forget(Compiler::current()->scope(), ILDataType::word);
+							}
+							else {
+								ILBuilder::build_forget(Compiler::current()->scope(), (*d)->return_type->rvalue());
+							}
+						}
 
-					ILBuilder::build_jmp(Compiler::current()->scope(), Compiler::current()->loop_break());
+						if (!Compiler::current()->has_loop()) {
+							throw_specific_error(c, "Break must be called from loop");
+						}
+
+						ILBuilder::build_jmp(Compiler::current()->scope(), Compiler::current()->loop_break());
+						termination = BlockTermination::breaked;
+					}
+					else {
+						if (!Compiler::current()->compile_in_loop()) {
+							throw_specific_error(c, "Break must be called from loop");
+						}
+						Compiler::current()->compile_loop_state() = CompileTimeBlockState::jump_over;
+					}
 
 					c.move(tok);
 					if (tok != RecognizedToken::Semicolon) {
 						throw_wrong_token_error(c, "';'");
 					}
 					c.move(tok);
-					termination = BlockTermination::breaked;
 					return;
 				}
 				else if (buf == "continue") {
 
-					if (!Statement::runtime(compile)) { throw_specific_error(c, "Continue is not (yet) available as compile time operation"); }
+					if (Statement::runtime(compile)) {
 
-					for (auto d = Compiler::current()->defer_scope().rbegin(); d != Compiler::current()->defer_scope().rend(); d++) {
-						ILBuilder::build_call(Compiler::current()->scope(), (*d)->il_function_decl);
-						if ((*d)->return_type->rvalue_stacked()) {
-							ILBuilder::build_forget(Compiler::current()->scope(), ILDataType::word);
+						for (auto d = Compiler::current()->defer_scope().rbegin(); d != Compiler::current()->defer_scope().rend(); d++) {
+							ILBuilder::build_call(Compiler::current()->scope(), (*d)->il_function_decl);
+							if ((*d)->return_type->rvalue_stacked()) {
+								ILBuilder::build_forget(Compiler::current()->scope(), ILDataType::word);
+							}
+							else {
+								ILBuilder::build_forget(Compiler::current()->scope(), (*d)->return_type->rvalue());
+							}
 						}
-						else {
-							ILBuilder::build_forget(Compiler::current()->scope(), (*d)->return_type->rvalue());
+
+						if (!Compiler::current()->has_loop()) {
+							throw_specific_error(c, "Continue must be called from loop");
 						}
+
+						ILBuilder::build_jmp(Compiler::current()->scope(), Compiler::current()->loop_continue());
+						termination = BlockTermination::breaked;
+					}
+					else {
+						if (!Compiler::current()->compile_in_loop()) {
+							throw_specific_error(c, "Continue must be called from loop");
+						}
+						Compiler::current()->compile_loop_state() = CompileTimeBlockState::jump_back;
 					}
 
-					if (!Compiler::current()->has_loop()) {
-						throw_specific_error(c, "Continue must be called from loop");
-					}
-
-					ILBuilder::build_jmp(Compiler::current()->scope(), Compiler::current()->loop_continue());
-					termination = BlockTermination::breaked;
 					c.move(tok);
 					if (tok != RecognizedToken::Semicolon) {
 						throw_wrong_token_error(c, "';'");
@@ -224,7 +250,7 @@ namespace Corrosive {
 				else if (buf == "defer") {
 
 
-					if (compile != ForceCompile::no) { throw_specific_error(c, "Defer is not (yet) available as compile time operation"); }
+					if (!Statement::runtime(compile)) { throw_specific_error(c, "Defer is not (yet) available as compile time operation"); }
 
 					c.move(tok);
 					CompileValue cval;
@@ -452,7 +478,6 @@ namespace Corrosive {
 			Statement::parse_inner_block_start(block);
 			bool term = false;
 			Statement::parse_inner_block(c, tok, termination);
-			if (termination == BlockTermination::breaked) termination = BlockTermination::continued;
 
 			ILBuilder::build_jmpz(test_block, continue_block, block);
 
@@ -464,7 +489,14 @@ namespace Corrosive {
 		else {
 			Cursor save = c;
 			RecognizedToken save_tok = tok;
-			while (true) {
+
+			bool jump_over_set = false;
+			RecognizedToken jump_over_tok;
+			Cursor jump_over = c;
+
+			CompileTimeBlockState state = CompileTimeBlockState::run;
+			Compiler::current()->push_compile_loop_state(state);
+			while (state == CompileTimeBlockState::run) {
 				c = save;
 				tok = save_tok;
 				
@@ -478,20 +510,33 @@ namespace Corrosive {
 					throw_wrong_token_error(c, "'{'");
 				}
 
+				if (!jump_over_set) {
+					jump_over_set = true;
+					jump_over_tok = tok;
+					jump_over = c;
+					jump_over.move_matching(jump_over_tok);
+					jump_over.move(jump_over_tok);
+				}
+
 				bool condition = Compiler::current()->evaluator()->pop_register_value<bool>();
-				if (!condition) break; // we should be at {
+				if (!condition) break;
+
+
 				{
 					auto scope = ScopeState();
 					if (compile != ForceCompile::force) scope.context(Compiler::current()->target()->context);
-					// force->force
-					// single->inline
+					
 					Statement::parse(c, tok, termination, compile == ForceCompile::force ? ForceCompile::force : ForceCompile::inlineblock);
 				}
-				if (termination == BlockTermination::terminated) return; // return to skip matching pair
+
+				if (termination != BlockTermination::continued) break;
+				if (state == CompileTimeBlockState::jump_over) break;
+				if (state == CompileTimeBlockState::jump_back) state= CompileTimeBlockState::run;
 			}
 
-			c.move_matching(tok);
-			c.move(tok);
+			Compiler::current()->pop_compile_loop_state();
+			c = jump_over;
+			tok = jump_over_tok;
 
 		}
 	}
@@ -588,7 +633,11 @@ namespace Corrosive {
 			c_init.move(c_init_tok);
 			BlockTermination unused;
 			Statement::parse(c_init, c_init_tok, unused, ForceCompile::force);
-			while (true) {
+
+			CompileTimeBlockState state = CompileTimeBlockState::run;
+			Compiler::current()->push_compile_loop_state(state);
+
+			while (state == CompileTimeBlockState::run) {
 				RecognizedToken c_condition_tok = c_init_tok;
 				Cursor c_condition = c_init;
 				Cursor err = c_condition;
@@ -611,6 +660,8 @@ namespace Corrosive {
 				}
 
 				if (termination == BlockTermination::terminated) break;
+				if (state == CompileTimeBlockState::jump_over) break;
+				if (state == CompileTimeBlockState::jump_back) state = CompileTimeBlockState::run;
 
 				if (c_condition_tok != RecognizedToken::Semicolon) {
 					throw_wrong_token_error(c_condition, "';'");
@@ -618,6 +669,7 @@ namespace Corrosive {
 				c_condition.move(c_condition_tok);
 				Expression::parse(c_condition, c_condition_tok, res, CompileType::eval,false);
 			}
+			Compiler::current()->pop_compile_loop_state();
 
 			Compiler::current()->compiler_stack()->pop_block();
 
