@@ -88,11 +88,12 @@ namespace Corrosive {
 
 	ILFunction::~ILFunction() {}
 
-	ILBytecodeFunction* ILModule::create_function() {
+	ILBytecodeFunction* ILModule::create_function(ILContext context) {
 		std::unique_ptr<ILBytecodeFunction> function = std::make_unique<ILBytecodeFunction>();
 		ILBytecodeFunction* function_ptr = function.get();
 		function_ptr->id = (uint32_t)functions.size();
 		function_ptr->parent = this;
+		function_ptr->context = context;
 		functions.push_back(std::move(function));
 		return function_ptr;
 	}

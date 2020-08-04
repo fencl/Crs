@@ -65,10 +65,6 @@ namespace Corrosive {
 		Source* source() { return source_stack.back(); }
 		void setup();
 
-		void targets_defer(bool v) { statement_targets_defer = v; }
-		bool targets_defer() { return statement_targets_defer; }
-
-		bool statement_targets_defer = false;
 		std::vector<ILBlock*> scope_stack;
 		std::vector<Type*> return_type_stack;
 		std::vector<std::pair<ILBlock*,ILBlock*>> loop_block_stack;

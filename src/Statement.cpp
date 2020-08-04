@@ -7,25 +7,27 @@
 
 namespace Corrosive {
 
-	void Statement::parse_inner_block_start(ILBlock* block) {
-		Compiler::current()->push_scope(block);
-		Compiler::current()->stack()->push_block();
-		Compiler::current()->target()->local_stack_lifetime.push(); // scope push
-		Compiler::current()->push_defer_scope();
+	void Statement::parse_inner_block_start(ILBlock* block, ForceCompile force_compile) {
+		if (force_compile == ForceCompile::no) {
+			Compiler::current()->push_scope(block);
+			Compiler::current()->stack()->push_block();
+			Compiler::current()->target()->local_stack_lifetime.push(); // scope push
+			Compiler::current()->push_defer_scope();
+		}
 
 		Compiler::current()->compiler_stack()->push_block();
 		Compiler::current()->stack_push_block();
 	}
 
-	void Statement::parse_inner_block(Cursor& c,RecognizedToken& tok, BlockTermination& termination, bool exit_returns, Cursor* err, bool force_compile) {
+	void Statement::parse_inner_block(Cursor& c,RecognizedToken& tok, BlockTermination& termination, bool exit_returns, Cursor* err, ForceCompile force_compile) {
 		StackItem sitm;
 		termination = BlockTermination::continued;
 
 		int d = 0;
 
 		while (tok != RecognizedToken::CloseBrace) {
-
-			Compiler::current()->temp_stack()->push();
+			if (force_compile == ForceCompile::no || force_compile == ForceCompile::inlineblock)
+				Compiler::current()->temp_stack()->push();
 
 			//TODO
 			/*if (c.src != nullptr) {
@@ -36,104 +38,137 @@ namespace Corrosive {
 
 				ILBuilder::build_debug(Compiler::current()->scope(), UINT16_MAX, top);
 			}*/
-
-			Statement::parse(c, tok, termination, force_compile);
-
-			if (termination != BlockTermination::continued && tok != RecognizedToken::CloseBrace) {
-				throw_specific_error(c, "Instruction after the current branch has been terminated");
+			ForceCompile new_fc;
+			switch (force_compile)
+			{
+				case ForceCompile::force: new_fc = ForceCompile::force; break;
+				case ForceCompile::single: new_fc = ForceCompile::force; break;
+				case ForceCompile::no: new_fc = ForceCompile::no; break;
+				case ForceCompile::inlineblock: new_fc = ForceCompile::no; break;
+				default:
+					break;
 			}
 
-			while (Compiler::current()->temp_stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) { d++; }
-			
-			Compiler::current()->temp_stack()->pop();
+			Statement::parse(c, tok, termination, new_fc);
+
+			if (force_compile == ForceCompile::no || force_compile == ForceCompile::inlineblock) {
+				if (termination != BlockTermination::continued && tok != RecognizedToken::CloseBrace) {
+					throw_specific_error(c, "Instruction after the current branch has been terminated");
+				}
+
+				while (Compiler::current()->temp_stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) { d++; }
+
+				Compiler::current()->temp_stack()->pop();
+			}
 
 		}
 		c.move(tok);
 
-		auto ret = Compiler::current()->return_type();
+		if (force_compile == ForceCompile::no) {
+			auto ret = Compiler::current()->return_type();
 
 
-		// scope pop
-		while (Compiler::current()->stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) { d++; }
-		if (d>0)
-			Compiler::current()->target()->local_stack_lifetime.pop();
-		else
-			Compiler::current()->target()->local_stack_lifetime.discard_push();
+			// scope pop
+			while (Compiler::current()->stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) { d++; }
+			if (d > 0)
+				Compiler::current()->target()->local_stack_lifetime.pop();
+			else
+				Compiler::current()->target()->local_stack_lifetime.discard_push();
 
-		auto prev_scope = Compiler::current()->scope();
-		Compiler::current()->pop_scope();
+			auto prev_scope = Compiler::current()->scope();
+			Compiler::current()->pop_scope();
 
-		if (termination == BlockTermination::continued) {
+			if (termination == BlockTermination::continued) {
 
-			for (auto d = Compiler::current()->defer_scope().rbegin(); d != Compiler::current()->defer_scope().rend(); d++) {
-				ILBuilder::build_call(prev_scope, (*d)->il_function_decl);
-				if ((*d)->return_type->rvalue_stacked()) {
-					ILBuilder::build_forget(prev_scope, ILDataType::word);
-				}
-				else {
-					ILBuilder::build_forget(prev_scope, (*d)->return_type->rvalue());
-				}
-			}
-
-
-			if (!exit_returns) {
-				ILBuilder::build_jmp(prev_scope, Compiler::current()->scope());
-			}
-			else {
-				if (Compiler::current()->return_type() != Compiler::current()->types()->t_void) {
-					if (err != nullptr) {
-						throw_specific_error(*err, "Function does not always return value");
+				for (auto d = Compiler::current()->defer_scope().rbegin(); d != Compiler::current()->defer_scope().rend(); d++) {
+					ILBuilder::build_call(prev_scope, (*d)->il_function_decl);
+					if ((*d)->return_type->rvalue_stacked()) {
+						ILBuilder::build_forget(prev_scope, ILDataType::word);
 					}
 					else {
-						throw std::exception("Compiler error, Function does not always return value, error cursor not provided");
+						ILBuilder::build_forget(prev_scope, (*d)->return_type->rvalue());
 					}
 				}
+
+
+				if (!exit_returns) {
+					ILBuilder::build_jmp(prev_scope, Compiler::current()->scope());
+				}
 				else {
-					ILBuilder::build_ret(prev_scope, ILDataType::none);
+					if (Compiler::current()->return_type() != Compiler::current()->types()->t_void) {
+						if (err != nullptr) {
+							throw_specific_error(*err, "Function does not always return value");
+						}
+						else {
+							throw std::exception("Compiler error, Function does not always return value, error cursor not provided");
+						}
+					}
+					else {
+						ILBuilder::build_ret(prev_scope, ILDataType::none);
+					}
 				}
 			}
-		}
 
-		Compiler::current()->pop_defer_scope();
-		Compiler::current()->stack()->pop_block();
+
+			Compiler::current()->pop_defer_scope();
+			Compiler::current()->stack()->pop_block();
+		}
 
 		Compiler::current()->stack_pop_block();
 		Compiler::current()->compiler_stack()->pop_block();
 	}
 
-	void Statement::parse(Cursor& c,RecognizedToken& tok, BlockTermination& termination, bool force_compile) {
+	void Statement::parse(Cursor& c,RecognizedToken& tok, BlockTermination& termination, ForceCompile force_compile) {
+
+		ForceCompile compile = force_compile;
+		if (c.buffer() == "compile") {
+			if(Statement::runtime(compile)) compile = ForceCompile::single;
+			c.move(tok);
+		}
+		else if (c.buffer() == "runtime") {
+			if (!Statement::runtime(compile)) compile = ForceCompile::inlineblock;
+			c.move(tok);
+		}
+
+		auto scope = ScopeState();
+		if (!Statement::runtime(compile)) {
+			scope.context(ILContext::compile);
+		}
+
 
 		switch (tok) {
 			case RecognizedToken::Symbol:
 			{
 				auto buf = c.buffer();
 				if (buf == "return") {
+					if (!Statement::runtime(compile)) { throw_specific_error(c, "Return is not available as compile time operation"); }
 					termination = BlockTermination::terminated;
 					parse_return(c,tok);
 					return; 
 				}else if (buf == "make") {
-					parse_make(c,tok, force_compile);
+					parse_make(c,tok, compile);
 					return;
 				}
 				else if (buf == "let") {
-					parse_let(c,tok, force_compile);
+					parse_let(c,tok, compile);
 					return;
 				}
 				else if (buf == "if") {
-					parse_if(c,tok, termination,force_compile);
+					parse_if(c,tok, termination, compile);
 					return;
 				}
 				else if (buf == "while") {
-					parse_while(c,tok, termination, force_compile);
+					parse_while(c,tok, termination, compile);
 					return;
 				}
 				else if (buf == "for") {
-					parse_for(c,tok, termination,force_compile);
+					parse_for(c,tok, termination, compile);
 					return;
 				}
 				
 				else if (buf == "break") {
 
+					if (!Statement::runtime(compile)) { throw_specific_error(c, "Break is not (yet) available as compile time operation"); }
 					
 					for (auto d = Compiler::current()->defer_scope().rbegin(); d != Compiler::current()->defer_scope().rend(); d++) {
 						ILBuilder::build_call(Compiler::current()->scope(), (*d)->il_function_decl);
@@ -161,6 +196,8 @@ namespace Corrosive {
 				}
 				else if (buf == "continue") {
 
+					if (!Statement::runtime(compile)) { throw_specific_error(c, "Continue is not (yet) available as compile time operation"); }
+
 					for (auto d = Compiler::current()->defer_scope().rbegin(); d != Compiler::current()->defer_scope().rend(); d++) {
 						ILBuilder::build_call(Compiler::current()->scope(), (*d)->il_function_decl);
 						if ((*d)->return_type->rvalue_stacked()) {
@@ -185,12 +222,14 @@ namespace Corrosive {
 					return;
 				}
 				else if (buf == "defer") {
+
+
+					if (compile != ForceCompile::no) { throw_specific_error(c, "Defer is not (yet) available as compile time operation"); }
+
 					c.move(tok);
 					CompileValue cval;
 					Cursor err = c;
-					Compiler::current()->targets_defer(true);
-					Operand::parse(c, tok, cval, CompileType::compile);
-					Compiler::current()->targets_defer(false);
+					Operand::parse(c, tok, cval, CompileType::compile,true);
 
 					if (cval.type != Compiler::current()->types()->t_void || !cval.lvalue) {
 						throw_specific_error(err, "Only function call can be defered");
@@ -205,35 +244,34 @@ namespace Corrosive {
 			}break;
 			case RecognizedToken::OpenBrace: {
 				c.move(tok);
-				ILBlock* block = Compiler::current()->target()->create_and_append_block();
+				if (compile == ForceCompile::no) {
+					ILBlock* block = Compiler::current()->target()->create_and_append_block();
 
-				ILBuilder::build_jmp(Compiler::current()->scope(), block);
+					ILBuilder::build_jmp(Compiler::current()->scope(), block);
 
-				ILBlock* continue_block = Compiler::current()->target()->create_block();
+					ILBlock* continue_block = Compiler::current()->target()->create_block();
 
-				Compiler::current()->switch_scope(continue_block);
-				parse_inner_block_start(block);
-				parse_inner_block(c,tok, termination,false,nullptr,force_compile);
-				Compiler::current()->target()->append_block(continue_block);
+					Compiler::current()->switch_scope(continue_block);
+					parse_inner_block_start(block, compile);
+					parse_inner_block(c, tok, termination, false, nullptr, compile);
+					Compiler::current()->target()->append_block(continue_block);
+				}
+				else {
+					parse_inner_block_start(nullptr, compile);
+					parse_inner_block(c, tok, termination, false, nullptr, compile);
+				}
 				return;
 			}break;
 		}
 
 		//fallthrough if every other check fails, statement is plain expression
 
-		bool compile = force_compile;
-		if (c.buffer() == "compile") {
-			compile = true;
-			c.move(tok);
-		}
-
 		CompileValue ret_val;
-		if (!compile) {
+		if (Statement::runtime(compile)) {
 			Expression::parse(c, tok, ret_val, CompileType::compile, false);
 			Operand::deref(ret_val, CompileType::compile);
 		}
 		else {
-			auto scope = ScopeState().context(ILContext::compile);
 			Expression::parse(c, tok, ret_val, CompileType::eval, false);
 			Operand::deref(ret_val, CompileType::eval);
 		}
@@ -244,15 +282,11 @@ namespace Corrosive {
 		c.move(tok);
 	}
 
-	void Statement::parse_if(Cursor& c,RecognizedToken& tok, BlockTermination& termination, bool force_compile, bool do_next) {
+	void Statement::parse_if(Cursor& c,RecognizedToken& tok, BlockTermination& termination, ForceCompile force_compile, bool do_next) {
+		ForceCompile compile = force_compile;
 		c.move(tok);
-		bool compile = force_compile;
-		if (c.buffer() == "compile") {
-			compile = true;
-			c.move(tok);
-		}
 
-		if (!compile) {
+		if (Statement::runtime(compile)) {
 			CompileValue test_value;
 			Cursor err = c;
 
@@ -326,7 +360,6 @@ namespace Corrosive {
 		}
 		else {
 
-			Compiler::current()->push_scope_context(ILContext::compile);
 			CompileValue test_value;
 			Cursor err = c;
 
@@ -343,9 +376,11 @@ namespace Corrosive {
 
 			if (condition) {
 				condition = false;
-				Compiler::current()->pop_scope_context();
-				Statement::parse(c, tok, termination);
-				Compiler::current()->push_scope_context(ILContext::compile);
+				
+				auto scope = ScopeState();
+				if (compile != ForceCompile::force) scope.context(Compiler::current()->target()->context);
+
+				Statement::parse(c, tok, termination, compile == ForceCompile::force ? ForceCompile::force : ForceCompile::inlineblock);
 			}
 			else {
 				condition = do_next;
@@ -357,7 +392,7 @@ namespace Corrosive {
 			if (c.buffer() == "else") {
 				c.move(tok);
 				if (c.buffer() == "if") {
-					parse_if(c, tok, termination, true, condition);
+					parse_if(c, tok, termination, compile== ForceCompile::force? ForceCompile::force: ForceCompile::no, condition);
 				}
 				else {
 					if (tok != RecognizedToken::OpenBrace) {
@@ -365,9 +400,11 @@ namespace Corrosive {
 					}
 
 					if (condition) {
-						Compiler::current()->pop_scope_context();
-						Statement::parse(c, tok, termination);
-						Compiler::current()->push_scope_context(ILContext::compile);
+						
+						auto scope = ScopeState();
+						if (compile != ForceCompile::force) scope.context(Compiler::current()->target()->context);
+						Statement::parse(c, tok, termination, compile == ForceCompile::force ? ForceCompile::force : ForceCompile::inlineblock);
+						
 					}
 					else {
 						c.move_matching(tok);
@@ -376,21 +413,15 @@ namespace Corrosive {
 				}
 			}
 
-
-			Compiler::current()->pop_scope_context();
 		}
 	}
 
 
-	void Statement::parse_while(Cursor& c, RecognizedToken& tok, BlockTermination& termination, bool force_compile) {
-		bool compile = force_compile;
+	void Statement::parse_while(Cursor& c, RecognizedToken& tok, BlockTermination& termination, ForceCompile force_compile) {
+		ForceCompile compile = force_compile;
 		c.move(tok);
-		if (c.buffer() == "compile") {
-			compile = true;
-			c.move(tok);
-		}
 
-		if (!compile) {
+		if (Statement::runtime(compile)) {
 			ILBlock* test_block = Compiler::current()->target()->create_and_append_block();
 			test_block->alias = "while_test_block";
 
@@ -434,7 +465,6 @@ namespace Corrosive {
 			Cursor save = c;
 			RecognizedToken save_tok = tok;
 			while (true) {
-				Compiler::current()->push_scope_context(ILContext::compile);
 				c = save;
 				tok = save_tok;
 				
@@ -444,17 +474,19 @@ namespace Corrosive {
 				Operand::cast(save, res, Compiler::current()->types()->t_bool, CompileType::eval, true);
 				Expression::rvalue(res, CompileType::eval);
 
-				Compiler::current()->pop_scope_context(); 
 				if (tok != RecognizedToken::OpenBrace) {
 					throw_wrong_token_error(c, "'{'");
 				}
 
 				bool condition = Compiler::current()->evaluator()->pop_register_value<bool>();
 				if (!condition) break; // we should be at {
-
-				
-
-				Statement::parse(c, tok, termination);
+				{
+					auto scope = ScopeState();
+					if (compile != ForceCompile::force) scope.context(Compiler::current()->target()->context);
+					// force->force
+					// single->inline
+					Statement::parse(c, tok, termination, compile == ForceCompile::force ? ForceCompile::force : ForceCompile::inlineblock);
+				}
 				if (termination == BlockTermination::terminated) return; // return to skip matching pair
 			}
 
@@ -465,19 +497,15 @@ namespace Corrosive {
 	}
 
 
-	void Statement::parse_for(Cursor& c, RecognizedToken& tok, BlockTermination& termination, bool force_compile) {
-		bool compile = force_compile;
+	void Statement::parse_for(Cursor& c, RecognizedToken& tok, BlockTermination& termination, ForceCompile force_compile) {
+		ForceCompile compile = force_compile;
 		c.move(tok);
-		if (c.buffer() == "compile") {
-			compile = true;
-			c.move(tok);
-		}
 
 		if (tok != RecognizedToken::OpenParenthesis) {
 			throw_wrong_token_error(c, "'('");
 		}
 
-		if (!compile) {
+		if (Statement::runtime(compile)) {
 			Compiler::current()->stack()->push_block();
 
 
@@ -545,7 +573,6 @@ namespace Corrosive {
 			Compiler::current()->target()->append_block(continue_block);
 		}
 		else {
-			Compiler::current()->push_scope_context(ILContext::compile);
 			RecognizedToken statement_tok = tok;
 			Cursor statement = c;
 			statement.move_matching(statement_tok);
@@ -560,7 +587,7 @@ namespace Corrosive {
 			RecognizedToken c_init_tok;
 			c_init.move(c_init_tok);
 			BlockTermination unused;
-			Statement::parse(c_init, c_init_tok, unused, true);
+			Statement::parse(c_init, c_init_tok, unused, ForceCompile::force);
 			while (true) {
 				RecognizedToken c_condition_tok = c_init_tok;
 				Cursor c_condition = c_init;
@@ -573,15 +600,17 @@ namespace Corrosive {
 				bool condition = Compiler::current()->evaluator()->pop_register_value<bool>();
 				if (!condition) break;
 
-				Compiler::current()->compiler_stack()->push_block();
 
-				Compiler::current()->compiler_stack()->pop_block();
 				Cursor statement_copy = statement;
 				RecognizedToken statement_tok_copy = statement_tok;
-				Statement::parse(statement_copy, statement_tok_copy, termination);
+
+				{
+					auto scope = ScopeState();
+					if (compile != ForceCompile::force) scope.context(Compiler::current()->target()->context);
+					Statement::parse(statement_copy, statement_tok_copy, termination, compile == ForceCompile::force ? ForceCompile::force : ForceCompile::inlineblock);
+				}
+
 				if (termination == BlockTermination::terminated) break;
-				Compiler::current()->pop_scope_context();
-				Compiler::current()->push_scope_context(ILContext::compile);
 
 				if (c_condition_tok != RecognizedToken::Semicolon) {
 					throw_wrong_token_error(c_condition, "';'");
@@ -591,7 +620,6 @@ namespace Corrosive {
 			}
 
 			Compiler::current()->compiler_stack()->pop_block();
-			Compiler::current()->pop_scope_context();
 
 			c = statement;
 			tok = statement_tok;
@@ -675,15 +703,9 @@ namespace Corrosive {
 		c.move(tok);
 	}
 
-	void Statement::parse_let(Cursor& c, RecognizedToken& tok, bool force_compile) {
-		//Compiler::current()->target()->local_stack_lifetime.discard_push(); // temp push
-		bool compile = force_compile;
-
+	void Statement::parse_let(Cursor& c, RecognizedToken& tok, ForceCompile force_compile) {
+		ForceCompile compile = force_compile;
 		c.move(tok);
-		if (c.buffer() == "compile") {
-			compile = true;
-			c.move(tok);
-		}
 
 		bool reference = false;
 		if (tok == RecognizedToken::And) {
@@ -710,7 +732,7 @@ namespace Corrosive {
 		
 		c.move(tok);
 
-		if (!compile) {
+		if (Statement::runtime(compile)) {
 			size_t let_holder;
 			uint32_t local_id = Compiler::current()->target()->local_stack_lifetime.append_unknown(let_holder);
 
@@ -746,7 +768,6 @@ namespace Corrosive {
 			Expression::copy_from_rvalue(new_t, CompileType::compile, false);
 		}
 		else {
-			auto scope = ScopeState().context(ILContext::compile);
 
 			Cursor err = c;
 			CompileValue val;
@@ -787,14 +808,9 @@ namespace Corrosive {
 		c.move(tok);
 	}
 
-	void Statement::parse_make(Cursor& c, RecognizedToken& tok, bool force_compile) {
-
-		bool compile = force_compile;
+	void Statement::parse_make(Cursor& c, RecognizedToken& tok, ForceCompile force_compile) {
+		ForceCompile compile = force_compile;
 		c.move(tok);
-		if (c.buffer() == "compile") {
-			compile = true;
-			c.move(tok);
-		}
 
 		if (tok != RecognizedToken::Symbol) {
 			throw_not_a_name_error(c);
@@ -805,20 +821,23 @@ namespace Corrosive {
 			throw_wrong_token_error(c, "':'");
 		}
 		c.move(tok);
-		if (!compile) {
+		if (Statement::runtime(compile)) {
 			Cursor err = c;
 			CompileValue val;
 
-			Compiler::current()->push_scope_context(ILContext::compile);
+			{
+				auto scope = ScopeState().context(ILContext::compile);
 
-			Expression::parse(c, tok, val, CompileType::eval);
-			Operand::deref(val, CompileType::eval);
-			Expression::rvalue(val, CompileType::eval);
 
-			if (val.type != Compiler::current()->types()->t_type) {
-				throw_specific_error(err, "Exprected type");
+				Expression::parse(c, tok, val, CompileType::eval);
+				Operand::deref(val, CompileType::eval);
+				Expression::rvalue(val, CompileType::eval);
+
+				if (val.type != Compiler::current()->types()->t_type) {
+					throw_specific_error(err, "Exprected type");
+				}
+
 			}
-			Compiler::current()->pop_scope_context();
 
 			Type* new_t = Compiler::current()->evaluator()->pop_register_value<Type*>();
 			new_t->compile();
@@ -832,8 +851,6 @@ namespace Corrosive {
 			Compiler::current()->stack()->push_item(name.buffer(), new_t, local_id, StackItemTag::regular);
 		}
 		else {
-			auto scope = ScopeState().context(ILContext::compile);
-
 			Cursor err = c;
 			CompileValue val;
 
@@ -862,7 +879,5 @@ namespace Corrosive {
 			throw_wrong_token_error(c, "';'");
 		}
 		c.move(tok);
-
-		//Compiler::current()->target()->local_stack_lifetime.push(); // temp push
 	}
 }

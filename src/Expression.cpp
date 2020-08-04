@@ -646,7 +646,7 @@ namespace Corrosive {
 		while (true) {
 			CompileValue value;
 			Cursor err = c;
-			Operand::parse(c,tok, value, cpt);
+			Operand::parse(c,tok, value, cpt,false);
 			int op_v = -1;
 			int op_t = -1;
 

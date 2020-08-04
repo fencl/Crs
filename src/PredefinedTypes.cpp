@@ -52,6 +52,11 @@ namespace Corrosive {
 	}
 
 
+	void DefaultTypes::print_type_provider(ILEvaluator* eval) {
+		Type* t = eval->pop_register_value<Type*>();
+		t->print(std::cout);
+	}
+
 	void print_provider(ILEvaluator* eval) {
 
 		auto ptr = eval->pop_register_value<dword_t>();
@@ -133,6 +138,7 @@ namespace Corrosive {
 			"fn compile ext type_size: (type) size;\n"
 			"fn compile ext require: ([]u8);\n"
 			"fn compile ext ask_for: ([]u8);\n"
+			"fn compile ext print_type: (type);\n"
 			"}"
 			, "standard_library<buffer>");
 
@@ -153,7 +159,6 @@ namespace Corrosive {
 		setup_type("f64", t_f64, { ILSizeType::absolute,8 }, ILDataType::f64, ILContext::both, std_lib.root_node.get());
 		setup_type("i64", t_i64, { ILSizeType::absolute,8 }, ILDataType::i64, ILContext::both, std_lib.root_node.get());
 		setup_type("u64", t_u64, { ILSizeType::absolute,8 }, ILDataType::u64, ILContext::both, std_lib.root_node.get());
-		//setup_type("ptr", t_ptr, { ILSizeType::word,1 }, ILDataType::word, ILContext::both, std_lib.root_node.get());
 		setup_type("size", t_size, { ILSizeType::word,1 }, ILDataType::word, ILContext::both, std_lib.root_node.get());
 		setup_type("type", t_type, { ILSizeType::word,1 }, ILDataType::word, ILContext::compile, std_lib.root_node.get());
 
@@ -178,6 +183,7 @@ namespace Corrosive {
 		f_type_size = Compiler::current()->register_ext_function({ "compiler","type_size" }, Operand::priv_type_size);
 		f_type_size = Compiler::current()->register_ext_function({ "compiler","require" }, Source::require_wrapper);
 		f_type_size = Compiler::current()->register_ext_function({ "compiler","ask_for" }, DefaultTypes::ask_for);
+		f_type_size = Compiler::current()->register_ext_function({ "compiler","print_type" }, DefaultTypes::print_type_provider);
 
 		std::vector<Type*> args;
 		t_build_script = load_or_register_function_type(ILCallingConvention::bytecode, std::move(args), t_void, ILContext::compile);

@@ -852,7 +852,7 @@ namespace Corrosive {
 
 			if (ast_node->has_body()) {
 				type->compile();
-				auto func = Compiler::current()->global_module()->create_function();
+				auto func = Compiler::current()->global_module()->create_function(ast_node->context);
 				this->func = func;
 				func->decl_id = type->il_function_decl;
 				func->alias = ast_node->name_string;
@@ -959,9 +959,9 @@ namespace Corrosive {
 	void StructureInstance::compile() {
 		if (compile_state == 0) {
 			compile_state = 1;
-			Compiler::current()->push_scope_context(ILContext::compile);
-			Compiler::current()->stack_push();
-			Compiler::current()->compiler_stack()->push();
+			
+			auto scope = ScopeState().context(ILContext::compile).stack().compiler_stack();
+
 			generic_inst.insert_key_on_stack();
 
 			ILStructTable table;
@@ -1067,9 +1067,6 @@ namespace Corrosive {
 
 			compile_state = 3;
 
-			Compiler::current()->compiler_stack()->pop();
-			Compiler::current()->stack_pop();
-			Compiler::current()->pop_scope_context();
 		}
 		else if (compile_state == 3) {
 
@@ -1123,9 +1120,8 @@ namespace Corrosive {
 	void StaticInstance::compile() {
 		if (compile_state == 0) {
 			compile_state = 1;
-			Compiler::current()->push_scope_context(ILContext::compile);
-			Compiler::current()->stack_push();
-			Compiler::current()->compiler_stack()->push();
+			auto scope = ScopeState().context(ILContext::compile).stack().compiler_stack();
+
 
 			if (generator != nullptr) {
 				generator->insert_key_on_stack();
@@ -1173,9 +1169,6 @@ namespace Corrosive {
 			}
 
 
-			Compiler::current()->compiler_stack()->pop();
-			Compiler::current()->stack_pop();
-			Compiler::current()->pop_scope_context();
 			compile_state = 2;
 		}
 		else if (compile_state == 1) {

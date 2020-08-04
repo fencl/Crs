@@ -248,7 +248,7 @@ namespace Corrosive {
 
 	}
 
-	void Operand::parse(Cursor& c, RecognizedToken& tok, CompileValue& res, CompileType cpt) {
+	void Operand::parse(Cursor& c, RecognizedToken& tok, CompileValue& res, CompileType cpt, bool targets_defer) {
 
 		res.lvalue = false;
 		res.reflock = false;
@@ -257,17 +257,17 @@ namespace Corrosive {
 		switch (tok) {
 			case RecognizedToken::And:
 			case RecognizedToken::DoubleAnd: {
-				Operand::parse_reference(res, c,tok, cpt);
+				Operand::parse_reference(res, c,tok, cpt,targets_defer);
 				return;
 			}
 			case RecognizedToken::OpenBracket: {
-				Operand::parse_array_type(res, c,tok, cpt);
+				Operand::parse_array_type(res, c,tok, cpt,targets_defer);
 				return;
 			}
 			case RecognizedToken::Star: {
 				c.move(tok);
 				Cursor err = c;
-				Operand::parse(c, tok, res, cpt);
+				Operand::parse(c, tok, res, cpt, targets_defer);
 				res.reflock = true;
 				return;
 			}
@@ -308,14 +308,14 @@ namespace Corrosive {
 					c.move(tok);
 
 					err = c;
-					Operand::parse(c, tok, res, cpt);
+					Operand::parse(c, tok, res, cpt,targets_defer);
 					Operand::deref(res, cpt);
 					Operand::cast(err, res, to, cpt, false);
 
 					return;
 				}
 				else {
-					Operand::parse_symbol(res, c,tok, cpt);
+					Operand::parse_symbol(res, c,tok, cpt,targets_defer);
 				}
 			}break;
 
@@ -424,16 +424,16 @@ namespace Corrosive {
 					else goto break_while;
 				}break;
 				case RecognizedToken::OpenParenthesis: {
-					parse_call_operator(res, c, tok, cpt);
+					parse_call_operator(res, c, tok, cpt,targets_defer);
 				}break;
 				case RecognizedToken::OpenBracket: {
 					parse_array_operator(res, c, tok, cpt);
 				}break;
 				case RecognizedToken::Dot: {
-					parse_dot_operator(res, c, tok, cpt);
+					parse_dot_operator(res, c, tok, cpt,targets_defer);
 				}break;
 				case RecognizedToken::DoubleColon: {
-					parse_double_colon_operator(res, c, tok, cpt);
+					parse_double_colon_operator(res, c, tok, cpt,targets_defer);
 				}break;
 				default: goto break_while;
 			}
@@ -618,10 +618,7 @@ namespace Corrosive {
 		}
 		else {
 			throw_specific_error(err, "Only function or static variable may be brought in the runtime context");
-
 		}
-		
-
 	}
 
 
@@ -638,7 +635,7 @@ namespace Corrosive {
 
 
 
-	void Operand::parse_symbol(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType cpt) {
+	void Operand::parse_symbol(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType cpt, bool targets_defer) {
 		auto buf = c.buffer();
 
 		if (buf == "true") {
@@ -707,7 +704,7 @@ namespace Corrosive {
 
 			CompileValue type_val;
 			Cursor err = c;
-			Operand::parse(c,tok, type_val, CompileType::eval);
+			Operand::parse(c,tok, type_val, CompileType::eval,targets_defer);
 			Expression::rvalue(type_val, CompileType::eval);
 
 			if (type_val.type != Compiler::current()->types()->t_type) {
@@ -1340,7 +1337,7 @@ namespace Corrosive {
 
 	}
 
-	void Operand::parse_call_operator(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType cpt) {
+	void Operand::parse_call_operator(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType cpt, bool targets_defer) {
 
 		if (ret.type == Compiler::current()->types()->t_type || ret.type->type() == TypeInstanceType::type_template) {
 			Cursor nm_err = c;
@@ -1451,7 +1448,7 @@ namespace Corrosive {
 
 		}
 		else if (ret.type->type() == TypeInstanceType::type_function) {
-			function_call(ret, c,tok, cpt, 0);
+			function_call(ret, c,tok, cpt, 0,targets_defer);
 		}
 		else {
 			throw_specific_error(c, "not implemented yet");
@@ -1524,7 +1521,7 @@ namespace Corrosive {
 		ILBuilder::eval_const_type(eval, t);
 	}
 
-	void Operand::parse_reference(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType cpt) {
+	void Operand::parse_reference(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType cpt, bool targets_defer) {
 		Cursor operr = c;
 
 		unsigned int type_ref_count = 0;
@@ -1537,7 +1534,7 @@ namespace Corrosive {
 
 		Cursor err = c;
 		CompileValue value;
-		Operand::parse(c,tok, value, cpt);
+		Operand::parse(c,tok, value, cpt, targets_defer);
 		Expression::rvalue(value, cpt);
 
 		if (value.type != Compiler::current()->types()->t_type) {
@@ -1661,7 +1658,7 @@ namespace Corrosive {
 
 	}
 
-	void Operand::parse_array_type(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType cpt) {
+	void Operand::parse_array_type(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType cpt, bool targets_defer) {
 		Cursor err = c;
 		CompileValue res;
 		c.move(tok);
@@ -1671,7 +1668,7 @@ namespace Corrosive {
 
 			Cursor t_err = c;
 
-			Operand::parse(c,tok, res, cpt);
+			Operand::parse(c,tok, res, cpt, targets_defer);
 			Expression::rvalue(res, cpt);
 
 			if (res.type != Compiler::current()->types()->t_type) {
@@ -1704,7 +1701,7 @@ namespace Corrosive {
 
 			Cursor t_err = c;
 
-			Operand::parse(c,tok, res, cpt);
+			Operand::parse(c,tok, res, cpt, targets_defer);
 			Expression::rvalue(res, cpt);
 
 			if (res.type != Compiler::current()->types()->t_type) {
@@ -1730,7 +1727,7 @@ namespace Corrosive {
 	}
 
 
-	void Operand::parse_double_colon_operator(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType cpt) {
+	void Operand::parse_double_colon_operator(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType cpt, bool targets_defer) {
 		if (ret.type->type() != TypeInstanceType::type_structure_instance && ret.type != Compiler::current()->types()->t_type) {
 			throw_specific_error(c, "Operator :: is only supported on structure instances");
 		}
@@ -1802,7 +1799,7 @@ namespace Corrosive {
 
 						ret.type = finst->type;
 						ret.lvalue = false;
-						function_call(ret, c, tok, cpt, 0);
+						function_call(ret, c, tok, cpt, 0, targets_defer);
 					}break;
 
 					case 4: {
@@ -1827,7 +1824,7 @@ namespace Corrosive {
 		}
 	}
 
-	void Operand::function_call(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType cpt, unsigned int argi) {
+	void Operand::function_call(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType cpt, unsigned int argi, bool targets_defer) {
 		Expression::rvalue(ret, cpt);
 
 		c.move(tok);
@@ -1863,7 +1860,7 @@ namespace Corrosive {
 			c.move(tok);
 			ft->compile();
 
-			if (!Compiler::current()->targets_defer() || tok != RecognizedToken::Semicolon) {
+			if (!targets_defer || tok != RecognizedToken::Semicolon) {
 				ILBuilder::build_call(Compiler::current()->scope(), ft->il_function_decl);
 
 				if (ft->return_type->rvalue_stacked()) {
@@ -2025,7 +2022,7 @@ namespace Corrosive {
 	}
 
 
-	void Operand::parse_dot_operator(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType cpt) {
+	void Operand::parse_dot_operator(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType cpt, bool targets_defer) {
 		c.move(tok);
 
 		Operand::deref(ret, cpt);
@@ -2203,7 +2200,7 @@ namespace Corrosive {
 
 				c.move(tok);
 
-				if (!Compiler::current()->targets_defer() || tok!=RecognizedToken::Semicolon) {
+				if (!targets_defer || tok!=RecognizedToken::Semicolon) {
 					if (cpt == CompileType::compile) {
 						ILBuilder::build_call(Compiler::current()->scope(), mf->il_function_decl);
 
@@ -2319,7 +2316,7 @@ namespace Corrosive {
 
 							ret.type = finst->type;
 							ret.lvalue = false;
-							function_call(ret, c,tok, cpt, 1);
+							function_call(ret, c,tok, cpt, 1,targets_defer);
 							return;
 					}
 				}

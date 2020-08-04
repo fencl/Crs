@@ -198,7 +198,7 @@ namespace Corrosive {
 
 	class ILBytecodeFunction : public ILFunction {
 	public:
-		bool is_const = false;
+		ILContext context;
 
 		std::vector<size_t>			calculated_local_offsets;
 		size_t						calculated_local_stack_size;
@@ -359,7 +359,7 @@ namespace Corrosive {
 		void (*insintric_function[256])(ILEvaluator*);
 		std::string insintric_function_name[256];
 
-		ILBytecodeFunction* create_function();
+		ILBytecodeFunction* create_function(ILContext context);
 		ILExtFunction* create_ext_function();
 
 		uint32_t register_constant(unsigned char* memory, size_t size);

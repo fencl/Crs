@@ -454,7 +454,7 @@ namespace Corrosive {
 
 		Compiler::current()->types()->t_build_script->compile();
 
-		auto func = Compiler::current()->global_module()->create_function();
+		auto func = Compiler::current()->global_module()->create_function(ILContext::compile);
 		func->decl_id = Compiler::current()->types()->t_build_script->il_function_decl;
 		func->alias = "build_script";
 
@@ -502,12 +502,11 @@ namespace Corrosive {
 
 			for (auto&& r : ptr->root_node->compile) {
 				RecognizedToken tok;
+				auto scope = ScopeState().context(ILContext::compile);
 
-				Compiler::current()->push_scope_context(ILContext::compile);
 				Cursor c = load_cursor(r, ptr,tok);
 				auto fn = compile_build_block(c);
 				ILBuilder::eval_fncall(Compiler::current()->evaluator(), fn);
-				Compiler::current()->pop_scope_context();
 			}
 
 			Compiler::current()->pop_source();
