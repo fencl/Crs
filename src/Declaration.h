@@ -107,9 +107,9 @@ namespace Corrosive {
 	public:
 		std::unique_ptr<TypeStructureInstance> type;
 
-		std::map<std::string_view, std::pair<uint16_t, MemberTableEntryType>>	 member_table;
-		std::vector<std::pair<Type*, uint32_t>>									 member_vars;
-		std::vector<uint16_t>													 member_composites;
+		std::map<std::string_view, std::pair<tableelement_t, MemberTableEntryType>>	 member_table;
+		std::vector<std::pair<Type*, tableelement_t>>								 member_vars;
+		std::vector<tableelement_t>													 member_composites;
 		std::map<TraitInstance*, std::vector<std::unique_ptr<FunctionInstance>>> traitfunctions;
 
 		uint16_t		pass_array_id = 0;

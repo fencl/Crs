@@ -3,4 +3,5 @@ vs/.vs/
 vs/Debug/
 vs/Release/
 test/
+llvm/
 commit.bat

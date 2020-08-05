@@ -24,6 +24,9 @@ namespace Corrosive {
 
 
 	using stackid_t = uint32_t;
+	using tableid_t = uint32_t;
+	using tableelement_t = uint32_t;
+
 
 	void throw_il_wrong_data_flow_error();
 	void throw_il_nothing_on_stack_error();
@@ -42,6 +45,9 @@ namespace Corrosive {
 		compile, runtime, both
 	};
 
+	//TODO more cleaning
+	// - push reverse actions into second hlaf of type?
+	// - try split sizes 8 16 32
 	enum class ILInstruction : unsigned char {
 		u8, i8, u16, i16, u32, i32, u64, i64, f32, f64, word, dword, size, slice,
 
@@ -57,7 +63,13 @@ namespace Corrosive {
 		vtable, duplicate, duplicate2, swap, swap2,
 		memcpy, memcpy2, memcmp, memcmp2, rmemcmp, rmemcmp2,
 		rtoffset, rtoffset2, null, isnotzero, yield, discard, accept,
-		debug, constref, staticref, negative, negate, tableoffset, tableroffset, tableoffset2,
+		debug, constref, staticref, negative, negate, 
+		table8offset8, table8offset16, table8offset32,
+		table16offset8, table16offset16, table16offset32,
+		table32offset8, table32offset16, table32offset32,
+		table8roffset8, table8roffset16, table8roffset32,
+		table16roffset8, table16roffset16, table16roffset32,
+		table32roffset8, table32roffset16, table32roffset32,
 		aoffset8, aoffset16, aoffset32, woffset8, woffset16, woffset32, aroffset, wroffset, clone, clone2, combinedw, splitdw, highdw
 	};
 
@@ -87,9 +99,9 @@ namespace Corrosive {
 
 	struct ILSize {
 		ILSize();
-		ILSize(ILSizeType type, uint32_t value);
+		ILSize(ILSizeType type, tableid_t value);
 
-		uint32_t value;
+		tableid_t value;
 		ILSizeType type;
 
 		size_t eval(ILModule* mod, ILArchitecture arch) const;
@@ -360,8 +372,8 @@ namespace Corrosive {
 		std::vector<ILArrayTable> array_tables;
 		std::vector<std::tuple<ILCallingConvention, ILDataType, std::vector<ILDataType>>> function_decl;
 
-		uint32_t register_structure_table();
-		uint32_t register_array_table();
+		tableid_t register_structure_table();
+		tableid_t register_array_table();
 
 		uint32_t register_vtable(std::unique_ptr<void* []> table);
 
@@ -416,9 +428,8 @@ namespace Corrosive {
 		static void eval_combine_dword(ILEvaluator* eval_ctx);
 		static void eval_high_word(ILEvaluator* eval_ctx);
 		static void eval_split_dword(ILEvaluator* eval_ctx);
-		static void eval_tableoffset(ILEvaluator* eval_ctx, uint32_t tableid, uint16_t itemid);
-		static void eval_tableoffset_pair(ILEvaluator* eval_ctx, uint32_t tableid, uint16_t itemid);
-		static void eval_tableroffset(ILEvaluator* eval_ctx, ILDataType src, ILDataType dst, uint32_t tableid, uint16_t itemid);
+		static void eval_tableoffset(ILEvaluator* eval_ctx, tableid_t tableid, tableelement_t itemid);
+		static void eval_tableroffset(ILEvaluator* eval_ctx, ILDataType src, ILDataType dst, tableid_t tableid, tableelement_t itemid);
 		static void eval_constref(ILEvaluator* eval_ctx, uint32_t constid);
 		static void eval_staticref(ILEvaluator* eval_ctx, uint32_t constid);
 		static void eval_debug(ILEvaluator* eval_ctx, uint16_t file, uint16_t line);
@@ -487,9 +498,8 @@ namespace Corrosive {
 		static void build_clone_pair(ILBlock* block, ILDataType type, uint16_t times);
 		static void build_swap(ILBlock* block, ILDataType type);
 		static void build_swap2(ILBlock* block, ILDataType type1, ILDataType type2);
-		static void build_tableroffset(ILBlock* block, ILDataType src, ILDataType dst, uint32_t tableid, uint16_t itemid);
-		static void build_tableoffset(ILBlock* block, uint32_t tableid, uint16_t itemid);
-		static void build_tableoffset_pair(ILBlock* block, uint32_t tableid, uint16_t itemid);
+		static void build_tableroffset(ILBlock* block, ILDataType src, ILDataType dst, tableid_t tableid, tableelement_t itemid);
+		static void build_tableoffset(ILBlock* block, tableid_t tableid, tableelement_t itemid);
 		static void build_constref(ILBlock* block, uint32_t constid);
 		static void build_staticref(ILBlock* block, uint32_t constid);
 		static void build_debug(ILBlock* block, uint16_t file, uint16_t line);

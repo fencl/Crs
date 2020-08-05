@@ -30,7 +30,7 @@ namespace Corrosive {
 
 		static void deref(CompileValue& val, CompileType cpt);
 		static void function_call(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType cpt, unsigned int argi, bool targets_defer);
-		static void structure_element_offset(CompileValue& ret, uint16_t id, CompileType cpt);
+		static void structure_element_offset(CompileValue& ret, tableelement_t id, CompileType cpt);
 		static void parse_const_type_function(Cursor& c, RecognizedToken& tok, CompileValue& res);
 		static void parse_expression(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType copm_type);
 		static void parse_reference(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType copm_type, bool targets_defer);

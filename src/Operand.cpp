@@ -193,7 +193,7 @@ namespace Corrosive {
 			res.lvalue = false;
 			res.type = to;
 		}
-		else if (res.type->type() == TypeInstanceType::type_reference && to->type() == TypeInstanceType::type_reference) {
+		/*else if (res.type->type() == TypeInstanceType::type_reference && to->type() == TypeInstanceType::type_reference) {
 			if (res.type != to && implicit) {
 				if (((TypeReference*)to)->owner != Compiler::current()->types()->t_void) {
 					throw_cannot_implicit_cast_error(err, res.type, to);
@@ -203,7 +203,7 @@ namespace Corrosive {
 			Expression::rvalue(res, cpt);
 			res.lvalue = false;
 			res.type = to;
-		}
+		}*/
 		else if (to->type() == TypeInstanceType::type_reference && ((TypeReference*)to)->owner == res.type) {
 			TypeReference* tr = (TypeReference*)to;
 			if (tr->owner != res.type) {
@@ -242,7 +242,6 @@ namespace Corrosive {
 		else if (res.type != to) {
 			throw_cannot_cast_error(err, res.type, to);
 		}
-
 
 		res.type = to;
 
@@ -311,6 +310,7 @@ namespace Corrosive {
 					Operand::parse(c, tok, res, cpt,targets_defer);
 					Operand::deref(res, cpt);
 					Operand::cast(err, res, to, cpt, false);
+					res.reflock = true;
 
 					return;
 				}
@@ -420,6 +420,8 @@ namespace Corrosive {
 
 						Operand::deref(res, cpt);
 						Operand::cast(err, res, to, cpt, false);
+
+						res.reflock = true;
 					}
 					else goto break_while;
 				}break;
@@ -1915,12 +1917,12 @@ namespace Corrosive {
 
 	}
 
-	void Operand::structure_element_offset(CompileValue& ret, uint16_t id, CompileType cpt) {
+	void Operand::structure_element_offset(CompileValue& ret, tableelement_t id, CompileType cpt) {
 
 		TypeStructureInstance* ti = (TypeStructureInstance*)ret.type;
 		ti->compile();
 
-		uint16_t elem_id = 0;
+		tableelement_t elem_id = 0;
 		Type* mem_type = nullptr;
 		StructureInstance* si = ti->owner;
 		ILSize elem_size(si->size.type, 0);

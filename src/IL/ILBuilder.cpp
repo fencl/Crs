@@ -255,29 +255,180 @@ namespace Corrosive {
 		block->write_value(sizeof(uint32_t), (unsigned char*)&id);
 	}
 
-	void ILBuilder::build_tableoffset(ILBlock* block, uint32_t tableid, uint16_t itemid) {
-		if (itemid != 0) {
-			block->write_instruction(ILInstruction::tableoffset);
-			block->write_value(sizeof(uint32_t), (unsigned char*)&tableid);
-			block->write_value(sizeof(uint16_t), (unsigned char*)&itemid);
+	void ILBuilder::build_tableoffset(ILBlock* block, tableid_t tableid, tableelement_t itemid) {
+		if (itemid > 0) {
+			if (tableid <= UINT8_MAX) {
+				uint8_t tableid8 = tableid;
+
+				if (itemid <= UINT8_MAX) {
+					uint8_t itemid8 = itemid;
+					block->write_instruction(ILInstruction::table8offset8);
+					block->write_value(sizeof(uint8_t), (unsigned char*)&tableid8);
+					block->write_value(sizeof(uint8_t), (unsigned char*)&itemid8);
+				}
+				else if (itemid <= UINT16_MAX) {
+					uint16_t itemid16 = itemid;
+					block->write_instruction(ILInstruction::table8offset16);
+					block->write_value(sizeof(uint8_t), (unsigned char*)&tableid8);
+					block->write_value(sizeof(uint16_t), (unsigned char*)&itemid16);
+				}
+				else if (itemid <= UINT32_MAX) {
+					block->write_instruction(ILInstruction::table8offset32);
+					block->write_value(sizeof(uint8_t), (unsigned char*)&tableid8);
+					block->write_value(sizeof(uint32_t), (unsigned char*)&itemid);
+				}
+				else {
+					throw std::exception("Compiler error: please fix table item id types");
+				}
+			}
+			else if (tableid <= UINT16_MAX) {
+				uint16_t tableid16 = tableid;
+
+				if (itemid <= UINT8_MAX) {
+					uint8_t itemid8 = itemid;
+					block->write_instruction(ILInstruction::table16offset8);
+					block->write_value(sizeof(uint16_t), (unsigned char*)&tableid16);
+					block->write_value(sizeof(uint8_t), (unsigned char*)&itemid8);
+				}
+				else if (itemid <= UINT16_MAX) {
+					uint16_t itemid16 = itemid;
+					block->write_instruction(ILInstruction::table16offset16);
+					block->write_value(sizeof(uint16_t), (unsigned char*)&tableid16);
+					block->write_value(sizeof(uint16_t), (unsigned char*)&itemid16);
+				}
+				else if (itemid <= UINT32_MAX) {
+					block->write_instruction(ILInstruction::table16offset32);
+					block->write_value(sizeof(uint16_t), (unsigned char*)&tableid16);
+					block->write_value(sizeof(uint32_t), (unsigned char*)&itemid);
+				}
+				else {
+					throw std::exception("Compiler error: please fix table item id types");
+				}
+			}
+			else if (tableid <= UINT32_MAX) {
+
+				if (itemid <= UINT8_MAX) {
+					uint8_t itemid8 = itemid;
+					block->write_instruction(ILInstruction::table32offset8);
+					block->write_value(sizeof(uint32_t), (unsigned char*)&tableid);
+					block->write_value(sizeof(uint8_t), (unsigned char*)&itemid8);
+				}
+				else if (itemid <= UINT16_MAX) {
+					uint16_t itemid16 = itemid;
+					block->write_instruction(ILInstruction::table32offset16);
+					block->write_value(sizeof(uint32_t), (unsigned char*)&tableid);
+					block->write_value(sizeof(uint16_t), (unsigned char*)&itemid16);
+				}
+				else if (itemid <= UINT32_MAX) {
+					block->write_instruction(ILInstruction::table32offset32);
+					block->write_value(sizeof(uint32_t), (unsigned char*)&tableid);
+					block->write_value(sizeof(uint32_t), (unsigned char*)&itemid);
+				}
+				else {
+					throw std::exception("Compiler error: please fix table item id types");
+				}
+			}
+			else {
+				throw std::exception("Compiler error: please fix tableoffset types");
+			}
 		}
 	}
 
-	void ILBuilder::build_tableoffset_pair(ILBlock* block, uint32_t tableid, uint16_t itemid) {
-		if (itemid != 0) {
-			block->write_instruction(ILInstruction::tableoffset2);
-			block->write_value(sizeof(uint32_t), (unsigned char*)&tableid);
-			block->write_value(sizeof(uint16_t), (unsigned char*)&itemid);
-		}
-	}
+	void ILBuilder::build_tableroffset(ILBlock* block, ILDataType src, ILDataType dst, tableid_t tableid, tableelement_t itemid) {
 
-	void ILBuilder::build_tableroffset(ILBlock* block, ILDataType src, ILDataType dst, uint32_t tableid, uint16_t itemid) {
-		if (itemid != 0) {
-			block->write_instruction(ILInstruction::tableroffset);
-			block->write_const_type(src);
-			block->write_const_type(dst);
-			block->write_value(sizeof(uint32_t), (unsigned char*)&tableid);
-			block->write_value(sizeof(uint16_t), (unsigned char*)&itemid);
+		if (itemid > 0) {
+			if (tableid <= UINT8_MAX) {
+				uint8_t tableid8 = tableid;
+
+				if (itemid <= UINT8_MAX) {
+					uint8_t itemid8 = itemid;
+					block->write_instruction(ILInstruction::table8roffset8);
+					auto off = ILDataTypePair(src, dst);
+					block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
+					block->write_value(sizeof(uint8_t), (unsigned char*)&tableid8);
+					block->write_value(sizeof(uint8_t), (unsigned char*)&itemid8);
+				}
+				else if (itemid <= UINT16_MAX) {
+					uint16_t itemid16 = itemid;
+					block->write_instruction(ILInstruction::table8roffset16);
+					auto off = ILDataTypePair(src, dst);
+					block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
+					block->write_value(sizeof(uint8_t), (unsigned char*)&tableid8);
+					block->write_value(sizeof(uint16_t), (unsigned char*)&itemid16);
+				}
+				else if (itemid <= UINT32_MAX) {
+					block->write_instruction(ILInstruction::table8roffset32);
+					auto off = ILDataTypePair(src, dst);
+					block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
+					block->write_value(sizeof(uint8_t), (unsigned char*)&tableid8);
+					block->write_value(sizeof(uint32_t), (unsigned char*)&itemid);
+				}
+				else {
+					throw std::exception("Compiler error: please fix table item id types");
+				}
+			}
+			else if (tableid <= UINT16_MAX) {
+				uint16_t tableid16 = tableid;
+
+				if (itemid <= UINT8_MAX) {
+					uint8_t itemid8 = itemid;
+					block->write_instruction(ILInstruction::table16roffset8);
+					auto off = ILDataTypePair(src, dst);
+					block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
+					block->write_value(sizeof(uint16_t), (unsigned char*)&tableid16);
+					block->write_value(sizeof(uint8_t), (unsigned char*)&itemid8);
+				}
+				else if (itemid <= UINT16_MAX) {
+					uint16_t itemid16 = itemid;
+					block->write_instruction(ILInstruction::table16roffset16);
+					auto off = ILDataTypePair(src, dst);
+					block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
+					block->write_value(sizeof(uint16_t), (unsigned char*)&tableid16);
+					block->write_value(sizeof(uint16_t), (unsigned char*)&itemid16);
+				}
+				else if (itemid <= UINT32_MAX) {
+					block->write_instruction(ILInstruction::table16roffset32);
+					auto off = ILDataTypePair(src, dst);
+					block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
+					block->write_value(sizeof(uint16_t), (unsigned char*)&tableid16);
+					block->write_value(sizeof(uint32_t), (unsigned char*)&itemid);
+				}
+				else {
+					throw std::exception("Compiler error: please fix table item id types");
+				}
+			}
+			else if (tableid <= UINT32_MAX) {
+
+				if (itemid <= UINT8_MAX) {
+					uint8_t itemid8 = itemid;
+					block->write_instruction(ILInstruction::table32roffset8);
+					auto off = ILDataTypePair(src, dst);
+					block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
+					block->write_value(sizeof(uint32_t), (unsigned char*)&tableid);
+					block->write_value(sizeof(uint8_t), (unsigned char*)&itemid8);
+				}
+				else if (itemid <= UINT16_MAX) {
+					uint16_t itemid16 = itemid;
+					block->write_instruction(ILInstruction::table32roffset16);
+					auto off = ILDataTypePair(src, dst);
+					block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
+					block->write_value(sizeof(uint32_t), (unsigned char*)&tableid);
+					block->write_value(sizeof(uint16_t), (unsigned char*)&itemid16);
+				}
+				else if (itemid <= UINT32_MAX) {
+					block->write_instruction(ILInstruction::table32roffset32);
+					auto off = ILDataTypePair(src, dst);
+					block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
+					block->write_value(sizeof(uint32_t), (unsigned char*)&tableid);
+					block->write_value(sizeof(uint32_t), (unsigned char*)&itemid);
+				}
+				else {
+					throw std::exception("Compiler error: please fix table item id types");
+				}
+			}
+			else {
+				throw std::exception("Compiler error: please fix tableoffset types");
+			}
 		}
 	}
 

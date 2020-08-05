@@ -721,7 +721,7 @@ namespace Corrosive {
 		}
 	}
 
-	void ILBuilder::eval_tableoffset(ILEvaluator* eval_ctx, uint32_t tableid, uint16_t itemid) {
+	void ILBuilder::eval_tableoffset(ILEvaluator* eval_ctx, tableid_t tableid, tableelement_t itemid) {
 		auto& table = eval_ctx->parent->structure_tables[tableid];
 		table.calculate(eval_ctx->parent, compiler_arch);
 		auto ptr = eval_ctx->pop_register_value<unsigned char*>();
@@ -729,18 +729,8 @@ namespace Corrosive {
 		eval_ctx->write_register_value(ptr);
 	}
 
-	void ILBuilder::eval_tableoffset_pair(ILEvaluator* eval_ctx, uint32_t tableid, uint16_t itemid) {
-		auto& table = eval_ctx->parent->structure_tables[tableid];
-		table.calculate(eval_ctx->parent, compiler_arch);
-		auto ptr2 = eval_ctx->pop_register_value<unsigned char*>();
-		auto ptr1 = eval_ctx->pop_register_value<unsigned char*>();
-		ptr1 += table.calculated_offsets[itemid];
-		ptr2 += table.calculated_offsets[itemid];
-		eval_ctx->write_register_value(ptr1);
-		eval_ctx->write_register_value(ptr2);
-	}
 
-	void ILBuilder::eval_tableroffset(ILEvaluator* eval_ctx, ILDataType src, ILDataType dst, uint32_t tableid, uint16_t itemid) {
+	void ILBuilder::eval_tableroffset(ILEvaluator* eval_ctx, ILDataType src, ILDataType dst, tableid_t tableid, tableelement_t itemid) {
 		auto& table = eval_ctx->parent->structure_tables[tableid];
 		table.calculate(eval_ctx->parent, compiler_arch);
 		ilsize_t storage;
@@ -1169,23 +1159,69 @@ namespace Corrosive {
 									eval_const_ptr(eval_ctx, local_base + offset);
 								} break;
 
-								case ILInstruction::tableoffset: {
-									auto tableid = *read_data_type(uint32_t);
-									auto id = *read_data_type(uint16_t);
-									eval_tableoffset(eval_ctx, tableid, id);
+								case ILInstruction::table8offset8: {
+									eval_tableoffset(eval_ctx, *read_data_type(uint8_t), *read_data_type(uint8_t));
 								} break;
-								case ILInstruction::tableoffset2: {
-									auto tableid = *read_data_type(uint32_t);
-									auto id = *read_data_type(uint16_t);
-									eval_tableoffset_pair(eval_ctx, tableid, id);
+								case ILInstruction::table8offset16: {
+									eval_tableoffset(eval_ctx, *read_data_type(uint8_t), *read_data_type(uint16_t));
+								} break;
+								case ILInstruction::table8offset32: {
+									eval_tableoffset(eval_ctx, *read_data_type(uint8_t), *read_data_type(uint32_t));
+								} break;
+								case ILInstruction::table16offset8: {
+									eval_tableoffset(eval_ctx, *read_data_type(uint16_t), *read_data_type(uint8_t));
+								} break;
+								case ILInstruction::table16offset16: {
+									eval_tableoffset(eval_ctx, *read_data_type(uint16_t), *read_data_type(uint16_t));
+								} break;
+								case ILInstruction::table16offset32: {
+									eval_tableoffset(eval_ctx, *read_data_type(uint16_t), *read_data_type(uint32_t));
+								} break;
+								case ILInstruction::table32offset8: {
+									eval_tableoffset(eval_ctx, *read_data_type(uint32_t), *read_data_type(uint8_t));
+								} break;
+								case ILInstruction::table32offset16: {
+									eval_tableoffset(eval_ctx, *read_data_type(uint32_t), *read_data_type(uint16_t));
+								} break;
+								case ILInstruction::table32offset32: {
+									eval_tableoffset(eval_ctx, *read_data_type(uint32_t), *read_data_type(uint32_t));
 								} break;
 
-								case ILInstruction::tableroffset: {
-									auto from_t = *read_data_type(ILDataType);
-									auto to_t = *read_data_type(ILDataType);
-									auto tableid = *read_data_type(uint32_t);
-									auto id = *read_data_type(uint16_t);
-									eval_tableroffset(eval_ctx, from_t, to_t, tableid, id);
+								case ILInstruction::table8roffset8: {
+									auto pair = *read_data_type(ILDataTypePair);
+									eval_tableroffset(eval_ctx, pair.first(), pair.second(), *read_data_type(uint8_t), *read_data_type(uint8_t));
+								} break;
+								case ILInstruction::table8roffset16: {
+									auto pair = *read_data_type(ILDataTypePair);
+									eval_tableroffset(eval_ctx, pair.first(), pair.second(), *read_data_type(uint8_t), *read_data_type(uint16_t));
+								} break;
+								case ILInstruction::table8roffset32: {
+									auto pair = *read_data_type(ILDataTypePair);
+									eval_tableroffset(eval_ctx, pair.first(), pair.second(), *read_data_type(uint8_t), *read_data_type(uint32_t));
+								} break;
+								case ILInstruction::table16roffset8: {
+									auto pair = *read_data_type(ILDataTypePair);
+									eval_tableroffset(eval_ctx, pair.first(), pair.second(), *read_data_type(uint16_t), *read_data_type(uint8_t));
+								} break;
+								case ILInstruction::table16roffset16: {
+									auto pair = *read_data_type(ILDataTypePair);
+									eval_tableroffset(eval_ctx, pair.first(), pair.second(), *read_data_type(uint16_t), *read_data_type(uint16_t));
+								} break;
+								case ILInstruction::table16roffset32: {
+									auto pair = *read_data_type(ILDataTypePair);
+									eval_tableroffset(eval_ctx, pair.first(), pair.second(), *read_data_type(uint16_t), *read_data_type(uint32_t));
+								} break;
+								case ILInstruction::table32roffset8: {
+									auto pair = *read_data_type(ILDataTypePair);
+									eval_tableroffset(eval_ctx, pair.first(), pair.second(), *read_data_type(uint32_t), *read_data_type(uint8_t));
+								} break;
+								case ILInstruction::table32roffset16: {
+									auto pair = *read_data_type(ILDataTypePair);
+									eval_tableroffset(eval_ctx, pair.first(), pair.second(), *read_data_type(uint32_t), *read_data_type(uint16_t));
+								} break;
+								case ILInstruction::table32roffset32: {
+									auto pair = *read_data_type(ILDataTypePair);
+									eval_tableroffset(eval_ctx, pair.first(), pair.second(), *read_data_type(uint32_t), *read_data_type(uint32_t));
 								} break;
 
 								case ILInstruction::debug: {

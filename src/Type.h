@@ -134,7 +134,7 @@ namespace Corrosive {
 		virtual ILDataType rvalue();
 
 		Type* owner;
-		uint32_t table;
+		tableid_t table;
 
 		virtual ILContext context();
 		virtual void compile();

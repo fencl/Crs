@@ -926,8 +926,8 @@ namespace Corrosive {
 					Statement::parse_inner_block(cb, tok, term, true, &name);
 
 
-					func->dump();
-					std::cout << std::endl;
+					//func->dump();
+					//std::cout << std::endl;
 
 					func->assert_flow();
 				}

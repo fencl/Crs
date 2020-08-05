@@ -479,7 +479,7 @@ namespace Corrosive {
 
 
 	ILSize::ILSize() : type(ILSizeType::absolute), value(0) {}
-	ILSize::ILSize(ILSizeType t, uint32_t v) : type(t), value(v) {}
+	ILSize::ILSize(ILSizeType t, tableid_t v) : type(t), value(v) {}
 
 
 	uint32_t ILModule::register_function_decl(std::tuple<ILCallingConvention, ILDataType, std::vector<ILDataType>> decl) {
@@ -564,30 +564,90 @@ namespace Corrosive {
 					auto ind = read_data_type(uint32_t);
 					std::cout << *ind << "\n";
 				} break;
-				case ILInstruction::tableroffset: {
+
+				case ILInstruction::table8roffset8: {
 					std::cout << "   tableroffset [";
-					auto src_type = *read_data_type(ILDataType);
-					dump_data_type(src_type);
-					std::cout << "] -> [";
-					auto dst_type = *read_data_type(ILDataType);
-					dump_data_type(dst_type);
-					std::cout << "] ";
-					auto table = *read_data_type(uint32_t);
-					auto id = *read_data_type(uint16_t);
-					std::cout << table << ":" << id << "\n";
+					auto pair = *read_data_type(ILDataTypePair);
+					dump_data_type(pair.first()); std::cout << "] -> ["; dump_data_type(pair.second()); std::cout << "] (table ";
+					std::cout << (uint16_t)*read_data_type(uint8_t) << "):" << (uint16_t)*read_data_type(uint8_t) << "\n";
 				} break;
-				case ILInstruction::tableoffset: {
-					std::cout << "   tableoffset (table ";
-					auto table = *read_data_type(uint32_t);
-					auto id = *read_data_type(uint16_t);
-					std::cout << table << "): " << id << "\n";
+				case ILInstruction::table8roffset16: {
+					std::cout << "   tableroffset [";
+					auto pair = *read_data_type(ILDataTypePair);
+					dump_data_type(pair.first()); std::cout << "] -> ["; dump_data_type(pair.second()); std::cout << "] (table ";
+					std::cout << (uint16_t)*read_data_type(uint8_t) << "):" << *read_data_type(uint16_t) << "\n";
 				} break;
-				case ILInstruction::tableoffset2: {
-					std::cout << "   tableoffset pair (table ";
-					auto table = *read_data_type(uint32_t);
-					auto id = *read_data_type(uint16_t);
-					std::cout << table << "): " << id << "\n";
+				case ILInstruction::table8roffset32: {
+					std::cout << "   tableroffset [";
+					auto pair = *read_data_type(ILDataTypePair);
+					dump_data_type(pair.first()); std::cout << "] -> ["; dump_data_type(pair.second()); std::cout << "] (table ";
+					std::cout << (uint16_t)*read_data_type(uint8_t) << "):" << *read_data_type(uint32_t) << "\n";
 				} break;
+				case ILInstruction::table16roffset8: {
+					std::cout << "   tableroffset [";
+					auto pair = *read_data_type(ILDataTypePair);
+					dump_data_type(pair.first()); std::cout << "] -> ["; dump_data_type(pair.second()); std::cout << "] (table ";
+					std::cout << *read_data_type(uint16_t) << "):" << (uint16_t)*read_data_type(uint8_t) << "\n";
+				} break;
+				case ILInstruction::table16roffset16: {
+					std::cout << "   tableroffset [";
+					auto pair = *read_data_type(ILDataTypePair);
+					dump_data_type(pair.first()); std::cout << "] -> ["; dump_data_type(pair.second()); std::cout << "] (table ";
+					std::cout << *read_data_type(uint16_t) << "):" << *read_data_type(uint16_t) << "\n";
+				} break;
+				case ILInstruction::table16roffset32: {
+					std::cout << "   tableroffset [";
+					auto pair = *read_data_type(ILDataTypePair);
+					dump_data_type(pair.first()); std::cout << "] -> ["; dump_data_type(pair.second()); std::cout << "] (table ";
+					std::cout << *read_data_type(uint16_t) << "):" << *read_data_type(uint32_t) << "\n";
+				} break;
+				case ILInstruction::table32roffset8: {
+					std::cout << "   tableroffset [";
+					auto pair = *read_data_type(ILDataTypePair);
+					dump_data_type(pair.first()); std::cout << "] -> ["; dump_data_type(pair.second()); std::cout << "] (table ";
+					std::cout << *read_data_type(uint32_t) << "):" << (uint16_t)*read_data_type(uint8_t) << "\n";
+				} break;
+				case ILInstruction::table32roffset16: {
+					std::cout << "   tableroffset [";
+					auto pair = *read_data_type(ILDataTypePair);
+					dump_data_type(pair.first()); std::cout << "] -> ["; dump_data_type(pair.second()); std::cout << "] (table ";
+					std::cout << *read_data_type(uint32_t) << "):" << *read_data_type(uint16_t) << "\n";
+				} break;
+				case ILInstruction::table32roffset32: {
+					std::cout << "   tableroffset [";
+					auto pair = *read_data_type(ILDataTypePair);
+					dump_data_type(pair.first()); std::cout << "] -> ["; dump_data_type(pair.second()); std::cout << "] (table ";
+					std::cout << *read_data_type(uint32_t) << "):" << *read_data_type(uint32_t) << "\n";
+				} break;
+
+				case ILInstruction::table8offset8: {
+					std::cout << "   tableoffset (table " << (uint16_t)*read_data_type(uint8_t) << "): " << (uint16_t)*read_data_type(uint8_t) << "\n";
+				} break;
+				case ILInstruction::table8offset16: {
+					std::cout << "   tableoffset (table " << (uint16_t)*read_data_type(uint8_t) << "): " << *read_data_type(uint16_t) << "\n";
+				} break;
+				case ILInstruction::table8offset32: {
+					std::cout << "   tableoffset (table " << (uint16_t)*read_data_type(uint8_t) << "): " << *read_data_type(uint32_t) << "\n";
+				} break;
+				case ILInstruction::table16offset8: {
+					std::cout << "   tableoffset (table " << *read_data_type(uint16_t) << "): " << (uint16_t)*read_data_type(uint8_t) << "\n";
+				} break;
+				case ILInstruction::table16offset16: {
+					std::cout << "   tableoffset (table " << *read_data_type(uint16_t) << "): " << *read_data_type(uint16_t) << "\n";
+				} break;
+				case ILInstruction::table16offset32: {
+					std::cout << "   tableoffset (table " << *read_data_type(uint16_t) << "): " << *read_data_type(uint32_t) << "\n";
+				} break;
+				case ILInstruction::table32offset8: {
+					std::cout << "   tableoffset (table " << *read_data_type(uint32_t) << "): " << (uint16_t)*read_data_type(uint8_t) << "\n";
+				} break;
+				case ILInstruction::table32offset16: {
+					std::cout << "   tableoffset (table " << *read_data_type(uint32_t) << "): " << *read_data_type(uint16_t) << "\n";
+				} break;
+				case ILInstruction::table32offset32: {
+					std::cout << "   tableoffset (table " << *read_data_type(uint32_t) << "): " << *read_data_type(uint32_t) << "\n";
+				} break;
+
 				case ILInstruction::duplicate: {
 					std::cout << "   duplicate [";
 					dump_data_type(*read_data_type(ILDataType));
