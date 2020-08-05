@@ -1,0 +1,367 @@
+<html>
+<head>
+	<title>Corrosive documentation</title>
+	<style>
+	body {
+		margin:0; padding:0;
+		
+		background:rgb(24,24,24);
+		color:			lightgray;
+		font-size: 		14pt;
+		font-family:	Consolas;
+	}
+	
+	.pad {
+		padding-left: 32pt;
+		border-left: 2pt solid #ffffff20; 
+	}
+	
+	ul {
+		border-left: 2pt solid #ffffff20;
+		list-style-type: none;
+	}
+	
+	.kw {
+		font-family: 	Consolas;
+		font-weight: 	bold;
+		color:			#ff0066;
+	}
+	
+	.cmt {
+		font-family: 	Consolas;
+		font-weight: 	bold;
+		color:			lime;
+	}
+	
+	.k {
+		font-family: 	Consolas;
+		color:			salmon;
+	}
+	
+	.n {
+		font-family: 	Consolas;
+		color:			lightskyblue;
+	}
+	
+	.s {
+		font-family: 	Consolas;
+		color:			cyan;
+	}
+	
+	.c {
+		display:inline-block;
+		font-family: 	Consolas;
+		font-weight: 	bold;
+		color:			white;
+		background-color:rgb(24,24,24);
+		border: 4pt solid rgb(24,24,24);
+		border-left-width:6pt;
+		border-right-width:6pt;
+	}
+	
+	h1 {
+		text-transform: uppercase;
+		font-size:64pt;
+		font-family: 	Consolas;
+		font-weight: 	black;
+		color:			#ff0066;
+	}
+	
+	h2 {
+		text-transform: uppercase;
+		font-size:30pt;
+		font-family: 	Consolas;
+		font-weight: 	black;
+		color:			#ff0066;
+	}
+	
+	h3 {
+		text-transform: uppercase;
+		font-size:20pt;
+		margin-top: 48pt;
+		font-family: 	Consolas;
+		font-weight: 	black;
+		color:			#ff0066;
+	}
+	h4 {
+		text-transform: uppercase;
+		font-size:16pt;
+		margin-top: 32pt;
+		font-family: 	Consolas;
+		font-weight: 	black;
+		color:			#ff0066;
+	}
+	
+	li {
+		margin-top:8pt;
+	}
+	
+	.content {
+		background:		rgb(32,32,32);
+		position:relative;
+		width:60%;
+		padding:10% 10% 10% 10%;
+		margin:0 10% 0 10%;
+	}
+	
+	</style>
+</head>
+<body>
+	<div class="content">
+	<h1>Corrosive docs</h1>
+	<p>C-based language</p>
+	
+	<h2>Declarations</h2>
+	<div class="pad">
+		<p>There are 6 declaration types: <a class="kw">namespace</a>, <a class="kw">struct</a>, <a class="kw">fn</a>, <a class="kw">trait</a>, <a class="kw">static</a> and <a class="kw">compile</a>.<br>
+		Top-level declarations in files are written to implicit global namespace<br>
+		Declarations are independent, order does not matter<p>
+	
+		<h3>Namespace</h3>
+		<div class="pad">
+			<p>Encapsulates other declarations inside its own namespace</p>
+			<p><span class="c"><span class="kw">namespace</span> <i>name</i> { ... } </span></p>
+			<ul>
+				<li><span class="c"><i>name</i></span> has to be unique inside parent namespace</li>
+			</ul>
+		</div><!--Namespace-->
+		
+		<h3>Structure</h3>
+		<div class="pad">
+			<p>Data structure that can hold any amount of member variables</p>
+			<p>Every structure is also its own namespace and can hold other declarations</p>
+			<p><span class="c"><span class="kw">struct</span><i>(gen: </i><span class="kw">type</span><i>, ...)</i> <i>annotation name</i> { <br>
+			&emsp;&emsp;<span class="kw">var <i>alias</i></span> <i>varname</i>: <span class="kw">type</span>;<br>&emsp;&emsp;...
+			<br>} </span></p>
+			<ul class="ula">
+				<li><span class="c"><i>annotation</i></span> can be blank, <span class="c"><span class="kw">compile</span></span> or <span class="c"><span class="kw">runtime</span></span>
+					<ul class="ulb">
+						<li>More about context in the Context section</li>
+					</ul>
+				</li>
+				<li><span class="c"><i>name</i></span> has to be unique inside parent namespace</li>
+				<li><span class="c"><i>varname</i></span> has to be unique from other member variables</li>
+				<li><span class="c"><span class="kw">type</span></span> is any expression returning type value</li>
+				<li><span class="c"><i>(gen: </i><span class="kw">type</span><i>, ...)</i></span> are generic arguments
+					<ul class="ulb">
+						<li>Can be ommitted if structure is not generic</li>
+						<li>More about generics in the Generics section</li>
+					</ul>
+				</li>
+				<li><span class="c"><span class="kw"><i>alias</i></span></span> optional, members of the variable will be accessible by dot operator as if they were in the structure
+					<ul class="ulb">
+						<li>Only the first variable with the name will be visible, including member types</li>
+					</ul>
+				</li>
+			</ul>
+			
+			Examples:<br>
+			<p><span class="c"><span class="kw">struct</span> complex { <br>
+			&emsp;&emsp;<span class="kw">var</span> r: <span class="k">i32</span>;<br>
+			&emsp;&emsp;<span class="kw">var</span> i: <span class="k">i32</span>;<br>
+			} </span></p>
+			
+			<p><span class="c"><span class="kw">struct</span>(A: <span class="kw">type</span>, B: <span class="kw">type</span>) pair { <br>
+			&emsp;&emsp;<span class="kw">var</span> first: A;<br>
+			&emsp;&emsp;<span class="kw">var</span> section: B;<br>
+			} </span></p>
+			
+			<p>Structures have no proper member functions but if a function that is in a structure have first argument reference to the structure it can be called as structure.function();</p>
+			
+			
+			Example:<br>
+				
+				<p><span class="c">
+				<span class="kw">struct</span> person { <br>
+				
+				&emsp;&emsp;<span class="kw">var</span> name: []<span class="k">u8</span>;<br><br>
+				&emsp;&emsp;<span class="kw">fn</span> <i>greet</i>: (this: &amp;person) {<br>
+				&emsp;&emsp;&emsp;&emsp;<span class="k">std</span>::cout().slice(<span class="s">"Hello "</span>).slice(this.name);<br>
+				&emsp;&emsp;}<br>
+				}<br><br>
+				
+				<span class="kw">fn</span> say_hello: () { <br>
+				&emsp;&emsp;<span class="kw">make</span> me: person;<br>
+				&emsp;&emsp;person::greet(me); <span class="cmt">// both versions are correct</span><br>
+				&emsp;&emsp;me.greet(); <span class="cmt">// has to be always called immediately</span><br>
+				<br>
+				&emsp;&emsp;<span class="cmt">// only this version can be used to point to the function</span><br>
+				&emsp;&emsp;<span class="kw">let</span> greet_func = person::greet;<br>
+				}
+				</span></p>
+			
+			
+			<h4>Implementation</h4>
+			<div class="pad">
+				<p>Implementation is list of function required by a trait.</p>
+				
+				<p><span class="c"><span class="kw">impl</span> <i>name</i> { <br>
+				&emsp;&emsp;<span class="kw">fn</span> <i>function</i>: (this: &amp;<span class="kw">self</span>) {<br>&emsp;&emsp;&emsp;&emsp;...<br>&emsp;&emsp;}
+				<br>} </span></p>
+				
+				<ul class="ula">
+					<li><span class="c"><i>name</i></span> is expression returning trait type value</li>
+					<li><span class="c"><i>varname</i></span> has to be unique from other member variables</li>
+					<li><span class="c"><span class="kw">type</span></span> is any expression returning type value</li>
+					<li><span class="c"><span class="kw">fn</span> <i>function</i>: (this: &amp;<span class="kw">self</span>)</span> follows function declaration rules
+						<ul class="ulb">
+							<li>First argument has to be reference to the structure implementing the trait</li>
+							<li>Rest of the arguments have to match arguments from the corresponding function from the trait declaration</li>
+							<li>Every function from the trait has to be implemented and implementation cannot have any other functions</li>
+						</ul>
+					</li>
+				</ul>
+				Example:<br>
+				
+				<p><span class="c">
+				<span class="kw">struct</span> person { <br>
+				
+				&emsp;&emsp;<span class="kw">var</span> name: []<span class="k">u8</span>;<br><br>
+				&emsp;&emsp;<span class="kw">impl</span> <i>HasName</i> { <br>
+				&emsp;&emsp;&emsp;&emsp;<span class="kw">fn</span> <i>greet</i>: (this: &amp;person) {<br>
+				&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<span class="k">std</span>::cout().slice(<span class="s">"Hello "</span>).slice(this.name);<br>
+				&emsp;&emsp;&emsp;&emsp;}<br><br>
+				&emsp;&emsp;&emsp;&emsp;<span class="kw">fn</span> <i>get_name</i>: (this: &amp;person) []<span class="k">u8</span> {<br>
+				&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<span class="kw">return</span> this.name;<br>
+				&emsp;&emsp;&emsp;&emsp;}<br>
+				&emsp;&emsp;}<br>
+				}
+				</span></p>
+				
+			</div>
+		</div><!--Structure-->
+		
+		<h3>Function</h3>
+		<div class="pad">
+			<p><span class="c"><span class="kw">fn</span><i>(gen: </i><span class="kw">type</span><i>, ...)</i> <i>annotation name</i>: (arg: <span class="kw">type</span>, ...) <span class="kw">type</span><i><sup>[return]</sup></i> { <br>
+			&emsp;&emsp;...
+			<br>} </span></p>
+			<ul class="ula">
+				<li><span class="c"><i>annotation</i></span> can be blank, <span class="c"><span class="kw">compile</span></span> or <span class="c"><span class="kw">runtime</span></span>
+					and <span class="c"><span class="kw">ext</span></span>, <span class="c"><span class="kw">native</span></span> or <span class="c"><span class="kw">stdcall</span></span>
+					<ul class="ulb">
+						<li>More about context in the Context section</li>
+						<li><span class="c"><span class="kw">ext</span></span> will be deprecated</li>
+						<li><span class="c"><span class="kw">native</span></span> function is external and has <b>no body, arguments are not named</b>, with architectures native calling convention
+							<ul class="ulc">
+								<li>cdecl on any x86</li>
+								<li>x64 windows</li>
+							</ul>
+						</li>
+						<li><span class="c"><span class="kw">stdcall</span></span> function is external and has <b>no body, arguments are not named</b>, with stdcall calling convention where stdcall applies
+							<ul class="ulc">
+								<li>stdcall on windows x86, native everywhere else</li>
+							</ul>
+						</li>
+					</ul>
+				</li>
+				<li><span class="c"><i>name</i></span> has to be unique inside parent namespace</li>
+				<li><span class="c"><span class="kw">type</span></span> is any expression returning type value
+					<ul class="ulb">
+						<li><span class="c"><span class="kw">type</span><i><sup>[return]</sup></i></span> is return type</li>
+						<li>Blank if function returns no value</li>
+					</ul>
+				</li>
+				<li><span class="c"><i>(arg: </i><span class="kw">type</span><i>, ...)</i></span> are function arguments</li>
+				<li><span class="c"><i>(gen: </i><span class="kw">type</span><i>, ...)</i></span> are generic arguments
+					<ul class="ulb">
+						<li>Can be ommitted if function is not generic</li>
+						<li>More about generics in the Generics section</li>
+					</ul>
+				</li>
+			</ul>
+			
+			Examples:<br>
+			<p><span class="c"><span class="kw">fn</span> say_hello: () { <br>
+			&emsp;&emsp;<span class="k">std</span>::cout().slice(<span class="s">&quot;Hello, world!&quot;</span>);<br>
+			} </span></p>
+			
+			<p><span class="c"><span class="kw">fn</span> the_answer: (q: question) <span class="k">u64</span> { <br>
+			&emsp;&emsp;<span class="kw">return</span> <span class="n">42u</span>;<br>
+			} </span></p>
+			
+			<p><span class="c"><span class="kw">fn</span>(T: <span class="kw">type</span>) generic_answer: (q: question) T { <br>
+			&emsp;&emsp;<span class="kw">return cast</span>(T) <span class="n">42u</span>;<br>
+			} </span></p>
+			
+			<p><span class="c"><span class="kw">fn native runtime</span> external_add: (<span class="k">u64</span>, <span class="k">u64</span>) <span class="k">u64</span>;</p>
+			
+		</div><!--Structure-->
+	
+		<h3>Trait</h3>
+		<div class="pad">
+			<p>Trait is a interface or a class for structures. Structure can implement any number of traits</p>
+			<p><span class="c"><span class="kw">trait</span><i>(gen: </i><span class="kw">type</span><i>, ...)</i> <i>annotation name</i> { <br>
+			&emsp;&emsp;<span class="kw">fn</span> <i>decl</i>: (<span class="kw">type</span>, ...) <span class="kw">type</span>;<br>&emsp;&emsp;...
+			<br>} </span></p>
+			<ul class="ula">
+				<li><span class="c"><i>annotation</i></span> can be blank, <span class="c"><span class="kw">compile</span></span> or <span class="c"><span class="kw">runtime</span></span>
+					<ul class="ulb">
+						<li>More about context in the Context section</li>
+						<li>TODO: trait should not be context dependant. Only its functions should</li>
+					</ul>
+				</li>
+				<li><span class="c"><i>name</i></span> has to be unique inside parent namespace</li>
+				<li><span class="c"><i>decl</i></span> has to be unique inside trait</li>
+				<li><span class="c"><span class="kw">type</span></span> is any expression returning type value</li>
+				<li><span class="c"><i>(gen: </i><span class="kw">type</span><i>, ...)</i></span> are generic arguments
+					<ul class="ulb">
+						<li>Can be ommitted if trait is not generic</li>
+						<li>More about generics in the Generics section</li>
+					</ul>
+				</li>
+				<li><span class="c"><span class="kw">fn</span> <i>decl</i>: (<span class="kw">type</span>, ...) <span class="kw">type</span></span> follows external function declaration rules (no body, nameless arguments) but cannot be <span class="c"><span class="kw">native</span></span> or <span class="c"><span class="kw">stdcall</span></span>
+				<ul class="ulb">
+						<li>More about function declaration in the Function section</li>
+					</ul>
+				</li>
+			</ul>
+			
+			Examples:<br>
+			<p><span class="c"><span class="kw">trait</span> HasName { <br>
+			&emsp;&emsp;<span class="kw">fn</span> greet: ();<br>
+			&emsp;&emsp;<span class="kw">fn</span> get_name: () []<span class="k">u8</span>;<br>
+			} </span></p>
+		</div><!--Trait-->
+		
+		
+		<h3>Static</h3>
+		<div class="pad">
+			<p>Static variables are global storage accessible from any function</p>
+			<p><span class="c"><span class="kw">static</span> <i>annotation name</i>: <span class="kw">type</span>;</span></p>
+			<p><span class="c"><span class="kw">static</span> <i>annotation name</i> = value;</span></p>
+			<ul class="ula">
+				<li><span class="c"><i>annotation</i></span> can be blank, <span class="c"><span class="kw">compile</span></span> or <span class="c"><span class="kw">runtime</span></span>
+					<ul class="ulb">
+						<li>More about context in the Context section</li>
+					</ul>
+				</li>
+				<li><span class="c"><i>name</i></span> has to be unique inside parent namespace</li>
+				<li><span class="c"><span class="kw">type</span></span> is any expression returning type value</li>
+				<li><span class="c">value</span> is any expression. Type of the static will be type of the expression result</li>
+			</ul>
+			
+			Examples:<br>
+			<p><span class="c"><span class="kw">static</span> Year = <span class="n">2020</span>;</span></p>
+			<p><span class="c"><span class="kw">static</span> Heat: <span class="k">f64</span>;</span></p>
+		</div><!--Trait-->
+		
+		<h3>Compile</h3>
+		<div class="pad">
+			<p>Compile declaration is a code block used as a build script</p>
+			<p>Compile blocks will be executed from top to bottom inside a compile context</p>
+			<p><span class="c"><span class="kw">compile</span> { ... }</span></p>
+			
+			
+			Examples:<br>
+			<p><span class="c"><span class="kw">compile</span> {<br>
+			&emsp;&emsp;<span class="k">compiler</span>::requre(<span class="s">"std.crs"</span>);<br>
+			}</span></p>
+		</div><!--Trait-->
+	
+	
+	</div><!--Declarations-->
+	
+	</div>
+</body>
+</html>
