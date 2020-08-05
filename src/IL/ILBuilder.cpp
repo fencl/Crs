@@ -171,7 +171,7 @@ namespace Corrosive {
 			}
 		}
 		else {
-			build_cast(block, from, to);
+			build_bitcast(block, from, to);
 		}
 
 	}
@@ -460,28 +460,6 @@ namespace Corrosive {
 		}
 	}
 
-	void ILBuilder::build_duplicate_pair(ILBlock* block, ILDataType type) {
-		block->write_instruction(ILInstruction::duplicate2);
-		block->write_const_type(type);
-	}
-
-	void ILBuilder::build_clone_pair(ILBlock* block, ILDataType type, uint16_t times) {
-		if (times == 2) {
-			build_duplicate_pair(block, type);
-		}
-		else if (times == 0) {
-			build_forget(block, type);
-			build_forget(block, type);
-		}
-		else if (times == 1) {
-
-		}
-		else {
-			block->write_instruction(ILInstruction::clone2);
-			block->write_const_type(type);
-			block->write_value(sizeof(uint16_t), (unsigned char*)&times);
-		}
-	}
 
 	void ILBuilder::build_swap(ILBlock* block, ILDataType type) {
 		block->write_instruction(ILInstruction::swap);
@@ -567,8 +545,11 @@ namespace Corrosive {
 		}
 	}
 
-	void ILBuilder::build_aroffset(ILBlock* block, ILDataType from, ILDataType to, uint8_t offset) {
-		if (offset || from != to) {
+	void ILBuilder::build_aroffset(ILBlock* block, ILDataType from, ILDataType to, uint32_t offset) {
+		if (offset>0 || from != to) {
+			if (offset > UINT8_MAX) {
+				throw std::exception("Compiler error: aroffset > 255 should not be possible");
+			}
 			block->write_instruction(ILInstruction::aroffset);
 			auto off = ILDataTypePair(from, to);
 			block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
@@ -576,12 +557,19 @@ namespace Corrosive {
 		}
 	}
 
-	void ILBuilder::build_wroffset(ILBlock* block, ILDataType from, ILDataType to, uint8_t offset) {
-		if (offset || from != to) {
+	void ILBuilder::build_wroffset(ILBlock* block, ILDataType from, ILDataType to, uint32_t offset) {
+		if (offset > 0) {
+			if (offset > UINT8_MAX) {
+				throw std::exception("Compiler error: wroffset > 255 should not be possible");
+			}
+
 			block->write_instruction(ILInstruction::wroffset); 
 			auto off = ILDataTypePair(from, to);
 			block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
 			block->write_value(sizeof(uint8_t), (unsigned char*)&offset);
+		}
+		else {
+			build_bitcast(block, from, to);
 		}
 	}
 
@@ -606,7 +594,7 @@ namespace Corrosive {
 
 	void ILBuilder::build_add(ILBlock* block, ILDataType tl, ILDataType tr) {
 
-		if ((tl >= ILDataType::none || tr >= ILDataType::none)) {
+		if (tl >= ILDataType::none || tr >= ILDataType::none) {
 			throw_il_wrong_arguments_error();
 		}
 
@@ -617,7 +605,7 @@ namespace Corrosive {
 
 	void ILBuilder::build_sub(ILBlock* block, ILDataType tl, ILDataType tr) {
 
-		if ((tl >= ILDataType::none || tr >= ILDataType::none)) {
+		if (tl >= ILDataType::none || tr >= ILDataType::none) {
 			throw_il_wrong_arguments_error();
 		}
 
@@ -628,7 +616,7 @@ namespace Corrosive {
 
 	void ILBuilder::build_div(ILBlock* block, ILDataType tl, ILDataType tr) {
 
-		if ((tl >= ILDataType::none || tr >= ILDataType::none)) {
+		if (tl >= ILDataType::none || tr >= ILDataType::none) {
 			throw_il_wrong_arguments_error();
 		}
 
@@ -639,7 +627,7 @@ namespace Corrosive {
 
 	void ILBuilder::build_rem(ILBlock* block, ILDataType tl, ILDataType tr) {
 
-		if ((tl >= ILDataType::none || tr >= ILDataType::none)) {
+		if (tl >= ILDataType::none || tr >= ILDataType::none) {
 			throw_il_wrong_arguments_error();
 		}
 
@@ -650,7 +638,7 @@ namespace Corrosive {
 
 	void ILBuilder::build_and(ILBlock* block, ILDataType tl, ILDataType tr) {
 
-		if ((tl >= ILDataType::none || tr >= ILDataType::none)) {
+		if (tl >= ILDataType::none || tr >= ILDataType::none) {
 			throw_il_wrong_arguments_error();
 		}
 
@@ -672,7 +660,7 @@ namespace Corrosive {
 
 	void ILBuilder::build_xor(ILBlock* block, ILDataType tl, ILDataType tr) {
 
-		if ((tl >= ILDataType::none || tr >= ILDataType::none)) {
+		if (tl >= ILDataType::none || tr >= ILDataType::none) {
 			throw_il_wrong_arguments_error();
 		}
 
@@ -683,7 +671,7 @@ namespace Corrosive {
 
 	void ILBuilder::build_mul(ILBlock* block, ILDataType tl, ILDataType tr) {
 
-		if ((tl >= ILDataType::none || tr >= ILDataType::none)) {
+		if (tl >= ILDataType::none || tr >= ILDataType::none) {
 			throw_il_wrong_arguments_error();
 		}
 
@@ -694,7 +682,7 @@ namespace Corrosive {
 
 	void ILBuilder::build_eq(ILBlock* block, ILDataType tl, ILDataType tr) {
 
-		if ((tl >= ILDataType::none || tr >= ILDataType::none)) {
+		if (tl >= ILDataType::none || tr >= ILDataType::none) {
 			throw_il_wrong_arguments_error();
 		}
 
@@ -706,7 +694,7 @@ namespace Corrosive {
 
 	void ILBuilder::build_ne(ILBlock* block, ILDataType tl, ILDataType tr) {
 
-		if ((tl >= ILDataType::none || tr >= ILDataType::none)) {
+		if (tl >= ILDataType::none || tr >= ILDataType::none) {
 			throw_il_wrong_arguments_error();
 		}
 
@@ -717,7 +705,7 @@ namespace Corrosive {
 
 	void ILBuilder::build_gt(ILBlock* block, ILDataType tl, ILDataType tr) {
 
-		if ((tl >= ILDataType::none || tr >= ILDataType::none)) {
+		if (tl >= ILDataType::none || tr >= ILDataType::none) {
 			throw_il_wrong_arguments_error();
 		}
 
@@ -729,7 +717,7 @@ namespace Corrosive {
 
 	void ILBuilder::build_ge(ILBlock* block, ILDataType tl, ILDataType tr) {
 
-		if ((tl >= ILDataType::none || tr >= ILDataType::none)) {
+		if (tl >= ILDataType::none || tr >= ILDataType::none) {
 			throw_il_wrong_arguments_error();
 		}
 
@@ -742,7 +730,7 @@ namespace Corrosive {
 
 	void ILBuilder::build_lt(ILBlock* block, ILDataType tl, ILDataType tr) {
 
-		if ((tl >= ILDataType::none || tr >= ILDataType::none)) {
+		if (tl >= ILDataType::none || tr >= ILDataType::none) {
 			throw_il_wrong_arguments_error();
 		}
 
@@ -753,7 +741,7 @@ namespace Corrosive {
 
 
 	void ILBuilder::build_le(ILBlock* block, ILDataType tl, ILDataType tr) {
-		if ((tl >= ILDataType::none || tr >= ILDataType::none)) {
+		if (tl >= ILDataType::none || tr >= ILDataType::none) {
 			throw_il_wrong_arguments_error();
 		}
 
@@ -765,11 +753,19 @@ namespace Corrosive {
 
 
 	void ILBuilder::build_cast(ILBlock* block, ILDataType tl, ILDataType tr) {
-		if ((tl >= ILDataType::none || tr >= ILDataType::none)) {
+		if (tl >= ILDataType::none || tr >= ILDataType::none) {
 			throw_il_wrong_arguments_error();
 		}
 		if (tl != tr) {
 			block->write_instruction(ILInstruction::cast);
+			auto off = ILDataTypePair(tl, tr);
+			block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
+		}
+	}
+
+	void ILBuilder::build_bitcast(ILBlock* block, ILDataType tl, ILDataType tr) {
+		if (tl != tr) {
+			block->write_instruction(ILInstruction::bitcast);
 			auto off = ILDataTypePair(tl, tr);
 			block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
 		}

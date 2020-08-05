@@ -1998,9 +1998,9 @@ namespace Corrosive {
 					if (elem_size.type == ILSizeType::table)
 						ILBuilder::build_tableroffset(Compiler::current()->scope(), ret.type->rvalue(), mem_type->rvalue(), elem_size.value, elem_id);
 					else if (elem_size.type == ILSizeType::absolute)
-						ILBuilder::build_aroffset(Compiler::current()->scope(), ret.type->rvalue(), mem_type->rvalue(), (uint8_t)elem_size.value);
+						ILBuilder::build_aroffset(Compiler::current()->scope(), ret.type->rvalue(), mem_type->rvalue(), elem_size.value);
 					else if (elem_size.type == ILSizeType::word)
-						ILBuilder::build_wroffset(Compiler::current()->scope(), ret.type->rvalue(), mem_type->rvalue(), (uint8_t)elem_size.value);
+						ILBuilder::build_wroffset(Compiler::current()->scope(), ret.type->rvalue(), mem_type->rvalue(), elem_size.value);
 				}
 
 			}
@@ -2010,9 +2010,9 @@ namespace Corrosive {
 					if (elem_size.type == ILSizeType::table)
 						ILBuilder::eval_tableroffset(Compiler::current()->evaluator(), ret.type->rvalue(), mem_type->rvalue(), elem_size.value, elem_id);
 					else if (elem_size.type == ILSizeType::absolute)
-						ILBuilder::eval_aroffset(Compiler::current()->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (uint8_t)elem_size.value);
+						ILBuilder::eval_aroffset(Compiler::current()->evaluator(), ret.type->rvalue(), mem_type->rvalue(), elem_size.value);
 					else if (elem_size.type == ILSizeType::word)
-						ILBuilder::eval_wroffset(Compiler::current()->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (uint8_t)elem_size.value);
+						ILBuilder::eval_wroffset(Compiler::current()->evaluator(), ret.type->rvalue(), mem_type->rvalue(), elem_size.value);
 				}
 
 			}
@@ -2040,7 +2040,7 @@ namespace Corrosive {
 						ILBuilder::build_load(Compiler::current()->scope(), ILDataType::word);
 					}
 					else {
-						ILBuilder::build_wroffset(Compiler::current()->scope(), ret.type->rvalue(), ILDataType::word, 1);
+						ILBuilder::build_high_word(Compiler::current()->scope());
 					}
 				}
 				else {
@@ -2049,7 +2049,7 @@ namespace Corrosive {
 						ILBuilder::eval_load(Compiler::current()->evaluator(), ILDataType::word);
 					}
 					else {
-						ILBuilder::eval_wroffset(Compiler::current()->evaluator(), ret.type->rvalue(), ILDataType::word, 1);
+						ILBuilder::eval_high_word(Compiler::current()->evaluator());
 					}
 				}
 
@@ -2082,7 +2082,8 @@ namespace Corrosive {
 						ILBuilder::build_load(Compiler::current()->scope(), ILDataType::word);
 					}
 					else {
-						ILBuilder::build_wroffset(Compiler::current()->scope(), ret.type->rvalue(), ILDataType::word, 1);
+
+						ILBuilder::build_high_word(Compiler::current()->scope());
 					}
 				}
 				else {
@@ -2095,7 +2096,7 @@ namespace Corrosive {
 						ILBuilder::eval_load(Compiler::current()->evaluator(), ILDataType::word);
 					}
 					else {
-						ILBuilder::eval_wroffset(Compiler::current()->evaluator(), ret.type->rvalue(), ILDataType::word, 1);
+						ILBuilder::eval_high_word(Compiler::current()->evaluator());
 					}
 				}
 
@@ -2114,7 +2115,7 @@ namespace Corrosive {
 						ILBuilder::build_load(Compiler::current()->scope(), ILDataType::word);
 					}
 					else {
-						ILBuilder::build_wroffset(Compiler::current()->scope(), ret.type->rvalue(), ILDataType::word, 0);
+						ILBuilder::build_bitcast(Compiler::current()->scope(), ret.type->rvalue(), ILDataType::word);
 					}
 				}
 				else {
@@ -2126,7 +2127,7 @@ namespace Corrosive {
 					}
 					else {
 
-						ILBuilder::eval_wroffset(Compiler::current()->evaluator(), ret.type->rvalue(), ILDataType::word, 0);
+						ILBuilder::eval_bitcast(Compiler::current()->evaluator(), ret.type->rvalue(), ILDataType::word);
 					}
 				}
 

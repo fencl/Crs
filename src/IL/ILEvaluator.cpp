@@ -557,14 +557,24 @@ namespace Corrosive {
 		return eval_ctx->write_register_value_indirect(eval_ctx->compile_time_register_size(to), &mem);
 	}
 
-	void ILBuilder::eval_aroffset(ILEvaluator* eval_ctx, ILDataType from, ILDataType to, uint8_t offset) {
+	void ILBuilder::eval_aroffset(ILEvaluator* eval_ctx, ILDataType from, ILDataType to, uint32_t offset) {
+
+		if (offset > UINT8_MAX) {
+			throw std::exception("Compiler error: aroffset > 255 should not be possible");
+		}
+
 		ilsize_t mem;
 		eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(from), &mem);
 		mem = mem << offset;
 		return eval_ctx->write_register_value_indirect(eval_ctx->compile_time_register_size(to), &mem);
 	}
 
-	void ILBuilder::eval_wroffset(ILEvaluator* eval_ctx, ILDataType from, ILDataType to, uint8_t offset) {
+	void ILBuilder::eval_wroffset(ILEvaluator* eval_ctx, ILDataType from, ILDataType to, uint32_t offset) {
+
+		if (offset > UINT8_MAX) {
+			throw std::exception("Compiler error: wroffset > 255 should not be possible");
+		}
+
 		ilsize_t mem;
 		eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(from), &mem);
 		mem = mem << (offset * eval_ctx->compile_time_register_size(ILDataType::word));
@@ -601,31 +611,6 @@ namespace Corrosive {
 		void* lv = eval_ctx->read_last_register_value_indirect(type);
 		for (uint16_t i = 0; i < times; ++i) {
 			eval_ctx->write_register_value_indirect(reg_s, lv);
-		}
-	}
-	void ILBuilder::eval_duplicate_pair(ILEvaluator* eval_ctx, ILDataType type) {
-		size_t reg_s = eval_ctx->compile_time_register_size(type);
-
-		ilsize_t storage1, storage2;
-		eval_ctx->pop_register_value_indirect(reg_s, &storage1);
-		eval_ctx->pop_register_value_indirect(reg_s, &storage2);
-
-		eval_ctx->write_register_value_indirect(reg_s, &storage2);
-		eval_ctx->write_register_value_indirect(reg_s, &storage1);
-		eval_ctx->write_register_value_indirect(reg_s, &storage2);
-		eval_ctx->write_register_value_indirect(reg_s, &storage1);
-	}
-
-	void ILBuilder::eval_clone_pair(ILEvaluator* eval_ctx, ILDataType type, uint16_t times) {
-		size_t reg_s = eval_ctx->compile_time_register_size(type);
-
-		ilsize_t storage1, storage2;
-		eval_ctx->pop_register_value_indirect(reg_s, &storage1);
-		eval_ctx->pop_register_value_indirect(reg_s, &storage2);
-
-		for (uint16_t i = 0; i < times; ++i) {
-			eval_ctx->write_register_value_indirect(reg_s, &storage2);
-			eval_ctx->write_register_value_indirect(reg_s, &storage1);
 		}
 	}
 
@@ -928,15 +913,6 @@ namespace Corrosive {
 									auto times = *read_data_type(uint16_t);
 									eval_clone(eval_ctx, type, times);
 								} break;
-								case ILInstruction::duplicate2: {
-									auto type = *read_data_type(ILDataType);
-									eval_duplicate_pair(eval_ctx, type);
-								} break;
-								case ILInstruction::clone2: {
-									auto type = *read_data_type(ILDataType);
-									auto times = *read_data_type(uint16_t);
-									eval_clone_pair(eval_ctx, type, times);
-								} break;
 								case ILInstruction::swap: {
 									auto type = *read_data_type(ILDataType);
 									eval_swap(eval_ctx, type);
@@ -1018,6 +994,10 @@ namespace Corrosive {
 								case ILInstruction::cast: {
 									auto pair = *read_data_type(ILDataTypePair);
 									eval_cast(eval_ctx, pair.first(), pair.second());
+								} break;
+								case ILInstruction::bitcast: {
+									auto pair = *read_data_type(ILDataTypePair);
+									eval_bitcast(eval_ctx, pair.first(), pair.second());
 								} break;
 								case ILInstruction::store: {
 									auto type = *read_data_type(ILDataType);
@@ -1412,6 +1392,13 @@ namespace Corrosive {
 	void ILBuilder::eval_cast(ILEvaluator* eval_ctx, ILDataType t_l, ILDataType t_r) {
 		_il_evaluator_cast(eval_ctx, t_l, t_r);
 	}
+	
 
+	void ILBuilder::eval_bitcast(ILEvaluator* eval_ctx, ILDataType t_l, ILDataType t_r) {
+		ilsize_t storage;
+		eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(t_l), &storage);
+		eval_ctx->write_register_value_indirect(eval_ctx->compile_time_register_size(t_r), &storage);
+	}
 
+	
 }

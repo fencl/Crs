@@ -56,11 +56,12 @@ namespace Corrosive {
 		eq, ne, gt, ge, lt, le,
 
 		load, store, store2, ret, jmp, jmpz,
-		local8,local16,local32, forget, fncall,
-		fnptr, call, start, insintric, cast,
+		local8,local16,local32,
+		forget, fncall,
+		fnptr, call, start, insintric, cast, bitcast,
 		roffset8, roffset16, roffset32,
 		offset8, offset16, offset32,
-		vtable, duplicate, duplicate2, swap, swap2,
+		vtable, duplicate, swap, swap2,
 		memcpy, memcpy2, memcmp, memcmp2, rmemcmp, rmemcmp2,
 		rtoffset, rtoffset2, null, isnotzero, yield, discard, accept,
 		debug, constref, staticref, negative, negate, 
@@ -70,7 +71,9 @@ namespace Corrosive {
 		table8roffset8, table8roffset16, table8roffset32,
 		table16roffset8, table16roffset16, table16roffset32,
 		table32roffset8, table32roffset16, table32roffset32,
-		aoffset8, aoffset16, aoffset32, woffset8, woffset16, woffset32, aroffset, wroffset, clone, clone2, combinedw, splitdw, highdw
+		aoffset8, aoffset16, aoffset32,
+		woffset8, woffset16, woffset32, 
+		aroffset, wroffset, clone, combinedw, splitdw, highdw
 	};
 
 	enum class ILDataType : unsigned char {
@@ -452,8 +455,8 @@ namespace Corrosive {
 		static void eval_offset(ILEvaluator* eval_ctx, ILSize offset);
 		static void eval_aoffset(ILEvaluator* eval_ctx, uint32_t offset);
 		static void eval_woffset(ILEvaluator* eval_ctx, uint32_t offset);
-		static void eval_aroffset(ILEvaluator* eval_ctx, ILDataType from, ILDataType to, uint8_t offset);
-		static void eval_wroffset(ILEvaluator* eval_ctx, ILDataType from, ILDataType to, uint8_t offset);
+		static void eval_aroffset(ILEvaluator* eval_ctx, ILDataType from, ILDataType to, uint32_t offset);
+		static void eval_wroffset(ILEvaluator* eval_ctx, ILDataType from, ILDataType to, uint32_t offset);
 		static void eval_roffset(ILEvaluator* eval_ctx, ILDataType src, ILDataType dst, size_t offset);
 		static void eval_add(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
 		static void eval_and(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
@@ -470,6 +473,7 @@ namespace Corrosive {
 		static void eval_rem(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
 		static void eval_mul(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
 		static void eval_cast(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
+		static void eval_bitcast(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
 		static void eval_forget(ILEvaluator* eval_ctx, ILDataType type);
 		static void eval_fnptr(ILEvaluator* eval_ctx, ILFunction* fun);
 		static void eval_fncall(ILEvaluator* eval_ctx, ILFunction* fun);
@@ -481,8 +485,6 @@ namespace Corrosive {
 		static void eval_call(ILEvaluator* eval_ctx, uint32_t decl);
 		static void eval_duplicate(ILEvaluator* eval_ctx, ILDataType type);
 		static void eval_clone(ILEvaluator* eval_ctx, ILDataType type, uint16_t times);
-		static void eval_duplicate_pair(ILEvaluator* eval_ctx, ILDataType type);
-		static void eval_clone_pair(ILEvaluator* eval_ctx, ILDataType type, uint16_t times);
 		static void eval_swap(ILEvaluator* eval_ctx, ILDataType type);
 		static void eval_swap2(ILEvaluator* eval_ctx, ILDataType type1, ILDataType type2);
 
@@ -494,8 +496,6 @@ namespace Corrosive {
 		static void build_split_dword(ILBlock* block);
 		static void build_duplicate(ILBlock* block, ILDataType type);
 		static void build_clone(ILBlock* block, ILDataType type, uint16_t times);
-		static void build_duplicate_pair(ILBlock* block, ILDataType type);
-		static void build_clone_pair(ILBlock* block, ILDataType type, uint16_t times);
 		static void build_swap(ILBlock* block, ILDataType type);
 		static void build_swap2(ILBlock* block, ILDataType type1, ILDataType type2);
 		static void build_tableroffset(ILBlock* block, ILDataType src, ILDataType dst, tableid_t tableid, tableelement_t itemid);
@@ -514,8 +514,8 @@ namespace Corrosive {
 		static void build_offset(ILBlock* block, ILSize offest);
 		static void build_aoffset(ILBlock* block, uint32_t offest);
 		static void build_woffset(ILBlock* block, uint32_t offest);
-		static void build_aroffset(ILBlock* block, ILDataType from, ILDataType to, uint8_t offest);
-		static void build_wroffset(ILBlock* block, ILDataType from, ILDataType to, uint8_t offest);
+		static void build_aroffset(ILBlock* block, ILDataType from, ILDataType to, uint32_t offest);
+		static void build_wroffset(ILBlock* block, ILDataType from, ILDataType to, uint32_t offest);
 		static void build_roffset(ILBlock* block, ILDataType src, ILDataType dst, ILSize offset);
 		static void build_rtoffset(ILBlock* block);
 		static void build_rtoffset_rev(ILBlock* block);
@@ -541,6 +541,7 @@ namespace Corrosive {
 		static void build_rem(ILBlock* block, ILDataType tl, ILDataType tr);
 		static void build_mul(ILBlock* block, ILDataType tl, ILDataType tr);
 		static void build_cast(ILBlock* block, ILDataType tl, ILDataType tr);
+		static void build_bitcast(ILBlock* block, ILDataType tl, ILDataType tr);
 		static void build_accept(ILBlock* block, ILDataType type);
 		static void build_discard(ILBlock* block, ILDataType type);
 		static void build_yield(ILBlock* block, ILDataType type);
