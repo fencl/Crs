@@ -15,6 +15,7 @@ namespace Corrosive {
 			Compiler::current()->push_defer_scope();
 		}
 
+		Compiler::current()->push_compile_defer_scope();
 		Compiler::current()->compiler_stack()->push_block();
 		Compiler::current()->stack_push_block();
 	}
@@ -118,6 +119,17 @@ namespace Corrosive {
 			Compiler::current()->stack()->pop_block();
 		}
 
+		for (auto d = Compiler::current()->compile_defer_scope().rbegin(); d != Compiler::current()->compile_defer_scope().rend(); d++) {
+			ILBuilder::eval_call(Compiler::current()->evaluator(), (*d)->il_function_decl);
+			if ((*d)->return_type->rvalue_stacked()) {
+				ILBuilder::eval_forget(Compiler::current()->evaluator(), ILDataType::word);
+			}
+			else {
+				ILBuilder::eval_forget(Compiler::current()->evaluator(), (*d)->return_type->rvalue());
+			}
+		}
+
+		Compiler::current()->pop_compile_defer_scope();
 		Compiler::current()->stack_pop_block();
 		Compiler::current()->compiler_stack()->pop_block();
 	}
@@ -249,17 +261,27 @@ namespace Corrosive {
 				}
 				else if (buf == "defer") {
 
-
-					if (!Statement::runtime(compile)) { throw_specific_error(c, "Defer is not (yet) available as compile time operation"); }
-
 					c.move(tok);
-					CompileValue cval;
-					Cursor err = c;
-					Operand::parse(c, tok, cval, CompileType::compile,true);
 
-					if (cval.type != Compiler::current()->types()->t_void || !cval.lvalue) {
-						throw_specific_error(err, "Only function call can be defered");
+					if (Statement::runtime(compile)) {
+						CompileValue cval;
+						Cursor err = c;
+						Operand::parse(c, tok, cval, CompileType::compile, true);
+
+						if (cval.type != Compiler::current()->types()->t_void || !cval.lvalue) {
+							throw_specific_error(err, "Only function call can be defered");
+						}
 					}
+					else {
+						CompileValue cval;
+						Cursor err = c;
+						Operand::parse(c, tok, cval, CompileType::eval, true);
+
+						if (cval.type != Compiler::current()->types()->t_void || !cval.lvalue) {
+							throw_specific_error(err, "Only function call can be defered");
+						}
+					}
+
 					if (tok != RecognizedToken::Semicolon) {
 						throw_wrong_token_error(c, "';'");
 					}

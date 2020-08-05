@@ -105,7 +105,7 @@ namespace Corrosive {
 	}
 
 
-	TypeArray* Type::generate_array(unsigned int count) {
+	TypeArray* Type::generate_array(uint32_t count) {
 		
 		auto f = arrays.find(count);
 		if (f == arrays.end()) {

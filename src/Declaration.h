@@ -37,6 +37,7 @@ namespace Corrosive {
 		GenericInstance* generator = nullptr;
 		size_t generate_heap_size = 0;
 		std::vector<std::tuple<Cursor, Type*>> generic_layout;
+		static bool valid_generic_argument(Type*);
 	};
 
 	class GenericInstance {

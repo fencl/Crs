@@ -15,7 +15,29 @@ namespace Corrosive {
 	void ILBuilder::build_const_f32(ILBlock* block, float    value) { block->write_instruction(ILInstruction::f32);    block->write_value(sizeof(float), (unsigned char*)&value); }
 	void ILBuilder::build_const_f64(ILBlock* block, double   value) { block->write_instruction(ILInstruction::f64);    block->write_value(sizeof(double), (unsigned char*)&value); }
 	void ILBuilder::build_const_type(ILBlock* block, void* value) { block->write_instruction(ILInstruction::word); 	  block->write_value(sizeof(void*), (unsigned char*)&value); }
-	void ILBuilder::build_const_size(ILBlock* block, ILSize   value) { block->write_instruction(ILInstruction::size);  block->write_value(sizeof(ILSize), (unsigned char*)&value); }
+	
+	void ILBuilder::build_const_size(ILBlock* block, ILSize value) {
+		if (value.value <= UINT8_MAX) {
+			uint8_t offset8 = value.value;
+			block->write_instruction(ILInstruction::size8);
+			block->write_value(sizeof(uint8_t), (unsigned char*)&value.type);
+			block->write_value(sizeof(uint8_t), (unsigned char*)&offset8);
+		}
+		else if (value.value <= UINT16_MAX) {
+			uint16_t offset16 = value.value;
+			block->write_instruction(ILInstruction::size16);
+			block->write_value(sizeof(uint8_t), (unsigned char*)&value.type);
+			block->write_value(sizeof(uint16_t), (unsigned char*)&offset16);
+		}
+		else if (value.value <= UINT32_MAX) {
+			block->write_instruction(ILInstruction::size32);
+			block->write_value(sizeof(uint8_t), (unsigned char*)&value.type);
+			block->write_value(sizeof(uint32_t), (unsigned char*)&value.value);
+		}
+		else {
+			throw std::exception("Compiler error: please fix aoffset type");
+		}
+	}
 	
 
 	void ILBuilder::build_const_slice(ILBlock* block, uint32_t constid, uint64_t size) {

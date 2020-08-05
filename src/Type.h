@@ -39,16 +39,15 @@ namespace Corrosive {
 
 		virtual void compile();
 
-		
-
 		//virtual int8_t compare(unsigned char* me, unsigned char* p2);
 		//virtual void copy(unsigned char* me, unsigned char* from);
+
 		virtual ILSize size();
 		virtual bool rvalue_stacked();
 
 		virtual void print(std::ostream& os);
 
-		TypeArray* generate_array(unsigned int count);
+		TypeArray* generate_array(uint32_t count);
 		TypeReference* generate_reference();
 		TypeSlice* generate_slice();
 
@@ -140,7 +139,6 @@ namespace Corrosive {
 		virtual void compile();
 		virtual ILSize size();
 		virtual void print(std::ostream& os);
-		
 	};
 	
 	class TypeReference : public Type {

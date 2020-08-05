@@ -14,6 +14,21 @@
 
 namespace Corrosive {
 
+	bool GenericContext::valid_generic_argument(Type* type) {
+		if (type->type() == TypeInstanceType::type_structure_instance) {
+			TypeStructureInstance* tsi = (TypeStructureInstance*)type;
+			if (tsi->owner->structure_type == StructureInstanceType::primitive_structure) {
+				return true;
+			}
+			else return false;
+		}
+		else if (type->type() == TypeInstanceType::type_array) {
+			TypeArray* tr = (TypeArray*)type;
+			return valid_generic_argument(tr->owner);
+		}
+		else return false;
+	}
+
 	void FunctionTemplate::compile() {
 		if (compile_state == 0) {
 			compile_state = 1;
@@ -54,7 +69,7 @@ namespace Corrosive {
 					Type* t = Compiler::current()->evaluator()->pop_register_value<Type*>();
 					t->compile();
 
-					if (t->type() != TypeInstanceType::type_structure_instance || ((TypeStructureInstance*)t)->owner->structure_type != StructureInstanceType::primitive_structure) {
+					if (!GenericContext::valid_generic_argument(t)) {
 						throw_specific_error(err, "Only primitive types can be used as generic arguments");
 					}
 
@@ -135,7 +150,7 @@ namespace Corrosive {
 					Type* t = Compiler::current()->evaluator()->pop_register_value<Type*>();
 					t->compile();
 
-					if (t->type() != TypeInstanceType::type_structure_instance || ((TypeStructureInstance*)t)->owner->structure_type != StructureInstanceType::primitive_structure) {
+					if (!GenericContext::valid_generic_argument(t)) {
 						throw_specific_error(err, "Only primitive types can be used as generic arguments");
 					}
 
@@ -215,7 +230,7 @@ namespace Corrosive {
 					Type* t = Compiler::current()->evaluator()->pop_register_value<Type*>();
 					t->compile();
 
-					if (t->type() != TypeInstanceType::type_structure_instance || ((TypeStructureInstance*)t)->owner->structure_type != StructureInstanceType::primitive_structure) {
+					if (!GenericContext::valid_generic_argument(t)) {
 						throw_specific_error(err, "Only primitive types can be used as generic arguments");
 					}
 
@@ -1144,23 +1159,19 @@ namespace Corrosive {
 				type = Compiler::current()->evaluator()->pop_register_value<Type*>();
 				type->compile();
 
-
-
-				size_t size = type->size().eval(Compiler::current()->global_module(), compiler_arch);
-				sid = Compiler::current()->global_module()->register_static(nullptr, size);
+				sid = Compiler::current()->global_module()->register_static(nullptr, type->size());
 			}
 			else {
 				type = typevalue.type;
-				size_t size = type->size().eval(Compiler::current()->global_module(), compiler_arch);
 
 				if (typevalue.lvalue || type->rvalue_stacked()) {
 					void* ptr = Compiler::current()->evaluator()->pop_register_value<void*>();
-					sid = Compiler::current()->global_module()->register_static((unsigned char*)ptr, size);
+					sid = Compiler::current()->global_module()->register_static((unsigned char*)ptr, type->size());
 				}
 				else {
 					ilsize_t storage;
-					Compiler::current()->evaluator()->pop_register_value_indirect(size,&storage);
-					sid = Compiler::current()->global_module()->register_static((unsigned char*)&storage, size);
+					Compiler::current()->evaluator()->pop_register_value_indirect(Compiler::current()->evaluator()->compile_time_register_size(type->rvalue()),&storage);
+					sid = Compiler::current()->global_module()->register_static((unsigned char*)&storage, type->size());
 				}
 			}
 

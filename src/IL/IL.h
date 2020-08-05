@@ -45,11 +45,9 @@ namespace Corrosive {
 		compile, runtime, both
 	};
 
-	//TODO more cleaning
-	// - push reverse actions into second hlaf of type?
-	// - try split sizes 8 16 32
 	enum class ILInstruction : unsigned char {
-		u8, i8, u16, i16, u32, i32, u64, i64, f32, f64, word, dword, size, slice,
+		u8, i8, u16, i16, u32, i32, u64, i64, f32, f64, word, dword, slice,
+		size8, size16, size32,
 
 		add, sub, div, mul, rem,
 		bit_and, bit_or, bit_xor,
@@ -340,6 +338,7 @@ namespace Corrosive {
 		template<typename T> inline void write_register_value(T v) {
 			
 			switch (sizeof(T)) {
+				case 0: return;
 				case 1:
 					*(T*)(register_stack_pointer_1b++) = v; break;
 				case 2:
@@ -366,8 +365,8 @@ namespace Corrosive {
 
 	class ILModule {
 	public:
-		std::vector<std::unique_ptr<unsigned char[]>> constant_memory;
-		std::vector<std::unique_ptr<unsigned char[]>> static_memory;
+		std::vector<std::pair<ILSize,std::unique_ptr<unsigned char[]>>> constant_memory;
+		std::vector<std::pair<ILSize,std::unique_ptr<unsigned char[]>>> static_memory;
 
 		std::vector<std::unique_ptr<ILFunction>> functions;
 		std::vector<std::unique_ptr<void* []>> vtable_data;
@@ -386,8 +385,8 @@ namespace Corrosive {
 		ILBytecodeFunction* create_function(ILContext context);
 		ILExtFunction* create_ext_function();
 
-		uint32_t register_constant(unsigned char* memory, size_t size);
-		uint32_t register_static(unsigned char* memory, size_t size);
+		uint32_t register_constant(unsigned char* memory, ILSize size);
+		uint32_t register_static(unsigned char* memory, ILSize size);
 		uint32_t register_function_decl(std::tuple<ILCallingConvention, ILDataType, std::vector<ILDataType>> decl);
 		void dump_function_decl(uint32_t id);
 

@@ -53,6 +53,7 @@ namespace Corrosive {
 	void ILEvaluator::write_register_value_indirect(size_t size, void* value) {
 		if (setjmp(sandbox) == 0) {
 			switch (size) {
+				case 0: break;
 				case 1:
 					memcpy(register_stack_pointer_1b++, value, size); break;
 				case 2:
@@ -80,6 +81,7 @@ namespace Corrosive {
 			if (into == nullptr) into = &storage;
 
 			switch (size) {
+				case 0: break;
 				case 1:
 					memcpy(into,--register_stack_pointer_1b, size); break;
 				case 2:
@@ -410,7 +412,9 @@ namespace Corrosive {
 
 
 	void ILBuilder::eval_forget(ILEvaluator* eval_ctx, ILDataType type) {
-		eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(type), nullptr);
+		if (type != ILDataType::none) {
+			eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(type), nullptr);
+		}
 	}
 
 
@@ -500,16 +504,16 @@ namespace Corrosive {
 	}
 
 	void ILBuilder::eval_constref(ILEvaluator* eval_ctx, uint32_t cid) {
-		eval_ctx->write_register_value(eval_ctx->parent->constant_memory[cid].get());
+		eval_ctx->write_register_value(eval_ctx->parent->constant_memory[cid].second.get());
 	}
 	
 	void ILBuilder::eval_const_slice(ILEvaluator* eval_ctx, uint32_t cid, uint64_t v) {
-		dword_t val = { eval_ctx->parent->constant_memory[cid].get() , (void*)v };
+		dword_t val = { eval_ctx->parent->constant_memory[cid].second.get() , (void*)v };
 		eval_ctx->write_register_value(val);
 	}
 
 	void ILBuilder::eval_staticref(ILEvaluator* eval_ctx, uint32_t cid) {
-		eval_ctx->write_register_value(eval_ctx->parent->static_memory[cid].get());
+		eval_ctx->write_register_value(eval_ctx->parent->static_memory[cid].second.get());
 	}
 
 
@@ -1275,7 +1279,21 @@ namespace Corrosive {
 									uint64_t s = *read_data_type(uint64_t);
 									eval_const_slice(eval_ctx, cid, s); 
 								}break;
-								case ILInstruction::size: eval_const_size(eval_ctx, read_data_type(ILSize)->eval(eval_ctx->parent, compiler_arch)); break;
+								case ILInstruction::size8: {
+									auto t = *read_data_type(ILSizeType);
+									auto v = *read_data_type(uint8_t);
+									eval_const_size(eval_ctx, ILSize(t,v).eval(eval_ctx->parent, compiler_arch));
+								} break;
+								case ILInstruction::size16: {
+									auto t = *read_data_type(ILSizeType);
+									auto v = *read_data_type(uint16_t);
+									eval_const_size(eval_ctx, ILSize(t,v).eval(eval_ctx->parent, compiler_arch));
+								} break;
+								case ILInstruction::size32: {
+									auto t = *read_data_type(ILSizeType);
+									auto v = *read_data_type(uint32_t);
+									eval_const_size(eval_ctx, ILSize(t,v).eval(eval_ctx->parent, compiler_arch));
+								} break;
 
 							}
 						}

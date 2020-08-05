@@ -20,8 +20,5 @@ namespace Corrosive {
 	};
 
 }
-#include "PredefinedTypes.h"
-#include "Declaration.h"
-#include "Type.h"
 
 #endif

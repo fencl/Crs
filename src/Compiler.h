@@ -36,6 +36,9 @@ namespace Corrosive {
 		std::vector<TypeFunction*>& defer_scope() { return defers.back().back(); }
 		std::vector<std::vector<TypeFunction*>>& defer_function() { return defers.back(); }
 
+
+		std::vector<TypeFunction*>& compile_defer_scope() { return compile_defers.back(); }
+
 		FindNameResult find_name(std::string_view name) { return target_global_namespace->find_name(name); }
 
 		ILBytecodeFunction* target() { return working_function_stack.back(); };
@@ -67,6 +70,9 @@ namespace Corrosive {
 		void push_defer_scope() { defers.back().push_back(std::vector<TypeFunction*>()); }
 		void pop_defer_scope() { defers.back().pop_back(); }
 
+		void push_compile_defer_scope() { compile_defers.push_back(std::vector<TypeFunction*>()); }
+		void pop_compile_defer_scope() { compile_defers.pop_back(); }
+
 		Source* source() { return source_stack.back(); }
 		void setup();
 
@@ -84,6 +90,7 @@ namespace Corrosive {
 		std::vector<ILBytecodeFunction*> working_function_stack;
 		std::vector<Source*> source_stack;
 		std::vector<std::vector<std::vector<TypeFunction*>>> defers;
+		std::vector<std::vector<TypeFunction*>> compile_defers;
 
 		std::map<std::filesystem::path, std::unique_ptr<Source>> included_sources;
 

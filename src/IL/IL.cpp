@@ -254,19 +254,21 @@ namespace Corrosive {
 		lifetime[holder + 4] = (s.value) & (unsigned char)0xFF;
 	}
 
-	uint32_t ILModule::register_constant(unsigned char* memory, size_t size) {
-		auto data = std::make_unique<unsigned char[]>(size);
-		memcpy(data.get(), memory, size);
-		constant_memory.push_back(std::move(data));
+	uint32_t ILModule::register_constant(unsigned char* memory, ILSize size) {
+		size_t compile_size = size.eval(this, compiler_arch);
+		auto data = std::make_unique<unsigned char[]>(compile_size);
+		memcpy(data.get(), memory, compile_size);
+		constant_memory.push_back(std::make_pair(size,std::move(data)));
 		return (uint32_t)constant_memory.size() - 1;
 	}
 
-	uint32_t ILModule::register_static(unsigned char* memory, size_t size) {
-		auto data = std::make_unique<unsigned char[]>(size);
+	uint32_t ILModule::register_static(unsigned char* memory, ILSize size) {
+		size_t compile_size = size.eval(this, compiler_arch);
+		auto data = std::make_unique<unsigned char[]>(compile_size);
 		if (memory != nullptr) {
-			memcpy(data.get(), memory, size);
+			memcpy(data.get(), memory, compile_size);
 		}
-		static_memory.push_back(std::move(data));
+		static_memory.push_back(std::make_pair(size, std::move(data)));
 		return (uint32_t)static_memory.size() - 1;
 	}
 
@@ -837,34 +839,25 @@ namespace Corrosive {
 				}
 				case ILInstruction::offset32: {
 					std::cout << "   offset ";
-					auto t = *read_data_type(uint8_t);
+					auto t = *read_data_type(ILSizeType);
 					auto off = *read_data_type(uint32_t);
-					ILSize s;
-					s.type = (ILSizeType)t;
-					s.value = off;
-					s.print();
+					ILSize(t,off).print();
 					std::cout << "\n";
 					break;
 				}
 				case ILInstruction::offset16: {
 					std::cout << "   offset ";
-					auto t = *read_data_type(uint8_t);
+					auto t = *read_data_type(ILSizeType);
 					auto off = *read_data_type(uint16_t);
-					ILSize s;
-					s.type = (ILSizeType)t;
-					s.value = off;
-					s.print();
+					ILSize(t, off).print();
 					std::cout << "\n";
 					break;
 				}
 				case ILInstruction::offset8: {
 					std::cout << "   offset ";
-					auto t = *read_data_type(uint8_t);
+					auto t = *read_data_type(ILSizeType);
 					auto off = *read_data_type(uint8_t);
-					ILSize s;
-					s.type = (ILSizeType)t;
-					s.value = off;
-					s.print();
+					ILSize(t, off).print();
 					std::cout << "\n";
 					break;
 				}
@@ -929,7 +922,7 @@ namespace Corrosive {
 				case ILInstruction::roffset32: {
 					std::cout << "   roffset [";
 					auto pair = *read_data_type(ILDataTypePair);
-					auto t = *read_data_type(uint8_t);
+					auto t = *read_data_type(ILSizeType);
 					auto off = *read_data_type(uint32_t);
 
 					dump_data_type(pair.first());
@@ -937,17 +930,13 @@ namespace Corrosive {
 					dump_data_type(pair.second());
 					std::cout << "]\n";
 
-					ILSize s;
-					s.type = (ILSizeType)t;
-					s.value = off;
-
-					s.print();
+					ILSize(t,off).print();
 					break;
 				}
 				case ILInstruction::roffset16: {
 					std::cout << "   roffset [";
 					auto pair = *read_data_type(ILDataTypePair);
-					auto t = *read_data_type(uint8_t);
+					auto t = *read_data_type(ILSizeType);
 					auto off = *read_data_type(uint16_t);
 
 					dump_data_type(pair.first());
@@ -955,17 +944,13 @@ namespace Corrosive {
 					dump_data_type(pair.second());
 					std::cout << "]\n";
 
-					ILSize s;
-					s.type = (ILSizeType)t;
-					s.value = off;
-
-					s.print();
+					ILSize(t, off).print();
 					break;
 				}
 				case ILInstruction::roffset8: {
 					std::cout << "   roffset [";
 					auto pair = *read_data_type(ILDataTypePair);
-					auto t = *read_data_type(uint8_t);
+					auto t = *read_data_type(ILSizeType);
 					auto off = *read_data_type(uint8_t);
 
 					dump_data_type(pair.first());
@@ -973,11 +958,7 @@ namespace Corrosive {
 					dump_data_type(pair.second());
 					std::cout << "]\n";
 
-					ILSize s;
-					s.type = (ILSizeType)t;
-					s.value = off;
-
-					s.print();
+					ILSize(t, off).print();
 					break;
 				}
 				case ILInstruction::aroffset: {
@@ -1073,10 +1054,25 @@ namespace Corrosive {
 				case ILInstruction::f32: std::cout << "   f32 " << *read_data_type(float) << "\n"; break;
 				case ILInstruction::f64: std::cout << "   f64 " << *read_data_type(double) << "\n"; break;
 				case ILInstruction::word: std::cout << "   word " << *read_data_type(void*) << "\n"; break;
-				case ILInstruction::size: {
+				case ILInstruction::size8: {
 					std::cout << "   size ";
-					auto off = read_data_type(ILSize);
-					off->print();
+					auto t = *read_data_type(ILSizeType);
+					auto v = *read_data_type(uint8_t);
+					ILSize(t,(tableid_t)v).print();
+					std::cout << "\n";
+				}break;
+				case ILInstruction::size16: {
+					std::cout << "   size ";
+					auto t = *read_data_type(ILSizeType);
+					auto v = *read_data_type(uint16_t);
+					ILSize(t, (tableid_t)v).print();
+					std::cout << "\n";
+				}break;
+				case ILInstruction::size32: {
+					std::cout << "   size ";
+					auto t = *read_data_type(ILSizeType);
+					auto v = *read_data_type(uint32_t);
+					ILSize(t, (tableid_t)v).print();
 					std::cout << "\n";
 				}break;
 

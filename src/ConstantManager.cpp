@@ -12,7 +12,7 @@ namespace Corrosive {
 		auto empl = string_literals.emplace(std::move(string), 0);
 
 		if (empl.second) {
-			empl.first->second = compiler->global_module()->register_constant((unsigned char*)empl.first->first.data(), empl.first->first.length());
+			empl.first->second = compiler->global_module()->register_constant((unsigned char*)empl.first->first.data(), ILSize(ILSizeType::absolute, (tableid_t)empl.first->first.length()));
 		}
 
 		return std::move(std::make_pair(std::string_view(empl.first->first),empl.first->second));

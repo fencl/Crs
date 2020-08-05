@@ -219,6 +219,19 @@ namespace Corrosive {
 			res.type = to;
 			res.lvalue = false;
 		}
+		else if (res.type->type() == TypeInstanceType::type_array && to->type() == TypeInstanceType::type_slice && ((TypeArray*)res.type)->owner == ((TypeSlice*)to)->owner) {
+			if (cpt == CompileType::compile) {
+				ILBuilder::build_const_size(Compiler::current()->scope(), res.type->size());
+				ILBuilder::build_combine_dword(Compiler::current()->scope());
+			}
+			else {
+				ILBuilder::eval_const_size(Compiler::current()->evaluator(), res.type->size().eval(Compiler::current()->global_module(), compiler_arch));
+				ILBuilder::eval_combine_dword(Compiler::current()->evaluator());
+			}
+
+			res.type = to;
+			res.lvalue = false;
+		}
 		else if (Operand::is_numeric_value(res.type) && Operand::is_numeric_value(to)) {
 			Expression::rvalue(res, cpt);
 			if (cpt == CompileType::eval) {
@@ -1905,16 +1918,23 @@ namespace Corrosive {
 			c.move(tok);
 			ft->compile();
 
-			ILBuilder::eval_call(Compiler::current()->evaluator(), ft->il_function_decl);
+			if (!targets_defer || tok != RecognizedToken::Semicolon) {
+				ILBuilder::eval_call(Compiler::current()->evaluator(), ft->il_function_decl);
 
-			if (ft->return_type->rvalue_stacked()) {
-				Compiler::current()->eval_local(local_stack_item);
+				if (ft->return_type->rvalue_stacked()) {
+					Compiler::current()->eval_local(local_stack_item);
+				}
+
+
+				ret.type = ft->return_type;
+				ret.lvalue = false;
 			}
-
-			ret.type = ft->return_type;
-			ret.lvalue = false;
+			else {
+				Compiler::current()->compile_defer_scope().push_back(ft);
+				ret.type = Compiler::current()->types()->t_void;
+				ret.lvalue = true;
+			}
 		}
-
 	}
 
 	void Operand::structure_element_offset(CompileValue& ret, tableelement_t id, CompileType cpt) {
@@ -2221,7 +2241,13 @@ namespace Corrosive {
 					ret.type = mf->return_type;
 				}
 				else {
-					Compiler::current()->defer_scope().push_back(mf);
+					if (cpt == CompileType::compile) {
+						Compiler::current()->defer_scope().push_back(mf);
+					}
+					else {
+						Compiler::current()->compile_defer_scope().push_back(mf);
+
+					}
 
 					ret.lvalue = true;
 					ret.type = Compiler::current()->types()->t_void;
@@ -2339,29 +2365,9 @@ namespace Corrosive {
 		slice->compile();
 
 		if (cpt == CompileType::compile) {
-			/*uint32_t local_id = Compiler::current()->target()->local_stack_lifetime.append(slice->size());
-			Compiler::current()->temp_stack()->push_item("$tmp", slice, local_id, StackItemTag::regular);
-			ILBuilder::build_constref(Compiler::current()->scope(), lit.second);
-			ILBuilder::build_local(Compiler::current()->scope(), local_id);
-			ILBuilder::build_store(Compiler::current()->scope(), ILDataType::word);
-			ILBuilder::build_const_size(Compiler::current()->scope(), ILSize(ILSizeType::absolute, (uint32_t)lit.first.length()));
-			ILBuilder::build_local(Compiler::current()->scope(), local_id);
-			ILBuilder::build_woffset(Compiler::current()->scope(), 1);
-			ILBuilder::build_store(Compiler::current()->scope(), ILDataType::word);
-			ILBuilder::build_local(Compiler::current()->scope(), local_id);*/
 			ILBuilder::build_const_slice(Compiler::current()->scope(), lit.second, (uint64_t)lit.first.length());
 		}
 		else {
-			/*uint32_t local_id = Compiler::current()->push_local(slice->size());
-			Compiler::current()->compiler_stack()->push_item("$tmp", slice, local_id, StackItemTag::regular);
-			ILBuilder::eval_constref(Compiler::current()->evaluator(), lit.second);
-			Compiler::current()->eval_local(local_id);
-			ILBuilder::eval_store(Compiler::current()->evaluator(), ILDataType::word);
-			ILBuilder::eval_const_size(Compiler::current()->evaluator(), lit.first.length());
-			Compiler::current()->eval_local(local_id);
-			ILBuilder::eval_woffset(Compiler::current()->evaluator(), 1);
-			ILBuilder::eval_store(Compiler::current()->evaluator(), ILDataType::word);
-			Compiler::current()->eval_local(local_id);*/
 			ILBuilder::eval_const_slice(Compiler::current()->evaluator(), lit.second, (uint64_t)lit.first.length());
 		}
 

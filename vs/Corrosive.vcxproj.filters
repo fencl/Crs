@@ -122,9 +122,6 @@
     <ClCompile Include="..\src\ConstantManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\CompileContext.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\Compiler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
