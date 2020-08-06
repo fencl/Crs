@@ -498,33 +498,10 @@ namespace Corrosive {
 				c.move(tok);
 			}
 			else {
+				uint8_t* source = Compiler::current()->stack_ptr(sitm.id);
+				sitm.type->constantize(c,nullptr, source);
 
-				if (sitm.type->type() == TypeInstanceType::type_structure_instance && ((TypeStructureInstance*)sitm.type)->owner->structure_type == StructureInstanceType::primitive_structure) {
-
-					Compiler::current()->eval_local(sitm.id);
-					ILBuilder::eval_load(Compiler::current()->evaluator(), sitm.type->rvalue());
-
-					switch (sitm.type->rvalue())
-					{
-						case ILDataType::u8: ILBuilder::build_const_u8(Compiler::current()->scope(), Compiler::current()->evaluator()->pop_register_value<uint8_t>()); res.type = sitm.type; res.lvalue = false; break;
-						case ILDataType::u16: ILBuilder::build_const_u16(Compiler::current()->scope(), Compiler::current()->evaluator()->pop_register_value<uint16_t>()); res.type = sitm.type; res.lvalue = false; break;
-						case ILDataType::u32: ILBuilder::build_const_u32(Compiler::current()->scope(), Compiler::current()->evaluator()->pop_register_value<uint32_t>()); res.type = sitm.type; res.lvalue = false; break;
-						case ILDataType::u64: ILBuilder::build_const_u64(Compiler::current()->scope(), Compiler::current()->evaluator()->pop_register_value<uint64_t>()); res.type = sitm.type; res.lvalue = false; break;
-						case ILDataType::i8: ILBuilder::build_const_i8(Compiler::current()->scope(), Compiler::current()->evaluator()->pop_register_value<int8_t>()); res.type = sitm.type; res.lvalue = false; break;
-						case ILDataType::i16: ILBuilder::build_const_i16(Compiler::current()->scope(), Compiler::current()->evaluator()->pop_register_value<int16_t>()); res.type = sitm.type; res.lvalue = false; break;
-						case ILDataType::i32: ILBuilder::build_const_i32(Compiler::current()->scope(), Compiler::current()->evaluator()->pop_register_value<int32_t>()); res.type = sitm.type; res.lvalue = false; break;
-						case ILDataType::i64: ILBuilder::build_const_i64(Compiler::current()->scope(), Compiler::current()->evaluator()->pop_register_value<int64_t>()); res.type = sitm.type; res.lvalue = false; break;
-						case ILDataType::f32: ILBuilder::build_const_f32(Compiler::current()->scope(), Compiler::current()->evaluator()->pop_register_value<float>()); res.type = sitm.type; res.lvalue = false; break;
-						case ILDataType::f64: ILBuilder::build_const_f64(Compiler::current()->scope(), Compiler::current()->evaluator()->pop_register_value<double>()); res.type = sitm.type; res.lvalue = false; break;
-
-						default:
-							throw_specific_error(c, "Compile type cannot be brought to runtime context");
-					}
-				}
-				else {
-					throw_specific_error(c, "Compile type cannot be brought to runtime context");
-				}
-
+				res.type = sitm.type; res.lvalue = false;
 				c.move(tok);
 				return;
 			}

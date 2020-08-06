@@ -26,6 +26,10 @@ namespace Corrosive {
 			TypeArray* tr = (TypeArray*)type;
 			return valid_generic_argument(tr->owner);
 		}
+		else if (type->type() == TypeInstanceType::type_slice) {
+			TypeSlice* tr = (TypeSlice*)type;
+			return valid_generic_argument(tr->owner);
+		}
 		else return false;
 	}
 
@@ -300,20 +304,17 @@ namespace Corrosive {
 				unsigned char* new_offset = new_key_inst.get();
 				new_key = new_key_inst.get();
 
-				/*for (auto l = generic_ctx.generic_layout.rbegin(); l != generic_ctx.generic_layout.rend(); l++) {
+				for (auto l = generic_ctx.generic_layout.rbegin(); l != generic_ctx.generic_layout.rend(); l++) {
 					size_t c_size = std::get<1>(*l)->size().eval(Compiler::current()->global_module(), compiler_arch);
-					memcpy(new_offset, old_offset, c_size);
+					std::get<1>(*l)->copy_to_generic_storage(old_offset, new_offset);
 					old_offset += c_size;
 					new_offset += c_size;
-				}*/
+				}
 
 
-				memcpy(new_offset, old_offset, generic_ctx.generate_heap_size);
+				//memcpy(new_offset, old_offset, generic_ctx.generate_heap_size);
 
 				instances->emplace(new_key, std::make_pair(std::move(new_key_inst), std::move(inst)));
-				if (new_key == nullptr) {
-					std::cout << "error";
-				}
 			}
 			else {
 				out = f->second.second.get();
@@ -637,14 +638,15 @@ namespace Corrosive {
 				unsigned char* old_offset = argdata;
 				unsigned char* new_offset = new_key_inst.get();
 
-				/*for (auto l = generic_ctx.generic_layout.rbegin(); l != generic_ctx.generic_layout.rend(); l++) {
+				for (auto l = generic_ctx.generic_layout.rbegin(); l != generic_ctx.generic_layout.rend(); l++) {
 					size_t c_size = std::get<1>(*l)->size().eval(Compiler::current()->global_module(), compiler_arch);
-					memcpy(new_offset, old_offset, c_size);
+
+					std::get<1>(*l)->copy_to_generic_storage(old_offset, new_offset);
 					old_offset += c_size;
 					new_offset += c_size;
-				}*/
+				}
 
-				memcpy(new_offset, old_offset, generic_ctx.generate_heap_size);
+				//memcpy(new_offset, old_offset, generic_ctx.generate_heap_size);
 
 				instances->emplace(new_key, std::make_pair(std::move(new_key_inst), std::move(inst)));
 
@@ -759,14 +761,14 @@ namespace Corrosive {
 				unsigned char* old_offset = argdata;
 				unsigned char* new_offset = new_key_inst.get();
 
-				/*for (auto l = generic_ctx.generic_layout.rbegin(); l != generic_ctx.generic_layout.rend(); l++) {
+				for (auto l = generic_ctx.generic_layout.rbegin(); l != generic_ctx.generic_layout.rend(); l++) {
 					size_t c_size = std::get<1>(*l)->size().eval(Compiler::current()->global_module(), compiler_arch);
-					memcpy(new_offset, old_offset, c_size);
+					std::get<1>(*l)->copy_to_generic_storage(old_offset, new_offset);
 					old_offset += c_size;
 					new_offset += c_size;
-				}*/
+				}
 
-				memcpy(new_offset, old_offset, generic_ctx.generate_heap_size);
+				//memcpy(new_offset, old_offset, generic_ctx.generate_heap_size);
 
 				instances->emplace(new_key, std::make_pair(std::move(new_key_inst), std::move(inst)));
 

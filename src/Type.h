@@ -39,8 +39,10 @@ namespace Corrosive {
 
 		virtual void compile();
 
-		//virtual int8_t compare(unsigned char* me, unsigned char* p2);
-		//virtual void copy(unsigned char* me, unsigned char* from);
+		virtual int8_t compare_for_generic_storage(unsigned char* me, unsigned char* to);
+		virtual void copy_to_generic_storage(unsigned char* me, unsigned char* to);
+
+		virtual void constantize(Cursor& err, unsigned char* target, unsigned char* source);
 
 		virtual ILSize size();
 		virtual bool rvalue_stacked();
@@ -65,6 +67,7 @@ namespace Corrosive {
 		inline virtual TypeInstanceType type() { return TypeInstanceType::type_structure_instance; }
 
 
+		virtual void constantize(Cursor& err, unsigned char* target, unsigned char* source);
 		
 		virtual ILContext context();
 		virtual void compile();
@@ -132,6 +135,8 @@ namespace Corrosive {
 
 		virtual ILDataType rvalue();
 
+		// TODO constantize
+
 		Type* owner;
 		tableid_t table;
 
@@ -158,6 +163,11 @@ namespace Corrosive {
 	public:
 		inline virtual TypeInstanceType type() { return TypeInstanceType::type_slice; }
 		Type* owner;
+
+		virtual int8_t compare_for_generic_storage(unsigned char* me, unsigned char* to);
+		virtual void copy_to_generic_storage(unsigned char* me, unsigned char* to);
+
+		virtual void constantize(Cursor& err, unsigned char* target, unsigned char* source);
 
 		virtual ILDataType rvalue();
 
@@ -186,8 +196,6 @@ namespace Corrosive {
 		virtual void print(std::ostream& os);
 
 		virtual void compile();
-
-		
 	};
 
 	class TypeTemplate : public Type {
@@ -197,9 +205,7 @@ namespace Corrosive {
 		DefaultTypes* owner;
 		size_t argument_array_id;
 		virtual ILSize size();
-		virtual void print(std::ostream& os);
-
-		
+		virtual void print(std::ostream& os);		
 	};
 }
 
