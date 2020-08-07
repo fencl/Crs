@@ -305,13 +305,6 @@ namespace Corrosive {
 				Operand::parse_array_type(res, c,tok, cpt,targets_defer);
 				return;
 			}
-			case RecognizedToken::Star: {
-				c.move(tok);
-				Cursor err = c;
-				Operand::parse(c, tok, res, cpt, targets_defer);
-				res.reflock = true;
-				return;
-			}
 
 			case RecognizedToken::OpenParenthesis: {
 				Operand::parse_expression(res, c, tok, cpt);
@@ -354,6 +347,55 @@ namespace Corrosive {
 					Operand::cast(err, res, to, cpt, false);
 					res.reflock = true;
 
+					return;
+				} else if (c.buffer() == "bitcast") {
+					c.move(tok);
+					if (tok != RecognizedToken::OpenParenthesis) {
+						throw_wrong_token_error(c, "'('");
+
+					}
+					c.move(tok);
+
+					Cursor err = c;
+					CompileValue t_res;
+
+					{
+						auto state = ScopeState().context(ILContext::compile);
+
+						Expression::parse(c, tok, t_res, CompileType::eval);
+						Operand::deref(t_res, cpt);
+						Expression::rvalue(t_res, CompileType::eval);
+						if (t_res.type != Compiler::current()->types()->t_type) {
+							throw_specific_error(err, "Expected type");
+						}
+					}
+
+					auto to = Compiler::current()->evaluator()->pop_register_value<Type*>();
+					to->compile();
+
+					if (tok != RecognizedToken::CloseParenthesis) {
+						throw_wrong_token_error(c, "')'");
+					}
+					c.move(tok);
+
+					err = c;
+					Operand::parse(c, tok, res, cpt, targets_defer);
+					Operand::deref(res, cpt);
+					Expression::rvalue(res, cpt);
+					if (res.type->rvalue_stacked() || to->rvalue_stacked()) {
+						throw_specific_error(err, "This type cannot be bitcasted (yet)");
+					}
+
+					if (cpt == CompileType::compile) {
+						ILBuilder::build_bitcast(Compiler::current()->scope(), res.type->rvalue(), to->rvalue());
+					}
+					else {
+						ILBuilder::eval_bitcast(Compiler::current()->evaluator(), res.type->rvalue(), to->rvalue());
+					}
+
+					res.type = to;
+					res.lvalue = false;
+					res.reflock = true;
 					return;
 				}
 				else {
@@ -458,11 +500,59 @@ namespace Corrosive {
 						}
 						c.move(tok);
 
-						Compiler::current()->pop_scope_context();
 
 						Operand::deref(res, cpt);
 						Operand::cast(err, res, to, cpt, false);
 
+						res.reflock = true;
+					}
+					else if (c.buffer() == "bitcast") {
+						c.move(tok);
+						if (tok != RecognizedToken::OpenParenthesis) {
+							throw_wrong_token_error(c, "'('");
+
+						}
+						c.move(tok);
+
+						Cursor err = c;
+						CompileValue t_res;
+
+						{
+							auto state = ScopeState().context(ILContext::compile);
+
+							Expression::parse(c, tok, t_res, CompileType::eval);
+							Operand::deref(t_res, cpt);
+							Expression::rvalue(t_res, CompileType::eval);
+							if (t_res.type != Compiler::current()->types()->t_type) {
+								throw_specific_error(err, "Expected type");
+							}
+						}
+
+						auto to = Compiler::current()->evaluator()->pop_register_value<Type*>();
+						to->compile();
+
+						if (tok != RecognizedToken::CloseParenthesis) {
+							throw_wrong_token_error(c, "')'");
+						}
+						c.move(tok);
+
+						err = c;
+						Operand::deref(res, cpt);
+						Expression::rvalue(res, cpt);
+
+						if (res.type->rvalue_stacked() || to->rvalue_stacked()) {
+							throw_specific_error(err, "This type cannot be bitcasted (yet)");
+						}
+
+						if (cpt == CompileType::compile) {
+							ILBuilder::build_bitcast(Compiler::current()->scope(), res.type->rvalue(), to->rvalue());
+						}
+						else {
+							ILBuilder::eval_bitcast(Compiler::current()->evaluator(), res.type->rvalue(), to->rvalue());
+						}
+
+						res.type = to;
+						res.lvalue = false;
 						res.reflock = true;
 					}
 					else goto break_while;
@@ -1242,10 +1332,6 @@ namespace Corrosive {
 			Type* type = std::get<1>(*act_layout);
 			type->compile();
 
-			if (type->type() == TypeInstanceType::type_array) {
-				int i = 0;
-			}
-
 			stackid_t local_id = Compiler::current()->push_local(type->size());
 			Compiler::current()->compiler_stack()->push_item(std::get<0>(*act_layout).buffer(), type, local_id);
 
@@ -1481,20 +1567,13 @@ namespace Corrosive {
 
 	}
 
-	void Operand::priv_build_reference(ILEvaluator* eval) {
-		Type* t = eval->pop_register_value<Type*>();
-		t = t->generate_reference();
-		ILBuilder::eval_const_type(eval, t);
+	Type* Operand::priv_build_reference(Type* t) {
+		return t->generate_reference();
 	}
 
-	void Operand::priv_build_subtype(ILEvaluator* eval) {
-		auto ptr = eval->pop_register_value<dword_t>();
-		const char* slice_data = (const char*)ptr.p1;
-		size_t slice_size = (size_t)ptr.p2;
-
+	Type* Operand::priv_build_subtype(const char* slice_data, size_t slice_size, Type* t) {
 		std::string_view slice_str(slice_data, slice_size);
 
-		Type* t = eval->pop_register_value<Type*>();
 		Type* str = Compiler::current()->types()->t_u8->generate_slice();
 
 		if (t->type() == TypeInstanceType::type_structure_instance) {
@@ -1508,41 +1587,35 @@ namespace Corrosive {
 					StructureInstance* sinst;
 					struct_template->generate(nullptr, sinst);
 					sinst->compile();
-					eval->write_register_value<void*>(sinst->type.get());
+					return sinst->type.get();
 				}
 				else {
-					eval->write_register_value<void*>(struct_template->type.get());
+					return struct_template->type.get();
 				}
 			}
 			else if (auto function_temaplte = res.get_function()) {
 				function_temaplte->compile();
-				eval->write_register_value<void*>(function_temaplte->type.get());
+				return function_temaplte->type.get();
 			}
 			else if (auto trait_template = res.get_trait()) {
 				trait_template->compile();
 				if (!trait_template->ast_node->is_generic) {
 					TraitInstance* trait_instance;
 					trait_template->generate(nullptr, trait_instance);
-					eval->write_register_value<void*>(trait_instance->type.get());
+					return trait_instance->type.get();
 				}
 				else {
-					eval->write_register_value<void*>(trait_template->type.get());
+					return trait_template->type.get();
 				}
 			}
-			else {
-				eval->write_register_value<void*>(nullptr);
-			}
 
 		}
-		else {
-			eval->write_register_value<void*>(nullptr);
-		}
+
+		return nullptr;
 	}
 
-	void Operand::priv_build_slice(ILEvaluator* eval) {
-		Type* t = eval->pop_register_value<Type*>();
-		t = t->generate_slice();
-		ILBuilder::eval_const_type(eval, t);
+	Type* Operand::priv_build_slice(Type* t) {
+		return t->generate_slice();
 	}
 
 	void Operand::parse_reference(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType cpt, bool targets_defer) {
@@ -1557,24 +1630,33 @@ namespace Corrosive {
 		}
 
 		Cursor err = c;
-		CompileValue value;
-		Operand::parse(c,tok, value, cpt, targets_defer);
-		Expression::rvalue(value, cpt);
+		Operand::parse(c,tok, ret, cpt, targets_defer);
 
-		if (value.type != Compiler::current()->types()->t_type) {
-			throw_specific_error(err, "operator expected to recieve type");
-		}
+		if (ret.type == Compiler::current()->types()->t_type) {
+			Expression::rvalue(ret, cpt);
 
-		if (cpt == CompileType::eval) {
-			for (unsigned int i = 0; i < type_ref_count; i++)
-				priv_build_reference(Compiler::current()->evaluator());
-		}
-		else if (cpt == CompileType::compile) {
-			throw_specific_error(operr, "Operation not supported in runtime context, please use .reference(...) function");
-		}
+			if (cpt == CompileType::eval) {
+				Type* t = Compiler::current()->evaluator()->pop_register_value<Type*>();
+				for (unsigned int i = 0; i < type_ref_count; i++)
+					t = t->generate_reference();
 
-		ret.type = Compiler::current()->types()->t_type;
-		ret.lvalue = false;
+				Compiler::current()->evaluator()->write_register_value(t);
+			}
+			else if (cpt == CompileType::compile) {
+				for (unsigned int i = 0; i < type_ref_count; i++) {
+					ILBuilder::build_fncall(Compiler::current()->scope(), Compiler::current()->types()->f_build_reference->func);
+				}
+			}
+
+			ret.type = Compiler::current()->types()->t_type;
+			ret.lvalue = false;
+		}
+		else if (ret.type->type() == TypeInstanceType::type_reference) {
+			ret.reflock = true;
+		}
+		else {
+			throw_specific_error(err, "operator expected to recieve type or reference");
+		}
 	}
 
 	void Operand::parse_array_operator(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType cpt) {
@@ -1674,12 +1756,8 @@ namespace Corrosive {
 
 	}
 
-	void Operand::priv_build_array(ILEvaluator* eval) {
-		uint32_t val = eval->pop_register_value<uint32_t>();
-		Type* t = eval->pop_register_value<Type*>();
-		TypeArray* nt = t->generate_array(val);
-		ILBuilder::eval_const_type(eval, nt);
-
+	Type* Operand::priv_build_array(uint32_t size, Type* t) {
+		return t->generate_array(size);
 	}
 
 	void Operand::parse_array_type(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType cpt, bool targets_defer) {
@@ -1706,8 +1784,7 @@ namespace Corrosive {
 				ILBuilder::eval_const_type(Compiler::current()->evaluator(), nt);
 			}
 			else {
-				throw_specific_error(err, "Operation not supported in runtime context, please use .slice function");
-
+				ILBuilder::build_fncall(Compiler::current()->scope(), Compiler::current()->types()->f_build_slice->func);
 			}
 		}
 		else {
@@ -1740,8 +1817,7 @@ namespace Corrosive {
 				ILBuilder::eval_const_type(Compiler::current()->evaluator(), nt);
 			}
 			else {
-				throw_specific_error(err, "Operation not supported in runtime context, please use .array(...) function");
-
+				ILBuilder::build_fncall(Compiler::current()->scope(), Compiler::current()->types()->f_build_array->func);
 			}
 		}
 
@@ -1928,6 +2004,7 @@ namespace Corrosive {
 			ft->compile();
 
 			if (!targets_defer || tok != RecognizedToken::Semicolon) {
+
 				ILBuilder::eval_call(Compiler::current()->evaluator(), ft->il_function_decl);
 
 				if (ft->return_type->rvalue_stacked()) {

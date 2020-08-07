@@ -98,9 +98,9 @@ namespace Corrosive {
 		return function_ptr;
 	}
 
-	ILExtFunction* ILModule::create_ext_function() {
-		std::unique_ptr<ILExtFunction> function = std::make_unique<ILExtFunction>();
-		ILExtFunction* function_ptr = function.get();
+	ILNativeFunction* ILModule::create_native_function() {
+		std::unique_ptr<ILNativeFunction> function = std::make_unique<ILNativeFunction>();
+		ILNativeFunction* function_ptr = function.get();
 		function_ptr->id = (uint32_t)functions.size();
 		function_ptr->parent = this;
 		functions.push_back(std::move(function));

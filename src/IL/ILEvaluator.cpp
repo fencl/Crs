@@ -619,13 +619,25 @@ namespace Corrosive {
 	}
 
 	void ILBuilder::eval_fnptr(ILEvaluator* eval_ctx, ILFunction* fun) {
-		eval_ctx->write_register_value(fun);
+
+		if (auto native_fun = dynamic_cast<ILNativeFunction*>(fun)) {
+			eval_ctx->write_register_value(native_fun->ptr);
+		}
+		else {
+			eval_ctx->write_register_value(fun);
+		}
 	}
 
 
 	void ILBuilder::eval_fncall(ILEvaluator* eval_ctx, ILFunction* fun) {
-		eval_ctx->callstack.push_back(fun);
-		eval_call(eval_ctx, fun->decl_id);
+		if (auto native_fun = dynamic_cast<ILNativeFunction*>(fun)) {
+			eval_ctx->callstack.push_back(native_fun->ptr);
+			eval_call(eval_ctx, fun->decl_id);
+		}
+		else {
+			eval_ctx->callstack.push_back(fun);
+			eval_call(eval_ctx, fun->decl_id);
+		}
 	}
 
 	void ILBuilder::eval_null(ILEvaluator* eval_ctx) {
@@ -838,494 +850,480 @@ namespace Corrosive {
 			eval_ctx->callstack.pop_back();
 
 			if (std::get<0>(declaration) == ILCallingConvention::bytecode) {
-				ILFunction* fun = (ILFunction*)ptr;
-				eval_ctx->callstack_debug.push_back(std::make_tuple(eval_ctx->debug_line, eval_ctx->debug_file, std::string_view(fun->alias)));
+				ILBytecodeFunction* bytecode_fun = (ILBytecodeFunction*)ptr;
+				eval_ctx->callstack_debug.push_back(std::make_tuple(eval_ctx->debug_line, eval_ctx->debug_file, std::string_view(bytecode_fun->alias)));
 
-				if (auto bytecode_fun = dynamic_cast<ILBytecodeFunction*>(fun)) {
-					bytecode_fun->calculate_stack(compiler_arch);
+				bytecode_fun->calculate_stack(compiler_arch);
 
-					ILBlock* block = bytecode_fun->blocks[0];
-					bool running = true;
+				ILBlock* block = bytecode_fun->blocks[0];
+				bool running = true;
 
-					unsigned char* lstack_base = eval_ctx->stack_base;
-					unsigned char* lstack_base_aligned = eval_ctx->stack_base_aligned;
-					unsigned char* lstack_pointer = eval_ctx->stack_pointer;
+				unsigned char* lstack_base = eval_ctx->stack_base;
+				unsigned char* lstack_base_aligned = eval_ctx->stack_base_aligned;
+				unsigned char* lstack_pointer = eval_ctx->stack_pointer;
 
-					eval_ctx->stack_base = eval_ctx->stack_pointer;
-					eval_ctx->stack_base_aligned = (unsigned char*)_align_up((size_t)eval_ctx->stack_base, bytecode_fun->calculated_local_stack_alignment);
-					eval_ctx->stack_pointer = eval_ctx->stack_base_aligned + bytecode_fun->calculated_local_stack_size;
+				eval_ctx->stack_base = eval_ctx->stack_pointer;
+				eval_ctx->stack_base_aligned = (unsigned char*)_align_up((size_t)eval_ctx->stack_base, bytecode_fun->calculated_local_stack_alignment);
+				eval_ctx->stack_pointer = eval_ctx->stack_base_aligned + bytecode_fun->calculated_local_stack_size;
 
 
-					unsigned char* local_base = eval_ctx->stack_base_aligned;
+				unsigned char* local_base = eval_ctx->stack_base_aligned;
 
-					size_t instr = 0;
+				size_t instr = 0;
 
-					while (true) {
-						std::list<std::unique_ptr<ILBlockData>>::iterator mempool = block->data_pool.begin();
-						size_t memoff = 0;
-						while (mempool != block->data_pool.end()) {
+				while (true) {
+					std::list<std::unique_ptr<ILBlockData>>::iterator mempool = block->data_pool.begin();
+					size_t memoff = 0;
+					while (mempool != block->data_pool.end()) {
 
-							auto inst = read_data_type(ILInstruction);
-							instr++;
+						auto inst = read_data_type(ILInstruction);
+						instr++;
 
-							switch (*inst) {
-								case ILInstruction::ret: {
-									auto type = *read_data_type(ILDataType);
-									running = false;
-									goto returned;
-								} break;
-								case ILInstruction::call: {
-									auto decl = *read_data_type(uint32_t);
-									eval_call(eval_ctx, decl);
-								} break;
-								case ILInstruction::memcpy: {
-									auto size = read_data_type(ILSize);
-									eval_memcpy(eval_ctx, size->eval(eval_ctx->parent, compiler_arch));
-								} break;
-								case ILInstruction::memcpy2: {
-									auto size = read_data_type(ILSize);
-									eval_memcpy_rev(eval_ctx, size->eval(eval_ctx->parent, compiler_arch));
-								} break;
-								case ILInstruction::memcmp: {
-									auto size = read_data_type(ILSize);
-									eval_memcmp(eval_ctx, size->eval(eval_ctx->parent, compiler_arch));
-								} break;
-								case ILInstruction::memcmp2: {
-									auto size = read_data_type(ILSize);
-									eval_memcmp_rev(eval_ctx, size->eval(eval_ctx->parent, compiler_arch));
-								} break;
-								case ILInstruction::fnptr: {
-									auto id = *read_data_type(uint32_t);
-									eval_ctx->write_register_value(eval_ctx->parent->functions[id].get());
-								} break;
-								case ILInstruction::fncall: {
-									auto id = *read_data_type(uint32_t);
-									auto fn = eval_ctx->parent->functions[id].get();
-									eval_ctx->callstack.push_back(fn);
-									eval_call(eval_ctx, fn->decl_id);
-								} break;
-								case ILInstruction::vtable: {
-									auto id = *read_data_type(uint32_t);
-									eval_vtable(eval_ctx, id);
-								} break;
-								case ILInstruction::duplicate: {
-									auto type = *read_data_type(ILDataType);
-									eval_duplicate(eval_ctx, type);
-								} break;
-								case ILInstruction::clone: {
-									auto type = *read_data_type(ILDataType);
-									auto times = *read_data_type(uint16_t);
-									eval_clone(eval_ctx, type, times);
-								} break;
-								case ILInstruction::swap: {
-									auto type = *read_data_type(ILDataType);
-									eval_swap(eval_ctx, type);
-								} break;
-								case ILInstruction::swap2: {
+						switch (*inst) {
+							case ILInstruction::ret: {
+								auto type = *read_data_type(ILDataType);
+								running = false;
+								goto returned;
+							} break;
+							case ILInstruction::call: {
+								auto decl = *read_data_type(uint32_t);
+								eval_call(eval_ctx, decl);
+							} break;
+							case ILInstruction::memcpy: {
+								auto size = read_data_type(ILSize);
+								eval_memcpy(eval_ctx, size->eval(eval_ctx->parent, compiler_arch));
+							} break;
+							case ILInstruction::memcpy2: {
+								auto size = read_data_type(ILSize);
+								eval_memcpy_rev(eval_ctx, size->eval(eval_ctx->parent, compiler_arch));
+							} break;
+							case ILInstruction::memcmp: {
+								auto size = read_data_type(ILSize);
+								eval_memcmp(eval_ctx, size->eval(eval_ctx->parent, compiler_arch));
+							} break;
+							case ILInstruction::memcmp2: {
+								auto size = read_data_type(ILSize);
+								eval_memcmp_rev(eval_ctx, size->eval(eval_ctx->parent, compiler_arch));
+							} break;
+							case ILInstruction::fnptr: {
+								auto id = *read_data_type(uint32_t);
+								eval_fnptr(eval_ctx,eval_ctx->parent->functions[id].get());
+							} break;
+							case ILInstruction::fncall: {
+								auto id = *read_data_type(uint32_t);
+								auto fn = eval_ctx->parent->functions[id].get();
+								eval_fncall(eval_ctx, fn);
+							} break;
+							case ILInstruction::vtable: {
+								auto id = *read_data_type(uint32_t);
+								eval_vtable(eval_ctx, id);
+							} break;
+							case ILInstruction::duplicate: {
+								auto type = *read_data_type(ILDataType);
+								eval_duplicate(eval_ctx, type);
+							} break;
+							case ILInstruction::clone: {
+								auto type = *read_data_type(ILDataType);
+								auto times = *read_data_type(uint16_t);
+								eval_clone(eval_ctx, type, times);
+							} break;
+							case ILInstruction::swap: {
+								auto type = *read_data_type(ILDataType);
+								eval_swap(eval_ctx, type);
+							} break;
+							case ILInstruction::swap2: {
+								auto p = *read_data_type(ILDataTypePair);
+								eval_swap2(eval_ctx, p.first(), p.second());
+							} break;
+							case ILInstruction::insintric: {
+								auto id = *read_data_type(uint8_t);
+								eval_insintric(eval_ctx, (ILInsintric)id);
+							} break;
+							case ILInstruction::rmemcmp: {
+								auto type = *read_data_type(ILDataType);
+								eval_rmemcmp(eval_ctx, type);
+							} break;
+							case ILInstruction::rmemcmp2: {
+								auto type = *read_data_type(ILDataType);
+								eval_rmemcmp_rev(eval_ctx, type);
+							} break;
+							case ILInstruction::sub: {
+								auto type = *read_data_type(ILDataTypePair);
+								eval_sub(eval_ctx, type.first(), type.second());
+							} break;
+							case ILInstruction::div: {
+								auto type = *read_data_type(ILDataTypePair);
+								eval_div(eval_ctx, type.first(), type.second());
+							} break;
+							case ILInstruction::rem: {
+								auto type = *read_data_type(ILDataTypePair);
+								eval_rem(eval_ctx, type.first(), type.second());
+							} break;
+							case ILInstruction::mul: {
+								auto type = *read_data_type(ILDataTypePair);
+								eval_mul(eval_ctx, type.first(), type.second());
+							} break;
+							case ILInstruction::add: {
+								auto type = *read_data_type(ILDataTypePair);
+								eval_add(eval_ctx, type.first(), type.second());
+							} break;
+							case ILInstruction::bit_and: {
+								auto type = *read_data_type(ILDataTypePair);
+								eval_and(eval_ctx, type.first(), type.second());
+							} break;
+							case ILInstruction::bit_or: {
+								auto type = *read_data_type(ILDataTypePair);
+								eval_or(eval_ctx, type.first(), type.second());
+							} break;
+							case ILInstruction::bit_xor: {
+								auto type = *read_data_type(ILDataTypePair);
+								eval_xor(eval_ctx, type.first(), type.second());
+							} break;
+							case ILInstruction::eq: {
+								auto type = *read_data_type(ILDataTypePair);
+								eval_eq(eval_ctx, type.first(), type.second());
+							} break;
+							case ILInstruction::ne: {
+								auto type = *read_data_type(ILDataTypePair);
+								eval_ne(eval_ctx, type.first(), type.second());
+							} break;
+							case ILInstruction::gt: {
+								auto type = *read_data_type(ILDataTypePair);
+								eval_gt(eval_ctx, type.first(), type.second());
+							} break;
+							case ILInstruction::lt: {
+								auto type = *read_data_type(ILDataTypePair);
+								eval_lt(eval_ctx, type.first(), type.second());
+							} break;
+							case ILInstruction::ge: {
+								auto type = *read_data_type(ILDataTypePair);
+								eval_ge(eval_ctx, type.first(), type.second());
+							} break;
+							case ILInstruction::le: {
+								auto type = *read_data_type(ILDataTypePair);
+								eval_le(eval_ctx, type.first(), type.second());
+							} break;
 
-									auto p = *read_data_type(ILDataTypePair);
-									eval_swap2(eval_ctx, p.first(), p.second());
-								} break;
-								case ILInstruction::insintric: {
-									auto id = *read_data_type(uint8_t);
-									eval_insintric(eval_ctx, (ILInsintric)id);
-								} break;
-								case ILInstruction::rmemcmp: {
-									auto type = *read_data_type(ILDataType);
-									eval_rmemcmp(eval_ctx, type);
-								} break;
-								case ILInstruction::rmemcmp2: {
-									auto type = *read_data_type(ILDataType);
-									eval_rmemcmp_rev(eval_ctx, type);
-								} break;
-								case ILInstruction::sub: {
-									auto type = *read_data_type(ILDataTypePair);
-									eval_sub(eval_ctx, type.first(), type.second());
-								} break;
-								case ILInstruction::div: {
-									auto type = *read_data_type(ILDataTypePair);
-									eval_div(eval_ctx, type.first(), type.second());
-								} break;
-								case ILInstruction::rem: {
-									auto type = *read_data_type(ILDataTypePair);
-									eval_rem(eval_ctx, type.first(), type.second());
-								} break;
-								case ILInstruction::mul: {
-									auto type = *read_data_type(ILDataTypePair);
-									eval_mul(eval_ctx, type.first(), type.second());
-								} break;
-								case ILInstruction::add: {
-									auto type = *read_data_type(ILDataTypePair);
-									eval_add(eval_ctx, type.first(), type.second());
-								} break;
-								case ILInstruction::bit_and: {
-									auto type = *read_data_type(ILDataTypePair);
-									eval_and(eval_ctx, type.first(), type.second());
-								} break;
-								case ILInstruction::bit_or: {
-									auto type = *read_data_type(ILDataTypePair);
-									eval_or(eval_ctx, type.first(), type.second());
-								} break;
-								case ILInstruction::bit_xor: {
-									auto type = *read_data_type(ILDataTypePair);
-									eval_xor(eval_ctx, type.first(), type.second());
-								} break;
-								case ILInstruction::eq: {
-									auto type = *read_data_type(ILDataTypePair);
-									eval_eq(eval_ctx, type.first(), type.second());
-								} break;
-								case ILInstruction::ne: {
-									auto type = *read_data_type(ILDataTypePair);
-									eval_ne(eval_ctx, type.first(), type.second());
-								} break;
-								case ILInstruction::gt: {
-									auto type = *read_data_type(ILDataTypePair);
-									eval_gt(eval_ctx, type.first(), type.second());
-								} break;
-								case ILInstruction::lt: {
-									auto type = *read_data_type(ILDataTypePair);
-									eval_lt(eval_ctx, type.first(), type.second());
-								} break;
-								case ILInstruction::ge: {
-									auto type = *read_data_type(ILDataTypePair);
-									eval_ge(eval_ctx, type.first(), type.second());
-								} break;
-								case ILInstruction::le: {
-									auto type = *read_data_type(ILDataTypePair);
-									eval_le(eval_ctx, type.first(), type.second());
-								} break;
+							case ILInstruction::cast: {
+								auto pair = *read_data_type(ILDataTypePair);
+								eval_cast(eval_ctx, pair.first(), pair.second());
+							} break;
+							case ILInstruction::bitcast: {
+								auto pair = *read_data_type(ILDataTypePair);
+								eval_bitcast(eval_ctx, pair.first(), pair.second());
+							} break;
+							case ILInstruction::store: {
+								auto type = *read_data_type(ILDataType);
+								eval_store(eval_ctx, type);
+							} break;
+							case ILInstruction::store2: {
+								auto type = *read_data_type(ILDataType);
+								eval_store_rev(eval_ctx, type);
+							} break;
+							case ILInstruction::yield: {
+								auto type = *read_data_type(ILDataType);
+								eval_yield(eval_ctx, type);
+							} break;
+							case ILInstruction::accept: {
+								auto type = *read_data_type(ILDataType);
+								eval_accept(eval_ctx, type);
+							} break;
+							case ILInstruction::discard: {
+								auto type = *read_data_type(ILDataType);
+								eval_discard(eval_ctx, type);
+							} break;
+							case ILInstruction::start: {
+								eval_callstart(eval_ctx);
+							} break;
 
-								case ILInstruction::cast: {
-									auto pair = *read_data_type(ILDataTypePair);
-									eval_cast(eval_ctx, pair.first(), pair.second());
-								} break;
-								case ILInstruction::bitcast: {
-									auto pair = *read_data_type(ILDataTypePair);
-									eval_bitcast(eval_ctx, pair.first(), pair.second());
-								} break;
-								case ILInstruction::store: {
-									auto type = *read_data_type(ILDataType);
-									eval_store(eval_ctx, type);
-								} break;
-								case ILInstruction::store2: {
-									auto type = *read_data_type(ILDataType);
-									eval_store_rev(eval_ctx, type);
-								} break;
-								case ILInstruction::yield: {
-									auto type = *read_data_type(ILDataType);
-									eval_yield(eval_ctx, type);
-								} break;
-								case ILInstruction::accept: {
-									auto type = *read_data_type(ILDataType);
-									eval_accept(eval_ctx, type);
-								} break;
-								case ILInstruction::discard: {
-									auto type = *read_data_type(ILDataType);
-									eval_discard(eval_ctx, type);
-								} break;
-								case ILInstruction::start: {
-									eval_callstart(eval_ctx);
-								} break;
+							case ILInstruction::null: {
+								eval_null(eval_ctx);
+							} break;
 
-								case ILInstruction::null: {
-									eval_null(eval_ctx);
-								} break;
+							case ILInstruction::jmp: {
+								auto address = read_data_type(uint32_t);
+								block = block->parent->blocks_memory[*address].get();
+								goto next_block;
+							}break;
+							case ILInstruction::offset32: {
+								auto t = *read_data_type(uint8_t);
+								auto v = *read_data_type(uint32_t);
+								eval_offset(eval_ctx, ILSize((ILSizeType)t,v));
+							} break;
+							case ILInstruction::offset16: {
+								auto t = *read_data_type(uint8_t);
+								auto v = *read_data_type(uint16_t);
+								eval_offset(eval_ctx, ILSize((ILSizeType)t,v));
+							} break;
+							case ILInstruction::offset8: {
+								auto t = *read_data_type(uint8_t);
+								auto v = *read_data_type(uint8_t);
+								eval_offset(eval_ctx, ILSize((ILSizeType)t,v));
+							} break;
+							case ILInstruction::aoffset8: {
+								auto size = *read_data_type(uint8_t);
+								eval_aoffset(eval_ctx, size);
+							} break;
+							case ILInstruction::aoffset16: {
+								auto size = *read_data_type(uint16_t);
+								eval_aoffset(eval_ctx, size);
+							} break;
+							case ILInstruction::aoffset32: {
+								auto size = *read_data_type(uint32_t);
+								eval_aoffset(eval_ctx, size);
+							} break;
+							case ILInstruction::woffset8: {
+								auto size = *read_data_type(uint8_t);
+								eval_woffset(eval_ctx, size);
+							} break;
+							case ILInstruction::woffset16: {
+								auto size = *read_data_type(uint16_t);
+								eval_woffset(eval_ctx, size);
+							} break;
+							case ILInstruction::woffset32: {
+								auto size = *read_data_type(uint32_t);
+								eval_woffset(eval_ctx, size);
+							} break;
+							case ILInstruction::constref: {
+								auto cid = *read_data_type(uint32_t);
+								eval_constref(eval_ctx, cid);
+							} break;
+							case ILInstruction::staticref: {
+								auto cid = *read_data_type(uint32_t);
+								eval_staticref(eval_ctx, cid);
+							} break;
+							case ILInstruction::rtoffset: {
+								eval_rtoffset(eval_ctx);
+							} break;
+							case ILInstruction::rtoffset2: {
+								eval_rtoffset_rev(eval_ctx);
+							} break;
+							case ILInstruction::roffset32: {
+								auto from_t = *read_data_type(ILDataType);
+								auto to_t = *read_data_type(ILDataType); 
+								auto t = *read_data_type(uint8_t);
+								auto v = *read_data_type(uint32_t);
+								eval_roffset(eval_ctx, from_t, to_t, ILSize((ILSizeType)t, v).eval(eval_ctx->parent, compiler_arch));
+							} break;
+								
+							case ILInstruction::roffset16: {
+								auto from_t = *read_data_type(ILDataType);
+								auto to_t = *read_data_type(ILDataType); 
+								auto t = *read_data_type(uint8_t);
+								auto v = *read_data_type(uint16_t);
+								eval_roffset(eval_ctx, from_t, to_t, ILSize((ILSizeType)t, v).eval(eval_ctx->parent, compiler_arch));
+							} break;
+								
+							case ILInstruction::roffset8: {
+								auto from_t = *read_data_type(ILDataType);
+								auto to_t = *read_data_type(ILDataType); 
+								auto t = *read_data_type(uint8_t);
+								auto v = *read_data_type(uint8_t);
+								eval_roffset(eval_ctx, from_t, to_t, ILSize((ILSizeType)t, v).eval(eval_ctx->parent, compiler_arch));
+							} break;
 
-								case ILInstruction::jmp: {
-									auto address = read_data_type(uint32_t);
-									block = block->parent->blocks_memory[*address].get();
-									goto next_block;
-								}break;
-								case ILInstruction::offset32: {
-									auto t = *read_data_type(uint8_t);
-									auto v = *read_data_type(uint32_t);
-									eval_offset(eval_ctx, ILSize((ILSizeType)t,v));
-								} break;
-								case ILInstruction::offset16: {
-									auto t = *read_data_type(uint8_t);
-									auto v = *read_data_type(uint16_t);
-									eval_offset(eval_ctx, ILSize((ILSizeType)t,v));
-								} break;
-								case ILInstruction::offset8: {
-									auto t = *read_data_type(uint8_t);
-									auto v = *read_data_type(uint8_t);
-									eval_offset(eval_ctx, ILSize((ILSizeType)t,v));
-								} break;
-								case ILInstruction::aoffset8: {
-									auto size = *read_data_type(uint8_t);
-									eval_aoffset(eval_ctx, size);
-								} break;
-								case ILInstruction::aoffset16: {
-									auto size = *read_data_type(uint16_t);
-									eval_aoffset(eval_ctx, size);
-								} break;
-								case ILInstruction::aoffset32: {
-									auto size = *read_data_type(uint32_t);
-									eval_aoffset(eval_ctx, size);
-								} break;
-								case ILInstruction::woffset8: {
-									auto size = *read_data_type(uint8_t);
-									eval_woffset(eval_ctx, size);
-								} break;
-								case ILInstruction::woffset16: {
-									auto size = *read_data_type(uint16_t);
-									eval_woffset(eval_ctx, size);
-								} break;
-								case ILInstruction::woffset32: {
-									auto size = *read_data_type(uint32_t);
-									eval_woffset(eval_ctx, size);
-								} break;
-								case ILInstruction::constref: {
-									auto cid = *read_data_type(uint32_t);
-									eval_constref(eval_ctx, cid);
-								} break;
-								case ILInstruction::staticref: {
-									auto cid = *read_data_type(uint32_t);
-									eval_staticref(eval_ctx, cid);
-								} break;
-								case ILInstruction::rtoffset: {
-									eval_rtoffset(eval_ctx);
-								} break;
-								case ILInstruction::rtoffset2: {
-									eval_rtoffset_rev(eval_ctx);
-								} break;
-								case ILInstruction::roffset32: {
-									auto from_t = *read_data_type(ILDataType);
-									auto to_t = *read_data_type(ILDataType); 
-									auto t = *read_data_type(uint8_t);
-									auto v = *read_data_type(uint32_t);
-									eval_roffset(eval_ctx, from_t, to_t, ILSize((ILSizeType)t, v).eval(eval_ctx->parent, compiler_arch));
-								} break;
-									
-								case ILInstruction::roffset16: {
-									auto from_t = *read_data_type(ILDataType);
-									auto to_t = *read_data_type(ILDataType); 
-									auto t = *read_data_type(uint8_t);
-									auto v = *read_data_type(uint16_t);
-									eval_roffset(eval_ctx, from_t, to_t, ILSize((ILSizeType)t, v).eval(eval_ctx->parent, compiler_arch));
-								} break;
-									
-								case ILInstruction::roffset8: {
-									auto from_t = *read_data_type(ILDataType);
-									auto to_t = *read_data_type(ILDataType); 
-									auto t = *read_data_type(uint8_t);
-									auto v = *read_data_type(uint8_t);
-									eval_roffset(eval_ctx, from_t, to_t, ILSize((ILSizeType)t, v).eval(eval_ctx->parent, compiler_arch));
-								} break;
+							case ILInstruction::aroffset: {
+								auto p = *read_data_type(ILDataTypePair);
+								auto size = *read_data_type(uint8_t);
+								eval_aroffset(eval_ctx, p.first(), p.second(), size);
+							} break;
 
-								case ILInstruction::aroffset: {
-									auto p = *read_data_type(ILDataTypePair);
-									auto size = *read_data_type(uint8_t);
-									eval_aroffset(eval_ctx, p.first(), p.second(), size);
-								} break;
+							case ILInstruction::wroffset: {
+								auto p = *read_data_type(ILDataTypePair);
+								auto size = *read_data_type(uint8_t);
+								eval_wroffset(eval_ctx, p.first(), p.second(), size);
+							} break;
 
-								case ILInstruction::wroffset: {
-									auto p = *read_data_type(ILDataTypePair);
-									auto size = *read_data_type(uint8_t);
-									eval_wroffset(eval_ctx, p.first(), p.second(), size);
-								} break;
+							case ILInstruction::local8: {
+								auto id = *read_data_type(uint8_t);
+								auto& offset = bytecode_fun->calculated_local_offsets[id];
+								eval_const_ptr(eval_ctx, local_base + offset);
+							} break;
+								
+							case ILInstruction::local16: {
+								auto id = *read_data_type(uint16_t);
+								auto& offset = bytecode_fun->calculated_local_offsets[id];
+								eval_const_ptr(eval_ctx, local_base + offset);
+							} break;
+								
+							case ILInstruction::local32: {
+								auto id = *read_data_type(uint32_t);
+								auto& offset = bytecode_fun->calculated_local_offsets[id];
+								eval_const_ptr(eval_ctx, local_base + offset);
+							} break;
 
-								case ILInstruction::local8: {
-									auto id = *read_data_type(uint8_t);
-									auto& offset = bytecode_fun->calculated_local_offsets[id];
-									eval_const_ptr(eval_ctx, local_base + offset);
-								} break;
-									
-								case ILInstruction::local16: {
-									auto id = *read_data_type(uint16_t);
-									auto& offset = bytecode_fun->calculated_local_offsets[id];
-									eval_const_ptr(eval_ctx, local_base + offset);
-								} break;
-									
-								case ILInstruction::local32: {
-									auto id = *read_data_type(uint32_t);
-									auto& offset = bytecode_fun->calculated_local_offsets[id];
-									eval_const_ptr(eval_ctx, local_base + offset);
-								} break;
+							case ILInstruction::table8offset8: {
+								eval_tableoffset(eval_ctx, *read_data_type(uint8_t), *read_data_type(uint8_t));
+							} break;
+							case ILInstruction::table8offset16: {
+								eval_tableoffset(eval_ctx, *read_data_type(uint8_t), *read_data_type(uint16_t));
+							} break;
+							case ILInstruction::table8offset32: {
+								eval_tableoffset(eval_ctx, *read_data_type(uint8_t), *read_data_type(uint32_t));
+							} break;
+							case ILInstruction::table16offset8: {
+								eval_tableoffset(eval_ctx, *read_data_type(uint16_t), *read_data_type(uint8_t));
+							} break;
+							case ILInstruction::table16offset16: {
+								eval_tableoffset(eval_ctx, *read_data_type(uint16_t), *read_data_type(uint16_t));
+							} break;
+							case ILInstruction::table16offset32: {
+								eval_tableoffset(eval_ctx, *read_data_type(uint16_t), *read_data_type(uint32_t));
+							} break;
+							case ILInstruction::table32offset8: {
+								eval_tableoffset(eval_ctx, *read_data_type(uint32_t), *read_data_type(uint8_t));
+							} break;
+							case ILInstruction::table32offset16: {
+								eval_tableoffset(eval_ctx, *read_data_type(uint32_t), *read_data_type(uint16_t));
+							} break;
+							case ILInstruction::table32offset32: {
+								eval_tableoffset(eval_ctx, *read_data_type(uint32_t), *read_data_type(uint32_t));
+							} break;
 
-								case ILInstruction::table8offset8: {
-									eval_tableoffset(eval_ctx, *read_data_type(uint8_t), *read_data_type(uint8_t));
-								} break;
-								case ILInstruction::table8offset16: {
-									eval_tableoffset(eval_ctx, *read_data_type(uint8_t), *read_data_type(uint16_t));
-								} break;
-								case ILInstruction::table8offset32: {
-									eval_tableoffset(eval_ctx, *read_data_type(uint8_t), *read_data_type(uint32_t));
-								} break;
-								case ILInstruction::table16offset8: {
-									eval_tableoffset(eval_ctx, *read_data_type(uint16_t), *read_data_type(uint8_t));
-								} break;
-								case ILInstruction::table16offset16: {
-									eval_tableoffset(eval_ctx, *read_data_type(uint16_t), *read_data_type(uint16_t));
-								} break;
-								case ILInstruction::table16offset32: {
-									eval_tableoffset(eval_ctx, *read_data_type(uint16_t), *read_data_type(uint32_t));
-								} break;
-								case ILInstruction::table32offset8: {
-									eval_tableoffset(eval_ctx, *read_data_type(uint32_t), *read_data_type(uint8_t));
-								} break;
-								case ILInstruction::table32offset16: {
-									eval_tableoffset(eval_ctx, *read_data_type(uint32_t), *read_data_type(uint16_t));
-								} break;
-								case ILInstruction::table32offset32: {
-									eval_tableoffset(eval_ctx, *read_data_type(uint32_t), *read_data_type(uint32_t));
-								} break;
+							case ILInstruction::table8roffset8: {
+								auto pair = *read_data_type(ILDataTypePair);
+								eval_tableroffset(eval_ctx, pair.first(), pair.second(), *read_data_type(uint8_t), *read_data_type(uint8_t));
+							} break;
+							case ILInstruction::table8roffset16: {
+								auto pair = *read_data_type(ILDataTypePair);
+								eval_tableroffset(eval_ctx, pair.first(), pair.second(), *read_data_type(uint8_t), *read_data_type(uint16_t));
+							} break;
+							case ILInstruction::table8roffset32: {
+								auto pair = *read_data_type(ILDataTypePair);
+								eval_tableroffset(eval_ctx, pair.first(), pair.second(), *read_data_type(uint8_t), *read_data_type(uint32_t));
+							} break;
+							case ILInstruction::table16roffset8: {
+								auto pair = *read_data_type(ILDataTypePair);
+								eval_tableroffset(eval_ctx, pair.first(), pair.second(), *read_data_type(uint16_t), *read_data_type(uint8_t));
+							} break;
+							case ILInstruction::table16roffset16: {
+								auto pair = *read_data_type(ILDataTypePair);
+								eval_tableroffset(eval_ctx, pair.first(), pair.second(), *read_data_type(uint16_t), *read_data_type(uint16_t));
+							} break;
+							case ILInstruction::table16roffset32: {
+								auto pair = *read_data_type(ILDataTypePair);
+								eval_tableroffset(eval_ctx, pair.first(), pair.second(), *read_data_type(uint16_t), *read_data_type(uint32_t));
+							} break;
+							case ILInstruction::table32roffset8: {
+								auto pair = *read_data_type(ILDataTypePair);
+								eval_tableroffset(eval_ctx, pair.first(), pair.second(), *read_data_type(uint32_t), *read_data_type(uint8_t));
+							} break;
+							case ILInstruction::table32roffset16: {
+								auto pair = *read_data_type(ILDataTypePair);
+								eval_tableroffset(eval_ctx, pair.first(), pair.second(), *read_data_type(uint32_t), *read_data_type(uint16_t));
+							} break;
+							case ILInstruction::table32roffset32: {
+								auto pair = *read_data_type(ILDataTypePair);
+								eval_tableroffset(eval_ctx, pair.first(), pair.second(), *read_data_type(uint32_t), *read_data_type(uint32_t));
+							} break;
 
-								case ILInstruction::table8roffset8: {
-									auto pair = *read_data_type(ILDataTypePair);
-									eval_tableroffset(eval_ctx, pair.first(), pair.second(), *read_data_type(uint8_t), *read_data_type(uint8_t));
-								} break;
-								case ILInstruction::table8roffset16: {
-									auto pair = *read_data_type(ILDataTypePair);
-									eval_tableroffset(eval_ctx, pair.first(), pair.second(), *read_data_type(uint8_t), *read_data_type(uint16_t));
-								} break;
-								case ILInstruction::table8roffset32: {
-									auto pair = *read_data_type(ILDataTypePair);
-									eval_tableroffset(eval_ctx, pair.first(), pair.second(), *read_data_type(uint8_t), *read_data_type(uint32_t));
-								} break;
-								case ILInstruction::table16roffset8: {
-									auto pair = *read_data_type(ILDataTypePair);
-									eval_tableroffset(eval_ctx, pair.first(), pair.second(), *read_data_type(uint16_t), *read_data_type(uint8_t));
-								} break;
-								case ILInstruction::table16roffset16: {
-									auto pair = *read_data_type(ILDataTypePair);
-									eval_tableroffset(eval_ctx, pair.first(), pair.second(), *read_data_type(uint16_t), *read_data_type(uint16_t));
-								} break;
-								case ILInstruction::table16roffset32: {
-									auto pair = *read_data_type(ILDataTypePair);
-									eval_tableroffset(eval_ctx, pair.first(), pair.second(), *read_data_type(uint16_t), *read_data_type(uint32_t));
-								} break;
-								case ILInstruction::table32roffset8: {
-									auto pair = *read_data_type(ILDataTypePair);
-									eval_tableroffset(eval_ctx, pair.first(), pair.second(), *read_data_type(uint32_t), *read_data_type(uint8_t));
-								} break;
-								case ILInstruction::table32roffset16: {
-									auto pair = *read_data_type(ILDataTypePair);
-									eval_tableroffset(eval_ctx, pair.first(), pair.second(), *read_data_type(uint32_t), *read_data_type(uint16_t));
-								} break;
-								case ILInstruction::table32roffset32: {
-									auto pair = *read_data_type(ILDataTypePair);
-									eval_tableroffset(eval_ctx, pair.first(), pair.second(), *read_data_type(uint32_t), *read_data_type(uint32_t));
-								} break;
+							case ILInstruction::debug: {
+								auto file = *read_data_type(uint16_t);
+								auto line = *read_data_type(uint16_t);
+								eval_debug(eval_ctx, file, line);
+							} break;
 
-								case ILInstruction::debug: {
-									auto file = *read_data_type(uint16_t);
-									auto line = *read_data_type(uint16_t);
-									eval_debug(eval_ctx, file, line);
-								} break;
+							case ILInstruction::load: {
+								auto type = *read_data_type(ILDataType);
+								eval_load(eval_ctx, type);
+							} break;
 
-								case ILInstruction::load: {
-									auto type = *read_data_type(ILDataType);
-									eval_load(eval_ctx, type);
-								} break;
+							case ILInstruction::isnotzero: {
+								auto type = *read_data_type(ILDataType);
+								eval_isnotzero(eval_ctx, type);
+							} break;
 
-								case ILInstruction::isnotzero: {
-									auto type = *read_data_type(ILDataType);
-									eval_isnotzero(eval_ctx, type);
-								} break;
+							case ILInstruction::negative: {
+								auto type = *read_data_type(ILDataType);
+								eval_negative(eval_ctx, type);
+							} break;
 
-								case ILInstruction::negative: {
-									auto type = *read_data_type(ILDataType);
-									eval_negative(eval_ctx, type);
-								} break;
+							case ILInstruction::negate: {
+								eval_negate(eval_ctx);
+							} break;
 
-								case ILInstruction::negate: {
-									eval_negate(eval_ctx);
-								} break;
+							case ILInstruction::combinedw: {
+								eval_combine_dword(eval_ctx);
+							} break;
+							case ILInstruction::highdw: {
+								eval_high_word(eval_ctx);
+							} break;
+							case ILInstruction::splitdw: {
+								eval_split_dword(eval_ctx);
+							} break;
 
-								case ILInstruction::combinedw: {
-									eval_combine_dword(eval_ctx);
-								} break;
-								case ILInstruction::highdw: {
-									eval_high_word(eval_ctx);
-								} break;
-								case ILInstruction::splitdw: {
-									eval_split_dword(eval_ctx);
-								} break;
+							case ILInstruction::forget: {
+								auto type = *read_data_type(ILDataType);
+								eval_forget(eval_ctx, type);
+							} break;
+							case ILInstruction::jmpz: {
+								auto addressz = *read_data_type(uint32_t);
+								auto addressnz = *read_data_type(uint32_t);
 
-								case ILInstruction::forget: {
-									auto type = *read_data_type(ILDataType);
-									eval_forget(eval_ctx, type);
-								} break;
-								case ILInstruction::jmpz: {
-									auto addressz = *read_data_type(uint32_t);
-									auto addressnz = *read_data_type(uint32_t);
+								auto z = eval_ctx->pop_register_value<uint8_t>();
 
-									auto z = eval_ctx->pop_register_value<uint8_t>();
+								if (z) {
+									block = block->parent->blocks_memory[addressnz].get();
+								}
+								else {
+									block = block->parent->blocks_memory[addressz].get();
+								}
 
-									if (z) {
-										block = block->parent->blocks_memory[addressnz].get();
-									}
-									else {
-										block = block->parent->blocks_memory[addressz].get();
-									}
+								goto next_block;
+							} break;
 
-									goto next_block;
-								} break;
+							case ILInstruction::u8: eval_const_u8(eval_ctx, *read_data_type(uint8_t)); break;
+							case ILInstruction::i8: eval_const_i8(eval_ctx, *read_data_type(int8_t)); break;
+							case ILInstruction::u16: eval_const_u16(eval_ctx, *read_data_type(uint16_t)); break;
+							case ILInstruction::i16: eval_const_i16(eval_ctx, *read_data_type(int16_t)); break;
+							case ILInstruction::u32: eval_const_u32(eval_ctx, *read_data_type(uint32_t)); break;
+							case ILInstruction::i32: eval_const_i32(eval_ctx, *read_data_type(int32_t)); break;
+							case ILInstruction::u64: eval_const_u64(eval_ctx, *read_data_type(uint64_t)); break;
+							case ILInstruction::i64: eval_const_i64(eval_ctx, *read_data_type(int64_t)); break;
+							case ILInstruction::f32: eval_const_f32(eval_ctx, *read_data_type(float)); break;
+							case ILInstruction::f64: eval_const_f64(eval_ctx, *read_data_type(double)); break;
+							case ILInstruction::word: eval_const_ptr(eval_ctx, *read_data_type(void*)); break;
+							case ILInstruction::slice: {
+								uint32_t cid = *read_data_type(uint32_t);
+								uint64_t s = *read_data_type(uint64_t);
+								eval_const_slice(eval_ctx, cid, s); 
+							}break;
+							case ILInstruction::size8: {
+								auto t = *read_data_type(ILSizeType);
+								auto v = *read_data_type(uint8_t);
+								eval_const_size(eval_ctx, ILSize(t,v).eval(eval_ctx->parent, compiler_arch));
+							} break;
+							case ILInstruction::size16: {
+								auto t = *read_data_type(ILSizeType);
+								auto v = *read_data_type(uint16_t);
+								eval_const_size(eval_ctx, ILSize(t,v).eval(eval_ctx->parent, compiler_arch));
+							} break;
+							case ILInstruction::size32: {
+								auto t = *read_data_type(ILSizeType);
+								auto v = *read_data_type(uint32_t);
+								eval_const_size(eval_ctx, ILSize(t,v).eval(eval_ctx->parent, compiler_arch));
+							} break;
 
-								case ILInstruction::u8: eval_const_u8(eval_ctx, *read_data_type(uint8_t)); break;
-								case ILInstruction::i8: eval_const_i8(eval_ctx, *read_data_type(int8_t)); break;
-								case ILInstruction::u16: eval_const_u16(eval_ctx, *read_data_type(uint16_t)); break;
-								case ILInstruction::i16: eval_const_i16(eval_ctx, *read_data_type(int16_t)); break;
-								case ILInstruction::u32: eval_const_u32(eval_ctx, *read_data_type(uint32_t)); break;
-								case ILInstruction::i32: eval_const_i32(eval_ctx, *read_data_type(int32_t)); break;
-								case ILInstruction::u64: eval_const_u64(eval_ctx, *read_data_type(uint64_t)); break;
-								case ILInstruction::i64: eval_const_i64(eval_ctx, *read_data_type(int64_t)); break;
-								case ILInstruction::f32: eval_const_f32(eval_ctx, *read_data_type(float)); break;
-								case ILInstruction::f64: eval_const_f64(eval_ctx, *read_data_type(double)); break;
-								case ILInstruction::word: eval_const_ptr(eval_ctx, *read_data_type(void*)); break;
-								case ILInstruction::slice: {
-									uint32_t cid = *read_data_type(uint32_t);
-									uint64_t s = *read_data_type(uint64_t);
-									eval_const_slice(eval_ctx, cid, s); 
-								}break;
-								case ILInstruction::size8: {
-									auto t = *read_data_type(ILSizeType);
-									auto v = *read_data_type(uint8_t);
-									eval_const_size(eval_ctx, ILSize(t,v).eval(eval_ctx->parent, compiler_arch));
-								} break;
-								case ILInstruction::size16: {
-									auto t = *read_data_type(ILSizeType);
-									auto v = *read_data_type(uint16_t);
-									eval_const_size(eval_ctx, ILSize(t,v).eval(eval_ctx->parent, compiler_arch));
-								} break;
-								case ILInstruction::size32: {
-									auto t = *read_data_type(ILSizeType);
-									auto v = *read_data_type(uint32_t);
-									eval_const_size(eval_ctx, ILSize(t,v).eval(eval_ctx->parent, compiler_arch));
-								} break;
-
-							}
 						}
-
-					next_block:
-						continue;
 					}
 
-
-
-					throw_il_wrong_data_flow_error();
-				returned:
-
-					eval_ctx->callstack_debug.pop_back();
-					eval_ctx->stack_pointer = lstack_pointer;
-					eval_ctx->stack_base_aligned = lstack_base_aligned;
-					eval_ctx->stack_base = lstack_base;
+				next_block:
+					continue;
 				}
-				else {
-					auto ext_fun = (ILExtFunction*)fun;
-					if (ext_fun->ptr) {
-						ext_fun->ptr(eval_ctx);
-					}
 
-					eval_ctx->callstack_debug.pop_back();
-				}
+
+				throw_il_wrong_data_flow_error();
+
+			returned:
+				eval_ctx->callstack_debug.pop_back();
+				eval_ctx->stack_pointer = lstack_pointer;
+				eval_ctx->stack_base_aligned = lstack_base_aligned;
+				eval_ctx->stack_base = lstack_base;
+				
 			}
 			else {
 				eval_ctx->callstack_debug.push_back(std::make_tuple(eval_ctx->debug_line, eval_ctx->debug_file, "External code"));
-				
 				abi_dynamic_call(eval_ctx, std::get<0>(declaration), ptr, declaration);
-
 				eval_ctx->callstack_debug.pop_back();
 			}
 
@@ -1413,7 +1411,7 @@ namespace Corrosive {
 	
 
 	void ILBuilder::eval_bitcast(ILEvaluator* eval_ctx, ILDataType t_l, ILDataType t_r) {
-		ilsize_t storage;
+		ilsize_t storage = 0;
 		eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(t_l), &storage);
 		eval_ctx->write_register_value_indirect(eval_ctx->compile_time_register_size(t_r), &storage);
 	}

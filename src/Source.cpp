@@ -516,12 +516,8 @@ namespace Corrosive {
 		}
 	}
 
-	void Source::require_wrapper(ILEvaluator* eval)
+	void Source::require_wrapper(const char* data, size_t size)
 	{
-		auto ptr = eval->pop_register_value<dword_t>();
-		const char* data = (const char*)ptr.p1;
-		size_t size = (size_t)ptr.p2;
-
 		std::basic_string_view<char> data_string(data, size);
 		Source::require(data_string, Compiler::current()->source());
 	}

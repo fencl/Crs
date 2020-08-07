@@ -16,7 +16,8 @@ namespace Corrosive {
 		initialized = true;
 	}
 
-	FunctionInstance* Compiler::register_ext_function(std::initializer_list<const char*> path, void(*ptr)(ILEvaluator*)) {
+
+	FunctionInstance* Compiler::register_native_function(std::initializer_list<const char*> path, void* ptr) {
 
 		Namespace* nspc = global_namespace();
 		FunctionTemplate* func = nullptr;
@@ -40,7 +41,7 @@ namespace Corrosive {
 		FunctionInstance* finst;
 		func->generate(nullptr, finst);
 		finst->compile();
-		((ILExtFunction*)finst->func)->ptr = ptr;
+		((ILNativeFunction*)finst->func)->ptr = ptr;
 		return finst;
 	}
 

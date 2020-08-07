@@ -16,10 +16,10 @@ namespace Corrosive {
 
 		static void priv_type_template_cast(ILEvaluator* eval);
 		static void priv_type_template_cast_crsr(ILEvaluator* eval, Cursor& err);
-		static void priv_build_array(ILEvaluator* eval);
-		static void priv_build_reference(ILEvaluator* eval);
-		static void priv_build_subtype(ILEvaluator* eval);
-		static void priv_build_slice(ILEvaluator* eval);
+		static Type* priv_build_array(uint32_t size, Type* t);
+		static Type* priv_build_reference(Type* t);
+		static Type* priv_build_subtype(const char* data, size_t data_size, Type* t);
+		static Type* priv_build_slice(Type* t);
 		static void priv_build_push_template(ILEvaluator* eval);
 		static void priv_build_build_template(ILEvaluator* eval);
 		static void priv_type_size(ILEvaluator* eval);

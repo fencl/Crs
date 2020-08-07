@@ -97,7 +97,7 @@ namespace Corrosive {
 		FunctionInstance* f_build_subtype;
 		FunctionInstance* f_type_size;
 
-		static void ask_for(ILEvaluator* eval); 
+		static void ask_for(const char* data, size_t size);
 		static void print_type_provider(ILEvaluator* eval);
 
 		void setup();

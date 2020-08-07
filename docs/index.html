@@ -156,20 +156,24 @@
 			</ul>
 			
 			Examples:<br>
-			<p><span class="c"><span class="kw">struct</span> complex { <br>
-			&emsp;&emsp;<span class="kw">var</span> r: <span class="k">i32</span>;<br>
-			&emsp;&emsp;<span class="kw">var</span> i: <span class="k">i32</span>;<br>
-			} </span></p>
 			
-			<p><span class="c"><span class="kw">struct</span>(A: <span class="kw">type</span>, B: <span class="kw">type</span>) pair { <br>
-			&emsp;&emsp;<span class="kw">var</span> first: A;<br>
-			&emsp;&emsp;<span class="kw">var</span> section: B;<br>
-			} </span></p>
+			<div class="pad">
+				<p><span class="c"><span class="kw">struct</span> complex { <br>
+				&emsp;&emsp;<span class="kw">var</span> r: <span class="k">i32</span>;<br>
+				&emsp;&emsp;<span class="kw">var</span> i: <span class="k">i32</span>;<br>
+				} </span></p>
+				
+				<p><span class="c"><span class="kw">struct</span>(A: <span class="kw">type</span>, B: <span class="kw">type</span>) pair { <br>
+				&emsp;&emsp;<span class="kw">var</span> first: A;<br>
+				&emsp;&emsp;<span class="kw">var</span> section: B;<br>
+				} </span></p>
+			</div>
 			
 			<p>Structures have no proper member functions but if a function that is in a structure have first argument reference to the structure it can be called as structure.function();</p>
 			
 			
 			Example:<br>
+			<div class="pad">
 				
 				<p><span class="c">
 				<span class="kw">struct</span> person { <br>
@@ -189,6 +193,7 @@
 				&emsp;&emsp;<span class="kw">let</span> greet_func = person::greet;<br>
 				}
 				</span></p>
+			</div>
 			
 			
 			<h4>Implementation</h4>
@@ -213,20 +218,22 @@
 				</ul>
 				Example:<br>
 				
-				<p><span class="c">
-				<span class="kw">struct</span> person { <br>
-				
-				&emsp;&emsp;<span class="kw">var</span> name: []<span class="k">u8</span>;<br><br>
-				&emsp;&emsp;<span class="kw">impl</span> <i>HasName</i> { <br>
-				&emsp;&emsp;&emsp;&emsp;<span class="kw">fn</span> <i>greet</i>: (this: &amp;person) {<br>
-				&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<span class="k">std</span>::cout().slice(<span class="s">"Hello "</span>).slice(this.name);<br>
-				&emsp;&emsp;&emsp;&emsp;}<br><br>
-				&emsp;&emsp;&emsp;&emsp;<span class="kw">fn</span> <i>get_name</i>: (this: &amp;person) []<span class="k">u8</span> {<br>
-				&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<span class="kw">return</span> this.name;<br>
-				&emsp;&emsp;&emsp;&emsp;}<br>
-				&emsp;&emsp;}<br>
-				}
-				</span></p>
+				<div class="pad">
+					<p><span class="c">
+					<span class="kw">struct</span> person { <br>
+					
+					&emsp;&emsp;<span class="kw">var</span> name: []<span class="k">u8</span>;<br><br>
+					&emsp;&emsp;<span class="kw">impl</span> <i>HasName</i> { <br>
+					&emsp;&emsp;&emsp;&emsp;<span class="kw">fn</span> <i>greet</i>: (this: &amp;person) {<br>
+					&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<span class="k">std</span>::cout().slice(<span class="s">"Hello "</span>).slice(this.name);<br>
+					&emsp;&emsp;&emsp;&emsp;}<br><br>
+					&emsp;&emsp;&emsp;&emsp;<span class="kw">fn</span> <i>get_name</i>: (this: &amp;person) []<span class="k">u8</span> {<br>
+					&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<span class="kw">return</span> this.name;<br>
+					&emsp;&emsp;&emsp;&emsp;}<br>
+					&emsp;&emsp;}<br>
+					}
+					</span></p>
+				</div>
 				
 			</div>
 		</div><!--Structure-->
@@ -272,21 +279,24 @@
 			</ul>
 			
 			Examples:<br>
-			<p><span class="c"><span class="kw">fn</span> say_hello: () { <br>
-			&emsp;&emsp;<span class="k">std</span>::cout().slice(<span class="s">&quot;Hello, world!&quot;</span>);<br>
-			} </span></p>
 			
-			<p><span class="c"><span class="kw">fn</span> the_answer: (q: question) <span class="k">u64</span> { <br>
-			&emsp;&emsp;<span class="kw">return</span> <span class="n">42u</span>;<br>
-			} </span></p>
+			<div class="pad">
+				<p><span class="c"><span class="kw">fn</span> say_hello: () { <br>
+				&emsp;&emsp;<span class="k">std</span>::cout().slice(<span class="s">&quot;Hello, world!&quot;</span>);<br>
+				} </span></p>
+				
+				<p><span class="c"><span class="kw">fn</span> the_answer: (q: question) <span class="k">u64</span> { <br>
+				&emsp;&emsp;<span class="kw">return</span> <span class="n">42u</span>;<br>
+				} </span></p>
+				
+				<p><span class="c"><span class="kw">fn</span>(T: <span class="kw">type</span>) generic_answer: (q: question) T { <br>
+				&emsp;&emsp;<span class="kw">return cast</span>(T) <span class="n">42u</span>;<br>
+				} </span></p>
+				
+				<p><span class="c"><span class="kw">fn native runtime</span> external_add: (<span class="k">u64</span>, <span class="k">u64</span>) <span class="k">u64</span>;</p>
+			</div>
 			
-			<p><span class="c"><span class="kw">fn</span>(T: <span class="kw">type</span>) generic_answer: (q: question) T { <br>
-			&emsp;&emsp;<span class="kw">return cast</span>(T) <span class="n">42u</span>;<br>
-			} </span></p>
-			
-			<p><span class="c"><span class="kw">fn native runtime</span> external_add: (<span class="k">u64</span>, <span class="k">u64</span>) <span class="k">u64</span>;</p>
-			
-		</div><!--Structure-->
+		</div><!--Function-->
 	
 		<h3>Trait</h3>
 		<div class="pad">
@@ -298,7 +308,7 @@
 				<li><span class="c"><i>annotation</i></span> can be blank, <span class="c"><span class="kw">compile</span></span> or <span class="c"><span class="kw">runtime</span></span>
 					<ul class="ulb">
 						<li>More about context in the Context section</li>
-						<li>TODO: trait should not be context dependant. Only its functions should</li>
+						<li>If trait is compile/runtime, its function declarations will be aslo compile/runtime</li>
 					</ul>
 				</li>
 				<li><span class="c"><i>name</i></span> has to be unique inside parent namespace</li>

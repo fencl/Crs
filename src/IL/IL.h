@@ -215,7 +215,7 @@ namespace Corrosive {
 		unsigned int id;
 		ILModule* parent;
 
-		uint32_t decl_id;
+		uint32_t decl_id = UINT32_MAX;
 	};
 
 	class ILBytecodeFunction : public ILFunction {
@@ -241,9 +241,9 @@ namespace Corrosive {
 		bool		assert_flow();
 	};
 
-	class ILExtFunction : public ILFunction {
+	class ILNativeFunction : public ILFunction {
 	public:
-		void (*ptr)(ILEvaluator*) = nullptr;
+		void* ptr = nullptr;
 	};
 
 	using ilsize_t = uint128_t; // max register size for all architectures (temp storage)
@@ -383,7 +383,7 @@ namespace Corrosive {
 		std::string insintric_function_name[256];
 
 		ILBytecodeFunction* create_function(ILContext context);
-		ILExtFunction* create_ext_function();
+		ILNativeFunction* create_native_function();
 
 		uint32_t register_constant(unsigned char* memory, ILSize size);
 		uint32_t register_static(unsigned char* memory, ILSize size);

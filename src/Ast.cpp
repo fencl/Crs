@@ -23,7 +23,7 @@ namespace Corrosive {
 				global->structures.push_back(AstStructureNode::parse(c, tok, global.get()));
 			}
 			else if (buf == "fn") {
-				global->functions.push_back(AstFunctionNode::parse(c, tok, global.get()));
+				global->functions.push_back(AstFunctionNode::parse(c, tok, global.get(),ILContext::both));
 			}
 			else if (buf == "trait") {
 				global->traits.push_back(AstTraitNode::parse(c, tok, global.get()));
@@ -76,7 +76,7 @@ namespace Corrosive {
 				space->structures.push_back(AstStructureNode::parse(c, tok, space.get()));
 			}
 			else if (buf == "fn") {
-				space->functions.push_back(AstFunctionNode::parse(c, tok, space.get()));
+				space->functions.push_back(AstFunctionNode::parse(c, tok, space.get(),ILContext::both));
 			}
 			else if (buf == "trait") {
 				space->traits.push_back(AstTraitNode::parse(c, tok,space.get()));
@@ -141,7 +141,7 @@ namespace Corrosive {
 			}
 			else if (buf == "fn") {
 				Cursor err = c;
-				auto fun = AstFunctionNode::parse(c, tok, structure.get());
+				auto fun = AstFunctionNode::parse(c, tok, structure.get(), ILContext::both);
 				if (!fun->has_body()) {
 					throw_specific_error(err, "Functions inside structures are supposed to have a body");
 				}
@@ -172,7 +172,7 @@ namespace Corrosive {
 	}
 
 
-	std::unique_ptr<AstFunctionDeclarationNode> AstFunctionNode::parse(Cursor& c, RecognizedToken& tok, AstNode* parent) {
+	std::unique_ptr<AstFunctionDeclarationNode> AstFunctionNode::parse(Cursor& c, RecognizedToken& tok, AstNode* parent, ILContext force_context) {
 		c.move(tok);
 		bool is_generic = false;
 		AstCursor annotation = 0;
@@ -185,27 +185,38 @@ namespace Corrosive {
 
 		bool ext = false;
 		ILCallingConvention convention = ILCallingConvention::bytecode;
-		ILContext context = ILContext::both;
+		ILContext context = force_context;
+
 		while (true) {
 			auto buf = c.buffer();
 			if (buf == "compile") {
-				context = ILContext::compile;
+				if (force_context == ILContext::both) {
+					context = ILContext::compile;
+				}
+				else {
+					throw_specific_error(c, "Context was forced by parent declaration");
+				}
+
 				c.move(tok);
 			}
 			else if (buf == "runtime") {
-				context = ILContext::runtime;
-				c.move(tok);
-			}
-			else if (buf == "ext") {
-				ext = true;
+				if (force_context == ILContext::both) {
+					context = ILContext::runtime;
+				}
+				else {
+					throw_specific_error(c, "Context was forced by parent declaration");
+				}
+
 				c.move(tok);
 			}
 			else if (buf == "native") {
 				convention = ILCallingConvention::native;
+				ext = true;
 				c.move(tok);
 			}
 			else if (buf == "stdcall") {
 				convention = ILCallingConvention::stdcall;
+				ext = true;
 				c.move(tok);
 			}
 			else break;
@@ -243,6 +254,7 @@ namespace Corrosive {
 			fun->context = context;
 			fun->convention = convention;
 			fun->type = type;
+			fun->name = name;
 			fun->name_string = name_string;
 			fun->parent = parent;
 
@@ -291,6 +303,7 @@ namespace Corrosive {
 			fun->context = context;
 			fun->convention = convention;
 			fun->type = type;
+			fun->name = name;
 			fun->name_string = name_string;
 			fun->parent = parent;
 			c.move(tok);
@@ -385,7 +398,7 @@ namespace Corrosive {
 
 			auto buf = c.buffer();
 			if (buf == "fn") {
-				trait->declarations.push_back(AstFunctionNode::parse(c, tok, trait.get()));
+				trait->declarations.push_back(AstFunctionNode::parse(c, tok, trait.get(), trait->context));
 			}
 			else {
 				throw_wrong_token_error(c, "fn");
@@ -426,7 +439,7 @@ namespace Corrosive {
 				auto buf = c.buffer();
 				if (buf == "fn") {
 					Cursor err = c;
-					auto fun = AstFunctionNode::parse(c, tok,impl.get());
+					auto fun = AstFunctionNode::parse(c, tok,impl.get(), ILContext::both);
 					if (fun->has_body()) {
 						impl->functions.push_back((std::unique_ptr<AstFunctionNode>&&)std::move(fun));
 					}

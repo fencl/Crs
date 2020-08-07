@@ -198,6 +198,7 @@ namespace Corrosive {
 	class FunctionInstance {
 	public:
 		ILFunction*		func = nullptr;
+
 		Namespace*		parent;
 		TypeFunction*	type;
 		GenericInstance generic_inst;

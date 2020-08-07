@@ -60,7 +60,7 @@ namespace Corrosive {
 
 		virtual bool has_body() override { return true; }
 
-		static std::unique_ptr<AstFunctionDeclarationNode> parse(Cursor& c, RecognizedToken& tok, AstNode* parent);
+		static std::unique_ptr<AstFunctionDeclarationNode> parse(Cursor& c, RecognizedToken& tok, AstNode* parent, ILContext force_context);
 	};
 
 	class AstTraitNode : public AstRegularNode {

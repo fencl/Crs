@@ -306,9 +306,6 @@ namespace Corrosive {
 
 				for (auto l = generic_ctx.generic_layout.rbegin(); l != generic_ctx.generic_layout.rend(); l++) {
 					Type* t = std::get<1>(*l);
-					if (t->type() == TypeInstanceType::type_array) {
-						int i = 0;
-					}
 					size_t c_size = t->size().eval(Compiler::current()->global_module(), compiler_arch);
 					t->copy_to_generic_storage(old_offset, new_offset);
 					old_offset += c_size;
@@ -548,7 +545,7 @@ namespace Corrosive {
 							argtypes.push_back(a);
 						}
 
-						ft->type = Compiler::current()->types()->load_or_register_function_type(ILCallingConvention::bytecode, std::move(argtypes), ft->returns, ft->ast_node->context);
+						ft->type = Compiler::current()->types()->load_or_register_function_type(ft->ast_node->convention, std::move(argtypes), ft->returns, ft->ast_node->context);
 						ft->compile_state = 1;
 						trait[ttid->second] = std::move(ft);
 
@@ -860,7 +857,7 @@ namespace Corrosive {
 				argtypes.push_back(a);
 			}
 
-			new_inst->type = Compiler::current()->types()->load_or_register_function_type(ILCallingConvention::bytecode, std::move(argtypes), new_inst->returns, new_inst->ast_node->context);
+			new_inst->type = Compiler::current()->types()->load_or_register_function_type(ast_node->convention, std::move(argtypes), new_inst->returns, new_inst->ast_node->context);
 			new_inst->compile_state = 1;
 
 		}
@@ -956,9 +953,11 @@ namespace Corrosive {
 
 			}
 			else {
-				auto func = Compiler::current()->global_module()->create_ext_function();
+				type->compile();
+				auto func = Compiler::current()->global_module()->create_native_function();
 				this->func = func;
 				func->alias = ast_node->name_string;
+				func->decl_id = type->il_function_decl;
 				compile_state = 3;
 			}
 		}

@@ -57,27 +57,19 @@ namespace Corrosive {
 		t->print(std::cout);
 	}
 
-	void print_provider(ILEvaluator* eval) {
-
-		auto ptr = eval->pop_register_value<dword_t>();
-		const char* text = (const char*)ptr.p1;
-		size_t size = (size_t)ptr.p2;
-
+	void print_provider(const char* text, size_t size) {
 		std::basic_string_view<char> sv(text, size);
 		std::cout << sv;
 	}
 
 	size_t allocated_counter = 0;
 
-	void malloc_provider(ILEvaluator* eval) {
-		auto size = eval->pop_register_value<size_t>();
-		auto ref = malloc(size);
-		eval->write_register_value(ref);
+	void* malloc_provider(size_t size) {
+		return malloc(size);
 		++allocated_counter;
 	}
 
-	void free_provider(ILEvaluator* eval) {
-		auto ref = eval->pop_register_value<void*>();
+	void free_provider(void* ref) {
 		free(ref);
 		--allocated_counter;
 	}
@@ -107,38 +99,35 @@ namespace Corrosive {
 	}
 
 
-	void DefaultTypes::ask_for(ILEvaluator* eval) {
-
-		auto ptr = eval->pop_register_value<dword_t>();
-		const char* data = (const char*)ptr.p1;
-		size_t size = (size_t)ptr.p2;
+	void DefaultTypes::ask_for(const char* data, size_t size) {
 		std::basic_string_view<char> data_string(data, size);
 
 		if (data_string == "compiler_standard_libraries") {
-			Compiler::current()->register_ext_function({ "std","print_slice" }, print_provider);
-			Compiler::current()->register_ext_function({ "std","malloc" }, malloc_provider);
-			Compiler::current()->register_ext_function({ "std","free" }, free_provider);
-			Compiler::current()->register_ext_function({ "std","library","share" }, share_provider);
-			Compiler::current()->register_ext_function({ "std","library","function" }, function_provider);
-			Compiler::current()->register_ext_function({ "std","library","release" }, release_provider);
+			Compiler::current()->register_native_function({ "std","native_print_slice" }, print_provider);
+			Compiler::current()->register_native_function({ "std","malloc" }, malloc_provider);
+			Compiler::current()->register_native_function({ "std","free" }, free_provider);
+			/*Compiler::current()->register_native_function({ "std","library","share" }, share_provider);
+			Compiler::current()->register_native_function({ "std","library","function" }, function_provider);
+			Compiler::current()->register_native_function({ "std","library","release" }, release_provider);*/
 		}
 	}
 
 	void DefaultTypes::setup() {
+		auto scope = ScopeState().context(ILContext::compile);
 
 		std_lib.load_data(
 			"static compile ptr = &void;\n"
 			"fn(T: type) copy_slice: (to: []T, from: []T) { let i=0; while(i<from.count) { to[i] = from[i]; i = i+1;} }\n"
 			"fn(T: type) invalidate_slice: (slice: &[]T) { slice.ptr = null; slice.size=0; }\n"
 			"namespace compiler {\n"
-			"fn compile ext reference_of: (type) type;\n"
-			"fn compile ext array_of: (type, u32) type;\n"
-			"fn compile ext subtype_of: (type, []u8) type;\n"
-			"fn compile ext slice_of: (type) type;\n"
-			"fn compile ext type_size: (type) size;\n"
-			"fn compile ext require: ([]u8);\n"
-			"fn compile ext ask_for: ([]u8);\n"
-			"fn compile ext print_type: (type);\n"
+			"fn compile native reference_of: (type) type;\n"
+			"fn compile native array_of: (type, u32) type;\n"
+			"fn compile native native_subtype_of: (ptr,size,type) type; fn compile subtype_of: (t: type, s: []u8) {return native_subtype_of(s.ptr,s.size,t); }\n"
+			"fn compile native slice_of: (type) type;\n"
+			"//fn compile native type_size: (type) size;\n"
+			"fn compile native native_require: (ptr, size); fn compile require: (r: []u8){ native_require(r.ptr,r.size); }\n"
+			"fn compile native native_ask_for: (ptr, size); fn compile ask_for: (r: []u8){ native_ask_for(r.ptr,r.size); }\n"
+			"//fn compile native print_type: (type);\n"
 			"}"
 			, "standard_library<buffer>");
 
@@ -176,14 +165,14 @@ namespace Corrosive {
 		primitives[(unsigned char)ILDataType::f64] = t_f64;
 		primitives[(unsigned char)ILDataType::word] = t_size;
 
-		f_build_reference = Compiler::current()->register_ext_function({ "compiler","reference_of" }, Operand::priv_build_reference);
-		f_build_array = Compiler::current()->register_ext_function({ "compiler","array_of" }, Operand::priv_build_array);
-		f_build_subtype = Compiler::current()->register_ext_function({ "compiler","subtype_of" }, Operand::priv_build_subtype);
-		f_build_slice = Compiler::current()->register_ext_function({ "compiler","slice_of" }, Operand::priv_build_slice);
-		f_type_size = Compiler::current()->register_ext_function({ "compiler","type_size" }, Operand::priv_type_size);
-		f_type_size = Compiler::current()->register_ext_function({ "compiler","require" }, Source::require_wrapper);
-		f_type_size = Compiler::current()->register_ext_function({ "compiler","ask_for" }, DefaultTypes::ask_for);
-		f_type_size = Compiler::current()->register_ext_function({ "compiler","print_type" }, DefaultTypes::print_type_provider);
+		f_build_reference = Compiler::current()->register_native_function({ "compiler","reference_of" }, Operand::priv_build_reference);
+		f_build_array = Compiler::current()->register_native_function({ "compiler","array_of" }, Operand::priv_build_array);
+		f_build_subtype = Compiler::current()->register_native_function({ "compiler","native_subtype_of" }, Operand::priv_build_subtype);
+		f_build_slice = Compiler::current()->register_native_function({ "compiler","slice_of" }, Operand::priv_build_slice);
+		//f_type_size = Compiler::current()->register_native_function({ "compiler","type_size" }, Operand::priv_type_size);
+		f_type_size = Compiler::current()->register_native_function({ "compiler","native_require" }, Source::require_wrapper);
+		f_type_size = Compiler::current()->register_native_function({ "compiler","native_ask_for" }, DefaultTypes::ask_for);
+		//f_type_size = Compiler::current()->register_native_function({ "compiler","print_type" }, DefaultTypes::print_type_provider);
 
 		std::vector<Type*> args;
 		t_build_script = load_or_register_function_type(ILCallingConvention::bytecode, std::move(args), t_void, ILContext::compile);

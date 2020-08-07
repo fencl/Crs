@@ -104,7 +104,7 @@ namespace Corrosive {
 		StackManager temporary_stack_manager;
 		ConstantManager constant_stack_manager;
 
-		FunctionInstance* register_ext_function(std::initializer_list<const char*> path, void(*ptr)(ILEvaluator*));
+		FunctionInstance* register_native_function(std::initializer_list<const char*> path, void* ptr);
 
 		static thread_local std::vector<Compiler*> c;
 		static void push_compiler(Compiler* c);
