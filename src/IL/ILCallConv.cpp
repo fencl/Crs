@@ -6,38 +6,6 @@
 #include <Windows.h>
 #endif
 
-namespace std {
-
-	template <>
-	struct hash<std::tuple<Corrosive::ILDataType, uint32_t, Corrosive::ILDataType*>>
-	{
-		std::size_t operator()(const std::tuple<Corrosive::ILDataType, uint32_t, Corrosive::ILDataType*>& k) const
-		{
-			size_t h = hash<Corrosive::ILDataType>()(std::get<0>(k)) ^ (hash<uint32_t>()(std::get<1>(k)) << 1);
-			for (size_t a = 0; a < std::get<1>(k); a++) {
-				h ^= hash<Corrosive::ILDataType>()(std::get<2>(k)[a]) << a;
-			}
-			return h;
-		}
-	};
-
-	bool operator==(const std::tuple<Corrosive::ILDataType, uint32_t, Corrosive::ILDataType*>& l, const std::tuple<Corrosive::ILDataType, uint32_t, Corrosive::ILDataType*>& r) {
-		if (std::get<0>(l) != std::get<0>(r)) return false;
-		if (std::get<1>(l) != std::get<1>(r)) return false;
-
-		Corrosive::ILDataType* lp = std::get<2>(l);
-		Corrosive::ILDataType* rp = std::get<2>(r);
-
-		for (size_t i = 0; i < std::get<1>(l); ++i) {
-			if (*lp != *rp) return false;
-			lp++;
-			rp++;
-		}
-		return true;
-	}
-
-}
-
 namespace Corrosive {
 	std::vector<std::pair<uint8_t*, uint8_t*>> memory_pages;
 
@@ -60,7 +28,34 @@ namespace Corrosive {
 		}
 	}
 
-	std::unordered_map<std::tuple<ILDataType, uint32_t, ILDataType*>, void*> call_wrappers[(uint8_t)ILCallingConvention::__max];
+	struct call_wrapper_hash {
+		size_t operator() (const  std::tuple<Corrosive::ILDataType, uint32_t, Corrosive::ILDataType*>& k) const {
+			size_t h = std::hash<Corrosive::ILDataType>()(std::get<0>(k)) ^ (std::hash<uint32_t>()(std::get<1>(k)) << 1);
+			for (size_t a = 0; a < std::get<1>(k); a++) {
+				h ^= std::hash<Corrosive::ILDataType>()(std::get<2>(k)[a]) << a;
+			}
+			return h;
+		}
+	};
+
+	struct call_wrapper_compare {
+		bool operator() (const std::tuple<Corrosive::ILDataType, uint32_t, Corrosive::ILDataType*>& l, const std::tuple<Corrosive::ILDataType, uint32_t, Corrosive::ILDataType*>& r) const {
+			if (std::get<0>(l) != std::get<0>(r)) return false;
+			if (std::get<1>(l) != std::get<1>(r)) return false;
+
+			Corrosive::ILDataType* lp = std::get<2>(l);
+			Corrosive::ILDataType* rp = std::get<2>(r);
+
+			for (size_t i = 0; i < std::get<1>(l); ++i) {
+				if (*lp != *rp) return false;
+				lp++;
+				rp++;
+			}
+			return true;
+		}
+	};
+
+	std::unordered_map < std::tuple<ILDataType, uint32_t, ILDataType*>, void*, call_wrapper_hash, call_wrapper_compare> call_wrappers[(uint8_t)ILCallingConvention::__max];
 
 
 #ifdef X86
@@ -300,6 +295,11 @@ namespace Corrosive {
 				case ILDataType::i64:
 				case ILDataType::u64:
 					b8_stack[off++] = eval->pop_register_value<uint64_t>(); break;
+				case ILDataType::dword: {
+					auto dw = eval->pop_register_value<dword_t>(); 
+					b8_stack[off++] = (size_t)dw.p1;
+					b8_stack[off++] = (size_t)dw.p2;
+				} break;
 
 				default:
 					break;
@@ -344,6 +344,8 @@ namespace Corrosive {
 
 			for (uint32_t i = argc; i > 0; --i) {
 				ILDataType dt = argv[i - 1];
+
+				uint8_t raxadd = 8;
 
 				switch (dt) {
 					case ILDataType::f32:
@@ -412,6 +414,36 @@ namespace Corrosive {
 								stack += 8;
 						}
 						break;
+					case ILDataType::dword: 
+						switch (i - 1) {
+							case 0:
+								call_wrapper.push_back(0x48);
+								call_wrapper.push_back(0x89);
+								call_wrapper.push_back(0xC1); // mov rcx, rax
+								break;
+							case 1:
+								call_wrapper.push_back(0x48);
+								call_wrapper.push_back(0x89);
+								call_wrapper.push_back(0xC2); // mov rdx, rax
+								break;
+							case 2:
+								call_wrapper.push_back(0x49);
+								call_wrapper.push_back(0x89);
+								call_wrapper.push_back(0xC0); // mov r8, rax
+								break;
+							case 3:
+								call_wrapper.push_back(0x49);
+								call_wrapper.push_back(0x89);
+								call_wrapper.push_back(0xC1); // mov r9, rax
+								break;
+
+							default:
+								call_wrapper.push_back(0x50); // push rax
+								stack += 16;
+						}
+						raxadd = 16;
+						break;
+
 					default:
 						switch (i-1) {
 							case 0:
@@ -447,7 +479,7 @@ namespace Corrosive {
 				call_wrapper.push_back(0x48);
 				call_wrapper.push_back(0x83);
 				call_wrapper.push_back(0xC0);
-				call_wrapper.push_back(0x08); // add rax, 8
+				call_wrapper.push_back(raxadd); // add rax, raxadd
 			}
 
 
@@ -461,6 +493,7 @@ namespace Corrosive {
 			call_wrapper.push_back(0x83);
 			call_wrapper.push_back(0xC4);
 			call_wrapper.push_back((uint8_t)(saligned)); // add rsp, saligned
+
 
 			call_wrapper.push_back(0xC3); // ret
 
@@ -477,7 +510,8 @@ namespace Corrosive {
 	void call_x64_call(ILEvaluator* eval, void* pointer, std::tuple<ILCallingConvention, ILDataType, std::vector<ILDataType>>& decl) {
 
 		auto asm_call_wrapper = build_win_x64_call_wrapper(std::make_tuple(std::get<1>(decl), (uint32_t)std::get<2>(decl).size(), std::get<2>(decl).data()));
-		push_64bit_temp_stack(eval, decl,pointer);
+
+		push_64bit_temp_stack(eval, decl, pointer);
 		
 		switch (std::get<1>(decl)) {
 			case ILDataType::i8:
@@ -497,6 +531,8 @@ namespace Corrosive {
 				eval->write_register_value(((float(*)())asm_call_wrapper)()); break;
 			case ILDataType::f64:
 				eval->write_register_value(((double(*)())asm_call_wrapper)()); break;
+			case ILDataType::dword:
+				eval->write_register_value(((dword_t(*)())asm_call_wrapper)()); break;
 			case ILDataType::none:
 				((void(*)())asm_call_wrapper)(); break;
 		}

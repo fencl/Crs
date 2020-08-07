@@ -5,7 +5,6 @@
 #include "Declaration.h"
 #include "PredefinedTypes.h"
 #include <iostream>
-#include <llvm/Target.h>
 #include "StackManager.h"
 
 namespace Corrosive {

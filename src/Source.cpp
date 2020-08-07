@@ -488,6 +488,8 @@ namespace Corrosive {
 
 		auto f = Compiler::current()->included_sources.find(abs);
 		if (f == Compiler::current()->included_sources.end()) {
+			std::cout << "added " << abs << "\n";
+
 			auto new_src = std::make_unique<Source>();
 			new_src->path = abs;
 			new_src->load(abs.generic_string().c_str());
@@ -516,9 +518,9 @@ namespace Corrosive {
 		}
 	}
 
-	void Source::require_wrapper(const char* data, size_t size)
+	void Source::require_wrapper(dword_t slice)
 	{
-		std::basic_string_view<char> data_string(data, size);
+		std::basic_string_view<char> data_string((char*)slice.p1, (size_t)slice.p2);
 		Source::require(data_string, Compiler::current()->source());
 	}
 

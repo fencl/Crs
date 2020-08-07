@@ -42,7 +42,7 @@ namespace Corrosive {
 		std::unique_ptr<AstRootNode> root_node;
 
 		static void require(std::filesystem::path file, Source* base=nullptr);
-		static void require_wrapper(const char* data, size_t size);
+		static void require_wrapper(dword_t slice);
 	private:
 		std::string buffer;
 		std::unordered_map<size_t, Cursor> token_pair;

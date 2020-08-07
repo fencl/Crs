@@ -4,8 +4,11 @@
 #include "Compiler.h"
 
 
+#ifdef WINDOWS
 // for library test
 #include <Windows.h>
+#endif
+
 
 namespace Corrosive {
 
@@ -52,14 +55,8 @@ namespace Corrosive {
 	}
 
 
-	void DefaultTypes::print_type_provider(ILEvaluator* eval) {
-		Type* t = eval->pop_register_value<Type*>();
+	void DefaultTypes::print_type_provider(Type* t) {
 		t->print(std::cout);
-	}
-
-	void print_provider(const char* text, size_t size) {
-		std::basic_string_view<char> sv(text, size);
-		std::cout << sv;
 	}
 
 	size_t allocated_counter = 0;
@@ -74,41 +71,35 @@ namespace Corrosive {
 		--allocated_counter;
 	}
 
-	void share_provider(ILEvaluator* eval) {
-		auto ptr = eval->pop_register_value<dword_t>();
-		const char* text = (const char*)ptr.p1;
-		size_t size = (size_t)ptr.p2;
-		std::basic_string_view<char> sv(text, size);
-		void* lib = LoadLibraryA(std::string(sv).c_str());
-		eval->write_register_value<void*>(lib);
+	void* share_provider(dword_t slice) {
+		std::basic_string_view<char> view((char*)slice.p1, (size_t)slice.p2);
+		return LoadLibraryA(std::string(view).c_str());
 	}
 
-	void function_provider(ILEvaluator* eval) {
-		auto ptr = eval->pop_register_value<dword_t>();
-		const char* text = (const char*)ptr.p1;
-		size_t size = (size_t)ptr.p2;
-		std::basic_string_view<char> sv(text, size);
-		auto lib = eval->pop_register_value<void*>();
-		eval->write_register_value<void*>(GetProcAddress((HMODULE)lib, std::string(sv).c_str()));
+	void* function_provider(void* lib, dword_t slice) {
+		std::basic_string_view<char> view((char*)slice.p1, (size_t)slice.p2);
+		return GetProcAddress((HMODULE)lib, std::string(view).c_str());
 	}
 
-
-	void release_provider(ILEvaluator* eval) {
-		auto lib = eval->pop_register_value<void*>();
+	void release_provider(void* lib) {
 		FreeLibrary((HMODULE)lib);
 	}
 
+	void print_provider(dword_t slice) {
+		std::basic_string_view<char> sv((char*)slice.p1, (size_t)slice.p2);
+		std::cout << sv;
+	}
 
-	void DefaultTypes::ask_for(const char* data, size_t size) {
-		std::basic_string_view<char> data_string(data, size);
+	void DefaultTypes::ask_for(dword_t slice) {
+		std::basic_string_view<char> data_string((char*)slice.p1, (size_t)slice.p2);
 
 		if (data_string == "compiler_standard_libraries") {
-			Compiler::current()->register_native_function({ "std","native_print_slice" }, print_provider);
+			Compiler::current()->register_native_function({ "std","print_slice" }, print_provider);
 			Compiler::current()->register_native_function({ "std","malloc" }, malloc_provider);
 			Compiler::current()->register_native_function({ "std","free" }, free_provider);
-			/*Compiler::current()->register_native_function({ "std","library","share" }, share_provider);
+			Compiler::current()->register_native_function({ "std","library","share" }, share_provider);
 			Compiler::current()->register_native_function({ "std","library","function" }, function_provider);
-			Compiler::current()->register_native_function({ "std","library","release" }, release_provider);*/
+			Compiler::current()->register_native_function({ "std","library","release" }, release_provider);
 		}
 	}
 
@@ -122,11 +113,11 @@ namespace Corrosive {
 			"namespace compiler {\n"
 			"fn compile native reference_of: (type) type;\n"
 			"fn compile native array_of: (type, u32) type;\n"
-			"fn compile native native_subtype_of: (ptr,size,type) type; fn compile subtype_of: (t: type, s: []u8) {return native_subtype_of(s.ptr,s.size,t); }\n"
+			"fn compile native native_subtype_of: (type,[]u8) type;\n"
 			"fn compile native slice_of: (type) type;\n"
 			"//fn compile native type_size: (type) size;\n"
-			"fn compile native native_require: (ptr, size); fn compile require: (r: []u8){ native_require(r.ptr,r.size); }\n"
-			"fn compile native native_ask_for: (ptr, size); fn compile ask_for: (r: []u8){ native_ask_for(r.ptr,r.size); }\n"
+			"fn compile native require: ([]u8);\n"
+			"fn compile native ask_for: ([]u8);\n"
 			"//fn compile native print_type: (type);\n"
 			"}"
 			, "standard_library<buffer>");
@@ -167,12 +158,12 @@ namespace Corrosive {
 
 		f_build_reference = Compiler::current()->register_native_function({ "compiler","reference_of" }, Operand::priv_build_reference);
 		f_build_array = Compiler::current()->register_native_function({ "compiler","array_of" }, Operand::priv_build_array);
-		f_build_subtype = Compiler::current()->register_native_function({ "compiler","native_subtype_of" }, Operand::priv_build_subtype);
+		f_build_subtype = Compiler::current()->register_native_function({ "compiler","subtype_of" }, Operand::priv_build_subtype);
 		f_build_slice = Compiler::current()->register_native_function({ "compiler","slice_of" }, Operand::priv_build_slice);
-		//f_type_size = Compiler::current()->register_native_function({ "compiler","type_size" }, Operand::priv_type_size);
-		f_type_size = Compiler::current()->register_native_function({ "compiler","native_require" }, Source::require_wrapper);
-		f_type_size = Compiler::current()->register_native_function({ "compiler","native_ask_for" }, DefaultTypes::ask_for);
-		//f_type_size = Compiler::current()->register_native_function({ "compiler","print_type" }, DefaultTypes::print_type_provider);
+		f_type_size = Compiler::current()->register_native_function({ "compiler","type_size" }, Operand::priv_type_size);
+		f_type_size = Compiler::current()->register_native_function({ "compiler","require" }, Source::require_wrapper);
+		f_type_size = Compiler::current()->register_native_function({ "compiler","ask_for" }, DefaultTypes::ask_for);
+		f_type_size = Compiler::current()->register_native_function({ "compiler","print_type" }, DefaultTypes::print_type_provider);
 
 		std::vector<Type*> args;
 		t_build_script = load_or_register_function_type(ILCallingConvention::bytecode, std::move(args), t_void, ILContext::compile);

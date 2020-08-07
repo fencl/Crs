@@ -20,9 +20,8 @@ namespace Corrosive {
 		val.reflock = false;
 	}
 
-	void Operand::priv_type_size(ILEvaluator* eval) {
-		auto t = eval->pop_register_value<Type*>();
-		eval->write_register_value(t->size().eval(Compiler::current()->global_module(), compiler_arch));
+	size_t Operand::priv_type_size(Type* t) {
+		return t->size().eval(Compiler::current()->global_module(), compiler_arch);
 	}
 
 	void Operand::priv_type_template_cast_crsr(ILEvaluator* eval, Cursor& err) {
@@ -1571,8 +1570,8 @@ namespace Corrosive {
 		return t->generate_reference();
 	}
 
-	Type* Operand::priv_build_subtype(const char* slice_data, size_t slice_size, Type* t) {
-		std::string_view slice_str(slice_data, slice_size);
+	Type* Operand::priv_build_subtype(Type* t, dword_t slice) {
+		std::string_view slice_str((char*)slice.p1, (size_t)slice.p2);
 
 		Type* str = Compiler::current()->types()->t_u8->generate_slice();
 
