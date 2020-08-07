@@ -135,7 +135,7 @@ namespace Corrosive {
 
 		virtual ILDataType rvalue();
 
-		// TODO constantize
+		virtual void constantize(Cursor& err, unsigned char* target, unsigned char* source);
 
 		Type* owner;
 		tableid_t table;
@@ -144,6 +144,7 @@ namespace Corrosive {
 		virtual void compile();
 		virtual ILSize size();
 		virtual void print(std::ostream& os);
+		virtual bool rvalue_stacked();
 	};
 	
 	class TypeReference : public Type {

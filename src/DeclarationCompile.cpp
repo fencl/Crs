@@ -305,8 +305,12 @@ namespace Corrosive {
 				new_key = new_key_inst.get();
 
 				for (auto l = generic_ctx.generic_layout.rbegin(); l != generic_ctx.generic_layout.rend(); l++) {
-					size_t c_size = std::get<1>(*l)->size().eval(Compiler::current()->global_module(), compiler_arch);
-					std::get<1>(*l)->copy_to_generic_storage(old_offset, new_offset);
+					Type* t = std::get<1>(*l);
+					if (t->type() == TypeInstanceType::type_array) {
+						int i = 0;
+					}
+					size_t c_size = t->size().eval(Compiler::current()->global_module(), compiler_arch);
+					t->copy_to_generic_storage(old_offset, new_offset);
 					old_offset += c_size;
 					new_offset += c_size;
 				}
@@ -907,7 +911,7 @@ namespace Corrosive {
 						a->compile();
 						stackid_t id = func->local_stack_lifetime.append(a->size());
 
-						Compiler::current()->stack()->push_item(((AstFunctionNode*)ast_node)->argument_names[i].second, a, id, StackItemTag::regular);
+						Compiler::current()->stack()->push_item(((AstFunctionNode*)ast_node)->argument_names[i].second, a, id);
 					}
 
 
@@ -1106,7 +1110,7 @@ namespace Corrosive {
 			for (auto key_l = generator->generic_layout.rbegin(); key_l != generator->generic_layout.rend(); key_l++) {
 
 				stackid_t sid = Compiler::current()->mask_local(key_ptr);
-				Compiler::current()->compiler_stack()->push_item(std::get<0>(*key_l).buffer(), std::get<1>(*key_l), sid, StackItemTag::alias);
+				Compiler::current()->compiler_stack()->push_item(std::get<0>(*key_l).buffer(), std::get<1>(*key_l), sid);
 
 				key_ptr += std::get<1>(*key_l)->size().eval(Compiler::current()->global_module(), compiler_arch);
 			}

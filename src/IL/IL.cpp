@@ -395,9 +395,9 @@ namespace Corrosive {
 				switch (arch)
 				{
 					case ILArchitecture::bit32:
-						return (size_t)_upper_power_of_two((uint32_t)std::max<size_t>((size_t)value, 4));
+						return (size_t)_upper_power_of_two((uint32_t)std::min<size_t>((size_t)value, 4));
 					case ILArchitecture::bit64:
-						return (size_t)_upper_power_of_two((uint32_t)std::max<size_t>((size_t)value, 8));
+						return (size_t)_upper_power_of_two((uint32_t)std::min<size_t>((size_t)value, 8));
 					default:
 						return 0;
 				}

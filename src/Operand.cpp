@@ -232,6 +232,35 @@ namespace Corrosive {
 			res.type = to;
 			res.lvalue = false;
 		}
+		else if (res.type->type() == TypeInstanceType::type_slice && to->type() == TypeInstanceType::type_array && ((TypeArray*)res.type)->owner == ((TypeSlice*)to)->owner) {
+			to->compile();
+			if (cpt == CompileType::compile) {
+				stackid_t local_id = Compiler::current()->target()->local_stack_lifetime.append(to->size());
+				Compiler::current()->temp_stack()->push_item("$tmp", to, local_id);
+
+				ILBuilder::build_bitcast(Compiler::current()->scope(), ILDataType::dword, ILDataType::word);
+				ILBuilder::build_local(Compiler::current()->scope(), local_id);
+				ILBuilder::build_memcpy(Compiler::current()->scope(), to->size());
+				ILBuilder::build_local(Compiler::current()->scope(), local_id);
+			}
+			else {
+				stackid_t local_id = Compiler::current()->push_local(to->size());
+				Compiler::current()->compiler_stack()->push_item("$tmp", to, local_id);
+				size_t slice_size = (size_t)Compiler::current()->evaluator()->read_register_value<dword_t>().p2;
+				size_t array_size = to->size().eval(Compiler::current()->global_module(), compiler_arch);
+				if (slice_size != array_size) {
+					throw_specific_error(err, "The array has different size than casted slice");
+				}
+
+				ILBuilder::eval_bitcast(Compiler::current()->evaluator(), ILDataType::dword, ILDataType::word);
+				Compiler::current()->eval_local(local_id);
+				ILBuilder::eval_memcpy(Compiler::current()->evaluator(), array_size);
+				Compiler::current()->eval_local(local_id);
+			}
+
+			res.type = to;
+			res.lvalue = false;
+		}
 		else if (Operand::is_numeric_value(res.type) && Operand::is_numeric_value(to)) {
 			Expression::rvalue(res, cpt);
 			if (cpt == CompileType::eval) {
@@ -1211,13 +1240,16 @@ namespace Corrosive {
 		for (size_t arg_i = act_layout_size - 1; arg_i >= 0 && arg_i < act_layout_size; arg_i--) {
 
 			Type* type = std::get<1>(*act_layout);
+			type->compile();
 
-			stackid_t sid = Compiler::current()->push_local(type->size());
-			unsigned char* data_place = Compiler::current()->stack_ptr(sid);
-			Compiler::current()->compiler_stack()->push_item(std::get<0>(*act_layout).buffer(), type, sid, StackItemTag::regular);
+			if (type->type() == TypeInstanceType::type_array) {
+				int i = 0;
+			}
 
+			stackid_t local_id = Compiler::current()->push_local(type->size());
+			Compiler::current()->compiler_stack()->push_item(std::get<0>(*act_layout).buffer(), type, local_id);
 
-			Compiler::current()->evaluator()->write_register_value(data_place);
+			Compiler::current()->eval_local(local_id);
 			Expression::copy_from_rvalue(type, CompileType::eval);
 
 			act_layout++;
@@ -1226,7 +1258,7 @@ namespace Corrosive {
 		generating->generate(key_base, out);
 
 		StackItem sitm;
-		while (Compiler::current()->compiler_stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) {}
+		while (Compiler::current()->compiler_stack()->pop_item(sitm)) {}
 
 	}
 
@@ -1269,7 +1301,7 @@ namespace Corrosive {
 
 			stackid_t local_id = Compiler::current()->push_local(type->size());
 			unsigned char* data_place = Compiler::current()->stack_ptr(local_id);
-			Compiler::current()->compiler_stack()->push_item(std::get<0>(*act_layout_it).buffer(), type, local_id, StackItemTag::regular);
+			Compiler::current()->compiler_stack()->push_item(std::get<0>(*act_layout_it).buffer(), type, local_id);
 
 
 			eval->write_register_value(data_place);
@@ -1291,7 +1323,7 @@ namespace Corrosive {
 
 
 		StackItem sitm;
-		while (Compiler::current()->compiler_stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) {}
+		while (Compiler::current()->compiler_stack()->pop_item(sitm)) {}
 	}
 
 	Type* Operand::template_stack[1024];
@@ -1839,7 +1871,7 @@ namespace Corrosive {
 			ILBuilder::build_callstart(Compiler::current()->scope());
 			if (ft->return_type->rvalue_stacked()) {
 				local_return_id = Compiler::current()->target()->local_stack_lifetime.append(retval.type->size());
-				Compiler::current()->temp_stack()->push_item("$tmp", retval.type, local_return_id, StackItemTag::regular);
+				Compiler::current()->temp_stack()->push_item("$tmp", retval.type, local_return_id);
 
 				ILBuilder::build_local(Compiler::current()->scope(), local_return_id);
 			}
@@ -1881,7 +1913,7 @@ namespace Corrosive {
 				local_stack_item = Compiler::current()->push_local(retval.type->size());
 				unsigned char* memory_place = Compiler::current()->stack_ptr(local_stack_item);
 
-				Compiler::current()->compiler_stack()->push_item("$tmp", retval.type, local_stack_item, StackItemTag::regular);
+				Compiler::current()->compiler_stack()->push_item("$tmp", retval.type, local_stack_item);
 				Compiler::current()->eval_local(local_stack_item);
 			}
 
@@ -2178,14 +2210,14 @@ namespace Corrosive {
 				if (cpt == CompileType::compile) {
 					if (mf->return_type->rvalue_stacked()) {
 						local_return_id = Compiler::current()->target()->local_stack_lifetime.append(mf->return_type->size());
-						Compiler::current()->temp_stack()->push_item("$tmp", mf->return_type, local_return_id, StackItemTag::regular);
+						Compiler::current()->temp_stack()->push_item("$tmp", mf->return_type, local_return_id);
 						ILBuilder::build_local(Compiler::current()->scope(), local_return_id);
 					}
 				}
 				else {
 					if (mf->return_type->rvalue_stacked()) {
 						local_return_id = Compiler::current()->push_local(mf->return_type->size());
-						Compiler::current()->compiler_stack()->push_item("$tmp", mf->return_type, local_return_id, StackItemTag::regular);
+						Compiler::current()->compiler_stack()->push_item("$tmp", mf->return_type, local_return_id);
 						Compiler::current()->eval_local(local_return_id);
 					}
 				}
@@ -2284,7 +2316,7 @@ namespace Corrosive {
 							if (!ret.lvalue && !ret.type->rvalue_stacked()) {
 								if (cpt == CompileType::compile) {
 									stackid_t local_id = Compiler::current()->target()->local_stack_lifetime.append(ret.type->size());
-									Compiler::current()->temp_stack()->push_item("$tmp", ret.type, local_id, StackItemTag::regular);
+									Compiler::current()->temp_stack()->push_item("$tmp", ret.type, local_id);
 									
 									ILBuilder::build_store(Compiler::current()->scope(), ret.type->rvalue());
 									ILBuilder::build_local(Compiler::current()->scope(), local_id);
@@ -2292,7 +2324,7 @@ namespace Corrosive {
 								}
 								else {
 									stackid_t local_id = Compiler::current()->push_local(ret.type->size());
-									Compiler::current()->compiler_stack()->push_item("$tmp", ret.type, local_id, StackItemTag::regular);
+									Compiler::current()->compiler_stack()->push_item("$tmp", ret.type, local_id);
 									ILBuilder::eval_store(Compiler::current()->evaluator(), ret.type->rvalue());
 									Compiler::current()->eval_local(local_id);
 									ret.lvalue = true;

@@ -75,64 +75,111 @@ namespace Corrosive {
 
 
 	void TypeStructureInstance::constantize(Cursor& err, unsigned char* target, unsigned char* source) {
-		if (owner->structure_type == StructureInstanceType::primitive_structure && rvalue() != ILDataType::word && rvalue() != ILDataType::none && rvalue() != ILDataType::dword) {
-			if (target != nullptr) {
-				switch (rvalue())
-				{
-					case ILDataType::u8: *(uint8_t*)target = *(uint8_t*)source; break;
-					case ILDataType::u16: *(uint16_t*)target = *(uint16_t*)source; break;
-					case ILDataType::u32: *(uint32_t*)target = *(uint32_t*)source; break;
-					case ILDataType::u64: *(uint64_t*)target = *(uint64_t*)source; break;
-					case ILDataType::i8: *(int8_t*)target = *(int8_t*)source; break;
-					case ILDataType::i16: *(int16_t*)target = *(int16_t*)source; break;
-					case ILDataType::i32: *(int32_t*)target = *(int32_t*)source; break;
-					case ILDataType::i64: *(int64_t*)target = *(int64_t*)source; break;
-					case ILDataType::f32: *(float*)target = *(float*)source; break;
-					case ILDataType::f64: *(double*)target = *(double*)source; break;
-					default: break;
+
+		if (setjmp(sandbox) == 0) {
+			if (owner->structure_type == StructureInstanceType::primitive_structure && rvalue() != ILDataType::word && rvalue() != ILDataType::none && rvalue() != ILDataType::dword) {
+				if (target != nullptr) {
+					switch (rvalue())
+					{
+						case ILDataType::u8: *(uint8_t*)target = *(uint8_t*)source; break;
+						case ILDataType::u16: *(uint16_t*)target = *(uint16_t*)source; break;
+						case ILDataType::u32: *(uint32_t*)target = *(uint32_t*)source; break;
+						case ILDataType::u64: *(uint64_t*)target = *(uint64_t*)source; break;
+						case ILDataType::i8: *(int8_t*)target = *(int8_t*)source; break;
+						case ILDataType::i16: *(int16_t*)target = *(int16_t*)source; break;
+						case ILDataType::i32: *(int32_t*)target = *(int32_t*)source; break;
+						case ILDataType::i64: *(int64_t*)target = *(int64_t*)source; break;
+						case ILDataType::f32: *(float*)target = *(float*)source; break;
+						case ILDataType::f64: *(double*)target = *(double*)source; break;
+						default: break;
+					}
+				}
+				else {
+					switch (rvalue())
+					{
+						case ILDataType::u8: ILBuilder::build_const_u8(Compiler::current()->scope(), *(uint8_t*)source); break;
+						case ILDataType::u16: ILBuilder::build_const_u16(Compiler::current()->scope(), *(uint16_t*)source); break;
+						case ILDataType::u32: ILBuilder::build_const_u32(Compiler::current()->scope(), *(uint32_t*)source); break;
+						case ILDataType::u64: ILBuilder::build_const_u64(Compiler::current()->scope(), *(uint64_t*)source); break;
+						case ILDataType::i8: ILBuilder::build_const_i8(Compiler::current()->scope(), *(int8_t*)source); break;
+						case ILDataType::i16: ILBuilder::build_const_i16(Compiler::current()->scope(), *(int16_t*)source); break;
+						case ILDataType::i32: ILBuilder::build_const_i32(Compiler::current()->scope(), *(int32_t*)source); break;
+						case ILDataType::i64: ILBuilder::build_const_i64(Compiler::current()->scope(), *(int64_t*)source); break;
+						case ILDataType::f32: ILBuilder::build_const_f32(Compiler::current()->scope(), *(float*)source); break;
+						case ILDataType::f64: ILBuilder::build_const_f64(Compiler::current()->scope(), *(double*)source); break;
+						default: break;
+					}
 				}
 			}
 			else {
-				switch (rvalue())
-				{
-					case ILDataType::u8: ILBuilder::build_const_u8(Compiler::current()->scope(), *(uint8_t*)source); break;
-					case ILDataType::u16: ILBuilder::build_const_u16(Compiler::current()->scope(), *(uint16_t*)source); break;
-					case ILDataType::u32: ILBuilder::build_const_u32(Compiler::current()->scope(), *(uint32_t*)source); break;
-					case ILDataType::u64: ILBuilder::build_const_u64(Compiler::current()->scope(), *(uint64_t*)source); break;
-					case ILDataType::i8: ILBuilder::build_const_i8(Compiler::current()->scope(), *(int8_t*)source); break;
-					case ILDataType::i16: ILBuilder::build_const_i16(Compiler::current()->scope(), *(int16_t*)source); break;
-					case ILDataType::i32: ILBuilder::build_const_i32(Compiler::current()->scope(), *(int32_t*)source); break;
-					case ILDataType::i64: ILBuilder::build_const_i64(Compiler::current()->scope(), *(int64_t*)source); break;
-					case ILDataType::f32: ILBuilder::build_const_f32(Compiler::current()->scope(), *(float*)source); break;
-					case ILDataType::f64: ILBuilder::build_const_f64(Compiler::current()->scope(), *(double*)source); break;
-					default: break;
-				}
+				throw_specific_error(err, "Cannot create constant value of this type");
 			}
 		}
 		else {
-			throw_specific_error(err, "Cannot create constant value of this type");
+			throw_runtime_handler_exception(Compiler::current()->evaluator());
 		}
 	}
 
 	void TypeSlice::constantize(Cursor& err, unsigned char* target, unsigned char* source) {
-		dword_t me = *(dword_t*)source;
-		std::string data((size_t)me.p2,'\0');
-		uint8_t* ptr_src = (uint8_t*)me.p1;
-		uint8_t* ptr_dst = (uint8_t*)data.data();
-		size_t elem_size = owner->size().eval(Compiler::current()->global_module(), compiler_arch);
-		for (size_t i=0;i<((size_t)me.p2)/elem_size; ++i) {
-			owner->constantize(err, ptr_dst, ptr_src);
-			ptr_src += elem_size;
-			ptr_dst += elem_size;
-		}
+		if (setjmp(sandbox) == 0) {
+			dword_t me = *(dword_t*)source;
+			std::string data((size_t)me.p2,'\0');
+			uint8_t* ptr_src = (uint8_t*)me.p1;
+			uint8_t* ptr_dst = (uint8_t*)data.data();
+			size_t elem_size = owner->size().eval(Compiler::current()->global_module(), compiler_arch);
+			for (size_t i=0;i<((size_t)me.p2)/elem_size; ++i) {
+				owner->constantize(err, ptr_dst, ptr_src);
+				ptr_src += elem_size;
+				ptr_dst += elem_size;
+			}
 
-		auto val = Compiler::current()->constant_manager()->register_string_literal(data);
+			auto val = Compiler::current()->constant_manager()->register_string_literal(data);
 
-		if (target) {
-			memcpy(target, val.first.data(), val.first.size());
+			if (target) {
+				dword_t* tg = (dword_t*)target;
+				tg->p1 = (void*)val.first.data();
+				tg->p2 = (void*)val.first.size();
+			}
+			else {
+				ILBuilder::build_const_slice(Compiler::current()->scope(), val.second, val.first.size());
+			}
 		}
 		else {
-			ILBuilder::build_const_slice(Compiler::current()->scope(), val.second, val.first.size());
+			throw_runtime_handler_exception(Compiler::current()->evaluator());
+		}
+	}
+	
+	void TypeArray::constantize(Cursor& err, unsigned char* target, unsigned char* source) {
+
+		if (setjmp(sandbox) == 0) {
+			size_t me_size = size().eval(Compiler::current()->global_module(), compiler_arch);
+
+			std::string data(me_size,'\0');
+			uint8_t* ptr_src = (uint8_t*)source;
+			uint8_t* ptr_dst = (uint8_t*)data.data();
+			size_t elem_size = owner->size().eval(Compiler::current()->global_module(), compiler_arch);
+			for (size_t i=0;i<(me_size)/elem_size; ++i) {
+				owner->constantize(err, ptr_dst, ptr_src);
+				ptr_src += elem_size;
+				ptr_dst += elem_size;
+			}
+
+			if (target) {
+				memcpy(target, data.data(), data.size()); // no need to register as constant
+			}
+			else {
+				auto val = Compiler::current()->constant_manager()->register_string_literal(data);
+
+				stackid_t local_id = Compiler::current()->target()->local_stack_lifetime.append(size());
+				Compiler::current()->temp_stack()->push_item("$tmp", this, local_id);
+				ILBuilder::build_constref(Compiler::current()->scope(), val.second);
+				ILBuilder::build_local(Compiler::current()->scope(), local_id);
+				ILBuilder::build_memcpy(Compiler::current()->scope(), size());
+				ILBuilder::build_local(Compiler::current()->scope(), local_id);
+			}
+		}
+		else {
+			throw_runtime_handler_exception(Compiler::current()->evaluator());
 		}
 	}
 
@@ -145,6 +192,10 @@ namespace Corrosive {
 	
 	bool TypeSlice::rvalue_stacked() {
 		return false;
+	}
+
+	bool TypeArray::rvalue_stacked() {
+		return true;
 	}
 
 	bool TypeStructureInstance::rvalue_stacked() {

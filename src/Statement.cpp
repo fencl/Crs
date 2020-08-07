@@ -58,7 +58,7 @@ namespace Corrosive {
 
 			if (Statement::runtime(force_compile)) {
 
-				while (Compiler::current()->temp_stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) { d++; }
+				while (Compiler::current()->temp_stack()->pop_item(sitm)) { d++; }
 
 				Compiler::current()->temp_stack()->pop();
 			}
@@ -74,7 +74,7 @@ namespace Corrosive {
 
 
 			// scope pop
-			while (Compiler::current()->stack()->pop_item(sitm) && sitm.tag != StackItemTag::alias) { d++; }
+			while (Compiler::current()->stack()->pop_item(sitm)) { d++; }
 			if (d > 0)
 				Compiler::current()->target()->local_stack_lifetime.pop();
 			else
@@ -835,7 +835,7 @@ namespace Corrosive {
 			}
 
 			Compiler::current()->target()->local_stack_lifetime.resolve_unknown(let_holder, new_t->size());
-			Compiler::current()->stack()->push_item(name.buffer(), new_t, local_id, StackItemTag::regular);
+			Compiler::current()->stack()->push_item(name.buffer(), new_t, local_id);
 
 
 			ILBuilder::build_local(Compiler::current()->scope(), local_id);
@@ -870,7 +870,7 @@ namespace Corrosive {
 			stackid_t loc_id = Compiler::current()->push_local(new_t->size());
 			uint8_t* loc_ptr = Compiler::current()->stack_ptr(loc_id);
 
-			Compiler::current()->compiler_stack()->push_item(name.buffer(), new_t, loc_id, StackItemTag::regular);
+			Compiler::current()->compiler_stack()->push_item(name.buffer(), new_t, loc_id);
 
 			ILBuilder::eval_const_ptr(Compiler::current()->evaluator(), loc_ptr);
 			Expression::copy_from_rvalue(new_t, CompileType::eval);
@@ -922,7 +922,7 @@ namespace Corrosive {
 
 			ILSize s = new_t->size();
 			stackid_t local_id = Compiler::current()->target()->local_stack_lifetime.append(s);
-			Compiler::current()->stack()->push_item(name.buffer(), new_t, local_id, StackItemTag::regular);
+			Compiler::current()->stack()->push_item(name.buffer(), new_t, local_id);
 		}
 		else {
 			Cursor err = c;
@@ -946,7 +946,7 @@ namespace Corrosive {
 
 			ILSize s = new_t->size();
 			stackid_t local_id = Compiler::current()->push_local(s);
-			Compiler::current()->compiler_stack()->push_item(name.buffer(), new_t, local_id, StackItemTag::regular);
+			Compiler::current()->compiler_stack()->push_item(name.buffer(), new_t, local_id);
 		}
 
 		if (tok != RecognizedToken::Semicolon) {

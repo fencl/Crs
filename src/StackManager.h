@@ -8,16 +8,11 @@
 
 namespace Corrosive {
 
-	enum class StackItemTag {
-		regular, alias
-	};
-
 	struct StackItem {
 		Type* type;
 		std::string_view name;
 		size_t previous;
 		stackid_t id;
-		StackItemTag tag;
 	};
 
 	class StackManager {
@@ -30,7 +25,7 @@ namespace Corrosive {
 		void pop_block();
 
 		bool pop_item(StackItem& sitm);
-		void push_item(std::string_view name, Type* type, stackid_t id, StackItemTag tag);
+		void push_item(std::string_view name, Type* type, stackid_t id);
 		bool find(std::string_view name, StackItem& sitm);
 
 		
