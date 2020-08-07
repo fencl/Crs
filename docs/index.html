@@ -17,8 +17,8 @@
 	}
 	
 	ul {
-		border-left: 2pt solid #ffffff20;
-		list-style-type: none;
+		//border-left: 2pt solid #ffffff20;
+		//list-style-type: none;
 	}
 	
 	.kw {
@@ -364,12 +364,72 @@
 			
 			Examples:<br>
 			<p><span class="c"><span class="kw">compile</span> {<br>
-			&emsp;&emsp;<span class="k">compiler</span>::requre(<span class="s">"std.crs"</span>);<br>
+			&emsp;&emsp;<span class="k">compiler</span>::require(<span class="s">"std.crs"</span>);<br>
 			}</span></p>
-		</div><!--Trait-->
+		</div><!--Compile-->
 	
 	
 	</div><!--Declarations-->
+	
+	<h2>Context</h2>
+	<div class="pad">
+	<p>Code can be compiled in three possible contexts: normal, compile-only or runtime-only.<br>
+	Code compiled in compile context can use only declarations and types marked as compile-only, the same goes for runtime-only.<br>
+	Code compiled in normal context can use declarations and types with normal context, and compile-only and runtime-only can be used inside blocks with specified context (TODO).</p>
+	<p>Do not confuse <span class="c"><span class="kw">compile</span></span>/<span class="c"><span class="kw">runtime</span></span> keyword in declarations and <span class="c"><span class="kw">compile</span></span>/<span class="c"><span class="kw">runtime</span></span> keyword in functions.<br>More about this in Inline section.</p>
+	<p>Example: if function declaration has <span class="c"><span class="kw">compile</span></span> annotation, it means that it can be only called during compilation. For structure it means that it can be only used inside functions that can be used during compilation, etc.</p>
+	<p>Structures without context specifier will remain normal until specific context member is added (TODO: do the same for functions, traits and statics)</p>
+	</div><!--Context-->
+	
+	<h2>Types</h2>
+	<div class="pad">
+		<p>Types are compiler generated structures. During compile time, type values share their type <span class="c"><span class="kw">type</span></span>, during runtime type <span class="c"><span class="kw">type</span></span> cannot be used because it is marked compile.</p>
+		</p>Every structure and Trait generates its own type. Templates generate special type marked generic. This type can be generated with request. This will create Structure/Trait instance with its own type.</p>
+		
+		<h3>Operations</h3>
+		
+		<div class="pad">
+		<ul class="ula">
+			<li><span class="c">&amp;<span class="kw">type</span></span> will generate reference to <span class="c"><span class="kw">type</span></span></li>
+			<li><span class="c">[N] <span class="kw">type</span></span> will generate array with size N of <span class="c"><span class="kw">type</span></span></li>
+			<li><span class="c">[] <span class="kw">type</span></span> will generate slice of <span class="c"><span class="kw">type</span></span></li>
+			<li><span class="c"><span class="kw">type</span>(...)</span> will create instance of <span class="c"><span class="kw">type</span></span>
+				<ul class="ulb">
+					<li>Outside inline evaluation the type has to be casted to genric <span class="c"><span class="kw">type</span>(...)</span>, for example <span class="c"><span class="kw">type</span>(<span class="k">u32</span>, <span class="kw">type</span>)</span> which means the type is generic and has two generic arguments <span class="c"><span class="k">u32</span></span> and <span class="c"><span class="kw">type</span></span>. During inline evaluation this cast is done automatically.</li>
+				</ul>
+			</li>
+		</ul>
+		<p>Examples:</p>
+			<p><span class="c"><span class="kw">static</span> Data: <span class="k">std</span>::pair(&amp;<span class="k">u64</span>, []<span class="k">u8</span>);<br>
+			<span class="cmt">// std::pair is generic type(type,type)<br>// (&amp;u64,[]u8) generates instance for generic std::pair<br>// &amp;u64 is reference to u64<br>// []u8 is memory slice with u8 types</span></span></p>
+			
+			<p><span class="c"><span class="kw">static</span> Array: <span class="k">std</span>::get_array_type(<span class="k">type</span>, 10);<br>
+			<span class="cmt">// std::get_array_type is a function returning generic type(type, size)<br>// (type, 10) generates std::array instance with 10 types</span></span></p>
+		</div>
+		
+		<h3>Primitive types</h3>
+		<div class="pad">
+		<ul class="ula">
+			<li><span class="c"><span class="kw">void</span></span> 0-bit type (function with no return type default to void)</li>
+			<li><span class="c"><span class="k">bool</span></span> unsigned 8bit boolean value</li>
+			<li><span class="c"><span class="k">u8</span></span> unsigned 8bit integer</li>
+			<li><span class="c"><span class="k">u16</span></span> unsigned 16bit integer</li>
+			<li><span class="c"><span class="k">u32</span></span> unsigned 32bit integer</li>
+			<li><span class="c"><span class="k">u64</span></span> unsigned 64bit integer</li>
+			<li><span class="c"><span class="k">i8</span></span> signed 8bit integer</li>
+			<li><span class="c"><span class="k">i16</span></span> signed 16bit integer</li>
+			<li><span class="c"><span class="k">i32</span></span> signed 32bit integer</li>
+			<li><span class="c"><span class="k">i64</span></span> signed 64bit integer</li>
+			<li><span class="c"><span class="k">f32</span></span> 32bit floating point number</li>
+			<li><span class="c"><span class="k">f64</span></span> 64bit floating point number</li>
+			<li><span class="c"><span class="k">ptr</span></span> unspecified pointer (predefined alias for <span class="c">&amp;<span class="kw">void</span></span>)</li>
+			<li><span class="c"><span class="k">size</span></span> pointer-sized unsigned integer (32bit/64bit)</li>
+			<li><span class="c"><span class="kw">type</span></span> pointer to type storage</li>
+		</ul>
+		</div>
+		
+	</div><!--Types-->
+	
 	
 	</div>
 </body>

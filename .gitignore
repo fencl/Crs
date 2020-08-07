@@ -4,4 +4,5 @@ vs/Debug/
 vs/Release/
 test/
 llvm/
+clang/
 commit.bat

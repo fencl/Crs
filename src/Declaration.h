@@ -121,7 +121,7 @@ namespace Corrosive {
 		ILDataType		rvalue = ILDataType::word;
 		ILSize			size;
 		bool			wrapper = false;
-		ILContext		context = ILContext::both;
+		ILContext		context;
 		GenericInstance generic_inst;
 
 		void compile();
@@ -167,6 +167,7 @@ namespace Corrosive {
 		Namespace*		parent;
 		GenericInstance	generic_inst;
 		AstTraitNode*	ast_node;
+		ILContext		context;
 
 		std::unique_ptr<TypeTraitInstance> type;
 	};
@@ -202,6 +203,7 @@ namespace Corrosive {
 		Namespace*		parent;
 		TypeFunction*	type;
 		GenericInstance generic_inst;
+		ILContext		context;
 
 		std::vector<Type*>	arguments;
 		Type*				returns;
@@ -243,6 +245,7 @@ namespace Corrosive {
 		AstStaticNode* ast_node;
 		Type* type;
 		GenericInstance* generator = nullptr;
+		ILContext		context;
 		uint32_t sid;
 
 		void compile();

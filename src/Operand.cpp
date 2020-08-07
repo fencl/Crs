@@ -1136,7 +1136,7 @@ namespace Corrosive {
 				else if (auto static_inst = res.get_static()) {
 					static_inst->compile();
 
-					if (static_inst->ast_node->context != ILContext::both && static_inst->ast_node->context != Compiler::current()->scope_context()) {
+					if (static_inst->context != ILContext::both && static_inst->context != Compiler::current()->scope_context()) {
 						throw_specific_error(nm_err, "Static declaration is not targeted for this context");
 					}
 
@@ -1926,12 +1926,13 @@ namespace Corrosive {
 	void Operand::function_call(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType cpt, unsigned int argi, bool targets_defer) {
 		Expression::rvalue(ret, cpt);
 
-		c.move(tok);
 		TypeFunction* ft = (TypeFunction*)ret.type;
 
 		if (ft->context() != ILContext::both && Compiler::current()->scope_context() != ft->context()) {
 			throw_specific_error(c, "Cannot call function with different context specifier");
 		}
+
+		c.move(tok);
 
 		CompileValue retval;
 		retval.type = ft->return_type;

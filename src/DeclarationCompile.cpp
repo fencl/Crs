@@ -72,6 +72,9 @@ namespace Corrosive {
 
 					Type* t = Compiler::current()->evaluator()->pop_register_value<Type*>();
 					t->compile();
+					if (t->context() == ILContext::runtime) {
+						throw_specific_error(err, "Runtime type cannot be used as generic argument");
+					}
 
 					if (!GenericContext::valid_generic_argument(t)) {
 						throw_specific_error(err, "Only primitive types can be used as generic arguments");
@@ -153,6 +156,9 @@ namespace Corrosive {
 
 					Type* t = Compiler::current()->evaluator()->pop_register_value<Type*>();
 					t->compile();
+					if (t->context() == ILContext::runtime) {
+						throw_specific_error(err, "Runtime type cannot be used as generic argument");
+					}
 
 					if (!GenericContext::valid_generic_argument(t)) {
 						throw_specific_error(err, "Only primitive types can be used as generic arguments");
@@ -233,6 +239,9 @@ namespace Corrosive {
 
 					Type* t = Compiler::current()->evaluator()->pop_register_value<Type*>();
 					t->compile();
+					if (t->context() == ILContext::runtime) {
+						throw_specific_error(err, "Runtime type cannot be used as generic argument");
+					}
 
 					if (!GenericContext::valid_generic_argument(t)) {
 						throw_specific_error(err, "Only primitive types can be used as generic arguments");
@@ -407,6 +416,23 @@ namespace Corrosive {
 
 				t->compile();
 
+				if (t->context() == ILContext::compile) {
+					if (new_inst->context != ILContext::runtime) {
+						new_inst->context = ILContext::compile;
+					}
+					else {
+						throw_specific_error(err, "Type is marked as compile-time and therefore cannot be used inside runtime only structure");
+					}
+				}
+				else if (t->context() == ILContext::runtime) {
+					if (new_inst->context != ILContext::compile) {
+						new_inst->context = ILContext::runtime;
+					}
+					else {
+						throw_specific_error(err, "Type is marked as runtime and therefore cannot be used inside compile-time structure");
+					}
+				}
+
 				TypeTraitInstance* tt = (TypeTraitInstance*)t;
 				if (new_inst->traitfunctions.find(tt->owner) != new_inst->traitfunctions.end()) {
 					throw_specific_error(err, "This trait was already implemented");
@@ -423,6 +449,7 @@ namespace Corrosive {
 						ft->generic_inst.key = new_key;
 						ft->ast_node = f.get();
 						ft->parent = (Namespace*)this;
+						ft->context = new_inst->context;
 
 						std::string_view name_str;
 						Cursor name_c;
@@ -448,9 +475,10 @@ namespace Corrosive {
 						func_count += 1;
 						auto& fundecl = tt->owner->member_declarations[ttid->second];
 
-						if (f->context != fundecl->ptr_context) {
+						// sould be ok
+						/*if (f->context != fundecl->ptr_context) {
 							throw_specific_error(name_c, "Funtion has different context");
-						}
+						}*/
 
 						auto& args = Compiler::current()->types()->argument_array_storage.get(fundecl->argument_array_id);
 
@@ -579,20 +607,21 @@ namespace Corrosive {
 				}
 
 				Type* m_t = Compiler::current()->evaluator()->pop_register_value<Type*>();
+				m_t->compile();
 				if (m_t->context() == ILContext::compile) {
-					if (new_inst->context == ILContext::both || new_inst->context == ILContext::compile) {
+					if (new_inst->context != ILContext::runtime) {
 						new_inst->context = ILContext::compile;
 					}
 					else {
-						throw_specific_error(err, "Cannot use compile type in runtime-only structure");
+						throw_specific_error(err, "Type is marked as compile-time and therefore cannot be used inside runtime only structure");
 					}
 				}
-				else if (m_t->context() == ILContext::runtime || new_inst->context == ILContext::runtime) {
-					if (new_inst->context == ILContext::both) {
+				else if (m_t->context() == ILContext::runtime) {
+					if (new_inst->context != ILContext::compile) {
 						new_inst->context = ILContext::runtime;
 					}
 					else {
-						throw_specific_error(err, "Cannot use runtime type in compile-only structure");
+						throw_specific_error(err, "Type is marked as runtime and therefore cannot be used inside compile-time structure");
 					}
 				}
 
@@ -666,6 +695,9 @@ namespace Corrosive {
 			new_inst->generic_inst.generator = &generic_ctx;
 			new_inst->generic_inst.insert_key_on_stack();
 			new_inst->ast_node = ast_node;
+			new_inst->context = ast_node->context;
+
+			std::vector<std::pair<Type*,std::vector<Type*>>> decls;
 
 
 			for (auto&& m : ast_node->declarations) {
@@ -690,6 +722,25 @@ namespace Corrosive {
 							throw_specific_error(err, "Expected type");
 						}
 						Type* t = Compiler::current()->evaluator()->pop_register_value<Type*>();
+						t->compile();
+
+						if (t->context() == ILContext::compile) {
+							if (new_inst->context != ILContext::runtime) {
+								new_inst->context = ILContext::compile;
+							}
+							else {
+								throw_specific_error(err, "Type is marked as compile-time and therefore cannot be used inside runtime only trait");
+							}
+						}
+						else if (t->context() == ILContext::runtime) {
+							if (new_inst->context != ILContext::compile) {
+								new_inst->context = ILContext::runtime;
+							}
+							else {
+								throw_specific_error(err, "Type is marked as runtime and therefore cannot be used inside compile-time trait");
+							}
+						}
+
 						args.push_back(t);
 						if (tok == RecognizedToken::Comma) {
 							c.move(tok);
@@ -718,12 +769,40 @@ namespace Corrosive {
 						throw_specific_error(err, "Expected type");
 					}
 					Type* t = Compiler::current()->evaluator()->pop_register_value<Type*>();
+					t->compile();
+
+					if (t->context() == ILContext::compile) {
+						if (new_inst->context != ILContext::runtime) {
+							new_inst->context = ILContext::compile;
+						}
+						else {
+							throw_specific_error(err, "Type is marked as compile-time and therefore cannot be used inside runtime only trait");
+						}
+					}
+					else if (t->context() == ILContext::runtime) {
+						if (new_inst->context != ILContext::compile) {
+							new_inst->context = ILContext::runtime;
+						}
+						else {
+							throw_specific_error(err, "Type is marked as runtime and therefore cannot be used inside compile-time trait");
+						}
+					}
+
 					ret_type = t;
 				}
 
-				TypeFunction* type = Compiler::current()->types()->load_or_register_function_type(ILCallingConvention::bytecode, std::move(args), ret_type, ILContext::both);
+
+				new_inst->member_table[m->name_string] = (uint16_t)decls.size();
+				decls.push_back(std::make_pair(ret_type, std::move(args)));
+
+				/*TypeFunction* type = Compiler::current()->types()->load_or_register_function_type(ILCallingConvention::bytecode, std::move(args), ret_type, ILContext::both);
 
 				new_inst->member_table[m->name_string] = (uint16_t)new_inst->member_declarations.size();
+				new_inst->member_declarations.push_back(type);*/
+			}
+
+			for (auto&& d : decls) {
+				TypeFunction* type = Compiler::current()->types()->load_or_register_function_type(ILCallingConvention::bytecode, std::move(d.second), d.first, new_inst->context);
 				new_inst->member_declarations.push_back(type);
 			}
 
@@ -787,6 +866,7 @@ namespace Corrosive {
 			new_inst->generic_inst.key = new_key;
 			new_inst->generic_inst.generator = &generic_ctx;
 			new_inst->ast_node = ast_node;
+			new_inst->context = ast_node->context;
 
 			new_inst->generic_inst.insert_key_on_stack();
 
@@ -820,6 +900,24 @@ namespace Corrosive {
 						throw_cannot_cast_error(err, cvres.type, Compiler::current()->types()->t_type);
 					}
 					Type* t = Compiler::current()->evaluator()->pop_register_value<Type*>();
+
+					if (t->context() == ILContext::compile) {
+						if (new_inst->context != ILContext::runtime) {
+							new_inst->context = ILContext::compile;
+						}
+						else {
+							throw_specific_error(err, "Type is marked as compile-time and therefore cannot be used as an argument to runtime-only function");
+						}
+					}
+					else if (t->context() == ILContext::runtime) {
+						if (new_inst->context != ILContext::compile) {
+							new_inst->context = ILContext::runtime;
+						}
+						else {
+							throw_specific_error(err, "Type is marked as runtime only and therefore cannot be used as an argument to compile-time function");
+						}
+					}
+
 					new_inst->arguments.push_back(t);
 
 					if (tok == RecognizedToken::Comma) {
@@ -847,6 +945,24 @@ namespace Corrosive {
 				}
 				Type* t = Compiler::current()->evaluator()->pop_register_value<Type*>();
 				new_inst->returns = t;
+
+				if (t->context() == ILContext::compile) {
+					if (new_inst->context != ILContext::runtime) {
+						new_inst->context = ILContext::compile;
+					}
+					else {
+						throw_specific_error(err, "Type is marked as compile-time and therefore cannot be used as an argument to runtime-only function");
+					}
+				}
+				else if (t->context() == ILContext::runtime) {
+					if (new_inst->context != ILContext::compile) {
+						new_inst->context = ILContext::runtime;
+					}
+					else {
+						throw_specific_error(err, "Type is marked as runtime only and therefore cannot be used as an argument to compile-time function");
+					}
+				}
+
 			}
 			else {
 				new_inst->returns = Compiler::current()->types()->t_void;
@@ -857,7 +973,7 @@ namespace Corrosive {
 				argtypes.push_back(a);
 			}
 
-			new_inst->type = Compiler::current()->types()->load_or_register_function_type(ast_node->convention, std::move(argtypes), new_inst->returns, new_inst->ast_node->context);
+			new_inst->type = Compiler::current()->types()->load_or_register_function_type(ast_node->convention, std::move(argtypes), new_inst->returns, new_inst->context);
 			new_inst->compile_state = 1;
 
 		}
@@ -870,7 +986,7 @@ namespace Corrosive {
 
 			if (ast_node->has_body()) {
 				type->compile();
-				auto func = Compiler::current()->global_module()->create_function(ast_node->context);
+				auto func = Compiler::current()->global_module()->create_function(context);
 				this->func = func;
 				func->decl_id = type->il_function_decl;
 				func->alias = ast_node->name_string;
@@ -879,7 +995,7 @@ namespace Corrosive {
 				b->alias = "entry";
 
 				{
-					auto scope = ScopeState().function(func, returns).workspace(parent).context(ast_node->context).compiler_stack().stack();
+					auto scope = ScopeState().function(func, returns).workspace(parent).context(context).compiler_stack().stack();
 					generic_inst.insert_key_on_stack();
 
 					Statement::parse_inner_block_start(b);
@@ -899,13 +1015,8 @@ namespace Corrosive {
 						auto& a = arguments[i];
 
 						a->compile();
-						if (a->context() != ILContext::both && ast_node->context != a->context()) {
-							RecognizedToken tok;
-							Cursor err = load_cursor(((AstFunctionNode*)ast_node)->argument_names[i].first,ast_node->get_source(), tok);
-							throw_specific_error(err, "Type is marked for different context");
-						}
+						// context should be already ok or thrown
 
-						a->compile();
 						stackid_t id = func->local_stack_lifetime.append(a->size());
 
 						Compiler::current()->stack()->push_item(((AstFunctionNode*)ast_node)->argument_names[i].second, a, id);
@@ -926,12 +1037,7 @@ namespace Corrosive {
 						ILBuilder::build_store(Compiler::current()->scope(), ILDataType::word);
 					}
 
-
-					if (returns->context() != ILContext::both && ast_node->context != returns->context()) {
-						RecognizedToken tok;
-						Cursor err = load_cursor(((AstFunctionNode*)ast_node)->return_type, ast_node->get_source(), tok);
-						throw_specific_error(err, "Return type is marked for different context");
-					}
+					// return type context should be already ok or thrown
 
 
 					compile_state = 3;
@@ -1142,6 +1248,7 @@ namespace Corrosive {
 			compile_state = 1;
 			auto scope = ScopeState().context(ILContext::compile).stack().compiler_stack();
 
+			context = ast_node->context;
 
 			if (generator != nullptr) {
 				generator->insert_key_on_stack();
@@ -1164,10 +1271,46 @@ namespace Corrosive {
 				type = Compiler::current()->evaluator()->pop_register_value<Type*>();
 				type->compile();
 
+				if (type->context() == ILContext::compile) {
+					if (context != ILContext::runtime) {
+						context = ILContext::compile;
+					}
+					else {
+						throw_specific_error(err, "Type is marked as compile-time and therefore cannot be used as an argument to runtime-only function");
+					}
+				}
+				else if (type->context() == ILContext::runtime) {
+					if (context != ILContext::compile) {
+						context = ILContext::runtime;
+					}
+					else {
+						throw_specific_error(err, "Type is marked as runtime only and therefore cannot be used as an argument to compile-time function");
+					}
+				}
+
+
 				sid = Compiler::current()->global_module()->register_static(nullptr, type->size());
 			}
 			else {
 				type = typevalue.type;
+				type->compile();
+
+				if (type->context() == ILContext::compile) {
+					if (context != ILContext::runtime) {
+						context = ILContext::compile;
+					}
+					else {
+						throw_specific_error(err, "Type is marked as compile-time and therefore cannot be used as an argument to runtime-only function");
+					}
+				}
+				else if (type->context() == ILContext::runtime) {
+					if (context != ILContext::compile) {
+						context = ILContext::runtime;
+					}
+					else {
+						throw_specific_error(err, "Type is marked as runtime only and therefore cannot be used as an argument to compile-time function");
+					}
+				}
 
 				if (typevalue.lvalue || type->rvalue_stacked()) {
 					void* ptr = Compiler::current()->evaluator()->pop_register_value<void*>();
@@ -1179,11 +1322,6 @@ namespace Corrosive {
 					sid = Compiler::current()->global_module()->register_static((unsigned char*)&storage, type->size());
 				}
 			}
-
-			if (type->context() != ILContext::both && type->context() != ast_node->context) {
-				throw_specific_error(err,"Type is not targeted for this context");
-			}
-
 
 			compile_state = 2;
 		}

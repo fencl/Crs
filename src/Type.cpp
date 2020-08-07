@@ -403,7 +403,7 @@ namespace Corrosive {
 
 	ILContext TypeArray::context() { return owner->context(); }
 
-	ILContext TypeTraitInstance::context() { return owner->ast_node->context; }
+	ILContext TypeTraitInstance::context() { return owner->context; }
 
 	ILContext TypeStructureInstance::context() {
 		return owner->context;
