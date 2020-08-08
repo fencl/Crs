@@ -132,18 +132,9 @@ namespace Corrosive {
 		blocks.push_back(block);
 	}
 
-	unsigned char* ILBlock::reserve_data(size_t size) {
-		if (data_pool.size() == 0) {
-			data_pool.push_back(std::make_unique<ILBlockData>());
-		}
-
-		if (data_pool.back()->size + size >= 1024) {
-			data_pool.push_back(std::make_unique<ILBlockData>());
-		}
-
-		unsigned char* r = &data_pool.back()->data[data_pool.back()->size];
-		data_pool.back()->size += (unsigned int)size;
-		return r;
+	uint8_t* ILBlock::reserve_data(size_t size) {
+		data_pool.resize(data_pool.size() + size);
+		return &data_pool[data_pool.size() - size];
 	}
 
 	void ILBlock::write_instruction(ILInstruction instruction) {
@@ -173,14 +164,6 @@ namespace Corrosive {
 		}
 	}
 
-	void ILBlock::memmove(std::list<std::unique_ptr<ILBlockData>>::iterator& pool, size_t& memoff, size_t off) {
-		memoff += off;
-		if ((*pool)->size <= memoff) {
-			memoff = 0;
-			pool++;
-		}
-	}
-
 	void ILBlock::dump_data_type(ILDataType dt) {
 		switch (dt) {
 			case ILDataType::u8:  std::cout << "u8"; break;
@@ -198,13 +181,6 @@ namespace Corrosive {
 			case ILDataType::none: std::cout << "none"; break;
 			default: std::cout << "error";
 		}
-	}
-
-
-	unsigned char* ILBlock::read_data(size_t s, std::list<std::unique_ptr<ILBlockData>>::iterator& pool, size_t& memoff) {
-		unsigned char* r = &((*pool)->data[memoff]);
-		memmove(pool, memoff, s);
-		return r;
 	}
 
 
@@ -501,8 +477,6 @@ namespace Corrosive {
 		ILBlock::dump_data_type(std::get<1>(decl));
 	}
 
-#define read_data_type(T) ((T*)read_data(sizeof(T),mempool,memoff))
-#define read_data_size(S) (read_data((S),mempool,memoff))
 
 	void ILBlock::dump() {
 		std::cout << " " << id << " [";
@@ -511,249 +485,249 @@ namespace Corrosive {
 		dump_data_type(yields);
 		std::cout << " \"" << alias << "\"\n";
 
-		std::list<std::unique_ptr<ILBlockData>>::iterator mempool = data_pool.begin();
+		std::vector<uint8_t>::iterator it = data_pool.begin();
 		size_t memoff = 0;
-		while (mempool != data_pool.end()) {
+		while (it != data_pool.end()) {
 
-			auto inst = read_data_type(ILInstruction);
+			auto inst = read_data<ILInstruction>(it);
 
-			switch (*inst) {
+			switch (inst) {
 				case ILInstruction::ret: {
 					std::cout << "   ret [";
-					auto type = read_data_type(ILDataType);
-					dump_data_type(*type);
+					auto type = read_data<ILDataType>(it);
+					dump_data_type(type);
 					std::cout << "]\n";
 				} break;
 				case ILInstruction::negative: {
 					std::cout << "   negative [";
-					auto type = read_data_type(ILDataType);
-					dump_data_type(*type);
+					auto type = read_data<ILDataType>(it);
+					dump_data_type(type);
 					std::cout << "]\n";
 				} break;
 				case ILInstruction::call: {
 					std::cout << "   call ";
-					auto id = *read_data_type(uint32_t);
+					auto id = read_data<uint32_t>(it);
 					parent->parent->dump_function_decl(id);
 					std::cout << "\n";
 				} break;
 
 				case ILInstruction::fnptr: {
 					std::cout << "   fnptr ";
-					auto ind = read_data_type(uint32_t);
-					ILFunction* fn = parent->parent->functions[*ind].get();
-					std::cout << *ind << " \"" << fn->alias << "\"\n";
+					auto ind = read_data<uint32_t>(it);
+					ILFunction* fn = parent->parent->functions[ind].get();
+					std::cout << ind << " \"" << fn->alias << "\"\n";
 				} break;
 
 				case ILInstruction::fncall: {
 					std::cout << "   fncall ";
-					auto ind = read_data_type(uint32_t);
-					ILFunction* fn = parent->parent->functions[*ind].get();
-					std::cout << *ind << " \"" << fn->alias << "\"\n";
+					auto ind = read_data<uint32_t>(it);
+					ILFunction* fn = parent->parent->functions[ind].get();
+					std::cout << ind << " \"" << fn->alias << "\"\n";
 				} break;
 
 				case ILInstruction::vtable: {
 					std::cout << "   vtable ";
-					auto ind = read_data_type(uint32_t);
-					std::cout << *ind << "\n";
+					auto ind = read_data<uint32_t>(it);
+					std::cout << ind << "\n";
 				} break;
 				case ILInstruction::constref: {
 					std::cout << "   constref ";
-					auto ind = read_data_type(uint32_t);
-					std::cout << *ind << "\n";
+					auto ind = read_data<uint32_t>(it);
+					std::cout << ind << "\n";
 				} break;
 				case ILInstruction::staticref: {
 					std::cout << "   staticref ";
-					auto ind = read_data_type(uint32_t);
-					std::cout << *ind << "\n";
+					auto ind = read_data<uint32_t>(it);
+					std::cout << ind << "\n";
 				} break;
 
 				case ILInstruction::table8roffset8: {
 					std::cout << "   tableroffset [";
-					auto pair = *read_data_type(ILDataTypePair);
+					auto pair = read_data<ILDataTypePair>(it);
 					dump_data_type(pair.first()); std::cout << "] -> ["; dump_data_type(pair.second()); std::cout << "] (table ";
-					std::cout << (uint16_t)*read_data_type(uint8_t) << "):" << (uint16_t)*read_data_type(uint8_t) << "\n";
+					std::cout << (uint16_t)read_data<uint8_t>(it) << "):" << (uint16_t)read_data<uint8_t>(it) << "\n";
 				} break;
 				case ILInstruction::table8roffset16: {
 					std::cout << "   tableroffset [";
-					auto pair = *read_data_type(ILDataTypePair);
+					auto pair = read_data<ILDataTypePair>(it);
 					dump_data_type(pair.first()); std::cout << "] -> ["; dump_data_type(pair.second()); std::cout << "] (table ";
-					std::cout << (uint16_t)*read_data_type(uint8_t) << "):" << *read_data_type(uint16_t) << "\n";
+					std::cout << (uint16_t)read_data<uint8_t>(it) << "):" << read_data<uint16_t>(it) << "\n";
 				} break;
 				case ILInstruction::table8roffset32: {
 					std::cout << "   tableroffset [";
-					auto pair = *read_data_type(ILDataTypePair);
+					auto pair = read_data<ILDataTypePair>(it);
 					dump_data_type(pair.first()); std::cout << "] -> ["; dump_data_type(pair.second()); std::cout << "] (table ";
-					std::cout << (uint16_t)*read_data_type(uint8_t) << "):" << *read_data_type(uint32_t) << "\n";
+					std::cout << (uint16_t)read_data<uint8_t>(it) << "):" << read_data<uint32_t>(it) << "\n";
 				} break;
 				case ILInstruction::table16roffset8: {
 					std::cout << "   tableroffset [";
-					auto pair = *read_data_type(ILDataTypePair);
+					auto pair = read_data<ILDataTypePair>(it);
 					dump_data_type(pair.first()); std::cout << "] -> ["; dump_data_type(pair.second()); std::cout << "] (table ";
-					std::cout << *read_data_type(uint16_t) << "):" << (uint16_t)*read_data_type(uint8_t) << "\n";
+					std::cout << read_data<uint16_t>(it) << "):" << (uint16_t)read_data<uint8_t>(it) << "\n";
 				} break;
 				case ILInstruction::table16roffset16: {
 					std::cout << "   tableroffset [";
-					auto pair = *read_data_type(ILDataTypePair);
+					auto pair = read_data<ILDataTypePair>(it);
 					dump_data_type(pair.first()); std::cout << "] -> ["; dump_data_type(pair.second()); std::cout << "] (table ";
-					std::cout << *read_data_type(uint16_t) << "):" << *read_data_type(uint16_t) << "\n";
+					std::cout << read_data<uint16_t>(it) << "):" << read_data<uint16_t>(it) << "\n";
 				} break;
 				case ILInstruction::table16roffset32: {
 					std::cout << "   tableroffset [";
-					auto pair = *read_data_type(ILDataTypePair);
+					auto pair = read_data<ILDataTypePair>(it);
 					dump_data_type(pair.first()); std::cout << "] -> ["; dump_data_type(pair.second()); std::cout << "] (table ";
-					std::cout << *read_data_type(uint16_t) << "):" << *read_data_type(uint32_t) << "\n";
+					std::cout << read_data<uint16_t>(it) << "):" << read_data<uint32_t>(it) << "\n";
 				} break;
 				case ILInstruction::table32roffset8: {
 					std::cout << "   tableroffset [";
-					auto pair = *read_data_type(ILDataTypePair);
+					auto pair = read_data<ILDataTypePair>(it);
 					dump_data_type(pair.first()); std::cout << "] -> ["; dump_data_type(pair.second()); std::cout << "] (table ";
-					std::cout << *read_data_type(uint32_t) << "):" << (uint16_t)*read_data_type(uint8_t) << "\n";
+					std::cout << read_data<uint32_t>(it) << "):" << (uint16_t)read_data<uint8_t>(it) << "\n";
 				} break;
 				case ILInstruction::table32roffset16: {
 					std::cout << "   tableroffset [";
-					auto pair = *read_data_type(ILDataTypePair);
+					auto pair = read_data<ILDataTypePair>(it);
 					dump_data_type(pair.first()); std::cout << "] -> ["; dump_data_type(pair.second()); std::cout << "] (table ";
-					std::cout << *read_data_type(uint32_t) << "):" << *read_data_type(uint16_t) << "\n";
+					std::cout << read_data<uint32_t>(it) << "):" << read_data<uint16_t>(it) << "\n";
 				} break;
 				case ILInstruction::table32roffset32: {
 					std::cout << "   tableroffset [";
-					auto pair = *read_data_type(ILDataTypePair);
+					auto pair = read_data<ILDataTypePair>(it);
 					dump_data_type(pair.first()); std::cout << "] -> ["; dump_data_type(pair.second()); std::cout << "] (table ";
-					std::cout << *read_data_type(uint32_t) << "):" << *read_data_type(uint32_t) << "\n";
+					std::cout << read_data<uint32_t>(it) << "):" << read_data<uint32_t>(it) << "\n";
 				} break;
 
 				case ILInstruction::table8offset8: {
-					std::cout << "   tableoffset (table " << (uint16_t)*read_data_type(uint8_t) << "): " << (uint16_t)*read_data_type(uint8_t) << "\n";
+					std::cout << "   tableoffset (table " << (uint16_t)read_data<uint8_t>(it) << "): " << (uint16_t)read_data<uint8_t>(it) << "\n";
 				} break;
 				case ILInstruction::table8offset16: {
-					std::cout << "   tableoffset (table " << (uint16_t)*read_data_type(uint8_t) << "): " << *read_data_type(uint16_t) << "\n";
+					std::cout << "   tableoffset (table " << (uint16_t)read_data<uint8_t>(it) << "): " << read_data<uint16_t>(it) << "\n";
 				} break;
 				case ILInstruction::table8offset32: {
-					std::cout << "   tableoffset (table " << (uint16_t)*read_data_type(uint8_t) << "): " << *read_data_type(uint32_t) << "\n";
+					std::cout << "   tableoffset (table " << (uint16_t)read_data<uint8_t>(it) << "): " << read_data<uint32_t>(it) << "\n";
 				} break;
 				case ILInstruction::table16offset8: {
-					std::cout << "   tableoffset (table " << *read_data_type(uint16_t) << "): " << (uint16_t)*read_data_type(uint8_t) << "\n";
+					std::cout << "   tableoffset (table " << read_data<uint16_t>(it) << "): " << (uint16_t)read_data<uint8_t>(it) << "\n";
 				} break;
 				case ILInstruction::table16offset16: {
-					std::cout << "   tableoffset (table " << *read_data_type(uint16_t) << "): " << *read_data_type(uint16_t) << "\n";
+					std::cout << "   tableoffset (table " << read_data<uint16_t>(it) << "): " << read_data<uint16_t>(it) << "\n";
 				} break;
 				case ILInstruction::table16offset32: {
-					std::cout << "   tableoffset (table " << *read_data_type(uint16_t) << "): " << *read_data_type(uint32_t) << "\n";
+					std::cout << "   tableoffset (table " << read_data<uint16_t>(it) << "): " << read_data<uint32_t>(it) << "\n";
 				} break;
 				case ILInstruction::table32offset8: {
-					std::cout << "   tableoffset (table " << *read_data_type(uint32_t) << "): " << (uint16_t)*read_data_type(uint8_t) << "\n";
+					std::cout << "   tableoffset (table " << read_data<uint32_t>(it) << "): " << (uint16_t)read_data<uint8_t>(it) << "\n";
 				} break;
 				case ILInstruction::table32offset16: {
-					std::cout << "   tableoffset (table " << *read_data_type(uint32_t) << "): " << *read_data_type(uint16_t) << "\n";
+					std::cout << "   tableoffset (table " << read_data<uint32_t>(it) << "): " << read_data<uint16_t>(it) << "\n";
 				} break;
 				case ILInstruction::table32offset32: {
-					std::cout << "   tableoffset (table " << *read_data_type(uint32_t) << "): " << *read_data_type(uint32_t) << "\n";
+					std::cout << "   tableoffset (table " << read_data<uint32_t>(it) << "): " << read_data<uint32_t>(it) << "\n";
 				} break;
 
 				case ILInstruction::duplicate: {
 					std::cout << "   duplicate [";
-					dump_data_type(*read_data_type(ILDataType));
+					dump_data_type(read_data<ILDataType>(it));
 					std::cout << "]\n";
 				} break;
 				case ILInstruction::clone: {
 					std::cout << "   clone [";
-					dump_data_type(*read_data_type(ILDataType));
-					std::cout << "] " << *read_data_type(uint16_t) << "\n";
+					dump_data_type(read_data<ILDataType>(it));
+					std::cout << "] " << read_data<uint16_t>(it) << "\n";
 				} break;
 				case ILInstruction::insintric: {
 					std::cout << "   insintric \"";
-					auto type = read_data_type(uint8_t);
-					std::cout << parent->parent->insintric_function_name[*type] << "\"\n";
+					auto type = read_data<uint8_t>(it);
+					std::cout << parent->parent->insintric_function_name[type] << "\"\n";
 				} break;
 				
 
 				case ILInstruction::sub: {
 					std::cout << "   sub [";
-					auto pair = *read_data_type(ILDataTypePair);
+					auto pair = read_data<ILDataTypePair>(it);
 					dump_data_type(pair.first()); std::cout << " -> "; dump_data_type(pair.second()); std::cout << "]\n";
 					} break;
 				case ILInstruction::div: {
 					std::cout << "   div [";
-					auto pair = *read_data_type(ILDataTypePair);
+					auto pair = read_data<ILDataTypePair>(it);
 					dump_data_type(pair.first()); std::cout << " -> "; dump_data_type(pair.second()); std::cout << "]\n";
 					} break;
 				case ILInstruction::rem: {
 					std::cout << "   rem [";
-					auto pair = *read_data_type(ILDataTypePair);
+					auto pair = read_data<ILDataTypePair>(it);
 					dump_data_type(pair.first()); std::cout << " -> "; dump_data_type(pair.second()); std::cout << "]\n";
 					} break;
 				case ILInstruction::mul: {
 					std::cout << "   mul [";
-					auto pair = *read_data_type(ILDataTypePair);
+					auto pair = read_data<ILDataTypePair>(it);
 					dump_data_type(pair.first()); std::cout << " -> "; dump_data_type(pair.second()); std::cout << "]\n";
 					} break;
 				case ILInstruction::add: {
 					std::cout << "   add [";
-					auto pair = *read_data_type(ILDataTypePair);
+					auto pair = read_data<ILDataTypePair>(it);
 					dump_data_type(pair.first()); std::cout << " -> "; dump_data_type(pair.second()); std::cout << "]\n";
 					} break;
 				case ILInstruction::bit_and: {
 					std::cout << "   and [";
-					auto pair = *read_data_type(ILDataTypePair);
+					auto pair = read_data<ILDataTypePair>(it);
 					dump_data_type(pair.first()); std::cout << " -> "; dump_data_type(pair.second()); std::cout << "]\n";
 					} break;
 				case ILInstruction::bit_or: {
 					std::cout << "   or [";
-					auto pair = *read_data_type(ILDataTypePair);
+					auto pair = read_data<ILDataTypePair>(it);
 					dump_data_type(pair.first()); std::cout << " -> "; dump_data_type(pair.second()); std::cout << "]\n";
 					} break;
 				case ILInstruction::bit_xor: {
 					std::cout << "   xor [";
-					auto pair = *read_data_type(ILDataTypePair);
+					auto pair = read_data<ILDataTypePair>(it);
 					dump_data_type(pair.first()); std::cout << " -> "; dump_data_type(pair.second()); std::cout << "]\n";
 					} break;
 				case ILInstruction::eq: {
 					std::cout << "   eq [";
-					auto pair = *read_data_type(ILDataTypePair);
+					auto pair = read_data<ILDataTypePair>(it);
 					dump_data_type(pair.first()); std::cout << " -> "; dump_data_type(pair.second()); std::cout << "]\n";
 					} break;
 				case ILInstruction::ne: {
 					std::cout << "   ne [";
-					auto pair = *read_data_type(ILDataTypePair);
+					auto pair = read_data<ILDataTypePair>(it);
 					dump_data_type(pair.first()); std::cout << " -> "; dump_data_type(pair.second()); std::cout << "]\n";
 					} break;
 				case ILInstruction::gt: {
 					std::cout << "   gt [";
-					auto pair = *read_data_type(ILDataTypePair);
+					auto pair = read_data<ILDataTypePair>(it);
 					dump_data_type(pair.first()); std::cout << " -> "; dump_data_type(pair.second()); std::cout << "]\n";
 					} break;
 				case ILInstruction::lt: {
 					std::cout << "   lt [";
-					auto pair = *read_data_type(ILDataTypePair);
+					auto pair = read_data<ILDataTypePair>(it);
 					dump_data_type(pair.first()); std::cout << " -> "; dump_data_type(pair.second()); std::cout << "]\n";
 					} break;
 				case ILInstruction::ge: {
 					std::cout << "   ge [";
-					auto pair = *read_data_type(ILDataTypePair);
+					auto pair = read_data<ILDataTypePair>(it);
 					dump_data_type(pair.first()); std::cout << " -> "; dump_data_type(pair.second()); std::cout << "]\n";
 					} break;
 				case ILInstruction::le: {
 					std::cout << "   le [";
-					auto pair = *read_data_type(ILDataTypePair);
+					auto pair = read_data<ILDataTypePair>(it);
 					dump_data_type(pair.first()); std::cout << " -> "; dump_data_type(pair.second()); std::cout << "]\n";
 					} break;
 				case ILInstruction::cast: {
 					std::cout << "   cast ";
-					auto pair = *read_data_type(ILDataTypePair);
+					auto pair = read_data<ILDataTypePair>(it);
 					dump_data_type(pair.first()); std::cout << " -> "; dump_data_type(pair.second()); std::cout << "\n";
 				} break;
 				case ILInstruction::bitcast: {
 					std::cout << "   bitcast ";
-					auto pair = *read_data_type(ILDataTypePair);
+					auto pair = read_data<ILDataTypePair>(it);
 					dump_data_type(pair.first()); std::cout << " -> "; dump_data_type(pair.second()); std::cout << "\n";
 				} break;
 				case ILInstruction::store:
 					std::cout << "   store [";
-					dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
+					dump_data_type(read_data<ILDataType>(it)); std::cout << "]\n";
 					break;
 				case ILInstruction::store2:
 					std::cout << "   store rev [";
-					dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
+					dump_data_type(read_data<ILDataType>(it)); std::cout << "]\n";
 					break;
 				case ILInstruction::start: {
 					std::cout << "   start\n";
@@ -789,129 +763,129 @@ namespace Corrosive {
 
 				case ILInstruction::isnotzero: {
 					std::cout << "   isnotzero [";
-					dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
+					dump_data_type(read_data<ILDataType>(it)); std::cout << "]\n";
 				} break;
 
 				case ILInstruction::accept: {
 					std::cout << "   accept [";
-					dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
+					dump_data_type(read_data<ILDataType>(it)); std::cout << "]\n";
 				} break;
 
 				case ILInstruction::yield: {
 					std::cout << "   yield [";
-					dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
+					dump_data_type(read_data<ILDataType>(it)); std::cout << "]\n";
 				} break;
 
 				case ILInstruction::discard: {
 					std::cout << "   discard [";
-					dump_data_type(*read_data_type(ILDataType)); std::cout << "]\n";
+					dump_data_type(read_data<ILDataType>(it)); std::cout << "]\n";
 				} break;
 
 				case ILInstruction::jmp: {
 					std::cout << "   jmp ";
-					auto address = read_data_type(uint32_t);
-					std::cout << *address << " \"" << parent->blocks_memory[*address]->alias << "\"\n";
+					auto address = read_data<uint32_t>(it);
+					std::cout << address << " \"" << parent->blocks_memory[address]->alias << "\"\n";
 					break;
 				}
 				case ILInstruction::local8: {
 					std::cout << "   local ";
-					auto offset = *read_data_type(uint8_t);
+					auto offset = read_data<uint8_t>(it);
 					std::cout << (uint16_t)offset << "\n";
 					break;
 				}
 				case ILInstruction::local16: {
 					std::cout << "   local ";
-					auto offset = *read_data_type(uint16_t);
+					auto offset = read_data<uint16_t>(it);
 					std::cout << offset << "\n";
 					break;
 				}
 				case ILInstruction::local32: {
 					std::cout << "   local ";
-					auto offset = *read_data_type(uint32_t);
+					auto offset = read_data<uint32_t>(it);
 					std::cout << offset << "\n";
 					break;
 				}
 				case ILInstruction::debug: {
 					// do not print
-					read_data_type(uint16_t);
-					read_data_type(uint16_t);
+					read_data<uint16_t>(it);
+					read_data<uint16_t>(it);
 					break;
 				}
 				case ILInstruction::offset32: {
 					std::cout << "   offset ";
-					auto t = *read_data_type(ILSizeType);
-					auto off = *read_data_type(uint32_t);
+					auto t = read_data<ILSizeType>(it);
+					auto off = read_data<uint32_t>(it);
 					ILSize(t,off).print();
 					std::cout << "\n";
 					break;
 				}
 				case ILInstruction::offset16: {
 					std::cout << "   offset ";
-					auto t = *read_data_type(ILSizeType);
-					auto off = *read_data_type(uint16_t);
+					auto t = read_data<ILSizeType>(it);
+					auto off = read_data<uint16_t>(it);
 					ILSize(t, off).print();
 					std::cout << "\n";
 					break;
 				}
 				case ILInstruction::offset8: {
 					std::cout << "   offset ";
-					auto t = *read_data_type(ILSizeType);
-					auto off = *read_data_type(uint8_t);
+					auto t = read_data<ILSizeType>(it);
+					auto off = read_data<uint8_t>(it);
 					ILSize(t, off).print();
 					std::cout << "\n";
 					break;
 				}
 				case ILInstruction::aoffset8: {
-					std::cout << "   aoffset " << (uint16_t)*read_data_type(uint8_t) << "\n";
+					std::cout << "   aoffset " << (uint16_t)read_data<uint8_t>(it) << "\n";
 					break;
 				}
 				case ILInstruction::aoffset16: {
-					std::cout << "   aoffset " << *read_data_type(uint16_t) << "\n";
+					std::cout << "   aoffset " << read_data<uint16_t>(it) << "\n";
 					break;
 				}
 				case ILInstruction::aoffset32: {
-					std::cout << "   aoffset " << *read_data_type(uint32_t) << "\n";
+					std::cout << "   aoffset " << read_data<uint32_t>(it) << "\n";
 					break;
 				}
 				case ILInstruction::woffset8: {
-					std::cout << "   woffset " << (uint16_t)*read_data_type(uint8_t) << "\n";
+					std::cout << "   woffset " << (uint16_t)read_data<uint8_t>(it) << "\n";
 					break;
 				}
 				case ILInstruction::woffset16: {
-					std::cout << "   woffset " << *read_data_type(uint16_t) << "\n";
+					std::cout << "   woffset " << read_data<uint16_t>(it) << "\n";
 					break;
 				}
 				case ILInstruction::woffset32: {
-					std::cout << "   woffset " << *read_data_type(uint32_t) << "\n";
+					std::cout << "   woffset " << read_data<uint32_t>(it) << "\n";
 					break;
 				}
 
 				case ILInstruction::memcpy: {
 					std::cout << "   memcpy ";
-					auto off = read_data_type(ILSize);
-					off->print();
+					auto off = read_data<ILSize>(it);
+					off.print();
 					std::cout << "\n";
 					break;
 				}
 				case ILInstruction::memcpy2: {
 					std::cout << "   memcpy rev ";
-					auto off = read_data_type(ILSize);
-					off->print();
+					auto off = read_data<ILSize>(it);
+					off.print();
 					std::cout << "\n";
 					break;
 				}
 
 				case ILInstruction::swap: {
 					std::cout << "   swap [";
-					auto type = read_data_type(ILDataType);
-					dump_data_type(*type);
+					auto type = read_data<ILDataType>(it);
+					dump_data_type(type);
 					std::cout << "]\n";
 					break;
 				}
 
 				case ILInstruction::swap2: {
 					std::cout << "   swap2 [";
-					auto p = *read_data_type(ILDataTypePair);
+					auto p = read_data<ILDataTypePair>(it);
 					dump_data_type(p.first());
 					std::cout << ", ";
 					dump_data_type(p.second());
@@ -921,9 +895,9 @@ namespace Corrosive {
 
 				case ILInstruction::roffset32: {
 					std::cout << "   roffset [";
-					auto pair = *read_data_type(ILDataTypePair);
-					auto t = *read_data_type(ILSizeType);
-					auto off = *read_data_type(uint32_t);
+					auto pair = read_data<ILDataTypePair>(it);
+					auto t = read_data<ILSizeType>(it);
+					auto off = read_data<uint32_t>(it);
 
 					dump_data_type(pair.first());
 					std::cout << "] -> [";
@@ -935,9 +909,9 @@ namespace Corrosive {
 				}
 				case ILInstruction::roffset16: {
 					std::cout << "   roffset [";
-					auto pair = *read_data_type(ILDataTypePair);
-					auto t = *read_data_type(ILSizeType);
-					auto off = *read_data_type(uint16_t);
+					auto pair = read_data<ILDataTypePair>(it);
+					auto t = read_data<ILSizeType>(it);
+					auto off = read_data<uint16_t>(it);
 
 					dump_data_type(pair.first());
 					std::cout << "] -> [";
@@ -949,9 +923,9 @@ namespace Corrosive {
 				}
 				case ILInstruction::roffset8: {
 					std::cout << "   roffset [";
-					auto pair = *read_data_type(ILDataTypePair);
-					auto t = *read_data_type(ILSizeType);
-					auto off = *read_data_type(uint8_t);
+					auto pair = read_data<ILDataTypePair>(it);
+					auto t = read_data<ILSizeType>(it);
+					auto off = read_data<uint8_t>(it);
 
 					dump_data_type(pair.first());
 					std::cout << "] -> [";
@@ -964,8 +938,8 @@ namespace Corrosive {
 				case ILInstruction::aroffset: {
 					std::cout << "   aroffset [";
 
-					auto p = *read_data_type(ILDataTypePair);
-					auto off = *read_data_type(uint8_t);
+					auto p = read_data<ILDataTypePair>(it);
+					auto off = read_data<uint8_t>(it);
 
 					dump_data_type(p.first());
 					std::cout << "] -> [";
@@ -977,8 +951,8 @@ namespace Corrosive {
 
 				case ILInstruction::wroffset: {
 					std::cout << "   wroffset [";
-					auto p = *read_data_type(ILDataTypePair);
-					auto off = *read_data_type(uint8_t);
+					auto p = read_data<ILDataTypePair>(it);
+					auto off = read_data<uint8_t>(it);
 
 					dump_data_type(p.first());
 					std::cout << "] -> [";
@@ -990,88 +964,88 @@ namespace Corrosive {
 
 				case ILInstruction::memcmp: {
 					std::cout << "   memcmp ";
-					auto size = read_data_type(ILSize);
-					size->print();
+					auto size = read_data<ILSize>(it);
+					size.print();
 					std::cout << "\n";
 				} break;
 
 				case ILInstruction::memcmp2: {
 					std::cout << "   memcmp rev ";
-					auto size = read_data_type(ILSize);
-					size->print();
+					auto size = read_data<ILSize>(it);
+					size.print();
 					std::cout << "\n";
 				} break;
 
 				case ILInstruction::rmemcmp: {
 					std::cout << "   rmemcmp [";
-					auto t = *read_data_type(ILDataType);
+					auto t = read_data<ILDataType>(it);
 					dump_data_type(t);
 					std::cout << "]\n";
 				} break;
 
 				case ILInstruction::rmemcmp2: {
 					std::cout << "   rmemcmp rev [";
-					auto t = *read_data_type(ILDataType);
+					auto t = read_data<ILDataType>(it);
 					dump_data_type(t);
 					std::cout << "]\n";
 				} break;
 
 				case ILInstruction::load: {
 					std::cout << "   load [";
-					auto type = read_data_type(ILDataType);
-					dump_data_type(*type);
+					auto type = read_data<ILDataType>(it);
+					dump_data_type(type);
 					std::cout << "]\n";
 					break;
 				}
 
 				case ILInstruction::forget: {
 					std::cout << "   forget [";
-					auto type = read_data_type(ILDataType);
-					dump_data_type(*type);
+					auto type = read_data<ILDataType>(it);
+					dump_data_type(type);
 					std::cout << "]\n";
 					break;
 				}
 				case ILInstruction::jmpz: {
 					std::cout << "   jmpz ";
-					auto address = read_data_type(uint32_t);
+					auto address = read_data<uint32_t>(it);
 
-					std::cout << *address << " \"" << parent->blocks_memory[*address]->alias << "\" : ";
-					address = read_data_type(uint32_t);
-					std::cout << *address << " \"" << parent->blocks_memory[*address]->alias << "\"\n";
+					std::cout << address << " \"" << parent->blocks_memory[address]->alias << "\" : ";
+					address = read_data<uint32_t>(it);
+					std::cout << address << " \"" << parent->blocks_memory[address]->alias << "\"\n";
 					break;
 				}
 
-				case ILInstruction::slice: std::cout << "   slice constref " << *read_data_type(uint32_t) <<", " << *read_data_type(uint64_t) << "\n"; break;
+				case ILInstruction::slice: std::cout << "   slice constref " << read_data<uint32_t>(it) <<", " << read_data<uint64_t>(it) << "\n"; break;
 
-				case ILInstruction::u8:  std::cout << "   u8 " << (uint16_t)*read_data_type(uint8_t) << "\n"; break;
-				case ILInstruction::u16: std::cout << "   u16 " << *read_data_type(uint16_t) << "\n"; break;
-				case ILInstruction::u32: std::cout << "   u32 " << *read_data_type(uint32_t) << "\n"; break;
-				case ILInstruction::u64: std::cout << "   u64 " << *read_data_type(uint64_t) << "\n"; break;
-				case ILInstruction::i8:  std::cout << "   i8 " << (int16_t)*read_data_type(int8_t) << "\n"; break;
-				case ILInstruction::i16: std::cout << "   i16 " << *read_data_type(int16_t) << "\n"; break;
-				case ILInstruction::i32: std::cout << "   i32 " << *read_data_type(int32_t) << "\n"; break;
-				case ILInstruction::i64: std::cout << "   i64 " << *read_data_type(int64_t) << "\n"; break;
-				case ILInstruction::f32: std::cout << "   f32 " << *read_data_type(float) << "\n"; break;
-				case ILInstruction::f64: std::cout << "   f64 " << *read_data_type(double) << "\n"; break;
-				case ILInstruction::word: std::cout << "   word " << *read_data_type(void*) << "\n"; break;
+				case ILInstruction::u8:  std::cout << "   u8 " << (uint16_t)read_data<uint8_t>(it) << "\n"; break;
+				case ILInstruction::u16: std::cout << "   u16 " << read_data<uint16_t>(it) << "\n"; break;
+				case ILInstruction::u32: std::cout << "   u32 " << read_data<uint32_t>(it) << "\n"; break;
+				case ILInstruction::u64: std::cout << "   u64 " << read_data<uint64_t>(it) << "\n"; break;
+				case ILInstruction::i8:  std::cout << "   i8 " << (int16_t)read_data<int8_t>(it) << "\n"; break;
+				case ILInstruction::i16: std::cout << "   i16 " << read_data<int16_t>(it) << "\n"; break;
+				case ILInstruction::i32: std::cout << "   i32 " << read_data<int32_t>(it) << "\n"; break;
+				case ILInstruction::i64: std::cout << "   i64 " << read_data<int64_t>(it) << "\n"; break;
+				case ILInstruction::f32: std::cout << "   f32 " << read_data<float>(it) << "\n"; break;
+				case ILInstruction::f64: std::cout << "   f64 " << read_data<double>(it) << "\n"; break;
+				case ILInstruction::word: std::cout << "   word " << read_data<void*>(it) << "\n"; break;
 				case ILInstruction::size8: {
 					std::cout << "   size ";
-					auto t = *read_data_type(ILSizeType);
-					auto v = *read_data_type(uint8_t);
+					auto t = read_data<ILSizeType>(it);
+					auto v = read_data<uint8_t>(it);
 					ILSize(t,(tableid_t)v).print();
 					std::cout << "\n";
 				}break;
 				case ILInstruction::size16: {
 					std::cout << "   size ";
-					auto t = *read_data_type(ILSizeType);
-					auto v = *read_data_type(uint16_t);
+					auto t = read_data<ILSizeType>(it);
+					auto v = read_data<uint16_t>(it);
 					ILSize(t, (tableid_t)v).print();
 					std::cout << "\n";
 				}break;
 				case ILInstruction::size32: {
 					std::cout << "   size ";
-					auto t = *read_data_type(ILSizeType);
-					auto v = *read_data_type(uint32_t);
+					auto t = read_data<ILSizeType>(it);
+					auto v = read_data<uint32_t>(it);
 					ILSize(t, (tableid_t)v).print();
 					std::cout << "\n";
 				}break;
@@ -1079,9 +1053,6 @@ namespace Corrosive {
 			}
 		}
 	}
-
-#undef read_data_size
-#undef read_data_type
 
 	bool ILBytecodeFunction::assert_flow() {
 		if (return_blocks.size() == 0) {

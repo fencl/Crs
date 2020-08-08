@@ -82,7 +82,6 @@ namespace Corrosive {
 			(std::basic_string_view<uint8_t>&)res.first->first = std::basic_string_view<uint8_t>(arr.get(), size); 
 
 			generic_storage.push_back(std::move(arr));
-			std::cout << "reg gen storage\n";
 			return dst;
 		}
 		else {

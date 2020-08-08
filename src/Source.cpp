@@ -488,8 +488,6 @@ namespace Corrosive {
 
 		auto f = Compiler::current()->included_sources.find(abs);
 		if (f == Compiler::current()->included_sources.end()) {
-			std::cout << "added " << abs << "\n";
-
 			auto new_src = std::make_unique<Source>();
 			new_src->path = abs;
 			new_src->load(abs.generic_string().c_str());

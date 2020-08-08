@@ -378,7 +378,7 @@
 	Code compiled in normal context can use declarations and types with normal context, and compile-only and runtime-only can be used inside blocks with specified context (TODO).</p>
 	<p>Do not confuse <span class="c"><span class="kw">compile</span></span>/<span class="c"><span class="kw">runtime</span></span> keyword in declarations and <span class="c"><span class="kw">compile</span></span>/<span class="c"><span class="kw">runtime</span></span> keyword in functions.<br>More about this in Inline section.</p>
 	<p>Example: if function declaration has <span class="c"><span class="kw">compile</span></span> annotation, it means that it can be only called during compilation. For structure it means that it can be only used inside functions that can be used during compilation, etc.</p>
-	<p>Structures without context specifier will remain normal until specific context member is added (TODO: do the same for functions, traits and statics)</p>
+	<p>Structures without context specifier will remain normal until specific context member is added. The same goes for function and their arguments and return types and also for traits with their function declarations</p>
 	</div><!--Context-->
 	
 	<h2>Types</h2>
@@ -403,7 +403,7 @@
 			<p><span class="c"><span class="kw">static</span> Data: <span class="k">std</span>::pair(&amp;<span class="k">u64</span>, []<span class="k">u8</span>);<br>
 			<span class="cmt">// std::pair is generic type(type,type)<br>// (&amp;u64,[]u8) generates instance for generic std::pair<br>// &amp;u64 is reference to u64<br>// []u8 is memory slice with u8 types</span></span></p>
 			
-			<p><span class="c"><span class="kw">static</span> Array: <span class="k">std</span>::get_array_type(<span class="k">type</span>, 10);<br>
+			<p><span class="c"><span class="kw">static</span> Array: <span class="k">std</span>::get_array_type() (<span class="k">type</span>, 10);<br>
 			<span class="cmt">// std::get_array_type is a function returning generic type(type, size)<br>// (type, 10) generates std::array instance with 10 types</span></span></p>
 		</div>
 		

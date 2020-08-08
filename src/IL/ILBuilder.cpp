@@ -4,35 +4,35 @@
 #include <functional>
 
 namespace Corrosive {
-	void ILBuilder::build_const_i8(ILBlock* block, int8_t   value) { block->write_instruction(ILInstruction::i8);     block->write_value(sizeof(int8_t), (unsigned char*)&value); }
-	void ILBuilder::build_const_i16(ILBlock* block, int16_t  value) { block->write_instruction(ILInstruction::i16);    block->write_value(sizeof(int16_t), (unsigned char*)&value); }
-	void ILBuilder::build_const_i32(ILBlock* block, int32_t  value) { block->write_instruction(ILInstruction::i32);    block->write_value(sizeof(int32_t), (unsigned char*)&value); }
-	void ILBuilder::build_const_i64(ILBlock* block, int64_t  value) { block->write_instruction(ILInstruction::i64);    block->write_value(sizeof(int64_t), (unsigned char*)&value); }
-	void ILBuilder::build_const_u8(ILBlock* block, uint8_t  value) { block->write_instruction(ILInstruction::u8);   block->write_value(sizeof(uint8_t), (unsigned char*)&value); }
-	void ILBuilder::build_const_u16(ILBlock* block, uint16_t value) { block->write_instruction(ILInstruction::u16);    block->write_value(sizeof(uint16_t), (unsigned char*)&value); }
-	void ILBuilder::build_const_u32(ILBlock* block, uint32_t value) { block->write_instruction(ILInstruction::u32);    block->write_value(sizeof(uint32_t), (unsigned char*)&value); }
-	void ILBuilder::build_const_u64(ILBlock* block, uint64_t value) { block->write_instruction(ILInstruction::u64);    block->write_value(sizeof(uint64_t), (unsigned char*)&value); }
-	void ILBuilder::build_const_f32(ILBlock* block, float    value) { block->write_instruction(ILInstruction::f32);    block->write_value(sizeof(float), (unsigned char*)&value); }
-	void ILBuilder::build_const_f64(ILBlock* block, double   value) { block->write_instruction(ILInstruction::f64);    block->write_value(sizeof(double), (unsigned char*)&value); }
-	void ILBuilder::build_const_type(ILBlock* block, void* value) { block->write_instruction(ILInstruction::word); 	  block->write_value(sizeof(void*), (unsigned char*)&value); }
+	void ILBuilder::build_const_i8(ILBlock* block, int8_t   value) { block->write_instruction(ILInstruction::i8);     block->write_value(value); }
+	void ILBuilder::build_const_i16(ILBlock* block, int16_t  value) { block->write_instruction(ILInstruction::i16);    block->write_value(value); }
+	void ILBuilder::build_const_i32(ILBlock* block, int32_t  value) { block->write_instruction(ILInstruction::i32);    block->write_value(value); }
+	void ILBuilder::build_const_i64(ILBlock* block, int64_t  value) { block->write_instruction(ILInstruction::i64);    block->write_value(value); }
+	void ILBuilder::build_const_u8(ILBlock* block, uint8_t  value) { block->write_instruction(ILInstruction::u8);   block->write_value(value); }
+	void ILBuilder::build_const_u16(ILBlock* block, uint16_t value) { block->write_instruction(ILInstruction::u16);    block->write_value(value); }
+	void ILBuilder::build_const_u32(ILBlock* block, uint32_t value) { block->write_instruction(ILInstruction::u32);    block->write_value(value); }
+	void ILBuilder::build_const_u64(ILBlock* block, uint64_t value) { block->write_instruction(ILInstruction::u64);    block->write_value(value); }
+	void ILBuilder::build_const_f32(ILBlock* block, float    value) { block->write_instruction(ILInstruction::f32);    block->write_value(value); }
+	void ILBuilder::build_const_f64(ILBlock* block, double   value) { block->write_instruction(ILInstruction::f64);    block->write_value(value); }
+	void ILBuilder::build_const_type(ILBlock* block, void* value) { block->write_instruction(ILInstruction::word); 	  block->write_value(value); }
 	
 	void ILBuilder::build_const_size(ILBlock* block, ILSize value) {
 		if (value.value <= UINT8_MAX) {
 			uint8_t offset8 = value.value;
 			block->write_instruction(ILInstruction::size8);
-			block->write_value(sizeof(uint8_t), (unsigned char*)&value.type);
-			block->write_value(sizeof(uint8_t), (unsigned char*)&offset8);
+			block->write_value(value.type);
+			block->write_value(offset8);
 		}
 		else if (value.value <= UINT16_MAX) {
 			uint16_t offset16 = value.value;
 			block->write_instruction(ILInstruction::size16);
-			block->write_value(sizeof(uint8_t), (unsigned char*)&value.type);
-			block->write_value(sizeof(uint16_t), (unsigned char*)&offset16);
+			block->write_value(value.type);
+			block->write_value(offset16);
 		}
 		else if (value.value <= UINT32_MAX) {
 			block->write_instruction(ILInstruction::size32);
-			block->write_value(sizeof(uint8_t), (unsigned char*)&value.type);
-			block->write_value(sizeof(uint32_t), (unsigned char*)&value.value);
+			block->write_value(value.type);
+			block->write_value(value.value);
 		}
 		else {
 			throw std::exception("Compiler error: please fix aoffset type");
@@ -42,8 +42,8 @@ namespace Corrosive {
 
 	void ILBuilder::build_const_slice(ILBlock* block, uint32_t constid, uint64_t size) {
 		block->write_instruction(ILInstruction::slice);
-		block->write_value(sizeof(uint32_t), (unsigned char*)&constid);
-		block->write_value(sizeof(uint64_t), (unsigned char*)&size);
+		block->write_value(constid);
+		block->write_value(size);
 	}
 
 
@@ -102,41 +102,41 @@ namespace Corrosive {
 
 	void ILBuilder::build_fnptr(ILBlock* block, ILFunction* fun) {
 		block->write_instruction(ILInstruction::fnptr);
-		block->write_value(sizeof(uint32_t), (unsigned char*)&(fun->id));
+		block->write_value((fun->id));
 	}
 	
 	void ILBuilder::build_fncall(ILBlock* block, ILFunction* fun) {
 		block->write_instruction(ILInstruction::fncall);
-		block->write_value(sizeof(uint32_t), (unsigned char*)&(fun->id));
+		block->write_value((fun->id));
 	}
 
 	void ILBuilder::build_constref(ILBlock* block, uint32_t constid) {
 		block->write_instruction(ILInstruction::constref);
-		block->write_value(sizeof(uint32_t), (unsigned char*)&constid);
+		block->write_value(constid);
 	}
 	
 	void ILBuilder::build_staticref(ILBlock* block, uint32_t constid) {
 		block->write_instruction(ILInstruction::staticref);
-		block->write_value(sizeof(uint32_t), (unsigned char*)&constid);
+		block->write_value(constid);
 	}
 
 	void ILBuilder::build_call(ILBlock* block, uint32_t decl) {
 		block->write_instruction(ILInstruction::call);
-		block->write_value(sizeof(uint32_t), (unsigned char*)&decl);
+		block->write_value(decl);
 
 	}
 
 	void ILBuilder::build_jmp(ILBlock* block, ILBlock* address) {
 		address->predecessors.insert(block);
 		block->write_instruction(ILInstruction::jmp);
-		block->write_value(sizeof(uint32_t), (unsigned char*)&address->id);
+		block->write_value(address->id);
 
 	}
 
 	void ILBuilder::build_debug(ILBlock* block, uint16_t file, uint16_t line) {
 		block->write_instruction(ILInstruction::debug);
-		block->write_value(sizeof(uint16_t), (unsigned char*)&file);
-		block->write_value(sizeof(uint16_t), (unsigned char*)&line);
+		block->write_value(file);
+		block->write_value(line);
 	}
 
 	void ILBuilder::build_jmpz(ILBlock* block, ILBlock* ifz, ILBlock* ifnz) {
@@ -144,8 +144,8 @@ namespace Corrosive {
 		ifnz->predecessors.insert(block);
 
 		block->write_instruction(ILInstruction::jmpz);
-		block->write_value(sizeof(uint32_t), (unsigned char*)&ifz->id);
-		block->write_value(sizeof(uint32_t), (unsigned char*)&ifnz->id);
+		block->write_value(ifz->id);
+		block->write_value(ifnz->id);
 
 
 	}
@@ -169,24 +169,24 @@ namespace Corrosive {
 				uint8_t offset8 = offset.value;
 				block->write_instruction(ILInstruction::roffset8);
 				auto off = ILDataTypePair(from, to);
-				block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
-				block->write_value(sizeof(uint8_t), (unsigned char*)&offset.type);
-				block->write_value(sizeof(uint8_t), (unsigned char*)&offset8);
+				block->write_value(off);
+				block->write_value(offset.type);
+				block->write_value(offset8);
 			}
 			else if (offset.value <= UINT16_MAX) {
 				uint16_t offset16 = offset.value;
 				block->write_instruction(ILInstruction::roffset16);
 				auto off = ILDataTypePair(from, to);
-				block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
-				block->write_value(sizeof(uint8_t), (unsigned char*)&offset.type);
-				block->write_value(sizeof(uint16_t), (unsigned char*)&offset16);
+				block->write_value(off);
+				block->write_value(offset.type);
+				block->write_value(offset16);
 			}
 			else if (offset.value <= UINT32_MAX) {
 				block->write_instruction(ILInstruction::roffset32);
 				auto off = ILDataTypePair(from, to);
-				block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
-				block->write_value(sizeof(uint8_t), (unsigned char*)&offset.type);
-				block->write_value(sizeof(uint32_t), (unsigned char*)&offset.value);
+				block->write_value(off);
+				block->write_value(offset.type);
+				block->write_value(offset.value);
 			}
 			else {
 				throw std::exception("Compiler error: please fix aoffset type");
@@ -206,25 +206,25 @@ namespace Corrosive {
 
 	void ILBuilder::build_memcpy(ILBlock* block, ILSize size) {
 		block->write_instruction(ILInstruction::memcpy);
-		block->write_value(sizeof(ILSize), (unsigned char*)&size);
+		block->write_value(size);
 
 	}
 
 	void ILBuilder::build_memcpy_rev(ILBlock* block, ILSize size) {
 		block->write_instruction(ILInstruction::memcpy2);
-		block->write_value(sizeof(ILSize), (unsigned char*)&size);
+		block->write_value(size);
 
 	}
 
 	void ILBuilder::build_memcmp(ILBlock* block, ILSize size) {
 		block->write_instruction(ILInstruction::memcmp);
-		block->write_value(sizeof(ILSize), (unsigned char*)&size);
+		block->write_value(size);
 
 	}
 
 	void ILBuilder::build_memcmp_rev(ILBlock* block, ILSize size) {
 		block->write_instruction(ILInstruction::memcmp2);
-		block->write_value(sizeof(ILSize), (unsigned char*)&size);
+		block->write_value(size);
 
 	}
 
@@ -256,16 +256,16 @@ namespace Corrosive {
 		if (id <= UINT8_MAX) {
 			uint8_t id8 = id;
 			block->write_instruction(ILInstruction::local8);
-			block->write_value(sizeof(uint8_t), (unsigned char*)&id8);
+			block->write_value(id8);
 		}
 		else if (id <= UINT16_MAX) {
 			uint16_t id16 = id;
 			block->write_instruction(ILInstruction::local16);
-			block->write_value(sizeof(uint16_t), (unsigned char*)&id16);
+			block->write_value(id16);
 		}
 		else if (id<=UINT32_MAX){
 			block->write_instruction(ILInstruction::local32);
-			block->write_value(sizeof(uint32_t), (unsigned char*)&id);
+			block->write_value(id);
 		}
 		else {
 			throw std::exception("compiler error: please fix local type");
@@ -274,7 +274,7 @@ namespace Corrosive {
 
 	void ILBuilder::build_vtable(ILBlock* block, uint32_t id) {
 		block->write_instruction(ILInstruction::vtable);
-		block->write_value(sizeof(uint32_t), (unsigned char*)&id);
+		block->write_value(id);
 	}
 
 	void ILBuilder::build_tableoffset(ILBlock* block, tableid_t tableid, tableelement_t itemid) {
@@ -285,19 +285,19 @@ namespace Corrosive {
 				if (itemid <= UINT8_MAX) {
 					uint8_t itemid8 = itemid;
 					block->write_instruction(ILInstruction::table8offset8);
-					block->write_value(sizeof(uint8_t), (unsigned char*)&tableid8);
-					block->write_value(sizeof(uint8_t), (unsigned char*)&itemid8);
+					block->write_value(tableid8);
+					block->write_value(itemid8);
 				}
 				else if (itemid <= UINT16_MAX) {
 					uint16_t itemid16 = itemid;
 					block->write_instruction(ILInstruction::table8offset16);
-					block->write_value(sizeof(uint8_t), (unsigned char*)&tableid8);
-					block->write_value(sizeof(uint16_t), (unsigned char*)&itemid16);
+					block->write_value(tableid8);
+					block->write_value(itemid16);
 				}
 				else if (itemid <= UINT32_MAX) {
 					block->write_instruction(ILInstruction::table8offset32);
-					block->write_value(sizeof(uint8_t), (unsigned char*)&tableid8);
-					block->write_value(sizeof(uint32_t), (unsigned char*)&itemid);
+					block->write_value(tableid8);
+					block->write_value(itemid);
 				}
 				else {
 					throw std::exception("Compiler error: please fix table item id types");
@@ -309,19 +309,19 @@ namespace Corrosive {
 				if (itemid <= UINT8_MAX) {
 					uint8_t itemid8 = itemid;
 					block->write_instruction(ILInstruction::table16offset8);
-					block->write_value(sizeof(uint16_t), (unsigned char*)&tableid16);
-					block->write_value(sizeof(uint8_t), (unsigned char*)&itemid8);
+					block->write_value(tableid16);
+					block->write_value(itemid8);
 				}
 				else if (itemid <= UINT16_MAX) {
 					uint16_t itemid16 = itemid;
 					block->write_instruction(ILInstruction::table16offset16);
-					block->write_value(sizeof(uint16_t), (unsigned char*)&tableid16);
-					block->write_value(sizeof(uint16_t), (unsigned char*)&itemid16);
+					block->write_value(tableid16);
+					block->write_value(itemid16);
 				}
 				else if (itemid <= UINT32_MAX) {
 					block->write_instruction(ILInstruction::table16offset32);
-					block->write_value(sizeof(uint16_t), (unsigned char*)&tableid16);
-					block->write_value(sizeof(uint32_t), (unsigned char*)&itemid);
+					block->write_value(tableid16);
+					block->write_value(itemid);
 				}
 				else {
 					throw std::exception("Compiler error: please fix table item id types");
@@ -332,19 +332,19 @@ namespace Corrosive {
 				if (itemid <= UINT8_MAX) {
 					uint8_t itemid8 = itemid;
 					block->write_instruction(ILInstruction::table32offset8);
-					block->write_value(sizeof(uint32_t), (unsigned char*)&tableid);
-					block->write_value(sizeof(uint8_t), (unsigned char*)&itemid8);
+					block->write_value(tableid);
+					block->write_value(itemid8);
 				}
 				else if (itemid <= UINT16_MAX) {
 					uint16_t itemid16 = itemid;
 					block->write_instruction(ILInstruction::table32offset16);
-					block->write_value(sizeof(uint32_t), (unsigned char*)&tableid);
-					block->write_value(sizeof(uint16_t), (unsigned char*)&itemid16);
+					block->write_value(tableid);
+					block->write_value(itemid16);
 				}
 				else if (itemid <= UINT32_MAX) {
 					block->write_instruction(ILInstruction::table32offset32);
-					block->write_value(sizeof(uint32_t), (unsigned char*)&tableid);
-					block->write_value(sizeof(uint32_t), (unsigned char*)&itemid);
+					block->write_value(tableid);
+					block->write_value(itemid);
 				}
 				else {
 					throw std::exception("Compiler error: please fix table item id types");
@@ -366,24 +366,24 @@ namespace Corrosive {
 					uint8_t itemid8 = itemid;
 					block->write_instruction(ILInstruction::table8roffset8);
 					auto off = ILDataTypePair(src, dst);
-					block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
-					block->write_value(sizeof(uint8_t), (unsigned char*)&tableid8);
-					block->write_value(sizeof(uint8_t), (unsigned char*)&itemid8);
+					block->write_value(off);
+					block->write_value(tableid8);
+					block->write_value(itemid8);
 				}
 				else if (itemid <= UINT16_MAX) {
 					uint16_t itemid16 = itemid;
 					block->write_instruction(ILInstruction::table8roffset16);
 					auto off = ILDataTypePair(src, dst);
-					block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
-					block->write_value(sizeof(uint8_t), (unsigned char*)&tableid8);
-					block->write_value(sizeof(uint16_t), (unsigned char*)&itemid16);
+					block->write_value(off);
+					block->write_value(tableid8);
+					block->write_value(itemid16);
 				}
 				else if (itemid <= UINT32_MAX) {
 					block->write_instruction(ILInstruction::table8roffset32);
 					auto off = ILDataTypePair(src, dst);
-					block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
-					block->write_value(sizeof(uint8_t), (unsigned char*)&tableid8);
-					block->write_value(sizeof(uint32_t), (unsigned char*)&itemid);
+					block->write_value(off);
+					block->write_value(tableid8);
+					block->write_value(itemid);
 				}
 				else {
 					throw std::exception("Compiler error: please fix table item id types");
@@ -396,24 +396,24 @@ namespace Corrosive {
 					uint8_t itemid8 = itemid;
 					block->write_instruction(ILInstruction::table16roffset8);
 					auto off = ILDataTypePair(src, dst);
-					block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
-					block->write_value(sizeof(uint16_t), (unsigned char*)&tableid16);
-					block->write_value(sizeof(uint8_t), (unsigned char*)&itemid8);
+					block->write_value(off);
+					block->write_value(tableid16);
+					block->write_value(itemid8);
 				}
 				else if (itemid <= UINT16_MAX) {
 					uint16_t itemid16 = itemid;
 					block->write_instruction(ILInstruction::table16roffset16);
 					auto off = ILDataTypePair(src, dst);
-					block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
-					block->write_value(sizeof(uint16_t), (unsigned char*)&tableid16);
-					block->write_value(sizeof(uint16_t), (unsigned char*)&itemid16);
+					block->write_value(off);
+					block->write_value(tableid16);
+					block->write_value(itemid16);
 				}
 				else if (itemid <= UINT32_MAX) {
 					block->write_instruction(ILInstruction::table16roffset32);
 					auto off = ILDataTypePair(src, dst);
-					block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
-					block->write_value(sizeof(uint16_t), (unsigned char*)&tableid16);
-					block->write_value(sizeof(uint32_t), (unsigned char*)&itemid);
+					block->write_value(off);
+					block->write_value(tableid16);
+					block->write_value(itemid);
 				}
 				else {
 					throw std::exception("Compiler error: please fix table item id types");
@@ -425,24 +425,24 @@ namespace Corrosive {
 					uint8_t itemid8 = itemid;
 					block->write_instruction(ILInstruction::table32roffset8);
 					auto off = ILDataTypePair(src, dst);
-					block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
-					block->write_value(sizeof(uint32_t), (unsigned char*)&tableid);
-					block->write_value(sizeof(uint8_t), (unsigned char*)&itemid8);
+					block->write_value(off);
+					block->write_value(tableid);
+					block->write_value(itemid8);
 				}
 				else if (itemid <= UINT16_MAX) {
 					uint16_t itemid16 = itemid;
 					block->write_instruction(ILInstruction::table32roffset16);
 					auto off = ILDataTypePair(src, dst);
-					block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
-					block->write_value(sizeof(uint32_t), (unsigned char*)&tableid);
-					block->write_value(sizeof(uint16_t), (unsigned char*)&itemid16);
+					block->write_value(off);
+					block->write_value(tableid);
+					block->write_value(itemid16);
 				}
 				else if (itemid <= UINT32_MAX) {
 					block->write_instruction(ILInstruction::table32roffset32);
 					auto off = ILDataTypePair(src, dst);
-					block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
-					block->write_value(sizeof(uint32_t), (unsigned char*)&tableid);
-					block->write_value(sizeof(uint32_t), (unsigned char*)&itemid);
+					block->write_value(off);
+					block->write_value(tableid);
+					block->write_value(itemid);
 				}
 				else {
 					throw std::exception("Compiler error: please fix table item id types");
@@ -456,7 +456,7 @@ namespace Corrosive {
 
 	void ILBuilder::build_insintric(ILBlock* block, ILInsintric fun) {
 		block->write_instruction(ILInstruction::insintric);
-		block->write_value(sizeof(uint8_t), (unsigned char*)&fun);
+		block->write_value(fun);
 	}
 
 
@@ -478,7 +478,7 @@ namespace Corrosive {
 		else {
 			block->write_instruction(ILInstruction::clone);
 			block->write_const_type(type);
-			block->write_value(sizeof(uint16_t), (unsigned char*)&times);
+			block->write_value(times);
 		}
 	}
 
@@ -495,7 +495,7 @@ namespace Corrosive {
 
 		block->write_instruction(ILInstruction::swap2);
 		auto off = ILDataTypePair(type1, type2);
-		block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
+		block->write_value(off);
 	}
 
 	void ILBuilder::build_offset(ILBlock* block, ILSize offset) {
@@ -503,19 +503,19 @@ namespace Corrosive {
 			if (offset.value <= UINT8_MAX) {
 				uint8_t offset8 = offset.value;
 				block->write_instruction(ILInstruction::offset8);
-				block->write_value(sizeof(uint8_t), (unsigned char*)&offset.type);
-				block->write_value(sizeof(uint8_t), (unsigned char*)&offset8);
+				block->write_value(offset.type);
+				block->write_value(offset8);
 			}
 			else if (offset.value <= UINT16_MAX) {
 				uint16_t offset16 = offset.value;
 				block->write_instruction(ILInstruction::offset16);
-				block->write_value(sizeof(uint8_t), (unsigned char*)&offset.type);
-				block->write_value(sizeof(uint16_t), (unsigned char*)&offset16);
+				block->write_value(offset.type);
+				block->write_value(offset16);
 			}
 			else if (offset.value <= UINT32_MAX) {
 				block->write_instruction(ILInstruction::offset32);
-				block->write_value(sizeof(uint8_t), (unsigned char*)&offset.type);
-				block->write_value(sizeof(uint32_t), (unsigned char*)&offset.value);
+				block->write_value(offset.type);
+				block->write_value(offset.value);
 			}
 			else {
 				throw std::exception("Compiler error: please fix aoffset type");
@@ -529,16 +529,16 @@ namespace Corrosive {
 		if (offset<=UINT8_MAX) {
 			uint8_t offset8 = offset;
 			block->write_instruction(ILInstruction::aoffset8);
-			block->write_value(sizeof(uint8_t), (unsigned char*)&offset8);
+			block->write_value(offset8);
 		}
 		else if (offset <= UINT16_MAX) {
 			uint16_t offset16 = offset;
 			block->write_instruction(ILInstruction::aoffset16);
-			block->write_value(sizeof(uint16_t), (unsigned char*)&offset16);
+			block->write_value(offset16);
 		}
 		else if (offset <= UINT32_MAX) {
 			block->write_instruction(ILInstruction::aoffset32);
-			block->write_value(sizeof(uint32_t), (unsigned char*)&offset);
+			block->write_value(offset);
 		}
 		else {
 			throw std::exception("Compiler error: please fix aoffset type");
@@ -551,16 +551,16 @@ namespace Corrosive {
 		if (offset <= UINT8_MAX) {
 			uint8_t offset8 = offset;
 			block->write_instruction(ILInstruction::woffset8);
-			block->write_value(sizeof(uint8_t), (unsigned char*)&offset8);
+			block->write_value(offset8);
 		}
 		else if (offset <= UINT16_MAX) {
 			uint16_t offset16 = offset;
 			block->write_instruction(ILInstruction::woffset16);
-			block->write_value(sizeof(uint16_t), (unsigned char*)&offset16);
+			block->write_value(offset16);
 		}
 		else if (offset <= UINT32_MAX) {
 			block->write_instruction(ILInstruction::woffset32);
-			block->write_value(sizeof(uint32_t), (unsigned char*)&offset);
+			block->write_value(offset);
 		}
 		else {
 			throw std::exception("Compiler error: please fix aoffset type");
@@ -574,8 +574,8 @@ namespace Corrosive {
 			}
 			block->write_instruction(ILInstruction::aroffset);
 			auto off = ILDataTypePair(from, to);
-			block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
-			block->write_value(sizeof(uint8_t), (unsigned char*)&offset);
+			block->write_value(off);
+			block->write_value(offset);
 		}
 	}
 
@@ -587,8 +587,8 @@ namespace Corrosive {
 
 			block->write_instruction(ILInstruction::wroffset); 
 			auto off = ILDataTypePair(from, to);
-			block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
-			block->write_value(sizeof(uint8_t), (unsigned char*)&offset);
+			block->write_value(off);
+			block->write_value(offset);
 		}
 		else {
 			build_bitcast(block, from, to);
@@ -622,7 +622,7 @@ namespace Corrosive {
 
 		block->write_instruction(ILInstruction::add);
 		auto off = ILDataTypePair(tl, tr);
-		block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
+		block->write_value(off);
 	}
 
 	void ILBuilder::build_sub(ILBlock* block, ILDataType tl, ILDataType tr) {
@@ -633,7 +633,7 @@ namespace Corrosive {
 
 		block->write_instruction(ILInstruction::sub);
 		auto off = ILDataTypePair(tl, tr);
-		block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
+		block->write_value(off);
 	}
 
 	void ILBuilder::build_div(ILBlock* block, ILDataType tl, ILDataType tr) {
@@ -644,7 +644,7 @@ namespace Corrosive {
 
 		block->write_instruction(ILInstruction::div);
 		auto off = ILDataTypePair(tl, tr);
-		block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
+		block->write_value(off);
 	}
 
 	void ILBuilder::build_rem(ILBlock* block, ILDataType tl, ILDataType tr) {
@@ -655,7 +655,7 @@ namespace Corrosive {
 
 		block->write_instruction(ILInstruction::rem);
 		auto off = ILDataTypePair(tl, tr);
-		block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
+		block->write_value(off);
 	}
 
 	void ILBuilder::build_and(ILBlock* block, ILDataType tl, ILDataType tr) {
@@ -666,7 +666,7 @@ namespace Corrosive {
 
 		block->write_instruction(ILInstruction::bit_and);
 		auto off = ILDataTypePair(tl, tr);
-		block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
+		block->write_value(off);
 	}
 
 	void ILBuilder::build_or(ILBlock* block, ILDataType tl, ILDataType tr) {
@@ -677,7 +677,7 @@ namespace Corrosive {
 
 		block->write_instruction(ILInstruction::bit_or);
 		auto off = ILDataTypePair(tl, tr);
-		block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
+		block->write_value(off);
 	}
 
 	void ILBuilder::build_xor(ILBlock* block, ILDataType tl, ILDataType tr) {
@@ -688,7 +688,7 @@ namespace Corrosive {
 
 		block->write_instruction(ILInstruction::bit_xor);
 		auto off = ILDataTypePair(tl, tr);
-		block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
+		block->write_value(off);
 	}
 
 	void ILBuilder::build_mul(ILBlock* block, ILDataType tl, ILDataType tr) {
@@ -699,7 +699,7 @@ namespace Corrosive {
 
 		block->write_instruction(ILInstruction::mul);
 		auto off = ILDataTypePair(tl, tr);
-		block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
+		block->write_value(off);
 	}
 
 	void ILBuilder::build_eq(ILBlock* block, ILDataType tl, ILDataType tr) {
@@ -710,7 +710,7 @@ namespace Corrosive {
 
 		block->write_instruction(ILInstruction::eq);
 		auto off = ILDataTypePair(tl, tr);
-		block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
+		block->write_value(off);
 	}
 
 
@@ -722,7 +722,7 @@ namespace Corrosive {
 
 		block->write_instruction(ILInstruction::ne);
 		auto off = ILDataTypePair(tl, tr);
-		block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
+		block->write_value(off);
 	}
 
 	void ILBuilder::build_gt(ILBlock* block, ILDataType tl, ILDataType tr) {
@@ -733,7 +733,7 @@ namespace Corrosive {
 
 		block->write_instruction(ILInstruction::gt);
 		auto off = ILDataTypePair(tl, tr);
-		block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
+		block->write_value(off);
 	}
 
 
@@ -745,7 +745,7 @@ namespace Corrosive {
 
 		block->write_instruction(ILInstruction::ge);
 		auto off = ILDataTypePair(tl, tr);
-		block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
+		block->write_value(off);
 	}
 
 
@@ -758,7 +758,7 @@ namespace Corrosive {
 
 		block->write_instruction(ILInstruction::lt);
 		auto off = ILDataTypePair(tl, tr);
-		block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
+		block->write_value(off);
 	}
 
 
@@ -769,7 +769,7 @@ namespace Corrosive {
 
 		block->write_instruction(ILInstruction::le);
 		auto off = ILDataTypePair(tl, tr);
-		block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
+		block->write_value(off);
 	}
 
 
@@ -781,7 +781,7 @@ namespace Corrosive {
 		if (tl != tr) {
 			block->write_instruction(ILInstruction::cast);
 			auto off = ILDataTypePair(tl, tr);
-			block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
+			block->write_value(off);
 		}
 	}
 
@@ -789,7 +789,7 @@ namespace Corrosive {
 		if (tl != tr) {
 			block->write_instruction(ILInstruction::bitcast);
 			auto off = ILDataTypePair(tl, tr);
-			block->write_value(sizeof(ILDataTypePair), (unsigned char*)&off);
+			block->write_value(off);
 		}
 	}
 

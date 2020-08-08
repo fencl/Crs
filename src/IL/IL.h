@@ -146,33 +146,36 @@ namespace Corrosive {
 		ILDataType yields = ILDataType::none;
 		ILDataType accepts = ILDataType::none;
 		ILBytecodeFunction* parent;
-		std::list<std::unique_ptr<ILBlockData>> data_pool;
+		//std::list<std::unique_ptr<ILBlockData>> data_pool;
+		std::vector<uint8_t> data_pool;
 		std::set<ILBlock*> predecessors;
 
 		void write_instruction(ILInstruction instruction);
 		void write_value(size_t size, unsigned char* value);
 		void write_const_type(ILDataType type);
 
+
+		template<typename T> inline void write_value(T v) {
+			write_value(sizeof(T), (unsigned char*)&v);
+		}
+
 		template<typename T> inline T pop() {
-			ILBlockData* bd = data_pool.back().get();
-			if (bd->size == 0) {
-				if (data_pool.size() > 1) {
-					data_pool.pop_back();
-					bd = data_pool.back().get();
-				}
-			}
-			T res = *(T*)&bd->data[bd->size - sizeof(T)];
-			bd->size -= sizeof(T);
-			return res;
+			T r = *(T*)&data_pool[data_pool.size() - sizeof(T)];
+			data_pool.resize(data_pool.size() - sizeof(T));
+			return r;
+		}
+
+		template<typename T> inline T read_data(std::vector<uint8_t>::iterator& it) {
+			T r = *(T*)(&*it);
+			it += sizeof(T);
+			return r;
 		}
 
 		void dump();
 		static void dump_data_type(ILDataType dt);
 		bool assert_flow();
-
-		unsigned char* read_data(size_t, std::list<std::unique_ptr<ILBlockData>>::iterator& pool, size_t& memoff);
+		
 		unsigned char* reserve_data(size_t size);
-		void memmove(std::list<std::unique_ptr<ILBlockData>>::iterator& pool, size_t& memoff, size_t off);
 	};
 
 	struct dword_t {
