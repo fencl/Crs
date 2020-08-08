@@ -104,7 +104,7 @@ namespace Corrosive {
 	}
 
 	bool Operand::is_numeric_value(Type* t) {
-		return t->type()==TypeInstanceType::type_structure_instance && t!=Compiler::current()->types()->t_ptr && ((TypeStructureInstance*)t)->owner->structure_type==StructureInstanceType::primitive_structure && !t->rvalue_stacked() && t->rvalue() < ILDataType::none;
+		return t->type()==TypeInstanceType::type_structure_instance && t!=Compiler::current()->types()->t_ptr && t!=Compiler::current()->types()->t_bool && ((TypeStructureInstance*)t)->owner->structure_type==StructureInstanceType::primitive_structure && !t->rvalue_stacked() && t->rvalue() < ILDataType::none;
 	}
 
 	void Operand::cast(Cursor& err, CompileValue& res, Type*& to, CompileType cpt, bool implicit) {
@@ -259,6 +259,24 @@ namespace Corrosive {
 
 			res.type = to;
 			res.lvalue = false;
+		}
+		else if (Operand::is_numeric_value(res.type) && to == Compiler::current()->types()->t_bool) {
+			Expression::rvalue(res, cpt);
+			if (cpt == CompileType::eval) {
+				if (res.type->rvalue() != to->rvalue()) 
+					ILBuilder::eval_bitcast(Compiler::current()->evaluator(), res.type->rvalue(), to->rvalue());
+				
+
+				res.type = to;
+				res.lvalue = false;
+			}
+			else {
+				if (res.type->rvalue() != to->rvalue())
+					ILBuilder::build_bitcast(Compiler::current()->scope(), res.type->rvalue(), to->rvalue());
+
+				res.type = to;
+				res.lvalue = false;
+			}
 		}
 		else if (Operand::is_numeric_value(res.type) && Operand::is_numeric_value(to)) {
 			Expression::rvalue(res, cpt);

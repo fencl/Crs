@@ -340,9 +340,8 @@ namespace Corrosive {
 
 			Expression::parse(c, tok, test_value, CompileType::compile);
 			Operand::deref(test_value, CompileType::compile);
-			Operand::cast(err, test_value, Compiler::current()->types()->t_bool, CompileType::compile, false);
+			Operand::cast(err, test_value, Compiler::current()->types()->t_bool, CompileType::compile, true);
 			Expression::rvalue(test_value, CompileType::compile);
-
 
 			if (tok != RecognizedToken::OpenBrace) {
 				throw_wrong_token_error(c, "'{'");
@@ -352,12 +351,9 @@ namespace Corrosive {
 			ILBlock* block_from = Compiler::current()->scope();
 			ILBuilder::build_yield(block_from, ILDataType::none);
 
-
-
 			ILBlock* continue_block = Compiler::current()->target()->create_block();
 
 			Compiler::current()->switch_scope(continue_block);
-
 
 			ILBlock* block = Compiler::current()->target()->create_and_append_block();
 			block->alias = "true";
@@ -365,8 +361,6 @@ namespace Corrosive {
 			BlockTermination term = BlockTermination::continued;
 			Statement::parse_inner_block_start(block);
 			Statement::parse_inner_block(c, tok, term);
-
-
 
 			if (c.buffer() == "else") {
 				c.move(tok);
@@ -413,8 +407,10 @@ namespace Corrosive {
 
 			Expression::parse(c, tok, test_value, CompileType::eval);
 			Operand::deref(test_value, CompileType::eval);
-			Operand::cast(err, test_value, Compiler::current()->types()->t_bool, CompileType::eval, false);
+			Operand::cast(err, test_value, Compiler::current()->types()->t_bool, CompileType::eval, true);
 			Expression::rvalue(test_value, CompileType::eval);
+
+
 			bool condition = Compiler::current()->evaluator()->pop_register_value<bool>() & do_next;
 
 			if (tok != RecognizedToken::OpenBrace) {
@@ -481,7 +477,7 @@ namespace Corrosive {
 
 			Expression::parse(c, tok, test_value, CompileType::compile);
 			Operand::deref(test_value, CompileType::compile);
-			Operand::cast(err, test_value, Compiler::current()->types()->t_bool, CompileType::compile, false);
+			Operand::cast(err, test_value, Compiler::current()->types()->t_bool, CompileType::compile, true);
 			Expression::rvalue(test_value, CompileType::compile);
 
 			if (tok != RecognizedToken::OpenBrace) {
@@ -521,11 +517,11 @@ namespace Corrosive {
 			while (state == CompileTimeBlockState::run) {
 				c = save;
 				tok = save_tok;
-				
+				Cursor err = c;
 				CompileValue res;
 				Expression::parse(c, tok, res, CompileType::eval, true);
 				Operand::deref(res, CompileType::eval);
-				Operand::cast(save, res, Compiler::current()->types()->t_bool, CompileType::eval, true);
+				Operand::cast(err, res, Compiler::current()->types()->t_bool, CompileType::eval, true);
 				Expression::rvalue(res, CompileType::eval);
 
 				if (tok != RecognizedToken::OpenBrace) {
@@ -592,7 +588,7 @@ namespace Corrosive {
 			err = cc;
 			Expression::parse(cc, tok2, test_value, CompileType::compile);
 			Operand::deref(test_value, CompileType::compile);
-			Operand::cast(err, test_value, Compiler::current()->types()->t_bool, CompileType::compile, false);
+			Operand::cast(err, test_value, Compiler::current()->types()->t_bool, CompileType::compile, true);
 			Expression::rvalue(test_value, CompileType::compile);
 
 			if (tok2 != RecognizedToken::Semicolon) {
@@ -666,8 +662,9 @@ namespace Corrosive {
 				CompileValue res;
 				Expression::parse(c_condition, c_condition_tok, res, CompileType::eval);
 				Operand::deref(res, CompileType::eval);
-				Operand::cast(err, res, Compiler::current()->types()->t_bool, CompileType::eval,true);
+				Operand::cast(err, res, Compiler::current()->types()->t_bool, CompileType::eval, true);
 				Expression::rvalue(res, CompileType::eval);
+
 				bool condition = Compiler::current()->evaluator()->pop_register_value<bool>();
 				if (!condition) break;
 

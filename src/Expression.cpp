@@ -476,11 +476,6 @@ namespace Corrosive {
 
 			Operand::deref(value, cpt);
 			Operand::cast(err, value, Compiler::current()->types()->t_bool, cpt, true);
-			/*if (value.t != Compiler::current()->types()->t_bool) {
-				throw_specific_error(c, "Operation requires left operand to be boolean");
-				return false;
-			}*/
-
 			Expression::rvalue(value, cpt);
 
 			c.move(tok);
@@ -493,8 +488,10 @@ namespace Corrosive {
 				err = c;
 				Expression::parse_operators(c,tok, right, cpt);
 				Operand::deref(right, cpt);
-				Expression::rvalue(right, cpt);
 				Operand::cast(err, right, Compiler::current()->types()->t_bool, cpt, true);
+				Expression::rvalue(right, cpt);
+				
+
 
 				uint8_t rv = Compiler::current()->evaluator()->pop_register_value<uint8_t>();
 				ILBuilder::eval_const_i8(Compiler::current()->evaluator(), v & rv);
@@ -555,7 +552,7 @@ namespace Corrosive {
 		ILBlock* fallback = nullptr;
 
 		CompileValue value;
-		Cursor err;
+		Cursor err = c;
 		Expression::parse_and(c,tok, value, cpt);
 
 		while (tok == RecognizedToken::DoubleOr) {
@@ -565,7 +562,6 @@ namespace Corrosive {
 
 			c.move(tok);
 
-
 			if (cpt == CompileType::eval) {
 				uint8_t v = Compiler::current()->evaluator()->read_register_value<uint8_t>();
 
@@ -573,8 +569,8 @@ namespace Corrosive {
 				CompileValue right;
 				Expression::parse_and(c,tok, right, cpt);
 				Operand::deref(right, cpt);
-				Expression::rvalue(right, cpt);
 				Operand::cast(err, right, Compiler::current()->types()->t_bool, cpt, true);
+				Expression::rvalue(right, cpt);
 
 				uint8_t rv = Compiler::current()->evaluator()->pop_register_value<uint8_t>();
 				ILBuilder::eval_const_i8(Compiler::current()->evaluator(), v | rv);

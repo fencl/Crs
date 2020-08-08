@@ -88,6 +88,7 @@ namespace Corrosive {
 		block->write_instruction(ILInstruction::ret);
 		block->write_const_type(type);
 		block->yields = type;
+		block->data_pool.shrink_to_fit();
 
 	}
 
@@ -130,6 +131,7 @@ namespace Corrosive {
 		address->predecessors.insert(block);
 		block->write_instruction(ILInstruction::jmp);
 		block->write_value(address->id);
+		block->data_pool.shrink_to_fit();
 
 	}
 
@@ -146,8 +148,7 @@ namespace Corrosive {
 		block->write_instruction(ILInstruction::jmpz);
 		block->write_value(ifz->id);
 		block->write_value(ifnz->id);
-
-
+		block->data_pool.shrink_to_fit();
 	}
 
 	void ILBuilder::build_load(ILBlock* block, ILDataType type) {
