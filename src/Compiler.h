@@ -17,6 +17,8 @@ namespace Corrosive {
 	class Compiler {
 	public:
 		bool initialized = false;
+		std::string entry_point = "";
+		std::vector<FunctionTemplate*> exported_functions;
 
 		ILEvaluator* evaluator() { return compiler_evaluator.get(); }
 		ILBlock* scope() { return scope_stack.back(); }
@@ -133,6 +135,7 @@ namespace Corrosive {
 		void			eval_local(stackid_t id);
 
 		std::unique_ptr<ILModule> finalize();
+		static void compile();
 	};
 
 	class ScopeState {

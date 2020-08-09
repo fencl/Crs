@@ -11,6 +11,7 @@
 #include <variant>
 #include <iostream>
 #include <unordered_set>
+#include <unordered_map>
 
 namespace Corrosive {
 
@@ -133,11 +134,6 @@ namespace Corrosive {
 	};
 
 
-	struct ILBlockData {
-		unsigned int size = 0;
-		unsigned char data[1024];
-	};
-
 	class ILBlock {
 	public:
 		std::string alias;
@@ -165,7 +161,7 @@ namespace Corrosive {
 			return r;
 		}
 
-		template<typename T> inline T read_data(std::vector<uint8_t>::iterator& it) {
+		template<typename T> inline static T read_data(std::vector<uint8_t>::iterator& it) {
 			T r = *(T*)(&*it);
 			it += sizeof(T);
 			return r;
@@ -200,6 +196,14 @@ namespace Corrosive {
 		push=100, pop=127, append=255
 	};
 
+	enum class ILBitWidth {
+		b8,b16,b32
+	};
+
+	inline static ILBitWidth bit(uint32_t v) {
+		return (v <= UINT8_MAX) ? ILBitWidth::b8 : ((v <= UINT16_MAX) ? ILBitWidth::b16 : ILBitWidth::b32);
+	}
+
 	struct ILLifetime {
 		stackid_t id = 0;
 		std::vector<unsigned char> lifetime;
@@ -209,6 +213,14 @@ namespace Corrosive {
 		stackid_t append_unknown(size_t& holder);
 		void resolve_unknown(size_t holder, ILSize s);
 		void discard_push();
+
+
+		void clean_prepass(std::unordered_set<size_t>& used_tables,
+			std::unordered_set<size_t>& used_arrays);
+
+
+		void clean_pass(std::unordered_map<size_t, size_t>& map_tables,
+			std::unordered_map<size_t, size_t>& map_arrays);
 	};
 
 	class ILFunction {
@@ -242,6 +254,23 @@ namespace Corrosive {
 		void		append_block(ILBlock* block);
 		void		dump();
 		bool		assert_flow();
+
+		void clean_prepass(std::unordered_set<size_t>& used_functions,
+			std::unordered_set<size_t>& used_constants,
+			std::unordered_set<size_t>& used_statics,
+			std::unordered_set<size_t>& used_vtables,
+			std::unordered_set<size_t>& used_decls,
+			std::unordered_set<size_t>& used_tables,
+			std::unordered_set<size_t>& used_arrays);
+
+
+		void clean_pass(std::unordered_map<size_t, size_t>& map_functions,
+			std::unordered_map<size_t, size_t>& map_constants,
+			std::unordered_map<size_t, size_t>& map_statics,
+			std::unordered_map<size_t, size_t>& map_vtables,
+			std::unordered_map<size_t, size_t>& map_decls,
+			std::unordered_map<size_t, size_t>& map_tables,
+			std::unordered_map<size_t, size_t>& map_arrays);
 	};
 
 	class ILNativeFunction : public ILFunction {
@@ -360,6 +389,7 @@ namespace Corrosive {
 		}
 	};
 
+	void release_jit_code();
 
 	void throw_runtime_exception(const ILEvaluator* eval, std::string_view message);
 	void throw_segfault_exception(const ILEvaluator* eval, int signal);
@@ -372,26 +402,28 @@ namespace Corrosive {
 		std::vector<std::pair<ILSize,std::unique_ptr<unsigned char[]>>> static_memory;
 
 		std::vector<std::unique_ptr<ILFunction>> functions;
-		std::vector<std::unique_ptr<void* []>> vtable_data;
+		std::vector<std::pair<uint32_t,std::unique_ptr<void* []>>> vtable_data;
 		std::vector<ILStructTable> structure_tables;
 		std::vector<ILArrayTable> array_tables;
 		std::vector<std::tuple<ILCallingConvention, ILDataType, std::vector<ILDataType>>> function_decl;
 
 		tableid_t register_structure_table();
 		tableid_t register_array_table();
+		uint32_t register_vtable(uint32_t size, std::unique_ptr<void* []> table);
+		ILBytecodeFunction* create_function(ILContext context);
+		ILNativeFunction* create_native_function();
+		uint32_t register_constant(unsigned char* memory, ILSize size);
+		uint32_t register_static(unsigned char* memory, ILSize size);
+		uint32_t register_function_decl(std::tuple<ILCallingConvention, ILDataType, std::vector<ILDataType>> decl);
 
-		uint32_t register_vtable(std::unique_ptr<void* []> table);
+		void strip_unused_content();
 
 		void (*insintric_function[256])(ILEvaluator*);
 		std::string insintric_function_name[256];
 
-		ILBytecodeFunction* create_function(ILContext context);
-		ILNativeFunction* create_native_function();
-
-		uint32_t register_constant(unsigned char* memory, ILSize size);
-		uint32_t register_static(unsigned char* memory, ILSize size);
-		uint32_t register_function_decl(std::tuple<ILCallingConvention, ILDataType, std::vector<ILDataType>> decl);
 		void dump_function_decl(uint32_t id);
+		ILFunction* entry_point = nullptr;
+		std::vector<ILFunction*> exported_functions;
 
 		void run(ILFunction* func);
 	};

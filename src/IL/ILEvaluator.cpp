@@ -661,7 +661,7 @@ namespace Corrosive {
 	}
 
 	void ILBuilder::eval_vtable(ILEvaluator* eval_ctx, uint32_t id) {
-		return eval_ctx->write_register_value(eval_ctx->parent->vtable_data[id].get());
+		return eval_ctx->write_register_value(eval_ctx->parent->vtable_data[id].second.get());
 	}
 
 
@@ -849,6 +849,7 @@ namespace Corrosive {
 
 			if (std::get<0>(declaration) == ILCallingConvention::bytecode) {
 				ILBytecodeFunction* bytecode_fun = (ILBytecodeFunction*)ptr;
+
 				eval_ctx->callstack_debug.push_back(std::make_tuple(eval_ctx->debug_line, eval_ctx->debug_file, std::string_view(bytecode_fun->alias)));
 
 				bytecode_fun->calculate_stack(compiler_arch);
@@ -879,155 +880,155 @@ namespace Corrosive {
 
 						switch (inst) {
 							case ILInstruction::ret: {
-								auto type = block->read_data<ILDataType>(it);
+								auto type = ILBlock::read_data<ILDataType>(it);
 								running = false;
 								goto returned;
 							} break;
 							case ILInstruction::call: {
-								auto decl = block->read_data<uint32_t>(it);
+								auto decl = ILBlock::read_data<uint32_t>(it);
 								eval_call(eval_ctx, decl);
 							} break;
 							case ILInstruction::memcpy: {
-								auto size = block->read_data<ILSize>(it);
+								auto size = ILBlock::read_data<ILSize>(it);
 								eval_memcpy(eval_ctx, size.eval(eval_ctx->parent, compiler_arch));
 							} break;
 							case ILInstruction::memcpy2: {
-								auto size = block->read_data<ILSize>(it);
+								auto size = ILBlock::read_data<ILSize>(it);
 								eval_memcpy_rev(eval_ctx, size.eval(eval_ctx->parent, compiler_arch));
 							} break;
 							case ILInstruction::memcmp: {
-								auto size = block->read_data<ILSize>(it);
+								auto size = ILBlock::read_data<ILSize>(it);
 								eval_memcmp(eval_ctx, size.eval(eval_ctx->parent, compiler_arch));
 							} break;
 							case ILInstruction::memcmp2: {
-								auto size = block->read_data<ILSize>(it);
+								auto size = ILBlock::read_data<ILSize>(it);
 								eval_memcmp_rev(eval_ctx, size.eval(eval_ctx->parent, compiler_arch));
 							} break;
 							case ILInstruction::fnptr: {
-								auto id = block->read_data<uint32_t>(it);
+								auto id = ILBlock::read_data<uint32_t>(it);
 								eval_fnptr(eval_ctx,eval_ctx->parent->functions[id].get());
 							} break;
 							case ILInstruction::fncall: {
-								auto id = block->read_data<uint32_t>(it);
+								auto id = ILBlock::read_data<uint32_t>(it);
 								auto fn = eval_ctx->parent->functions[id].get();
 								eval_fncall(eval_ctx, fn);
 							} break;
 							case ILInstruction::vtable: {
-								auto id = block->read_data<uint32_t>(it);
+								auto id = ILBlock::read_data<uint32_t>(it);
 								eval_vtable(eval_ctx, id);
 							} break;
 							case ILInstruction::duplicate: {
-								auto type = block->read_data<ILDataType>(it);
+								auto type = ILBlock::read_data<ILDataType>(it);
 								eval_duplicate(eval_ctx, type);
 							} break;
 							case ILInstruction::clone: {
-								auto type = block->read_data<ILDataType>(it);
-								auto times = block->read_data<uint16_t>(it);
+								auto type = ILBlock::read_data<ILDataType>(it);
+								auto times = ILBlock::read_data<uint16_t>(it);
 								eval_clone(eval_ctx, type, times);
 							} break;
 							case ILInstruction::swap: {
-								auto type = block->read_data<ILDataType>(it);
+								auto type = ILBlock::read_data<ILDataType>(it);
 								eval_swap(eval_ctx, type);
 							} break;
 							case ILInstruction::swap2: {
-								auto p = block->read_data<ILDataTypePair>(it);
+								auto p = ILBlock::read_data<ILDataTypePair>(it);
 								eval_swap2(eval_ctx, p.first(), p.second());
 							} break;
 							case ILInstruction::insintric: {
-								auto id = block->read_data<uint8_t>(it);
+								auto id = ILBlock::read_data<uint8_t>(it);
 								eval_insintric(eval_ctx, (ILInsintric)id);
 							} break;
 							case ILInstruction::rmemcmp: {
-								auto type = block->read_data<ILDataType>(it);
+								auto type = ILBlock::read_data<ILDataType>(it);
 								eval_rmemcmp(eval_ctx, type);
 							} break;
 							case ILInstruction::rmemcmp2: {
-								auto type = block->read_data<ILDataType>(it);
+								auto type = ILBlock::read_data<ILDataType>(it);
 								eval_rmemcmp_rev(eval_ctx, type);
 							} break;
 							case ILInstruction::sub: {
-								auto type = block->read_data<ILDataTypePair>(it);
+								auto type = ILBlock::read_data<ILDataTypePair>(it);
 								eval_sub(eval_ctx, type.first(), type.second());
 							} break;
 							case ILInstruction::div: {
-								auto type = block->read_data<ILDataTypePair>(it);
+								auto type = ILBlock::read_data<ILDataTypePair>(it);
 								eval_div(eval_ctx, type.first(), type.second());
 							} break;
 							case ILInstruction::rem: {
-								auto type = block->read_data<ILDataTypePair>(it);
+								auto type = ILBlock::read_data<ILDataTypePair>(it);
 								eval_rem(eval_ctx, type.first(), type.second());
 							} break;
 							case ILInstruction::mul: {
-								auto type = block->read_data<ILDataTypePair>(it);
+								auto type = ILBlock::read_data<ILDataTypePair>(it);
 								eval_mul(eval_ctx, type.first(), type.second());
 							} break;
 							case ILInstruction::add: {
-								auto type = block->read_data<ILDataTypePair>(it);
+								auto type = ILBlock::read_data<ILDataTypePair>(it);
 								eval_add(eval_ctx, type.first(), type.second());
 							} break;
 							case ILInstruction::bit_and: {
-								auto type = block->read_data<ILDataTypePair>(it);
+								auto type = ILBlock::read_data<ILDataTypePair>(it);
 								eval_and(eval_ctx, type.first(), type.second());
 							} break;
 							case ILInstruction::bit_or: {
-								auto type = block->read_data<ILDataTypePair>(it);
+								auto type = ILBlock::read_data<ILDataTypePair>(it);
 								eval_or(eval_ctx, type.first(), type.second());
 							} break;
 							case ILInstruction::bit_xor: {
-								auto type = block->read_data<ILDataTypePair>(it);
+								auto type = ILBlock::read_data<ILDataTypePair>(it);
 								eval_xor(eval_ctx, type.first(), type.second());
 							} break;
 							case ILInstruction::eq: {
-								auto type = block->read_data<ILDataTypePair>(it);
+								auto type = ILBlock::read_data<ILDataTypePair>(it);
 								eval_eq(eval_ctx, type.first(), type.second());
 							} break;
 							case ILInstruction::ne: {
-								auto type = block->read_data<ILDataTypePair>(it);
+								auto type = ILBlock::read_data<ILDataTypePair>(it);
 								eval_ne(eval_ctx, type.first(), type.second());
 							} break;
 							case ILInstruction::gt: {
-								auto type = block->read_data<ILDataTypePair>(it);
+								auto type = ILBlock::read_data<ILDataTypePair>(it);
 								eval_gt(eval_ctx, type.first(), type.second());
 							} break;
 							case ILInstruction::lt: {
-								auto type = block->read_data<ILDataTypePair>(it);
+								auto type = ILBlock::read_data<ILDataTypePair>(it);
 								eval_lt(eval_ctx, type.first(), type.second());
 							} break;
 							case ILInstruction::ge: {
-								auto type = block->read_data<ILDataTypePair>(it);
+								auto type = ILBlock::read_data<ILDataTypePair>(it);
 								eval_ge(eval_ctx, type.first(), type.second());
 							} break;
 							case ILInstruction::le: {
-								auto type = block->read_data<ILDataTypePair>(it);
+								auto type = ILBlock::read_data<ILDataTypePair>(it);
 								eval_le(eval_ctx, type.first(), type.second());
 							} break;
 
 							case ILInstruction::cast: {
-								auto pair = block->read_data<ILDataTypePair>(it);
+								auto pair = ILBlock::read_data<ILDataTypePair>(it);
 								eval_cast(eval_ctx, pair.first(), pair.second());
 							} break;
 							case ILInstruction::bitcast: {
-								auto pair = block->read_data<ILDataTypePair>(it);
+								auto pair = ILBlock::read_data<ILDataTypePair>(it);
 								eval_bitcast(eval_ctx, pair.first(), pair.second());
 							} break;
 							case ILInstruction::store: {
-								auto type = block->read_data<ILDataType>(it);
+								auto type = ILBlock::read_data<ILDataType>(it);
 								eval_store(eval_ctx, type);
 							} break;
 							case ILInstruction::store2: {
-								auto type = block->read_data<ILDataType>(it);
+								auto type = ILBlock::read_data<ILDataType>(it);
 								eval_store_rev(eval_ctx, type);
 							} break;
 							case ILInstruction::yield: {
-								auto type = block->read_data<ILDataType>(it);
+								auto type = ILBlock::read_data<ILDataType>(it);
 								eval_yield(eval_ctx, type);
 							} break;
 							case ILInstruction::accept: {
-								auto type = block->read_data<ILDataType>(it);
+								auto type = ILBlock::read_data<ILDataType>(it);
 								eval_accept(eval_ctx, type);
 							} break;
 							case ILInstruction::discard: {
-								auto type = block->read_data<ILDataType>(it);
+								auto type = ILBlock::read_data<ILDataType>(it);
 								eval_discard(eval_ctx, type);
 							} break;
 							case ILInstruction::start: {
@@ -1039,55 +1040,55 @@ namespace Corrosive {
 							} break;
 
 							case ILInstruction::jmp: {
-								auto address = block->read_data<uint32_t>(it);
+								auto address = ILBlock::read_data<uint32_t>(it);
 								block = block->parent->blocks_memory[address].get();
 								goto next_block;
 							}break;
 							case ILInstruction::offset32: {
-								auto t = block->read_data<uint8_t>(it);
-								auto v = block->read_data<uint32_t>(it);
+								auto t = ILBlock::read_data<uint8_t>(it);
+								auto v = ILBlock::read_data<uint32_t>(it);
 								eval_offset(eval_ctx, ILSize((ILSizeType)t,v));
 							} break;
 							case ILInstruction::offset16: {
-								auto t = block->read_data<uint8_t>(it);
-								auto v = block->read_data<uint16_t>(it);
+								auto t = ILBlock::read_data<uint8_t>(it);
+								auto v = ILBlock::read_data<uint16_t>(it);
 								eval_offset(eval_ctx, ILSize((ILSizeType)t,v));
 							} break;
 							case ILInstruction::offset8: {
-								auto t = block->read_data<uint8_t>(it);
-								auto v = block->read_data<uint8_t>(it);
+								auto t = ILBlock::read_data<uint8_t>(it);
+								auto v = ILBlock::read_data<uint8_t>(it);
 								eval_offset(eval_ctx, ILSize((ILSizeType)t,v));
 							} break;
 							case ILInstruction::aoffset8: {
-								auto size = block->read_data<uint8_t>(it);
+								auto size = ILBlock::read_data<uint8_t>(it);
 								eval_aoffset(eval_ctx, size);
 							} break;
 							case ILInstruction::aoffset16: {
-								auto size = block->read_data<uint16_t>(it);
+								auto size = ILBlock::read_data<uint16_t>(it);
 								eval_aoffset(eval_ctx, size);
 							} break;
 							case ILInstruction::aoffset32: {
-								auto size = block->read_data<uint32_t>(it);
+								auto size = ILBlock::read_data<uint32_t>(it);
 								eval_aoffset(eval_ctx, size);
 							} break;
 							case ILInstruction::woffset8: {
-								auto size = block->read_data<uint8_t>(it);
+								auto size = ILBlock::read_data<uint8_t>(it);
 								eval_woffset(eval_ctx, size);
 							} break;
 							case ILInstruction::woffset16: {
-								auto size = block->read_data<uint16_t>(it);
+								auto size = ILBlock::read_data<uint16_t>(it);
 								eval_woffset(eval_ctx, size);
 							} break;
 							case ILInstruction::woffset32: {
-								auto size = block->read_data<uint32_t>(it);
+								auto size = ILBlock::read_data<uint32_t>(it);
 								eval_woffset(eval_ctx, size);
 							} break;
 							case ILInstruction::constref: {
-								auto cid = block->read_data<uint32_t>(it);
+								auto cid = ILBlock::read_data<uint32_t>(it);
 								eval_constref(eval_ctx, cid);
 							} break;
 							case ILInstruction::staticref: {
-								auto cid = block->read_data<uint32_t>(it);
+								auto cid = ILBlock::read_data<uint32_t>(it);
 								eval_staticref(eval_ctx, cid);
 							} break;
 							case ILInstruction::rtoffset: {
@@ -1097,142 +1098,178 @@ namespace Corrosive {
 								eval_rtoffset_rev(eval_ctx);
 							} break;
 							case ILInstruction::roffset32: {
-								auto from_t = block->read_data<ILDataType>(it);
-								auto to_t = block->read_data<ILDataType>(it); 
-								auto t = block->read_data<uint8_t>(it);
-								auto v = block->read_data<uint32_t>(it);
+								auto from_t = ILBlock::read_data<ILDataType>(it);
+								auto to_t = ILBlock::read_data<ILDataType>(it); 
+								auto t = ILBlock::read_data<uint8_t>(it);
+								auto v = ILBlock::read_data<uint32_t>(it);
 								eval_roffset(eval_ctx, from_t, to_t, ILSize((ILSizeType)t, v).eval(eval_ctx->parent, compiler_arch));
 							} break;
 								
 							case ILInstruction::roffset16: {
-								auto from_t = block->read_data<ILDataType>(it);
-								auto to_t = block->read_data<ILDataType>(it); 
-								auto t = block->read_data<uint8_t>(it);
-								auto v = block->read_data<uint16_t>(it);
+								auto from_t = ILBlock::read_data<ILDataType>(it);
+								auto to_t = ILBlock::read_data<ILDataType>(it); 
+								auto t = ILBlock::read_data<uint8_t>(it);
+								auto v = ILBlock::read_data<uint16_t>(it);
 								eval_roffset(eval_ctx, from_t, to_t, ILSize((ILSizeType)t, v).eval(eval_ctx->parent, compiler_arch));
 							} break;
 								
 							case ILInstruction::roffset8: {
-								auto from_t = block->read_data<ILDataType>(it);
-								auto to_t = block->read_data<ILDataType>(it); 
-								auto t = block->read_data<uint8_t>(it);
-								auto v = block->read_data<uint8_t>(it);
+								auto from_t = ILBlock::read_data<ILDataType>(it);
+								auto to_t = ILBlock::read_data<ILDataType>(it); 
+								auto t = ILBlock::read_data<uint8_t>(it);
+								auto v = ILBlock::read_data<uint8_t>(it);
 								eval_roffset(eval_ctx, from_t, to_t, ILSize((ILSizeType)t, v).eval(eval_ctx->parent, compiler_arch));
 							} break;
 
 							case ILInstruction::aroffset: {
-								auto p = block->read_data<ILDataTypePair>(it);
-								auto size = block->read_data<uint8_t>(it);
+								auto p = ILBlock::read_data<ILDataTypePair>(it);
+								auto size = ILBlock::read_data<uint8_t>(it);
 								eval_aroffset(eval_ctx, p.first(), p.second(), size);
 							} break;
 
 							case ILInstruction::wroffset: {
-								auto p = block->read_data<ILDataTypePair>(it);
-								auto size = block->read_data<uint8_t>(it);
+								auto p = ILBlock::read_data<ILDataTypePair>(it);
+								auto size = ILBlock::read_data<uint8_t>(it);
 								eval_wroffset(eval_ctx, p.first(), p.second(), size);
 							} break;
 
 							case ILInstruction::local8: {
-								auto id = block->read_data<uint8_t>(it);
+								auto id = ILBlock::read_data<uint8_t>(it);
 								auto& offset = bytecode_fun->calculated_local_offsets[id];
 								eval_const_ptr(eval_ctx, local_base + offset);
 							} break;
 								
 							case ILInstruction::local16: {
-								auto id = block->read_data<uint16_t>(it);
+								auto id = ILBlock::read_data<uint16_t>(it);
 								auto& offset = bytecode_fun->calculated_local_offsets[id];
 								eval_const_ptr(eval_ctx, local_base + offset);
 							} break;
 								
 							case ILInstruction::local32: {
-								auto id = block->read_data<uint32_t>(it);
+								auto id = ILBlock::read_data<uint32_t>(it);
 								auto& offset = bytecode_fun->calculated_local_offsets[id];
 								eval_const_ptr(eval_ctx, local_base + offset);
 							} break;
 
 							case ILInstruction::table8offset8: {
-								eval_tableoffset(eval_ctx, block->read_data<uint8_t>(it), block->read_data<uint8_t>(it));
+								auto tid = ILBlock::read_data<uint8_t>(it);
+								auto eid = ILBlock::read_data<uint8_t>(it);
+								eval_tableoffset(eval_ctx, tid, eid);
 							} break;
 							case ILInstruction::table8offset16: {
-								eval_tableoffset(eval_ctx, block->read_data<uint8_t>(it), block->read_data<uint16_t>(it));
+								auto tid = ILBlock::read_data<uint8_t>(it);
+								auto eid = ILBlock::read_data<uint16_t>(it);
+								eval_tableoffset(eval_ctx, tid, eid);
 							} break;
 							case ILInstruction::table8offset32: {
-								eval_tableoffset(eval_ctx, block->read_data<uint8_t>(it), block->read_data<uint32_t>(it));
+								auto tid = ILBlock::read_data<uint8_t>(it);
+								auto eid = ILBlock::read_data<uint32_t>(it);
+								eval_tableoffset(eval_ctx, tid, eid);
 							} break;
 							case ILInstruction::table16offset8: {
-								eval_tableoffset(eval_ctx, block->read_data<uint16_t>(it), block->read_data<uint8_t>(it));
+								auto tid = ILBlock::read_data<uint16_t>(it);
+								auto eid = ILBlock::read_data<uint8_t>(it);
+								eval_tableoffset(eval_ctx, tid, eid);
 							} break;
 							case ILInstruction::table16offset16: {
-								eval_tableoffset(eval_ctx, block->read_data<uint16_t>(it), block->read_data<uint16_t>(it));
+								auto tid = ILBlock::read_data<uint16_t>(it);
+								auto eid = ILBlock::read_data<uint16_t>(it);
+								eval_tableoffset(eval_ctx, tid, eid);
 							} break;
 							case ILInstruction::table16offset32: {
-								eval_tableoffset(eval_ctx, block->read_data<uint16_t>(it), block->read_data<uint32_t>(it));
+								auto tid = ILBlock::read_data<uint16_t>(it);
+								auto eid = ILBlock::read_data<uint32_t>(it);
+								eval_tableoffset(eval_ctx, tid, eid);
 							} break;
 							case ILInstruction::table32offset8: {
-								eval_tableoffset(eval_ctx, block->read_data<uint32_t>(it), block->read_data<uint8_t>(it));
+								auto tid = ILBlock::read_data<uint32_t>(it);
+								auto eid = ILBlock::read_data<uint8_t>(it);
+								eval_tableoffset(eval_ctx, tid, eid);
 							} break;
 							case ILInstruction::table32offset16: {
-								eval_tableoffset(eval_ctx, block->read_data<uint32_t>(it), block->read_data<uint16_t>(it));
+								auto tid = ILBlock::read_data<uint32_t>(it);
+								auto eid = ILBlock::read_data<uint16_t>(it);
+								eval_tableoffset(eval_ctx, tid, eid);
 							} break;
 							case ILInstruction::table32offset32: {
-								eval_tableoffset(eval_ctx, block->read_data<uint32_t>(it), block->read_data<uint32_t>(it));
+								auto tid = ILBlock::read_data<uint32_t>(it);
+								auto eid = ILBlock::read_data<uint32_t>(it);
+								eval_tableoffset(eval_ctx, tid, eid);
 							} break;
 
 							case ILInstruction::table8roffset8: {
-								auto pair = block->read_data<ILDataTypePair>(it);
-								eval_tableroffset(eval_ctx, pair.first(), pair.second(), block->read_data<uint8_t>(it), block->read_data<uint8_t>(it));
+								auto pair = ILBlock::read_data<ILDataTypePair>(it);
+								auto tid = ILBlock::read_data<uint8_t>(it);
+								auto eid = ILBlock::read_data<uint8_t>(it);
+								eval_tableroffset(eval_ctx, pair.first(), pair.second(), tid, eid);
 							} break;
 							case ILInstruction::table8roffset16: {
-								auto pair = block->read_data<ILDataTypePair>(it);
-								eval_tableroffset(eval_ctx, pair.first(), pair.second(), block->read_data<uint8_t>(it), block->read_data<uint16_t>(it));
+								auto pair = ILBlock::read_data<ILDataTypePair>(it);
+								auto tid = ILBlock::read_data<uint8_t>(it);
+								auto eid = ILBlock::read_data<uint16_t>(it);
+								eval_tableroffset(eval_ctx, pair.first(), pair.second(), tid, eid);
 							} break;
 							case ILInstruction::table8roffset32: {
-								auto pair = block->read_data<ILDataTypePair>(it);
-								eval_tableroffset(eval_ctx, pair.first(), pair.second(), block->read_data<uint8_t>(it), block->read_data<uint32_t>(it));
+								auto pair = ILBlock::read_data<ILDataTypePair>(it);
+								auto tid = ILBlock::read_data<uint8_t>(it);
+								auto eid = ILBlock::read_data<uint32_t>(it);
+								eval_tableroffset(eval_ctx, pair.first(), pair.second(), tid, eid);
 							} break;
 							case ILInstruction::table16roffset8: {
-								auto pair = block->read_data<ILDataTypePair>(it);
-								eval_tableroffset(eval_ctx, pair.first(), pair.second(), block->read_data<uint16_t>(it), block->read_data<uint8_t>(it));
+								auto pair = ILBlock::read_data<ILDataTypePair>(it);
+								auto tid = ILBlock::read_data<uint16_t>(it);
+								auto eid = ILBlock::read_data<uint8_t>(it);
+								eval_tableroffset(eval_ctx, pair.first(), pair.second(), tid, eid);
 							} break;
 							case ILInstruction::table16roffset16: {
-								auto pair = block->read_data<ILDataTypePair>(it);
-								eval_tableroffset(eval_ctx, pair.first(), pair.second(), block->read_data<uint16_t>(it), block->read_data<uint16_t>(it));
+								auto pair = ILBlock::read_data<ILDataTypePair>(it);
+								auto tid = ILBlock::read_data<uint16_t>(it);
+								auto eid = ILBlock::read_data<uint16_t>(it);
+								eval_tableroffset(eval_ctx, pair.first(), pair.second(), tid, eid);
 							} break;
 							case ILInstruction::table16roffset32: {
-								auto pair = block->read_data<ILDataTypePair>(it);
-								eval_tableroffset(eval_ctx, pair.first(), pair.second(), block->read_data<uint16_t>(it), block->read_data<uint32_t>(it));
+								auto pair = ILBlock::read_data<ILDataTypePair>(it);
+								auto tid = ILBlock::read_data<uint16_t>(it);
+								auto eid = ILBlock::read_data<uint32_t>(it);
+								eval_tableroffset(eval_ctx, pair.first(), pair.second(), tid, eid);
 							} break;
 							case ILInstruction::table32roffset8: {
-								auto pair = block->read_data<ILDataTypePair>(it);
-								eval_tableroffset(eval_ctx, pair.first(), pair.second(), block->read_data<uint32_t>(it), block->read_data<uint8_t>(it));
+								auto pair = ILBlock::read_data<ILDataTypePair>(it);
+								auto tid = ILBlock::read_data<uint32_t>(it);
+								auto eid = ILBlock::read_data<uint8_t>(it);
+								eval_tableroffset(eval_ctx, pair.first(), pair.second(), tid, eid);
 							} break;
 							case ILInstruction::table32roffset16: {
-								auto pair = block->read_data<ILDataTypePair>(it);
-								eval_tableroffset(eval_ctx, pair.first(), pair.second(), block->read_data<uint32_t>(it), block->read_data<uint16_t>(it));
+								auto pair = ILBlock::read_data<ILDataTypePair>(it);
+								auto tid = ILBlock::read_data<uint32_t>(it);
+								auto eid = ILBlock::read_data<uint16_t>(it);
+								eval_tableroffset(eval_ctx, pair.first(), pair.second(), tid, eid);
 							} break;
 							case ILInstruction::table32roffset32: {
-								auto pair = block->read_data<ILDataTypePair>(it);
-								eval_tableroffset(eval_ctx, pair.first(), pair.second(), block->read_data<uint32_t>(it), block->read_data<uint32_t>(it));
+								auto pair = ILBlock::read_data<ILDataTypePair>(it);
+								auto tid = ILBlock::read_data<uint32_t>(it);
+								auto eid = ILBlock::read_data<uint32_t>(it);
+								eval_tableroffset(eval_ctx, pair.first(), pair.second(), tid, eid);
 							} break;
 
 							case ILInstruction::debug: {
-								auto file = block->read_data<uint16_t>(it);
-								auto line = block->read_data<uint16_t>(it);
+								auto file = ILBlock::read_data<uint16_t>(it);
+								auto line = ILBlock::read_data<uint16_t>(it);
 								eval_debug(eval_ctx, file, line);
 							} break;
 
 							case ILInstruction::load: {
-								auto type = block->read_data<ILDataType>(it);
+								auto type = ILBlock::read_data<ILDataType>(it);
 								eval_load(eval_ctx, type);
 							} break;
 
 							case ILInstruction::isnotzero: {
-								auto type = block->read_data<ILDataType>(it);
+								auto type = ILBlock::read_data<ILDataType>(it);
 								eval_isnotzero(eval_ctx, type);
 							} break;
 
 							case ILInstruction::negative: {
-								auto type = block->read_data<ILDataType>(it);
+								auto type = ILBlock::read_data<ILDataType>(it);
 								eval_negative(eval_ctx, type);
 							} break;
 
@@ -1251,12 +1288,12 @@ namespace Corrosive {
 							} break;
 
 							case ILInstruction::forget: {
-								auto type = block->read_data<ILDataType>(it);
+								auto type = ILBlock::read_data<ILDataType>(it);
 								eval_forget(eval_ctx, type);
 							} break;
 							case ILInstruction::jmpz: {
-								auto addressz = block->read_data<uint32_t>(it);
-								auto addressnz = block->read_data<uint32_t>(it);
+								auto addressz = ILBlock::read_data<uint32_t>(it);
+								auto addressnz = ILBlock::read_data<uint32_t>(it);
 
 								auto z = eval_ctx->pop_register_value<uint8_t>();
 
@@ -1270,35 +1307,35 @@ namespace Corrosive {
 								goto next_block;
 							} break;
 
-							case ILInstruction::u8: eval_const_u8(eval_ctx, block->read_data<uint8_t>(it)); break;
-							case ILInstruction::i8: eval_const_i8(eval_ctx, block->read_data<int8_t>(it)); break;
-							case ILInstruction::u16: eval_const_u16(eval_ctx, block->read_data<uint16_t>(it)); break;
-							case ILInstruction::i16: eval_const_i16(eval_ctx, block->read_data<int16_t>(it)); break;
-							case ILInstruction::u32: eval_const_u32(eval_ctx, block->read_data<uint32_t>(it)); break;
-							case ILInstruction::i32: eval_const_i32(eval_ctx, block->read_data<int32_t>(it)); break;
-							case ILInstruction::u64: eval_const_u64(eval_ctx, block->read_data<uint64_t>(it)); break;
-							case ILInstruction::i64: eval_const_i64(eval_ctx, block->read_data<int64_t>(it)); break;
-							case ILInstruction::f32: eval_const_f32(eval_ctx, block->read_data<float>(it)); break;
-							case ILInstruction::f64: eval_const_f64(eval_ctx, block->read_data<double>(it)); break;
-							case ILInstruction::word: eval_const_ptr(eval_ctx, block->read_data<void*>(it)); break;
+							case ILInstruction::u8: eval_const_u8(eval_ctx, ILBlock::read_data<uint8_t>(it)); break;
+							case ILInstruction::i8: eval_const_i8(eval_ctx, ILBlock::read_data<int8_t>(it)); break;
+							case ILInstruction::u16: eval_const_u16(eval_ctx, ILBlock::read_data<uint16_t>(it)); break;
+							case ILInstruction::i16: eval_const_i16(eval_ctx, ILBlock::read_data<int16_t>(it)); break;
+							case ILInstruction::u32: eval_const_u32(eval_ctx, ILBlock::read_data<uint32_t>(it)); break;
+							case ILInstruction::i32: eval_const_i32(eval_ctx, ILBlock::read_data<int32_t>(it)); break;
+							case ILInstruction::u64: eval_const_u64(eval_ctx, ILBlock::read_data<uint64_t>(it)); break;
+							case ILInstruction::i64: eval_const_i64(eval_ctx, ILBlock::read_data<int64_t>(it)); break;
+							case ILInstruction::f32: eval_const_f32(eval_ctx, ILBlock::read_data<float>(it)); break;
+							case ILInstruction::f64: eval_const_f64(eval_ctx, ILBlock::read_data<double>(it)); break;
+							case ILInstruction::word: eval_const_ptr(eval_ctx, ILBlock::read_data<void*>(it)); break;
 							case ILInstruction::slice: {
-								uint32_t cid = block->read_data<uint32_t>(it);
-								uint64_t s = block->read_data<uint64_t>(it);
+								uint32_t cid = ILBlock::read_data<uint32_t>(it);
+								uint64_t s = ILBlock::read_data<uint64_t>(it);
 								eval_const_slice(eval_ctx, cid, s); 
 							}break;
 							case ILInstruction::size8: {
-								auto t = block->read_data<ILSizeType>(it);
-								auto v = block->read_data<uint8_t>(it);
+								auto t = ILBlock::read_data<ILSizeType>(it);
+								auto v = ILBlock::read_data<uint8_t>(it);
 								eval_const_size(eval_ctx, ILSize(t,v).eval(eval_ctx->parent, compiler_arch));
 							} break;
 							case ILInstruction::size16: {
-								auto t = block->read_data<ILSizeType>(it);
-								auto v = block->read_data<uint16_t>(it);
+								auto t = ILBlock::read_data<ILSizeType>(it);
+								auto v = ILBlock::read_data<uint16_t>(it);
 								eval_const_size(eval_ctx, ILSize(t,v).eval(eval_ctx->parent, compiler_arch));
 							} break;
 							case ILInstruction::size32: {
-								auto t = block->read_data<ILSizeType>(it);
-								auto v = block->read_data<uint32_t>(it);
+								auto t = ILBlock::read_data<ILSizeType>(it);
+								auto v = ILBlock::read_data<uint32_t>(it);
 								eval_const_size(eval_ctx, ILSize(t,v).eval(eval_ctx->parent, compiler_arch));
 							} break;
 

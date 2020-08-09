@@ -8,26 +8,6 @@
 
 namespace Corrosive {
 	std::vector<std::pair<uint8_t*, uint8_t*>> memory_pages;
-
-	void* exec_alloc(size_t bytes) {
-		if (memory_pages.size() == 0) {
-			uint8_t* mem = (uint8_t*)VirtualAlloc(nullptr, 4096, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
-			memory_pages.push_back(std::make_pair(mem,mem));
-		}
-
-		auto& lmp = memory_pages.back();
-		if (4096 - (size_t)(lmp.second-lmp.first) >= bytes ) {
-			auto r = lmp.second;
-			lmp.second += bytes;
-			return r;
-		}
-		else {
-			uint8_t* mem = (uint8_t*)VirtualAlloc(nullptr, 4096, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
-			memory_pages.push_back(std::make_pair(mem, mem + bytes));
-			return mem;
-		}
-	}
-
 	struct call_wrapper_hash {
 		size_t operator() (const  std::tuple<Corrosive::ILDataType, uint32_t, Corrosive::ILDataType*>& k) const {
 			size_t h = std::hash<Corrosive::ILDataType>()(std::get<0>(k)) ^ (std::hash<uint32_t>()(std::get<1>(k)) << 1);
@@ -56,6 +36,39 @@ namespace Corrosive {
 	};
 
 	std::unordered_map < std::tuple<ILDataType, uint32_t, ILDataType*>, void*, call_wrapper_hash, call_wrapper_compare> call_wrappers[(uint8_t)ILCallingConvention::__max];
+
+	void* exec_alloc(size_t bytes) {
+		if (memory_pages.size() == 0) {
+			uint8_t* mem = (uint8_t*)VirtualAlloc(nullptr, 4096, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+			memory_pages.push_back(std::make_pair(mem,mem));
+		}
+
+		auto& lmp = memory_pages.back();
+		if (4096 - (size_t)(lmp.second-lmp.first) >= bytes ) {
+			auto r = lmp.second;
+			lmp.second += bytes;
+			return r;
+		}
+		else {
+			uint8_t* mem = (uint8_t*)VirtualAlloc(nullptr, 4096, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+			memory_pages.push_back(std::make_pair(mem, mem + bytes));
+			return mem;
+		}
+	}
+
+	void release_jit_code() {
+		for (auto&& p : memory_pages) {
+			VirtualFree(p.first, 0, MEM_RELEASE);
+		}
+
+		for (size_t i = 0; i < (uint8_t)ILCallingConvention::__max; ++i) {
+			call_wrappers[i].clear();
+		}
+
+		memory_pages.clear();
+	}
+
+	
 
 
 #ifdef X86
@@ -325,11 +338,6 @@ namespace Corrosive {
 			ILDataType* argv = std::get<2>(decl);
 			size_t stack = 0;
 
-			call_wrapper.push_back(0x48);
-			call_wrapper.push_back(0x83);
-			call_wrapper.push_back(0xEC);
-			call_wrapper.push_back(0x00); // sub rsp, 0
-
 			size_t abs_v = (size_t)(b8_stack_ptr);
 			call_wrapper.push_back(0x48);
 			call_wrapper.push_back(0xB8);
@@ -482,20 +490,33 @@ namespace Corrosive {
 				call_wrapper.push_back(raxadd); // add rax, raxadd
 			}
 
+			if (stack > 0) {
+				size_t saligned = _align_up(stack + 8, 32) - 8;
 
-			call_wrapper.push_back(0xFF);
-			call_wrapper.push_back(0x10); // call [rax]
-
-			size_t saligned = _align_up(stack + 8, 32) - 8;
-			call_wrapper[3] = (uint8_t)(saligned - stack);
-
-			call_wrapper.push_back(0x48);
-			call_wrapper.push_back(0x83);
-			call_wrapper.push_back(0xC4);
-			call_wrapper.push_back((uint8_t)(saligned)); // add rsp, saligned
+				call_wrapper.insert(call_wrapper.begin(),0x48);
+				call_wrapper.insert(call_wrapper.begin()+1,0x83);
+				call_wrapper.insert(call_wrapper.begin()+2, 0xEC);
+				call_wrapper.insert(call_wrapper.begin()+3, (uint8_t)(saligned - stack)); // sub rsp, saligned-stack
 
 
-			call_wrapper.push_back(0xC3); // ret
+				call_wrapper.push_back(0xFF);
+				call_wrapper.push_back(0x10); // call [rax]
+
+
+				call_wrapper.push_back(0x48);
+				call_wrapper.push_back(0x83);
+				call_wrapper.push_back(0xC4);
+				call_wrapper.push_back((uint8_t)(saligned)); // add rsp, saligned
+
+
+				call_wrapper.push_back(0xC3); // ret
+			}
+			else {
+				// tail call optimization. without this optimization msvc release version fails sometimes
+				call_wrapper.push_back(0xFF);
+				call_wrapper.push_back(0x20); // jmp [rax]
+			}
+
 
 			void* mem = exec_alloc(call_wrapper.size());
 			memcpy(mem, call_wrapper.data(), call_wrapper.size());

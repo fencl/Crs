@@ -47,6 +47,7 @@
     <ClCompile Include="..\src\IL\IL.cpp" />
     <ClCompile Include="..\src\IL\ILBuilder.cpp" />
     <ClCompile Include="..\src\IL\ILCallConv.cpp" />
+    <ClCompile Include="..\src\IL\ILCleanPass.cpp" />
     <ClCompile Include="..\src\IL\ILEvaluator.cpp" />
     <ClCompile Include="..\src\Operand.cpp" />
     <ClCompile Include="..\src\PredefinedTypes.cpp" />

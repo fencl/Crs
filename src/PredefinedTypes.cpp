@@ -90,6 +90,11 @@ namespace Corrosive {
 		std::cout << sv;
 	}
 
+	void entry_point_provider(dword_t slice) {
+		std::basic_string_view<char> sv((char*)slice.p1, (size_t)slice.p2);
+		Compiler::current()->entry_point = sv;
+	}
+
 	void DefaultTypes::ask_for(dword_t slice) {
 		std::basic_string_view<char> data_string((char*)slice.p1, (size_t)slice.p2);
 
@@ -115,10 +120,12 @@ namespace Corrosive {
 			"fn compile native array_of: (type, u32) type;\n"
 			"fn compile native native_subtype_of: (type,[]u8) type;\n"
 			"fn compile native slice_of: (type) type;\n"
-			"//fn compile native type_size: (type) size;\n"
+			"fn compile native type_size: (type) size;\n"
 			"fn compile native require: ([]u8);\n"
+			"fn compile native entry: ([]u8);\n"
+			"fn compile native build: ();\n"
 			"fn compile native ask_for: ([]u8);\n"
-			"//fn compile native print_type: (type);\n"
+			"fn compile native print_type: (type);\n"
 			"}"
 			, "standard_library<buffer>");
 
@@ -162,6 +169,8 @@ namespace Corrosive {
 		f_build_slice = Compiler::current()->register_native_function({ "compiler","slice_of" }, Operand::priv_build_slice);
 		f_type_size = Compiler::current()->register_native_function({ "compiler","type_size" }, Operand::priv_type_size);
 		f_type_size = Compiler::current()->register_native_function({ "compiler","require" }, Source::require_wrapper);
+		f_type_size = Compiler::current()->register_native_function({ "compiler","build" }, Compiler::compile);
+		f_type_size = Compiler::current()->register_native_function({ "compiler","entry" }, entry_point_provider);
 		f_type_size = Compiler::current()->register_native_function({ "compiler","ask_for" }, DefaultTypes::ask_for);
 		f_type_size = Compiler::current()->register_native_function({ "compiler","print_type" }, DefaultTypes::print_type_provider);
 

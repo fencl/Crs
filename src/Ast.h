@@ -46,6 +46,7 @@ namespace Corrosive {
 		AstCursor type;
 		ILContext context;
 		ILCallingConvention convention;
+		bool exported;
 		virtual bool has_body() { return false; }
 	};
 

@@ -135,8 +135,37 @@ namespace Corrosive {
 		compiler_evaluator->write_register_value<void*>(stack_ptr(id));
 	}
 
+	void Compiler::compile() {
+		if (!Compiler::current()->entry_point.empty()) {
+			auto res = Compiler::current()->find_name(Compiler::current()->entry_point);
+
+			ILFunction* main = nullptr;
+
+			if (auto fun = res.get_function()) {
+				FunctionInstance* finst;
+				fun->generate(nullptr, finst);
+				finst->compile();
+				main = finst->func;
+			}
+			else {
+				throw std::exception("Entry point was set but function not found");
+			}
+
+			Compiler::current()->global_module()->entry_point = main;
+			Compiler::current()->global_module()->exported_functions.push_back(main);
+		}
+		else {
+			for (auto&& ft : Compiler::current()->exported_functions) {
+				FunctionInstance* finst;
+				ft->generate(nullptr, finst);
+				finst->compile();
+				Compiler::current()->global_module()->exported_functions.push_back(finst->func);
+			}
+		}
+	}
 
 	std::unique_ptr<ILModule> Compiler::finalize() {
+		target_module->strip_unused_content();
 		return std::move(target_module);
 	}
 

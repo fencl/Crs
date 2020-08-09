@@ -1238,7 +1238,7 @@ namespace Corrosive {
 		}
 
 		void** vt = vtable.get();
-		uint32_t vtid = Compiler::current()->global_module()->register_vtable(std::move(vtable));
+		uint32_t vtid = Compiler::current()->global_module()->register_vtable((uint32_t)member_declarations.size(), std::move(vtable));
 		vtable_instances[forinst] = vtid;
 		optid = vtid;
 	}

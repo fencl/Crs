@@ -183,6 +183,7 @@ namespace Corrosive {
 			c.move(tok);
 		}
 
+		bool exported = false;
 		bool ext = false;
 		ILCallingConvention convention = ILCallingConvention::bytecode;
 		ILContext context = force_context;
@@ -217,6 +218,10 @@ namespace Corrosive {
 			else if (buf == "stdcall") {
 				convention = ILCallingConvention::stdcall;
 				ext = true;
+				c.move(tok);
+			}
+			else if (buf == "export") {
+				exported = true;
 				c.move(tok);
 			}
 			else break;
@@ -257,6 +262,7 @@ namespace Corrosive {
 			fun->name = name;
 			fun->name_string = name_string;
 			fun->parent = parent;
+			fun->exported = exported;
 
 			RecognizedToken tok1;
 			ct.move(tok1);
@@ -306,6 +312,7 @@ namespace Corrosive {
 			fun->name = name;
 			fun->name_string = name_string;
 			fun->parent = parent;
+			fun->exported = exported;
 			c.move(tok);
 			return std::move(fun);
 		}
@@ -538,6 +545,9 @@ namespace Corrosive {
 			std::unique_ptr<FunctionTemplate> function = std::make_unique<FunctionTemplate>();
 			function->ast_node = n.get();
 			function->parent = into;
+			if (function->ast_node->exported) {
+				Compiler::current()->exported_functions.push_back(function.get());
+			}
 
 			if (into->name_table.find(n->name_string) != into->name_table.end()) {
 				RecognizedToken tok;
