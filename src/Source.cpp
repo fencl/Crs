@@ -450,17 +450,17 @@ namespace Corrosive {
 	}
 
 	ILBytecodeFunction* compile_build_block(Cursor& c) {
+		Compiler* compiler = Compiler::current();
+		compiler->types()->t_build_script->compile();
 
-		Compiler::current()->types()->t_build_script->compile();
-
-		auto func = Compiler::current()->global_module()->create_function(ILContext::compile);
-		func->decl_id = Compiler::current()->types()->t_build_script->il_function_decl;
+		auto func = compiler->global_module()->create_function(ILContext::compile);
+		func->decl_id = compiler->types()->t_build_script->il_function_decl;
 		func->alias = "build_script";
 
 		ILBlock* b = func->create_and_append_block();
 		b->alias = "entry";
 
-		auto scope = ScopeState().function(func, Compiler::current()->types()->t_void).context(ILContext::compile).stack().compiler_stack();
+		auto scope = ScopeState().function(func, compiler->types()->t_void).context(ILContext::compile).stack().compiler_stack();
 
 		Statement::parse_inner_block_start(b);
 		RecognizedToken tok;
@@ -474,6 +474,7 @@ namespace Corrosive {
 
 	void Source::require(std::filesystem::path file, Source* src) 
 	{
+		Compiler* compiler = Compiler::current();
 		std::filesystem::path abs;
 		if (src) {
 			abs = src->path.parent_path();
@@ -485,19 +486,19 @@ namespace Corrosive {
 			abs = std::filesystem::absolute(file);
 		}
 
-		auto f = Compiler::current()->included_sources.find(abs);
-		if (f == Compiler::current()->included_sources.end()) {
+		auto f = compiler->included_sources.find(abs);
+		if (f == compiler->included_sources.end()) {
 			auto new_src = std::make_unique<Source>();
 			new_src->path = abs;
 			new_src->load(abs.generic_string().c_str());
 			new_src->register_debug();
 			new_src->pair_tokens();
 			auto ptr = new_src.get();
-			Compiler::current()->included_sources[std::move(abs)] = std::move(new_src);
+			compiler->included_sources[std::move(abs)] = std::move(new_src);
 			ptr->root_node = AstRootNode::parse(ptr);
 			ptr->root_node->populate();
 
-			Compiler::current()->push_source(ptr);
+			compiler->source_stack.push_back(ptr);
 
 			for (auto&& r : ptr->root_node->compile) {
 				RecognizedToken tok;
@@ -508,10 +509,10 @@ namespace Corrosive {
 				BlockTermination termination;
 				Statement::parse(c, tok, termination, ForceCompile::single);
 				//auto fn = compile_build_block(c);
-				//ILBuilder::eval_fncall(Compiler::current()->evaluator(), fn);
+				//ILBuilder::eval_fncall(compiler->evaluator(), fn);
 			}
 
-			Compiler::current()->pop_source();
+			compiler->source_stack.pop_back();
 		}
 	}
 

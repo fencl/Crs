@@ -34,48 +34,20 @@ namespace Corrosive {
 		Namespace* global_namespace() { return target_global_namespace.get(); }
 		ILModule* global_module() { return target_module.get(); }
 		ConstantManager* constant_manager() { return &constant_stack_manager; }
-
+		Source* source() { return source_stack.back(); }
 		std::vector<TypeFunction*>& defer_scope() { return defers.back().back(); }
 		std::vector<std::vector<TypeFunction*>>& defer_function() { return defers.back(); }
-
-
 		std::vector<TypeFunction*>& compile_defer_scope() { return compile_defers.back(); }
-
-		FindNameResult find_name(std::string_view name) { return target_global_namespace->find_name(name); }
-
-		ILBytecodeFunction* target() { return working_function_stack.back(); };
+		ILBytecodeFunction* target() { return working_function_stack.back(); }
 		Type* return_type() { return return_type_stack.back(); }
 
-		void push_scope_context(ILContext ctx) { scope_context_stack.push_back(ctx); }
-		void pop_scope_context() { scope_context_stack.pop_back(); }
+		FindNameResult find_name(std::string_view name) { return target_global_namespace->find_name(name); }
 
 		void push_scope(ILBlock* sc) { scope_stack.push_back(sc); }
 		void pop_scope() { scope_stack.pop_back(); }
 
-		void push_workspace(Namespace* nspc) { outer_namespace_stack.push_back(nspc); }
-		void pop_workspace() { outer_namespace_stack.pop_back(); }
-
-		void push_function(ILBytecodeFunction* t, Type* rtt) { working_function_stack.push_back(t); return_type_stack.push_back(rtt); compile_loop_state_stack.push_back(std::vector<CompileTimeBlockState*>()); }
-		void pop_function() { working_function_stack.pop_back(); return_type_stack.pop_back(); compile_loop_state_stack.pop_back(); }
-
-		void push_loop_blocks(ILBlock* break_b, ILBlock* continue_b) { loop_block_stack.push_back(std::make_pair(break_b, continue_b)); }
-		void pop_loop_blocks() { loop_block_stack.pop_back(); }
-
 		void switch_scope(ILBlock* sblock) { scope_stack.back() = sblock; }
 
-		void push_source(Source* s) { source_stack.push_back(s); }
-		void pop_source() { source_stack.pop_back(); }
-
-		void push_defer_function() { defers.push_back(std::vector<std::vector<TypeFunction*>>()); }
-		void pop_defer_function() { defers.pop_back(); }
-
-		void push_defer_scope() { defers.back().push_back(std::vector<TypeFunction*>()); }
-		void pop_defer_scope() { defers.back().pop_back(); }
-
-		void push_compile_defer_scope() { compile_defers.push_back(std::vector<TypeFunction*>()); }
-		void pop_compile_defer_scope() { compile_defers.pop_back(); }
-
-		Source* source() { return source_stack.back(); }
 		void setup();
 
 		void push_compile_loop_state(CompileTimeBlockState& state) { compile_loop_state_stack.back().push_back(&state); }

@@ -45,7 +45,7 @@ namespace Corrosive {
 			type->owner = this;
 
 			if (ast_node->has_body() && ((AstFunctionNode*)ast_node)->is_generic) {
-
+				Compiler* compiler = Compiler::current();
 				RecognizedToken tok;
 				Cursor c = load_cursor(((AstFunctionNode*)ast_node)->annotation, ast_node->get_source(), tok);
 				c.move(tok);
@@ -65,11 +65,11 @@ namespace Corrosive {
 					Operand::deref(value, CompileType::eval);
 					Expression::rvalue(value, CompileType::eval);
 
-					if (value.type != Compiler::current()->types()->t_type) {
+					if (value.type != compiler->types()->t_type) {
 						throw_specific_error(err, "Expected type value");
 					}
 
-					Type* t = Compiler::current()->evaluator()->pop_register_value<Type*>();
+					Type* t = compiler->evaluator()->pop_register_value<Type*>();
 					t->compile();
 					if (t->context() == ILContext::runtime) {
 						throw_specific_error(err, "Runtime type cannot be used as generic argument");
@@ -79,7 +79,7 @@ namespace Corrosive {
 						throw_specific_error(err, "Only primitive types can be used as generic arguments");
 					}
 
-					generic_ctx.generate_heap_size += t->size().eval(Compiler::current()->global_module(), compiler_arch);
+					generic_ctx.generate_heap_size += t->size().eval(compiler->global_module(), compiler_arch);
 					generic_ctx.generic_layout.push_back(std::make_tuple(name, t));
 
 					if (tok == RecognizedToken::Comma) {
@@ -132,6 +132,7 @@ namespace Corrosive {
 			if (ast_node->is_generic) {
 				Cursor c = load_cursor(ast_node->annotation, ast_node->get_source(), tok);
 				c.move(tok);
+				Compiler* compiler = Compiler::current();
 
 				while (true) {
 					if (tok != RecognizedToken::Symbol) {
@@ -149,11 +150,11 @@ namespace Corrosive {
 					Operand::deref(value, CompileType::eval);
 					Expression::rvalue(value, CompileType::eval);
 
-					if (value.type != Compiler::current()->types()->t_type) {
+					if (value.type != compiler->types()->t_type) {
 						throw_specific_error(err, "Expected type value");
 					}
 
-					Type* t = Compiler::current()->evaluator()->pop_register_value<Type*>();
+					Type* t = compiler->evaluator()->pop_register_value<Type*>();
 					t->compile();
 					if (t->context() == ILContext::runtime) {
 						throw_specific_error(err, "Runtime type cannot be used as generic argument");
@@ -163,7 +164,7 @@ namespace Corrosive {
 						throw_specific_error(err, "Only primitive types can be used as generic arguments");
 					}
 
-					generic_ctx.generate_heap_size += t->size().eval(Compiler::current()->global_module(), compiler_arch);
+					generic_ctx.generate_heap_size += t->size().eval(compiler->global_module(), compiler_arch);
 					generic_ctx.generic_layout.push_back(std::make_tuple(name, t));
 
 
@@ -213,6 +214,7 @@ namespace Corrosive {
 
 			if (ast_node->is_generic) {
 				RecognizedToken tok;
+				Compiler* compiler = Compiler::current();
 				Cursor c = load_cursor(ast_node->annotation, ast_node->get_source(), tok);
 				c.move(tok);
 
@@ -232,11 +234,11 @@ namespace Corrosive {
 					Operand::deref(value, CompileType::eval);
 					Expression::rvalue(value, CompileType::eval);
 
-					if (value.type != Compiler::current()->types()->t_type) {
+					if (value.type != compiler->types()->t_type) {
 						throw_specific_error(err, "Expected type value");
 					}
 
-					Type* t = Compiler::current()->evaluator()->pop_register_value<Type*>();
+					Type* t = compiler->evaluator()->pop_register_value<Type*>();
 					t->compile();
 					if (t->context() == ILContext::runtime) {
 						throw_specific_error(err, "Runtime type cannot be used as generic argument");
@@ -246,7 +248,7 @@ namespace Corrosive {
 						throw_specific_error(err, "Only primitive types can be used as generic arguments");
 					}
 
-					generic_ctx.generate_heap_size += t->size().eval(Compiler::current()->global_module(), compiler_arch);
+					generic_ctx.generate_heap_size += t->size().eval(compiler->global_module(), compiler_arch);
 					generic_ctx.generic_layout.push_back(std::make_tuple(name, t));
 
 
@@ -298,6 +300,7 @@ namespace Corrosive {
 			out = single_instance.get();
 		}
 		else {
+			Compiler* compiler = Compiler::current();
 			unsigned char* key = argdata;
 
 			auto f = instances->find(key);
@@ -314,7 +317,7 @@ namespace Corrosive {
 
 				for (auto l = generic_ctx.generic_layout.rbegin(); l != generic_ctx.generic_layout.rend(); l++) {
 					Type* t = std::get<1>(*l);
-					size_t c_size = t->size().eval(Compiler::current()->global_module(), compiler_arch);
+					size_t c_size = t->size().eval(compiler->global_module(), compiler_arch);
 					t->copy_to_generic_storage(old_offset, new_offset);
 					old_offset += c_size;
 					new_offset += c_size;
@@ -339,6 +342,7 @@ namespace Corrosive {
 			new_inst->generic_inst.key = new_key;
 			new_inst->generic_inst.generator = &generic_ctx;
 			new_inst->context = ast_node->context;
+			Compiler* compiler = Compiler::current();
 
 			auto state = ScopeState().workspace(new_inst);
 
@@ -402,11 +406,11 @@ namespace Corrosive {
 				Operand::deref(value, CompileType::eval);
 				Expression::rvalue(value, CompileType::eval);
 
-				if (value.type != Compiler::current()->types()->t_type) {
+				if (value.type != compiler->types()->t_type) {
 					throw_specific_error(err, "Expected type value");
 				}
 
-				Type* t = Compiler::current()->evaluator()->pop_register_value<Type*>();
+				Type* t = compiler->evaluator()->pop_register_value<Type*>();
 
 				if (t->type() != TypeInstanceType::type_trait) {
 					throw_specific_error(err, "Expected trait instance type");
@@ -478,7 +482,7 @@ namespace Corrosive {
 							throw_specific_error(name_c, "Funtion has different context");
 						}*/
 
-						auto& args = Compiler::current()->types()->argument_array_storage.get(fundecl->argument_array_id);
+						auto& args = compiler->types()->argument_array_storage.get(fundecl->argument_array_id);
 
 						c = load_cursor(f->type, src, tok);
 						c.move(tok);
@@ -500,10 +504,10 @@ namespace Corrosive {
 								Expression::parse(c, tok, res, CompileType::eval);
 								Operand::deref(value, CompileType::eval);
 								Expression::rvalue(res, CompileType::eval);
-								if (res.type != Compiler::current()->types()->t_type) {
+								if (res.type != compiler->types()->t_type) {
 									throw_specific_error(err, "Expected type");
 								}
-								Type* argt = Compiler::current()->evaluator()->pop_register_value<Type*>();
+								Type* argt = compiler->evaluator()->pop_register_value<Type*>();
 								if (ft->arguments.size() == 0) {
 									Type* this_type = new_inst->type->generate_reference();
 									if (argt != this_type) {
@@ -550,10 +554,10 @@ namespace Corrosive {
 							Operand::deref(value, CompileType::eval);
 							Expression::rvalue(res, CompileType::eval);
 
-							if (res.type != Compiler::current()->types()->t_type) {
+							if (res.type != compiler->types()->t_type) {
 								throw_specific_error(err, "Expected type");
 							}
-							Type* rett = Compiler::current()->evaluator()->pop_register_value<Type*>();
+							Type* rett = compiler->evaluator()->pop_register_value<Type*>();
 
 							Type* req_type = fundecl->return_type;
 							if (rett != req_type) {
@@ -563,7 +567,7 @@ namespace Corrosive {
 							ft->returns = rett;
 						}
 						else {
-							ft->returns = Compiler::current()->types()->t_void;
+							ft->returns = compiler->types()->t_void;
 						}
 
 						std::vector<Type*> argtypes;
@@ -571,7 +575,7 @@ namespace Corrosive {
 							argtypes.push_back(a);
 						}
 
-						ft->type = Compiler::current()->types()->load_or_register_function_type(ft->ast_node->convention, std::move(argtypes), ft->returns, ft->ast_node->context);
+						ft->type = compiler->types()->load_or_register_function_type(ft->ast_node->convention, std::move(argtypes), ft->returns, ft->ast_node->context);
 						ft->compile_state = 1;
 						trait[ttid->second] = std::move(ft);
 
@@ -600,11 +604,11 @@ namespace Corrosive {
 				Expression::parse(c, tok, value, CompileType::eval);
 				Operand::deref(value, CompileType::eval);
 				Expression::rvalue(value, CompileType::eval);
-				if (value.type != Compiler::current()->types()->t_type) {
+				if (value.type != compiler->types()->t_type) {
 					throw_specific_error(err, "Expected type value");
 				}
 
-				Type* m_t = Compiler::current()->evaluator()->pop_register_value<Type*>();
+				Type* m_t = compiler->evaluator()->pop_register_value<Type*>();
 				m_t->compile();
 				if (m_t->context() == ILContext::compile) {
 					if (new_inst->context != ILContext::runtime) {
@@ -648,18 +652,20 @@ namespace Corrosive {
 
 
 	void StructureTemplate::var_wrapper(dword_t dw, Type* type) {
-		uint8_t* data = Compiler::current()->constant_manager()->register_generic_storage((uint8_t*)dw.p1, (size_t)dw.p2, Compiler::current()->types()->t_u8);
+		Compiler* compiler = Compiler::current();
+		uint8_t* data = compiler->constant_manager()->register_generic_storage((uint8_t*)dw.p1, (size_t)dw.p2, compiler->types()->t_u8);
 		std::basic_string_view<char> name((char*)data, (size_t)dw.p2);
-		StructureInstance* sinst = (StructureInstance*)Compiler::current()->workspace();
+		StructureInstance* sinst = (StructureInstance*)compiler->workspace();
 
 		sinst->member_table[name] = std::make_pair((uint16_t)sinst->member_vars.size(), MemberTableEntryType::var);
 		sinst->member_vars.push_back(std::make_pair(type, 0));
 	}
 
 	void StructureTemplate::var_alias_wrapper(dword_t dw, Type* type) {
-		uint8_t* data = Compiler::current()->constant_manager()->register_generic_storage((uint8_t*)dw.p1, (size_t)dw.p2, Compiler::current()->types()->t_u8);
+		Compiler* compiler = Compiler::current();
+		uint8_t* data = compiler->constant_manager()->register_generic_storage((uint8_t*)dw.p1, (size_t)dw.p2, compiler->types()->t_u8);
 		std::basic_string_view<char> name((char*)data, (size_t)dw.p2);
-		StructureInstance* sinst = (StructureInstance*)Compiler::current()->workspace();
+		StructureInstance* sinst = (StructureInstance*)compiler->workspace();
 
 		sinst->member_table[name] = std::make_pair((uint16_t)sinst->member_vars.size(), MemberTableEntryType::var); 
 		sinst->member_composites.push_back((uint16_t)sinst->member_vars.size());
@@ -724,14 +730,14 @@ namespace Corrosive {
 			new_inst->generic_inst.insert_key_on_stack();
 			new_inst->ast_node = ast_node;
 			new_inst->context = ast_node->context;
-
+			Compiler* compiler = Compiler::current();
 			std::vector<std::pair<Type*,std::vector<Type*>>> decls;
 
 
 			for (auto&& m : ast_node->declarations) {
 
 				std::vector<Type*> args;
-				args.push_back(Compiler::current()->types()->t_ptr);
+				args.push_back(compiler->types()->t_ptr);
 				Type* ret_type;
 
 				RecognizedToken tok;
@@ -746,10 +752,10 @@ namespace Corrosive {
 						Operand::deref(val, CompileType::eval);
 						Expression::rvalue(val, CompileType::eval);
 
-						if (val.type != Compiler::current()->types()->t_type) {
+						if (val.type != compiler->types()->t_type) {
 							throw_specific_error(err, "Expected type");
 						}
-						Type* t = Compiler::current()->evaluator()->pop_register_value<Type*>();
+						Type* t = compiler->evaluator()->pop_register_value<Type*>();
 						t->compile();
 
 						if (t->context() == ILContext::compile) {
@@ -784,7 +790,7 @@ namespace Corrosive {
 				c.move(tok);
 
 				if (tok == RecognizedToken::Semicolon) {
-					ret_type = Compiler::current()->types()->t_void;
+					ret_type = compiler->types()->t_void;
 				}
 				else {
 					Cursor err = c;
@@ -793,10 +799,10 @@ namespace Corrosive {
 					Operand::deref(val, CompileType::eval);
 					Expression::rvalue(val, CompileType::eval);
 
-					if (val.type != Compiler::current()->types()->t_type) {
+					if (val.type != compiler->types()->t_type) {
 						throw_specific_error(err, "Expected type");
 					}
-					Type* t = Compiler::current()->evaluator()->pop_register_value<Type*>();
+					Type* t = compiler->evaluator()->pop_register_value<Type*>();
 					t->compile();
 
 					if (t->context() == ILContext::compile) {
@@ -823,14 +829,14 @@ namespace Corrosive {
 				new_inst->member_table[m->name_string] = (uint16_t)decls.size();
 				decls.push_back(std::make_pair(ret_type, std::move(args)));
 
-				/*TypeFunction* type = Compiler::current()->types()->load_or_register_function_type(ILCallingConvention::bytecode, std::move(args), ret_type, ILContext::both);
+				/*TypeFunction* type = compiler->types()->load_or_register_function_type(ILCallingConvention::bytecode, std::move(args), ret_type, ILContext::both);
 
 				new_inst->member_table[m->name_string] = (uint16_t)new_inst->member_declarations.size();
 				new_inst->member_declarations.push_back(type);*/
 			}
 
 			for (auto&& d : decls) {
-				TypeFunction* type = Compiler::current()->types()->load_or_register_function_type(ILCallingConvention::bytecode, std::move(d.second), d.first, new_inst->context);
+				TypeFunction* type = compiler->types()->load_or_register_function_type(ILCallingConvention::bytecode, std::move(d.second), d.first, new_inst->context);
 				new_inst->member_declarations.push_back(type);
 			}
 
@@ -897,7 +903,7 @@ namespace Corrosive {
 			new_inst->context = ast_node->context;
 
 			new_inst->generic_inst.insert_key_on_stack();
-
+			Compiler* compiler = Compiler::current();
 
 			CompileValue cvres;
 
@@ -924,10 +930,10 @@ namespace Corrosive {
 					Operand::deref(cvres, CompileType::eval);
 					Expression::rvalue(cvres, CompileType::eval);
 
-					if (cvres.type != Compiler::current()->types()->t_type) {
-						throw_cannot_cast_error(err, cvres.type, Compiler::current()->types()->t_type);
+					if (cvres.type != compiler->types()->t_type) {
+						throw_cannot_cast_error(err, cvres.type, compiler->types()->t_type);
 					}
-					Type* t = Compiler::current()->evaluator()->pop_register_value<Type*>();
+					Type* t = compiler->evaluator()->pop_register_value<Type*>();
 
 					if (t->context() == ILContext::compile) {
 						if (new_inst->context != ILContext::runtime) {
@@ -968,10 +974,10 @@ namespace Corrosive {
 				Operand::deref(cvres, CompileType::eval);
 				Expression::rvalue(cvres, CompileType::eval);
 
-				if (cvres.type != Compiler::current()->types()->t_type) {
-					throw_cannot_cast_error(err, cvres.type, Compiler::current()->types()->t_type);
+				if (cvres.type != compiler->types()->t_type) {
+					throw_cannot_cast_error(err, cvres.type, compiler->types()->t_type);
 				}
-				Type* t = Compiler::current()->evaluator()->pop_register_value<Type*>();
+				Type* t = compiler->evaluator()->pop_register_value<Type*>();
 				new_inst->returns = t;
 
 				if (t->context() == ILContext::compile) {
@@ -993,7 +999,7 @@ namespace Corrosive {
 
 			}
 			else {
-				new_inst->returns = Compiler::current()->types()->t_void;
+				new_inst->returns = compiler->types()->t_void;
 			}
 
 			std::vector<Type*> argtypes;
@@ -1001,7 +1007,7 @@ namespace Corrosive {
 				argtypes.push_back(a);
 			}
 
-			new_inst->type = Compiler::current()->types()->load_or_register_function_type(ast_node->convention, std::move(argtypes), new_inst->returns, new_inst->context);
+			new_inst->type = compiler->types()->load_or_register_function_type(ast_node->convention, std::move(argtypes), new_inst->returns, new_inst->context);
 			new_inst->compile_state = 1;
 
 		}
@@ -1013,8 +1019,9 @@ namespace Corrosive {
 			compile_state = 2;
 
 			if (ast_node->has_body()) {
+				Compiler* compiler = Compiler::current();
 				type->compile();
-				auto func = Compiler::current()->global_module()->create_function(context);
+				auto func = compiler->global_module()->create_function(context);
 				this->func = func;
 				func->decl_id = type->il_function_decl;
 				func->alias = ast_node->name_string;
@@ -1035,7 +1042,7 @@ namespace Corrosive {
 
 					if (returns->rvalue_stacked()) {
 						ret_rval_stack = true;
-						return_ptr_local_id = func->local_stack_lifetime.append(Compiler::current()->types()->t_ptr->size());
+						return_ptr_local_id = func->local_stack_lifetime.append(compiler->types()->t_ptr->size());
 					}
 
 					
@@ -1047,22 +1054,22 @@ namespace Corrosive {
 
 						stackid_t id = func->local_stack_lifetime.append(a->size());
 
-						Compiler::current()->stack()->push_item(((AstFunctionNode*)ast_node)->argument_names[i].second, a, id);
+						compiler->stack()->push_item(((AstFunctionNode*)ast_node)->argument_names[i].second, a, id);
 					}
 
 
 
 					uint16_t argid = (uint16_t)(arguments.size() - (ret_rval_stack ? 0 : 1));
 					for (auto a = arguments.rbegin(); a != arguments.rend(); a++) {
-						ILBuilder::build_local(Compiler::current()->scope(), argid);
+						ILBuilder::build_local(compiler->scope(), argid);
 						Expression::copy_from_rvalue(*a, CompileType::compile);
 
 						argid--;
 					}
 
 					if (ret_rval_stack) {
-						ILBuilder::build_local(Compiler::current()->scope(), return_ptr_local_id);
-						ILBuilder::build_store(Compiler::current()->scope(), ILDataType::word);
+						ILBuilder::build_local(compiler->scope(), return_ptr_local_id);
+						ILBuilder::build_store(compiler->scope(), ILDataType::word);
 					}
 
 					// return type context should be already ok or thrown
@@ -1173,8 +1180,9 @@ namespace Corrosive {
 
 			if (size.type == ILSizeType::table) {
 				if (table.elements.size() > 0) {
-					size.value = Compiler::current()->global_module()->register_structure_table();
-					Compiler::current()->global_module()->structure_tables[size.value] = std::move(table);
+					Compiler* compiler = Compiler::current();
+					size.value = compiler->global_module()->register_structure_table();
+					compiler->global_module()->structure_tables[size.value] = std::move(table);
 				}
 				else {
 					size = table.elements.back();
@@ -1250,14 +1258,15 @@ namespace Corrosive {
 			if (generator->generator != nullptr) {
 				generator->generator->insert_key_on_stack();
 			}
+			Compiler* compiler = Compiler::current();
 
 			unsigned char* key_ptr = key;
 			for (auto key_l = generator->generic_layout.rbegin(); key_l != generator->generic_layout.rend(); key_l++) {
 
-				stackid_t sid = Compiler::current()->mask_local(key_ptr);
-				Compiler::current()->compiler_stack()->push_item(std::get<0>(*key_l).buffer(), std::get<1>(*key_l), sid);
+				stackid_t sid = compiler->mask_local(key_ptr);
+				compiler->compiler_stack()->push_item(std::get<0>(*key_l).buffer(), std::get<1>(*key_l), sid);
 
-				key_ptr += std::get<1>(*key_l)->size().eval(Compiler::current()->global_module(), compiler_arch);
+				key_ptr += std::get<1>(*key_l)->size().eval(compiler->global_module(), compiler_arch);
 			}
 		}
 	}
@@ -1303,12 +1312,13 @@ namespace Corrosive {
 			Operand::deref(typevalue, CompileType::eval);
 			Expression::rvalue(typevalue, CompileType::eval);
 
+			Compiler* compiler = Compiler::current();
 			
 			if (!ast_node->has_value) {
-				if (typevalue.type != Compiler::current()->types()->t_type) {
-					throw_cannot_cast_error(err, typevalue.type, Compiler::current()->types()->t_type);
+				if (typevalue.type != compiler->types()->t_type) {
+					throw_cannot_cast_error(err, typevalue.type, compiler->types()->t_type);
 				}
-				type = Compiler::current()->evaluator()->pop_register_value<Type*>();
+				type = compiler->evaluator()->pop_register_value<Type*>();
 				type->compile();
 
 				if (type->context() == ILContext::compile) {
@@ -1329,7 +1339,7 @@ namespace Corrosive {
 				}
 
 
-				sid = Compiler::current()->global_module()->register_static(nullptr, type->size());
+				sid = compiler->global_module()->register_static(nullptr, type->size());
 			}
 			else {
 				type = typevalue.type;
@@ -1353,13 +1363,13 @@ namespace Corrosive {
 				}
 
 				if (typevalue.lvalue || type->rvalue_stacked()) {
-					void* ptr = Compiler::current()->evaluator()->pop_register_value<void*>();
-					sid = Compiler::current()->global_module()->register_static((unsigned char*)ptr, type->size());
+					void* ptr = compiler->evaluator()->pop_register_value<void*>();
+					sid = compiler->global_module()->register_static((unsigned char*)ptr, type->size());
 				}
 				else {
 					ilsize_t storage;
-					Compiler::current()->evaluator()->pop_register_value_indirect(Compiler::current()->evaluator()->compile_time_register_size(type->rvalue()),&storage);
-					sid = Compiler::current()->global_module()->register_static((unsigned char*)&storage, type->size());
+					compiler->evaluator()->pop_register_value_indirect(compiler->evaluator()->compile_time_register_size(type->rvalue()),&storage);
+					sid = compiler->global_module()->register_static((unsigned char*)&storage, type->size());
 				}
 			}
 

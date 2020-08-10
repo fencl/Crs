@@ -87,6 +87,7 @@ namespace Corrosive {
 
 
 	void Expression::emit(Cursor& c, CompileValue& res, int l, int op, CompileValue left, CompileValue right, CompileType cpt, int next_l, int next_op) {
+		Compiler* compiler = Compiler::current();
 		bool isf = false;
 		bool sig = false;
 		Type* result_type = nullptr;
@@ -98,20 +99,20 @@ namespace Corrosive {
 
 				if (cpt == CompileType::compile) {
 					if (left.lvalue || left.type->rvalue_stacked()) {
-						ILBuilder::build_memcmp(Compiler::current()->scope(), left.type->size());
+						ILBuilder::build_memcmp(compiler->scope(), left.type->size());
 					}
 					else {
-						ILBuilder::build_rmemcmp(Compiler::current()->scope(), left.type->rvalue());
+						ILBuilder::build_rmemcmp(compiler->scope(), left.type->rvalue());
 					}
 				}
 				else {
 					if (left.lvalue || left.type->rvalue_stacked()) {
-						ILBuilder::eval_memcmp(Compiler::current()->evaluator(), left.type->size().eval(Compiler::current()->global_module(), compiler_arch));
+						ILBuilder::eval_memcmp(compiler->evaluator(), left.type->size().eval(compiler->global_module(), compiler_arch));
 					}
 					else {
-						ILBuilder::eval_rmemcmp(Compiler::current()->evaluator(), left.type->rvalue());
+						ILBuilder::eval_rmemcmp(compiler->evaluator(), left.type->rvalue());
 					}
-					eval_value = Compiler::current()->evaluator()->pop_register_value<int8_t>();
+					eval_value = compiler->evaluator()->pop_register_value<int8_t>();
 				}
 
 				if (cpt == CompileType::compile) {
@@ -119,32 +120,32 @@ namespace Corrosive {
 						case 1: {
 							switch (op) {
 								case 0: {
-									ILBuilder::build_const_i8(Compiler::current()->scope(), 0);
-									ILBuilder::build_eq(Compiler::current()->scope(), ILDataType::i8, ILDataType::i8);
+									ILBuilder::build_const_i8(compiler->scope(), 0);
+									ILBuilder::build_eq(compiler->scope(), ILDataType::i8, ILDataType::i8);
 								}break;
 								case 1: {
-									ILBuilder::build_const_i8(Compiler::current()->scope(), 0);
-									ILBuilder::build_ne(Compiler::current()->scope(), ILDataType::i8, ILDataType::i8);
+									ILBuilder::build_const_i8(compiler->scope(), 0);
+									ILBuilder::build_ne(compiler->scope(), ILDataType::i8, ILDataType::i8);
 								}break;
 							}
 						}break;
 						case 2: {
 							switch (op) {
 								case 0: {
-									ILBuilder::build_const_i8(Compiler::current()->scope(), 1);
-									ILBuilder::build_eq(Compiler::current()->scope(), ILDataType::i8, ILDataType::i8);
+									ILBuilder::build_const_i8(compiler->scope(), 1);
+									ILBuilder::build_eq(compiler->scope(), ILDataType::i8, ILDataType::i8);
 								}break;
 								case 1: {
-									ILBuilder::build_const_i8(Compiler::current()->scope(), -1);
-									ILBuilder::build_eq(Compiler::current()->scope(), ILDataType::i8, ILDataType::i8);
+									ILBuilder::build_const_i8(compiler->scope(), -1);
+									ILBuilder::build_eq(compiler->scope(), ILDataType::i8, ILDataType::i8);
 								} break;
 								case 2: {
-									ILBuilder::build_const_i8(Compiler::current()->scope(), -1);
-									ILBuilder::build_ne(Compiler::current()->scope(), ILDataType::i8, ILDataType::i8);
+									ILBuilder::build_const_i8(compiler->scope(), -1);
+									ILBuilder::build_ne(compiler->scope(), ILDataType::i8, ILDataType::i8);
 								}break;
 								case 3: {
-									ILBuilder::build_const_i8(Compiler::current()->scope(), 1);
-									ILBuilder::build_ne(Compiler::current()->scope(), ILDataType::i8, ILDataType::i8);
+									ILBuilder::build_const_i8(compiler->scope(), 1);
+									ILBuilder::build_ne(compiler->scope(), ILDataType::i8, ILDataType::i8);
 								}break;
 							}
 						}break;
@@ -155,26 +156,26 @@ namespace Corrosive {
 						case 1: {
 							switch (op) {
 								case 0: {
-									ILBuilder::eval_const_i8(Compiler::current()->evaluator(), eval_value == 0 ? 1 : 0);
+									ILBuilder::eval_const_i8(compiler->evaluator(), eval_value == 0 ? 1 : 0);
 								}break;
 								case 1: {
-									ILBuilder::eval_const_i8(Compiler::current()->evaluator(), eval_value == 0 ? 0 : 1);
+									ILBuilder::eval_const_i8(compiler->evaluator(), eval_value == 0 ? 0 : 1);
 								}break;
 							}
 						}break;
 						case 2: {
 							switch (op) {
 								case 0: {
-									ILBuilder::eval_const_i8(Compiler::current()->evaluator(), eval_value == 1 ? 1 : 0);
+									ILBuilder::eval_const_i8(compiler->evaluator(), eval_value == 1 ? 1 : 0);
 								}break;
 								case 1: {
-									ILBuilder::eval_const_i8(Compiler::current()->evaluator(), eval_value == -1 ? 1 : 0);
+									ILBuilder::eval_const_i8(compiler->evaluator(), eval_value == -1 ? 1 : 0);
 								} break;
 								case 2: {
-									ILBuilder::eval_const_i8(Compiler::current()->evaluator(), eval_value == -1 ? 0 : 1);
+									ILBuilder::eval_const_i8(compiler->evaluator(), eval_value == -1 ? 0 : 1);
 								}break;
 								case 3: {
-									ILBuilder::eval_const_i8(Compiler::current()->evaluator(), eval_value == 1 ? 0 : 1);
+									ILBuilder::eval_const_i8(compiler->evaluator(), eval_value == 1 ? 0 : 1);
 								}break;
 							}
 						}break;
@@ -182,7 +183,7 @@ namespace Corrosive {
 				}
 
 
-				res.type = Compiler::current()->types()->t_bool;
+				res.type = compiler->types()->t_bool;
 				res.lvalue = false;
 			}
 			else {
@@ -192,69 +193,69 @@ namespace Corrosive {
 		else {
 
 			if (l == 1 || l == 2)
-				result_type = Compiler::current()->types()->t_bool;
+				result_type = compiler->types()->t_bool;
 
 			if (cpt == CompileType::compile) {
 				switch (l) {
 					case 0: {
 						switch (op) {
 							case 0: {
-								ILBuilder::build_and(Compiler::current()->scope(), left.type->rvalue(), right.type->rvalue());
+								ILBuilder::build_and(compiler->scope(), left.type->rvalue(), right.type->rvalue());
 							}break;
 							case 1: {
-								ILBuilder::build_or(Compiler::current()->scope(), left.type->rvalue(), right.type->rvalue());
+								ILBuilder::build_or(compiler->scope(), left.type->rvalue(), right.type->rvalue());
 							}break;
 							case 2: {
-								ILBuilder::build_xor(Compiler::current()->scope(), left.type->rvalue(), right.type->rvalue());
+								ILBuilder::build_xor(compiler->scope(), left.type->rvalue(), right.type->rvalue());
 							}break;
 						}
 					}break;
 					case 1: {
 						switch (op) {
 							case 0: {
-								ILBuilder::build_eq(Compiler::current()->scope(), left.type->rvalue(), right.type->rvalue());
+								ILBuilder::build_eq(compiler->scope(), left.type->rvalue(), right.type->rvalue());
 							}break;
 							case 1: {
-								ILBuilder::build_ne(Compiler::current()->scope(), left.type->rvalue(), right.type->rvalue());
+								ILBuilder::build_ne(compiler->scope(), left.type->rvalue(), right.type->rvalue());
 							}break;
 						}
 					}break;
 					case 2: {
 						switch (op) {
 							case 0: {
-								ILBuilder::build_gt(Compiler::current()->scope(), left.type->rvalue(), right.type->rvalue());
+								ILBuilder::build_gt(compiler->scope(), left.type->rvalue(), right.type->rvalue());
 							}break;
 							case 1: {
-								ILBuilder::build_lt(Compiler::current()->scope(), left.type->rvalue(), right.type->rvalue());
+								ILBuilder::build_lt(compiler->scope(), left.type->rvalue(), right.type->rvalue());
 							} break;
 							case 2: {
-								ILBuilder::build_ge(Compiler::current()->scope(), left.type->rvalue(), right.type->rvalue());
+								ILBuilder::build_ge(compiler->scope(), left.type->rvalue(), right.type->rvalue());
 							}break;
 							case 3: {
-								ILBuilder::build_le(Compiler::current()->scope(), left.type->rvalue(), right.type->rvalue());
+								ILBuilder::build_le(compiler->scope(), left.type->rvalue(), right.type->rvalue());
 							}break;
 						}
 					}break;
 					case 3: {
 						switch (op) {
 							case 0: {
-								ILBuilder::build_add(Compiler::current()->scope(), left.type->rvalue(), right.type->rvalue());
+								ILBuilder::build_add(compiler->scope(), left.type->rvalue(), right.type->rvalue());
 							}break;
 							case 1: {
-								ILBuilder::build_sub(Compiler::current()->scope(), left.type->rvalue(), right.type->rvalue());
+								ILBuilder::build_sub(compiler->scope(), left.type->rvalue(), right.type->rvalue());
 							}break;
 						}
 					}break;
 					case 4: {
 						switch (op) {
 							case 0: {
-								ILBuilder::build_mul(Compiler::current()->scope(), left.type->rvalue(), right.type->rvalue());
+								ILBuilder::build_mul(compiler->scope(), left.type->rvalue(), right.type->rvalue());
 							}break;
 							case 1: {
-								ILBuilder::build_div(Compiler::current()->scope(), left.type->rvalue(), right.type->rvalue());
+								ILBuilder::build_div(compiler->scope(), left.type->rvalue(), right.type->rvalue());
 							} break;
 							case 2: {
-								ILBuilder::build_rem(Compiler::current()->scope(), left.type->rvalue(), right.type->rvalue());
+								ILBuilder::build_rem(compiler->scope(), left.type->rvalue(), right.type->rvalue());
 							}break;
 						}
 					}break;
@@ -265,62 +266,62 @@ namespace Corrosive {
 					case 0: {
 						switch (op) {
 							case 0: {
-								ILBuilder::eval_and(Compiler::current()->evaluator(), left.type->rvalue(), right.type->rvalue());
+								ILBuilder::eval_and(compiler->evaluator(), left.type->rvalue(), right.type->rvalue());
 							}break;
 							case 1: {
-								ILBuilder::eval_or(Compiler::current()->evaluator(), left.type->rvalue(), right.type->rvalue());
+								ILBuilder::eval_or(compiler->evaluator(), left.type->rvalue(), right.type->rvalue());
 							}break;
 							case 2: {
-								ILBuilder::eval_xor(Compiler::current()->evaluator(), left.type->rvalue(), right.type->rvalue());
+								ILBuilder::eval_xor(compiler->evaluator(), left.type->rvalue(), right.type->rvalue());
 							}break;
 						}
 					}break;
 					case 1: {
 						switch (op) {
 							case 0: {
-								ILBuilder::eval_eq(Compiler::current()->evaluator(), left.type->rvalue(), right.type->rvalue());
+								ILBuilder::eval_eq(compiler->evaluator(), left.type->rvalue(), right.type->rvalue());
 							}break;
 							case 1: {
-								ILBuilder::eval_ne(Compiler::current()->evaluator(), left.type->rvalue(), right.type->rvalue());
+								ILBuilder::eval_ne(compiler->evaluator(), left.type->rvalue(), right.type->rvalue());
 							}break;
 						}
 					}break;
 					case 2: {
 						switch (op) {
 							case 0: {
-								ILBuilder::eval_gt(Compiler::current()->evaluator(), left.type->rvalue(), right.type->rvalue());
+								ILBuilder::eval_gt(compiler->evaluator(), left.type->rvalue(), right.type->rvalue());
 							}break;
 							case 1: {
-								ILBuilder::eval_lt(Compiler::current()->evaluator(), left.type->rvalue(), right.type->rvalue());
+								ILBuilder::eval_lt(compiler->evaluator(), left.type->rvalue(), right.type->rvalue());
 							} break;
 							case 2: {
-								ILBuilder::eval_ge(Compiler::current()->evaluator(), left.type->rvalue(), right.type->rvalue());
+								ILBuilder::eval_ge(compiler->evaluator(), left.type->rvalue(), right.type->rvalue());
 							}break;
 							case 3: {
-								ILBuilder::eval_le(Compiler::current()->evaluator(), left.type->rvalue(), right.type->rvalue());
+								ILBuilder::eval_le(compiler->evaluator(), left.type->rvalue(), right.type->rvalue());
 							}break;
 						}
 					}break;
 					case 3: {
 						switch (op) {
 							case 0: {
-								ILBuilder::eval_add(Compiler::current()->evaluator(), left.type->rvalue(), right.type->rvalue());
+								ILBuilder::eval_add(compiler->evaluator(), left.type->rvalue(), right.type->rvalue());
 							}break;
 							case 1: {
-								ILBuilder::eval_sub(Compiler::current()->evaluator(), left.type->rvalue(), right.type->rvalue());
+								ILBuilder::eval_sub(compiler->evaluator(), left.type->rvalue(), right.type->rvalue());
 							}break;
 						}
 					}break;
 					case 4: {
 						switch (op) {
 							case 0: {
-								ILBuilder::eval_mul(Compiler::current()->evaluator(), left.type->rvalue(), right.type->rvalue());
+								ILBuilder::eval_mul(compiler->evaluator(), left.type->rvalue(), right.type->rvalue());
 							}break;
 							case 1: {
-								ILBuilder::eval_div(Compiler::current()->evaluator(), left.type->rvalue(), right.type->rvalue());
+								ILBuilder::eval_div(compiler->evaluator(), left.type->rvalue(), right.type->rvalue());
 							} break;
 							case 2: {
-								ILBuilder::eval_rem(Compiler::current()->evaluator(), left.type->rvalue(), right.type->rvalue());
+								ILBuilder::eval_rem(compiler->evaluator(), left.type->rvalue(), right.type->rvalue());
 							}break;
 						}
 					}break;
@@ -333,6 +334,7 @@ namespace Corrosive {
 	}
 
 	void Expression::parse(Cursor& c,RecognizedToken& tok, CompileValue& res, CompileType cpt, bool require_output) {
+		Compiler* compiler = Compiler::current();
 		CompileValue val;
 		parse_or(c,tok, val, cpt);
 		unsigned char op = 0;
@@ -348,10 +350,10 @@ namespace Corrosive {
 
 				if (require_output) {
 					if (cpt == CompileType::compile) {
-						ILBuilder::build_duplicate(Compiler::current()->scope(), ILDataType::word);
+						ILBuilder::build_duplicate(compiler->scope(), ILDataType::word);
 					}
 					else {
-						ILBuilder::eval_duplicate(Compiler::current()->evaluator(), ILDataType::word);
+						ILBuilder::eval_duplicate(compiler->evaluator(), ILDataType::word);
 					}
 				}
 
@@ -366,7 +368,7 @@ namespace Corrosive {
 
 				if (!require_output) {
 					val.lvalue = false;
-					val.type = Compiler::current()->types()->t_void;
+					val.type = compiler->types()->t_void;
 				}
 			} break;
 			case RecognizedToken::PlusEquals:
@@ -392,18 +394,18 @@ namespace Corrosive {
 
 				if (require_output) {
 					if (cpt == CompileType::compile) {
-						ILBuilder::build_duplicate(Compiler::current()->scope(), ILDataType::word);
+						ILBuilder::build_duplicate(compiler->scope(), ILDataType::word);
 					}
 					else {
-						ILBuilder::eval_duplicate(Compiler::current()->evaluator(), ILDataType::word);
+						ILBuilder::eval_duplicate(compiler->evaluator(), ILDataType::word);
 					}
 				}
 
 				if (cpt == CompileType::compile) {
-					ILBuilder::build_duplicate(Compiler::current()->scope(), ILDataType::word);
+					ILBuilder::build_duplicate(compiler->scope(), ILDataType::word);
 				}
 				else {
-					ILBuilder::eval_duplicate(Compiler::current()->evaluator(), ILDataType::word);
+					ILBuilder::eval_duplicate(compiler->evaluator(), ILDataType::word);
 				}
 				Expression::rvalue(val, cpt);
 
@@ -419,64 +421,64 @@ namespace Corrosive {
 
 				if (cpt == CompileType::compile) {
 					if (op == 1)
-						ILBuilder::build_add(Compiler::current()->scope(), val.type->rvalue(), val2.type->rvalue());
+						ILBuilder::build_add(compiler->scope(), val.type->rvalue(), val2.type->rvalue());
 					else if (op == 2)
-						ILBuilder::build_sub(Compiler::current()->scope(), val.type->rvalue(), val2.type->rvalue());
+						ILBuilder::build_sub(compiler->scope(), val.type->rvalue(), val2.type->rvalue());
 					else if (op == 3)
-						ILBuilder::build_mul(Compiler::current()->scope(), val.type->rvalue(), val2.type->rvalue());
+						ILBuilder::build_mul(compiler->scope(), val.type->rvalue(), val2.type->rvalue());
 					else
-						ILBuilder::build_div(Compiler::current()->scope(), val.type->rvalue(), val2.type->rvalue());
+						ILBuilder::build_div(compiler->scope(), val.type->rvalue(), val2.type->rvalue());
 
-					ILBuilder::build_cast(Compiler::current()->scope(), ILBuilder::arith_result(val.type->rvalue(), val2.type->rvalue()), val.type->rvalue());
-					ILBuilder::build_store_rev(Compiler::current()->scope(), val.type->rvalue());
+					ILBuilder::build_cast(compiler->scope(), ILBuilder::arith_result(val.type->rvalue(), val2.type->rvalue()), val.type->rvalue());
+					ILBuilder::build_store_rev(compiler->scope(), val.type->rvalue());
 				}
 				else {
 					if (op == 1)
-						ILBuilder::eval_add(Compiler::current()->evaluator(), val.type->rvalue(), val2.type->rvalue());
+						ILBuilder::eval_add(compiler->evaluator(), val.type->rvalue(), val2.type->rvalue());
 					else if (op == 2)
-						ILBuilder::eval_sub(Compiler::current()->evaluator(), val.type->rvalue(), val2.type->rvalue());
+						ILBuilder::eval_sub(compiler->evaluator(), val.type->rvalue(), val2.type->rvalue());
 					else if (op == 3)
-						ILBuilder::eval_mul(Compiler::current()->evaluator(), val.type->rvalue(), val2.type->rvalue());
+						ILBuilder::eval_mul(compiler->evaluator(), val.type->rvalue(), val2.type->rvalue());
 					else
-						ILBuilder::eval_div(Compiler::current()->evaluator(), val.type->rvalue(), val2.type->rvalue());
+						ILBuilder::eval_div(compiler->evaluator(), val.type->rvalue(), val2.type->rvalue());
 
-					ILBuilder::eval_cast(Compiler::current()->evaluator(), ILBuilder::arith_result(val.type->rvalue(), val2.type->rvalue()), val.type->rvalue());
-					ILBuilder::eval_store_rev(Compiler::current()->evaluator(), val.type->rvalue());
+					ILBuilder::eval_cast(compiler->evaluator(), ILBuilder::arith_result(val.type->rvalue(), val2.type->rvalue()), val.type->rvalue());
+					ILBuilder::eval_store_rev(compiler->evaluator(), val.type->rvalue());
 				}
 
 				if (!require_output) {
 					val.lvalue = false;
-					val.type = Compiler::current()->types()->t_void;
+					val.type = compiler->types()->t_void;
 				}
 			} break;
 		}
 
 		res = val;
-		if (!require_output && val.type != Compiler::current()->types()->t_void) {
+		if (!require_output && val.type != compiler->types()->t_void) {
 			if (res.lvalue || res.type->rvalue_stacked()) {
 				if (cpt == CompileType::compile) {
-					ILBuilder::build_forget(Compiler::current()->scope(), ILDataType::word);
+					ILBuilder::build_forget(compiler->scope(), ILDataType::word);
 				}
 				else {
-					ILBuilder::eval_forget(Compiler::current()->evaluator(), ILDataType::word);
+					ILBuilder::eval_forget(compiler->evaluator(), ILDataType::word);
 				}
 			}
 			else {
 				if (cpt == CompileType::compile) {
-					ILBuilder::build_forget(Compiler::current()->scope(), res.type->rvalue());
+					ILBuilder::build_forget(compiler->scope(), res.type->rvalue());
 				}
 				else {
-					ILBuilder::eval_forget(Compiler::current()->evaluator(), res.type->rvalue());
+					ILBuilder::eval_forget(compiler->evaluator(), res.type->rvalue());
 				}
 			}
 
 			res.lvalue = false;
-			res.type = Compiler::current()->types()->t_void;
+			res.type = compiler->types()->t_void;
 		}
 	}
 
 	void Expression::parse_and(Cursor& c, RecognizedToken& tok, CompileValue& res, CompileType cpt) {
-
+		Compiler* compiler = Compiler::current();
 		ILBlock* fallback = nullptr;
 		CompileValue value;
 		Cursor err = c;
@@ -485,46 +487,46 @@ namespace Corrosive {
 		while (tok == RecognizedToken::DoubleAnd) {
 
 			Operand::deref(value, cpt);
-			Operand::cast(err, value, Compiler::current()->types()->t_bool, cpt, true);
+			Operand::cast(err, value, compiler->types()->t_bool, cpt, true);
 			Expression::rvalue(value, cpt);
 
 			c.move(tok);
 
 			if (cpt == CompileType::eval) {
-				uint8_t v = Compiler::current()->evaluator()->read_register_value<uint8_t>();
+				uint8_t v = compiler->evaluator()->read_register_value<uint8_t>();
 
-				Compiler::current()->evaluator()->pop_register_value<uint8_t>();
+				compiler->evaluator()->pop_register_value<uint8_t>();
 				CompileValue right;
 				err = c;
 				Expression::parse_operators(c,tok, right, cpt);
 				Operand::deref(right, cpt);
-				Operand::cast(err, right, Compiler::current()->types()->t_bool, cpt, true);
+				Operand::cast(err, right, compiler->types()->t_bool, cpt, true);
 				Expression::rvalue(right, cpt);
 				
 
 
-				uint8_t rv = Compiler::current()->evaluator()->pop_register_value<uint8_t>();
-				ILBuilder::eval_const_i8(Compiler::current()->evaluator(), v & rv);
+				uint8_t rv = compiler->evaluator()->pop_register_value<uint8_t>();
+				ILBuilder::eval_const_i8(compiler->evaluator(), v & rv);
 			}
 			else {
 				if (!fallback) {
-					fallback = Compiler::current()->target()->create_block();
+					fallback = compiler->target()->create_block();
 				}
 
 				Expression::rvalue(value, cpt);
 
-				ILBlock* positive_block = Compiler::current()->target()->create_block();
-				Compiler::current()->target()->append_block(positive_block);
+				ILBlock* positive_block = compiler->target()->create_block();
+				compiler->target()->append_block(positive_block);
 
 				ILBuilder::build_discard(positive_block, ILDataType::i8);
 
-				ILBuilder::build_const_i8(Compiler::current()->scope(), false);
-				ILBuilder::build_yield(Compiler::current()->scope(), ILDataType::i8);
+				ILBuilder::build_const_i8(compiler->scope(), false);
+				ILBuilder::build_yield(compiler->scope(), ILDataType::i8);
 
-				ILBuilder::build_jmpz(Compiler::current()->scope(), fallback, positive_block);
+				ILBuilder::build_jmpz(compiler->scope(), fallback, positive_block);
 
-				Compiler::current()->pop_scope();
-				Compiler::current()->push_scope(positive_block);
+				compiler->pop_scope();
+				compiler->push_scope(positive_block);
 
 				err = c;
 				Expression::parse_operators(c,tok, value, cpt);
@@ -536,19 +538,19 @@ namespace Corrosive {
 		if (fallback != nullptr && cpt == CompileType::compile) {
 
 			Operand::deref(value, cpt);
-			Operand::cast(err, value, Compiler::current()->types()->t_bool, cpt, true);
+			Operand::cast(err, value, compiler->types()->t_bool, cpt, true);
 
 			Expression::rvalue(value, cpt);
-			ILBuilder::build_yield(Compiler::current()->scope(), ILDataType::i8);
-			ILBuilder::build_jmp(Compiler::current()->scope(), fallback);
+			ILBuilder::build_yield(compiler->scope(), ILDataType::i8);
+			ILBuilder::build_jmp(compiler->scope(), fallback);
 
-			Compiler::current()->target()->append_block(fallback);
-			Compiler::current()->pop_scope();
-			Compiler::current()->push_scope(fallback);
+			compiler->target()->append_block(fallback);
+			compiler->pop_scope();
+			compiler->push_scope(fallback);
 			fallback = nullptr;
 
-			ILBuilder::build_accept(Compiler::current()->scope(), ILDataType::i8);
-			value.type = Compiler::current()->types()->t_bool;
+			ILBuilder::build_accept(compiler->scope(), ILDataType::i8);
+			value.type = compiler->types()->t_bool;
 			value.lvalue = false;
 		}
 
@@ -558,7 +560,7 @@ namespace Corrosive {
 
 
 	void Expression::parse_or(Cursor& c,RecognizedToken& tok, CompileValue& res, CompileType cpt) {
-
+		Compiler* compiler = Compiler::current();
 		ILBlock* fallback = nullptr;
 
 		CompileValue value;
@@ -567,43 +569,43 @@ namespace Corrosive {
 
 		while (tok == RecognizedToken::DoubleOr) {
 			Operand::deref(value, cpt);
-			Operand::cast(err, value, Compiler::current()->types()->t_bool, cpt, true);
+			Operand::cast(err, value, compiler->types()->t_bool, cpt, true);
 			Expression::rvalue(value, cpt);
 
 			c.move(tok);
 
 			if (cpt == CompileType::eval) {
-				uint8_t v = Compiler::current()->evaluator()->read_register_value<uint8_t>();
+				uint8_t v = compiler->evaluator()->read_register_value<uint8_t>();
 
-				Compiler::current()->evaluator()->pop_register_value<uint8_t>();
+				compiler->evaluator()->pop_register_value<uint8_t>();
 				CompileValue right;
 				Expression::parse_and(c,tok, right, cpt);
 				Operand::deref(right, cpt);
-				Operand::cast(err, right, Compiler::current()->types()->t_bool, cpt, true);
+				Operand::cast(err, right, compiler->types()->t_bool, cpt, true);
 				Expression::rvalue(right, cpt);
 
-				uint8_t rv = Compiler::current()->evaluator()->pop_register_value<uint8_t>();
-				ILBuilder::eval_const_i8(Compiler::current()->evaluator(), v | rv);
+				uint8_t rv = compiler->evaluator()->pop_register_value<uint8_t>();
+				ILBuilder::eval_const_i8(compiler->evaluator(), v | rv);
 			}
 			else {
 				if (!fallback) {
-					fallback = Compiler::current()->target()->create_block();
+					fallback = compiler->target()->create_block();
 				}
 
 				Expression::rvalue(value, cpt);
 
-				ILBlock* positive_block = Compiler::current()->target()->create_block();
-				Compiler::current()->target()->append_block(positive_block);
+				ILBlock* positive_block = compiler->target()->create_block();
+				compiler->target()->append_block(positive_block);
 
 				ILBuilder::build_discard(positive_block, ILDataType::i8);
 
-				ILBuilder::build_const_i8(Compiler::current()->scope(), true);
-				ILBuilder::build_yield(Compiler::current()->scope(), ILDataType::i8);
+				ILBuilder::build_const_i8(compiler->scope(), true);
+				ILBuilder::build_yield(compiler->scope(), ILDataType::i8);
 
-				ILBuilder::build_jmpz(Compiler::current()->scope(), positive_block, fallback);
+				ILBuilder::build_jmpz(compiler->scope(), positive_block, fallback);
 
-				Compiler::current()->pop_scope();
-				Compiler::current()->push_scope(positive_block);
+				compiler->pop_scope();
+				compiler->push_scope(positive_block);
 
 				err = c;
 				Expression::parse_and(c,tok, value, cpt);
@@ -614,22 +616,22 @@ namespace Corrosive {
 		if (fallback != nullptr && cpt == CompileType::compile) {
 
 			Operand::deref(value, cpt);
-			Operand::cast(err, value, Compiler::current()->types()->t_bool, cpt, true);
+			Operand::cast(err, value, compiler->types()->t_bool, cpt, true);
 
 			Expression::rvalue(value, cpt);
 
-			ILBuilder::build_yield(Compiler::current()->scope(), ILDataType::i8);
-			ILBuilder::build_jmp(Compiler::current()->scope(), fallback);
+			ILBuilder::build_yield(compiler->scope(), ILDataType::i8);
+			ILBuilder::build_jmp(compiler->scope(), fallback);
 
-			Compiler::current()->target()->append_block(fallback);
-			Compiler::current()->pop_scope();
-			Compiler::current()->push_scope(fallback);
+			compiler->target()->append_block(fallback);
+			compiler->pop_scope();
+			compiler->push_scope(fallback);
 
 			fallback = nullptr;
 
-			ILBuilder::build_accept(Compiler::current()->scope(), ILDataType::i8);
+			ILBuilder::build_accept(compiler->scope(), ILDataType::i8);
 
-			value.type = Compiler::current()->types()->t_bool;
+			value.type = compiler->types()->t_bool;
 			value.lvalue = false;
 		}
 

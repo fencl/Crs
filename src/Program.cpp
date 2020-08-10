@@ -77,7 +77,7 @@ namespace Corrosive {
 		ILEvaluator::sandbox_end();
 
 
-		return 0;
+		return true;
 	}
 }
 

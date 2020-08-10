@@ -94,18 +94,19 @@ namespace Corrosive {
 					}
 				}
 				else {
+					Compiler* compiler = Compiler::current();
 					switch (rvalue())
 					{
-						case ILDataType::u8: ILBuilder::build_const_u8(Compiler::current()->scope(), *(uint8_t*)source); break;
-						case ILDataType::u16: ILBuilder::build_const_u16(Compiler::current()->scope(), *(uint16_t*)source); break;
-						case ILDataType::u32: ILBuilder::build_const_u32(Compiler::current()->scope(), *(uint32_t*)source); break;
-						case ILDataType::u64: ILBuilder::build_const_u64(Compiler::current()->scope(), *(uint64_t*)source); break;
-						case ILDataType::i8: ILBuilder::build_const_i8(Compiler::current()->scope(), *(int8_t*)source); break;
-						case ILDataType::i16: ILBuilder::build_const_i16(Compiler::current()->scope(), *(int16_t*)source); break;
-						case ILDataType::i32: ILBuilder::build_const_i32(Compiler::current()->scope(), *(int32_t*)source); break;
-						case ILDataType::i64: ILBuilder::build_const_i64(Compiler::current()->scope(), *(int64_t*)source); break;
-						case ILDataType::f32: ILBuilder::build_const_f32(Compiler::current()->scope(), *(float*)source); break;
-						case ILDataType::f64: ILBuilder::build_const_f64(Compiler::current()->scope(), *(double*)source); break;
+						case ILDataType::u8: ILBuilder::build_const_u8(compiler->scope(), *(uint8_t*)source); break;
+						case ILDataType::u16: ILBuilder::build_const_u16(compiler->scope(), *(uint16_t*)source); break;
+						case ILDataType::u32: ILBuilder::build_const_u32(compiler->scope(), *(uint32_t*)source); break;
+						case ILDataType::u64: ILBuilder::build_const_u64(compiler->scope(), *(uint64_t*)source); break;
+						case ILDataType::i8: ILBuilder::build_const_i8(compiler->scope(), *(int8_t*)source); break;
+						case ILDataType::i16: ILBuilder::build_const_i16(compiler->scope(), *(int16_t*)source); break;
+						case ILDataType::i32: ILBuilder::build_const_i32(compiler->scope(), *(int32_t*)source); break;
+						case ILDataType::i64: ILBuilder::build_const_i64(compiler->scope(), *(int64_t*)source); break;
+						case ILDataType::f32: ILBuilder::build_const_f32(compiler->scope(), *(float*)source); break;
+						case ILDataType::f64: ILBuilder::build_const_f64(compiler->scope(), *(double*)source); break;
 						default: break;
 					}
 				}
@@ -121,18 +122,19 @@ namespace Corrosive {
 
 	void TypeSlice::constantize(Cursor& err, unsigned char* target, unsigned char* source) {
 		if (setjmp(sandbox) == 0) {
+			Compiler* compiler = Compiler::current();
 			dword_t me = *(dword_t*)source;
 			std::string data((size_t)me.p2,'\0');
 			uint8_t* ptr_src = (uint8_t*)me.p1;
 			uint8_t* ptr_dst = (uint8_t*)data.data();
-			size_t elem_size = owner->size().eval(Compiler::current()->global_module(), compiler_arch);
+			size_t elem_size = owner->size().eval(compiler->global_module(), compiler_arch);
 			for (size_t i=0;i<((size_t)me.p2)/elem_size; ++i) {
 				owner->constantize(err, ptr_dst, ptr_src);
 				ptr_src += elem_size;
 				ptr_dst += elem_size;
 			}
 
-			auto val = Compiler::current()->constant_manager()->register_string_literal(data);
+			auto val = compiler->constant_manager()->register_string_literal(data);
 
 			if (target) {
 				dword_t* tg = (dword_t*)target;
@@ -140,7 +142,7 @@ namespace Corrosive {
 				tg->p2 = (void*)val.first.size();
 			}
 			else {
-				ILBuilder::build_const_slice(Compiler::current()->scope(), val.second, val.first.size());
+				ILBuilder::build_const_slice(compiler->scope(), val.second, val.first.size());
 			}
 		}
 		else {
@@ -151,12 +153,13 @@ namespace Corrosive {
 	void TypeArray::constantize(Cursor& err, unsigned char* target, unsigned char* source) {
 
 		if (setjmp(sandbox) == 0) {
-			size_t me_size = size().eval(Compiler::current()->global_module(), compiler_arch);
+			Compiler* compiler = Compiler::current();
+			size_t me_size = size().eval(compiler->global_module(), compiler_arch);
 
 			std::string data(me_size,'\0');
 			uint8_t* ptr_src = (uint8_t*)source;
 			uint8_t* ptr_dst = (uint8_t*)data.data();
-			size_t elem_size = owner->size().eval(Compiler::current()->global_module(), compiler_arch);
+			size_t elem_size = owner->size().eval(compiler->global_module(), compiler_arch);
 			for (size_t i=0;i<(me_size)/elem_size; ++i) {
 				owner->constantize(err, ptr_dst, ptr_src);
 				ptr_src += elem_size;
@@ -167,14 +170,14 @@ namespace Corrosive {
 				memcpy(target, data.data(), data.size()); // no need to register as constant
 			}
 			else {
-				auto val = Compiler::current()->constant_manager()->register_string_literal(data);
+				auto val = compiler->constant_manager()->register_string_literal(data);
 
-				stackid_t local_id = Compiler::current()->target()->local_stack_lifetime.append(size());
-				Compiler::current()->temp_stack()->push_item("$tmp", this, local_id);
-				ILBuilder::build_constref(Compiler::current()->scope(), val.second);
-				ILBuilder::build_local(Compiler::current()->scope(), local_id);
-				ILBuilder::build_memcpy(Compiler::current()->scope(), size());
-				ILBuilder::build_local(Compiler::current()->scope(), local_id);
+				stackid_t local_id = compiler->target()->local_stack_lifetime.append(size());
+				compiler->temp_stack()->push_item("$tmp", this, local_id);
+				ILBuilder::build_constref(compiler->scope(), val.second);
+				ILBuilder::build_local(compiler->scope(), local_id);
+				ILBuilder::build_memcpy(compiler->scope(), size());
+				ILBuilder::build_local(compiler->scope(), local_id);
 			}
 		}
 		else {
@@ -264,12 +267,13 @@ namespace Corrosive {
 		
 		auto f = arrays.find(count);
 		if (f == arrays.end()) {
+			Compiler* compiler = Compiler::current();
 			std::unique_ptr<TypeArray> ti = std::make_unique<TypeArray>();
 			ti->owner = this;
 			
-			ti->table = Compiler::current()->global_module()->register_array_table();
-			Compiler::current()->global_module()->array_tables[ti->table].count = count;
-			Compiler::current()->global_module()->array_tables[ti->table].element = size();
+			ti->table = compiler->global_module()->register_array_table();
+			compiler->global_module()->array_tables[ti->table].count = count;
+			compiler->global_module()->array_tables[ti->table].element = size();
 			TypeArray* rt = ti.get();
 			arrays[count] = std::move(ti);
 			return rt;
