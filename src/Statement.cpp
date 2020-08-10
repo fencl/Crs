@@ -1,8 +1,8 @@
-#include "Statement.h"
-#include "Expression.h"
-#include "Operand.h"
-#include "Error.h"
-#include "StackManager.h"
+#include "Statement.hpp"
+#include "Expression.hpp"
+#include "Operand.hpp"
+#include "Error.hpp"
+#include "StackManager.hpp"
 #include <iostream>
 
 namespace Corrosive {

@@ -1,5 +1,5 @@
-#include "Compiler.h"
-#include "Operand.h"
+#include "Compiler.hpp"
+#include "Operand.hpp"
 
 namespace Corrosive {
 	void Compiler::setup() {

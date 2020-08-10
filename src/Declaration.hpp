@@ -3,15 +3,15 @@
 #define _declaration_crs_h
 
 
-#include "CompileContext.h"
+#include "CompileContext.hpp"
 #include <memory>
 #include <vector>
-#include "Cursor.h"
+#include "Cursor.hpp"
 #include <unordered_map>
 #include <map>
-#include "Type.h"
-#include "IL/IL.h"
-#include "Ast.h"
+#include "Type.hpp"
+#include "IL/IL.hpp"
+#include "Ast.hpp"
 
 namespace Corrosive {
 	class Compiler;

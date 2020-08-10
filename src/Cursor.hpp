@@ -1,9 +1,8 @@
-#pragma once
 #ifndef _cursor_crs_h
 #define _cursor_crs_h
 #include <string_view>
 #include <memory>
-#include "IL/IL.h"
+#include "IL/IL.hpp"
 
 namespace Corrosive {
 	enum class RecognizedToken {

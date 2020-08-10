@@ -1,5 +1,5 @@
-#include "IL.h"
-#include "../Error.h"
+#include "IL.hpp"
+#include "../Error.hpp"
 #include <algorithm>
 #include <functional>
 

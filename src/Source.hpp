@@ -1,7 +1,6 @@
-#pragma once
 #ifndef _source_crs_h
 #define _source_crs_h
-#include "Cursor.h"
+#include "Cursor.hpp"
 #include <unordered_map> 
 #include <map> 
 #include <string>

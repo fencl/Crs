@@ -2,11 +2,11 @@
 #ifndef _compiler_crs_h
 #define _compiler_crs_h
 
-#include "IL/IL.h"
-#include "PredefinedTypes.h"
-#include "StackManager.h"
-#include "ConstantManager.h"
-#include "Declaration.h"
+#include "IL/IL.hpp"
+#include "BuiltIn.hpp"
+#include "StackManager.hpp"
+#include "ConstantManager.hpp"
+#include "Declaration.hpp"
 
 namespace Corrosive {
 

@@ -1,8 +1,7 @@
-#pragma once
 #ifndef _operand_crs_h
 #define _operand_crs_h
-#include "Cursor.h"
-#include "CompileContext.h"
+#include "Cursor.hpp"
+#include "CompileContext.hpp"
 
 namespace Corrosive {
 

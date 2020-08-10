@@ -1,10 +1,9 @@
-#pragma once
 #ifndef _stack_manager_crs_h
 #define _stack_manager_crs_h
 
 #include <vector>
 #include <unordered_map>
-#include "CompileContext.h"
+#include "CompileContext.hpp"
 
 namespace Corrosive {
 

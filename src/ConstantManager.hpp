@@ -1,9 +1,8 @@
-#pragma once
 #ifndef _constant_manager_crs_h
 #define _constant_manager_crs_h
-#include "Cursor.h"
-#include "CompileContext.h"
-#include "Type.h"
+#include "Cursor.hpp"
+#include "CompileContext.hpp"
+#include "Type.hpp"
 #include <unordered_map>
 #include <unordered_set>
 #include <string>

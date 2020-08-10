@@ -1,9 +1,9 @@
 #ifndef _statement_crs_h
 #define _statement_crs_h
 
-#include "Cursor.h"
-#include "CompileContext.h"
-#include "Compiler.h"
+#include "Cursor.hpp"
+#include "CompileContext.hpp"
+#include "Compiler.hpp"
 
 namespace Corrosive {
 

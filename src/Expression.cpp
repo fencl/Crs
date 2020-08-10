@@ -1,11 +1,11 @@
-#include "Expression.h"
-#include "Operand.h"
-#include "Error.h"
+#include "Expression.hpp"
+#include "Operand.hpp"
+#include "Error.hpp"
 #include <algorithm>
-#include "Declaration.h"
-#include "PredefinedTypes.h"
+#include "Declaration.hpp"
+#include "BuiltIn.hpp"
 #include <iostream>
-#include "StackManager.h"
+#include "StackManager.hpp"
 
 namespace Corrosive {
 

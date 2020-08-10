@@ -1,11 +1,11 @@
-#include "Type.h"
-#include "Error.h"
+#include "Type.hpp"
+#include "Error.hpp"
 #include <iostream>
-#include "Declaration.h"
-#include "PredefinedTypes.h"
-#include "Utilities.h"
+#include "Declaration.hpp"
+#include "BuiltIn.hpp"
+#include "Utilities.hpp"
 #include <csetjmp>
-#include "Compiler.h"
+#include "Compiler.hpp"
 
 namespace Corrosive {
 

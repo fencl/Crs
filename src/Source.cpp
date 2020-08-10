@@ -1,17 +1,17 @@
-#include "Source.h"
+#include "Source.hpp"
 #include <iostream>
 #include <fstream>
 #include <ctype.h>
 #include <algorithm>
 #include <string>
 #include <string_view>
-#include "Utilities.h"
-#include "CompileContext.h"
-#include "Error.h"
-#include "ConstantManager.h"
-#include "Compiler.h"
-#include "Ast.h"
-#include "Statement.h"
+#include "Utilities.hpp"
+#include "CompileContext.hpp"
+#include "Error.hpp"
+#include "ConstantManager.hpp"
+#include "Compiler.hpp"
+#include "Ast.hpp"
+#include "Statement.hpp"
 
 namespace Corrosive {
 
@@ -488,7 +488,7 @@ namespace Corrosive {
 
 		auto f = Compiler::current()->included_sources.find(abs);
 		if (f == Compiler::current()->included_sources.end()) {
-
+			std::cout << abs << "\n";
 			auto new_src = std::make_unique<Source>();
 			new_src->path = abs;
 			new_src->load(abs.generic_string().c_str());

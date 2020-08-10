@@ -1,7 +1,7 @@
-#include "Ast.h"
-#include "Error.h"
-#include "Compiler.h"
-#include "Declaration.h"
+#include "Ast.hpp"
+#include "Error.hpp"
+#include "Compiler.hpp"
+#include "Declaration.hpp"
 
 namespace Corrosive {
 	std::unique_ptr<AstRootNode> AstRootNode::parse(Source* src) {

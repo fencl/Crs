@@ -1,19 +1,19 @@
-#include "Source.h"
+#include "Source.hpp"
 #include <iostream>
-#include "Type.h"
-#include "Declaration.h"
+#include "Type.hpp"
+#include "Declaration.hpp"
 #include <chrono>
 #include <vector>
 #include <memory>
-#include "PredefinedTypes.h"
-#include "Operand.h"
-#include "Expression.h"
-#include "IL/IL.h"
-#include "StackManager.h"
-#include "ConstantManager.h"
+#include "BuiltIn.hpp"
+#include "Operand.hpp"
+#include "Expression.hpp"
+#include "IL/IL.hpp"
+#include "StackManager.hpp"
+#include "ConstantManager.hpp"
 #include <memory>
-#include "Compiler.h"
-#include "Ast.h"
+#include "Compiler.hpp"
+#include "Ast.hpp"
 
 namespace Corrosive {
 	const ILArchitecture compiler_arch = (sizeof(void*) == 8) ? ILArchitecture::bit64 : ILArchitecture::bit32;
@@ -43,12 +43,8 @@ namespace Corrosive {
 			{
 				auto compiler = Compiler::create();
 				Compiler::push_compiler(compiler.get());
-
-				Source::require("../test/test.crs");
-				//Compiler::current()->register_ext_function({ "std","test" }, test_fun_provider);
-				
+				Source::require(file);
 				Compiler::pop_compiler();
-
 				compiled_module = compiler->finalize();
 			}
 			std::chrono::steady_clock::time_point compile_end = std::chrono::steady_clock::now();

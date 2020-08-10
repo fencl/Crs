@@ -1,10 +1,10 @@
 #include <iostream>
 #include <vector>
 #include <memory>
-#include "IL/IL.h"
+#include "IL/IL.hpp"
 #include <memory>
-#include "ConstantManager.h"
-#include "Compiler.h"
+#include "ConstantManager.hpp"
+#include "Compiler.hpp"
 
 namespace Corrosive {
 

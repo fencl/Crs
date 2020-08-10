@@ -5,8 +5,8 @@
 #include <memory>
 #include <map>
 #include <unordered_map>
-#include "Type.h"
-#include "Source.h"
+#include "Type.hpp"
+#include "Source.hpp"
 
 namespace Corrosive {
 	class Compiler;

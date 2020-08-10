@@ -1,10 +1,9 @@
-#pragma once
 #ifndef _expression_crs_h
 #define _expression_crs_h
-#include "Cursor.h"
-#include "CompileContext.h"
-#include "Type.h"
-#include "Compiler.h"
+#include "Cursor.hpp"
+#include "CompileContext.hpp"
+#include "Type.hpp"
+#include "Compiler.hpp"
 
 namespace Corrosive {
 	class Expression {

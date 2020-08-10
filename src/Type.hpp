@@ -5,10 +5,10 @@
 #include <string_view>
 #include <memory>
 #include <vector>
-#include "Cursor.h"
+#include "Cursor.hpp"
 #include <variant>
 #include <unordered_set>
-#include "IL/IL.h"
+#include "IL/IL.hpp"
 #include <ostream>
 #include <map>
 
@@ -209,8 +209,5 @@ namespace Corrosive {
 		virtual void print(std::ostream& os);		
 	};
 }
-
-#include "PredefinedTypes.h"
-#include "CompileContext.h"
 
 #endif

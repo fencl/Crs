@@ -1,9 +1,7 @@
-#pragma once
 #ifndef _compile_context_crs_h
 #define _compile_context_crs_h
 #include <variant>
-#include "IL/IL.h"
-#include "Type.h"
+#include "Type.hpp"
 #include <vector>
 #include <memory>
 

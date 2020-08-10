@@ -1,8 +1,8 @@
 #pragma once
 #ifndef _error_crs_h
 #define _error_crs_h
-#include "Cursor.h"
-#include "Type.h"
+#include "Cursor.hpp"
+#include "Type.hpp"
 
 namespace Corrosive {
 

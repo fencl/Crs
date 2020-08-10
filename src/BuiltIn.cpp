@@ -1,7 +1,7 @@
-#include "PredefinedTypes.h"
+#include "BuiltIn.hpp"
 #include <iostream>
-#include "Operand.h"
-#include "Compiler.h"
+#include "Operand.hpp"
+#include "Compiler.hpp"
 
 
 #ifdef WINDOWS

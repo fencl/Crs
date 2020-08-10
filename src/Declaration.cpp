@@ -1,9 +1,9 @@
-#include "Declaration.h"
-#include "Error.h"
+#include "Declaration.hpp"
+#include "Error.hpp"
 #include <iostream>
 #include <string>
-#include "PredefinedTypes.h"
-#include "Compiler.h"
+#include "BuiltIn.hpp"
+#include "Compiler.hpp"
 
 namespace Corrosive {
 	Namespace::~Namespace() {

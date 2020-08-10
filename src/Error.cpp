@@ -1,7 +1,7 @@
-#include "Error.h"
+#include "Error.hpp"
 #include <iostream>
-#include "Type.h"
-#include "Source.h"
+#include "Type.hpp"
+#include "Source.hpp"
 #include <algorithm>
 #include <cctype>
 #include <sstream>
