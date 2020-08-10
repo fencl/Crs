@@ -182,7 +182,7 @@ namespace Corrosive {
 			res.lvalue = false;
 			res.type = to;
 		}
-		else if (res.type == Compiler::current()->types()->t_ptr && to->type() == TypeInstanceType::type_function) {
+		/*else if (res.type == Compiler::current()->types()->t_ptr && to->type() == TypeInstanceType::type_function) {
 			Expression::rvalue(res, cpt);
 			res.lvalue = false;
 			res.type = to;
@@ -192,7 +192,7 @@ namespace Corrosive {
 			res.lvalue = false;
 			res.type = to;
 		}
-		/*else if (res.type->type() == TypeInstanceType::type_reference && to->type() == TypeInstanceType::type_reference) {
+		else if (res.type->type() == TypeInstanceType::type_reference && to->type() == TypeInstanceType::type_reference) {
 			if (res.type != to && implicit) {
 				if (((TypeReference*)to)->owner != Compiler::current()->types()->t_void) {
 					throw_cannot_implicit_cast_error(err, res.type, to);
@@ -1678,9 +1678,12 @@ namespace Corrosive {
 
 	void Operand::parse_array_operator(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType cpt) {
 
-		while (ret.type->type() != TypeInstanceType::type_slice && (ret.type->type() != TypeInstanceType::type_reference || ((TypeReference*)ret.type)->owner->type() != TypeInstanceType::type_slice)) {
+		while (ret.type->type() == TypeInstanceType::type_structure_instance || ret.type->type() == TypeInstanceType::type_reference) {
 
 			if (ret.type->type() == TypeInstanceType::type_reference) {
+				TypeReference* tr = (TypeReference*)ret.type;
+				if (tr->owner->type() != TypeInstanceType::type_structure_instance && tr->owner->type() != TypeInstanceType::type_reference) break;
+
 				if (ret.lvalue) {
 					if (cpt == CompileType::compile) {
 						ILBuilder::build_load(Compiler::current()->scope(), ret.type->rvalue());
@@ -1692,12 +1695,8 @@ namespace Corrosive {
 
 				ret.type = ((TypeReference*)ret.type)->owner;
 				ret.lvalue = true;
+				continue;
 			}
-
-			if (ret.type->type() != TypeInstanceType::type_structure_instance) {
-				throw_specific_error(c, "Offset can be applied only on slices or passed to slice by alias");
-			}
-
 
 			TypeStructureInstance* ti = (TypeStructureInstance*)ret.type;
 			ti->compile();
@@ -1710,22 +1709,25 @@ namespace Corrosive {
 			Operand::structure_element_offset(ret, si->pass_array_id, cpt);
 		}
 
-		if (ret.type->type() == TypeInstanceType::type_reference && ((TypeReference*)ret.type)->owner->type() == TypeInstanceType::type_slice) {
-			if (ret.lvalue) {
-				if (cpt == CompileType::compile) {
-					ILBuilder::build_load(Compiler::current()->scope(), ret.type->rvalue());
+		if (ret.type->type() == TypeInstanceType::type_reference){
+			TypeReference* tr = (TypeReference*)ret.type;
+
+			if (tr->owner->type() == TypeInstanceType::type_slice || tr->owner->type() == TypeInstanceType::type_array) {
+				if (ret.lvalue) {
+					if (cpt == CompileType::compile) {
+						ILBuilder::build_load(Compiler::current()->scope(), ret.type->rvalue());
+					}
+					else if (cpt == CompileType::eval) {
+						ILBuilder::eval_load(Compiler::current()->evaluator(), ret.type->rvalue());
+					}
 				}
-				else if (cpt == CompileType::eval) {
-					ILBuilder::eval_load(Compiler::current()->evaluator(), ret.type->rvalue());
-				}
+
+				ret.type = ((TypeReference*)ret.type)->owner;
+				ret.lvalue = true;
 			}
-
-			ret.type = ((TypeReference*)ret.type)->owner;
-			ret.lvalue = true;
-
 		}
 
-		if (ret.type->type() != TypeInstanceType::type_slice) {
+		if (ret.type->type() != TypeInstanceType::type_slice && ret.type->type() != TypeInstanceType::type_array) {
 			throw_specific_error(c, "Offset can be applied only on slices or passed to slice by alias");
 		}
 		c.move(tok);
@@ -1733,12 +1735,13 @@ namespace Corrosive {
 		TypeSlice* slice = (TypeSlice*)ret.type;
 		Type* base_slice = slice->owner;
 
-
-		if (cpt == CompileType::compile) {
-			ILBuilder::build_load(Compiler::current()->scope(), ILDataType::word);
-		}
-		else {
-			ILBuilder::eval_load(Compiler::current()->evaluator(), ILDataType::word);
+		if (ret.type->type() == TypeInstanceType::type_slice) {
+			if (cpt == CompileType::compile) {
+				ILBuilder::build_load(Compiler::current()->scope(), ILDataType::word);
+			}
+			else {
+				ILBuilder::eval_load(Compiler::current()->evaluator(), ILDataType::word);
+			}
 		}
 
 		Cursor err = c;

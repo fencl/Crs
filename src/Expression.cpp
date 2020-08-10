@@ -454,10 +454,20 @@ namespace Corrosive {
 		res = val;
 		if (!require_output && val.type != Compiler::current()->types()->t_void) {
 			if (res.lvalue || res.type->rvalue_stacked()) {
-				ILBuilder::build_forget(Compiler::current()->scope(), ILDataType::word);
+				if (cpt == CompileType::compile) {
+					ILBuilder::build_forget(Compiler::current()->scope(), ILDataType::word);
+				}
+				else {
+					ILBuilder::eval_forget(Compiler::current()->evaluator(), ILDataType::word);
+				}
 			}
 			else {
-				ILBuilder::build_forget(Compiler::current()->scope(), res.type->rvalue());
+				if (cpt == CompileType::compile) {
+					ILBuilder::build_forget(Compiler::current()->scope(), res.type->rvalue());
+				}
+				else {
+					ILBuilder::eval_forget(Compiler::current()->evaluator(), res.type->rvalue());
+				}
 			}
 
 			res.lvalue = false;

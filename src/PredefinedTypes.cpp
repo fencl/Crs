@@ -66,6 +66,10 @@ namespace Corrosive {
 		++allocated_counter;
 	}
 
+	void* realloc_provider(void* ptr, size_t size) {
+		return realloc(ptr, size);
+	}
+
 	void free_provider(void* ref) {
 		free(ref);
 		--allocated_counter;
@@ -101,6 +105,7 @@ namespace Corrosive {
 		if (data_string == "compiler_standard_libraries") {
 			Compiler::current()->register_native_function({ "std","print_slice" }, print_provider);
 			Compiler::current()->register_native_function({ "std","malloc" }, malloc_provider);
+			Compiler::current()->register_native_function({ "std","realloc" }, realloc_provider);
 			Compiler::current()->register_native_function({ "std","free" }, free_provider);
 			Compiler::current()->register_native_function({ "std","library","share" }, share_provider);
 			Compiler::current()->register_native_function({ "std","library","function" }, function_provider);
@@ -124,7 +129,9 @@ namespace Corrosive {
 			"fn compile native require: ([]u8);\n"
 			"fn compile native entry: ([]u8);\n"
 			"fn compile native build: ();\n"
-			"fn compile native ask_for: ([]u8);\n"
+			"fn compile native var: ([]u8, type);\n"
+			"fn compile native var_alias: ([]u8, type);\n"
+			"fn compile native link: ([]u8);\n"
 			"fn compile native print_type: (type);\n"
 			"}"
 			, "standard_library<buffer>");
@@ -170,8 +177,10 @@ namespace Corrosive {
 		f_type_size = Compiler::current()->register_native_function({ "compiler","type_size" }, Operand::priv_type_size);
 		f_type_size = Compiler::current()->register_native_function({ "compiler","require" }, Source::require_wrapper);
 		f_type_size = Compiler::current()->register_native_function({ "compiler","build" }, Compiler::compile);
+		f_type_size = Compiler::current()->register_native_function({ "compiler","var" }, StructureTemplate::var_wrapper);
+		f_type_size = Compiler::current()->register_native_function({ "compiler","var_alias" }, StructureTemplate::var_alias_wrapper);
 		f_type_size = Compiler::current()->register_native_function({ "compiler","entry" }, entry_point_provider);
-		f_type_size = Compiler::current()->register_native_function({ "compiler","ask_for" }, DefaultTypes::ask_for);
+		f_type_size = Compiler::current()->register_native_function({ "compiler","link" }, DefaultTypes::ask_for);
 		f_type_size = Compiler::current()->register_native_function({ "compiler","print_type" }, DefaultTypes::print_type_provider);
 
 		std::vector<Type*> args;

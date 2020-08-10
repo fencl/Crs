@@ -113,6 +113,7 @@ namespace Corrosive {
 		std::vector<std::unique_ptr<AstFunctionDeclarationNode>> functions;
 		std::vector<std::unique_ptr<AstImplementationNode>> implementations;
 		std::vector<std::unique_ptr<AstStaticNode>> statics;
+		std::vector<AstCursor> compile_blocks;
 
 		static std::unique_ptr<AstStructureNode> parse(Cursor& c, RecognizedToken& tok, AstNode* parent);
 	};

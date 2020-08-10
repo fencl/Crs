@@ -160,8 +160,14 @@ namespace Corrosive {
 			else if (buf == "static") {
 				structure->statics.push_back(AstStaticNode::parse(c, tok, structure.get()));
 			}
+			else if (buf == "compile") {
+				c.move(tok);
+				structure->compile_blocks.push_back(c.offset);
+				c.move_matching(tok);
+				c.move(tok);
+			}
 			else {
-				throw_wrong_token_error(c, "var, fn, struct, impl, trait or static");
+				throw_wrong_token_error(c, "var, fn, struct, impl, trait, static or compile");
 			}
 		}
 

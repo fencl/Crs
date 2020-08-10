@@ -347,7 +347,6 @@ namespace Corrosive {
 
 			new_inst->generic_inst.insert_key_on_stack();
 
-
 			for (auto&& m : ast_node->functions) {
 				std::unique_ptr<FunctionTemplate> ft = std::make_unique<FunctionTemplate>();
 
@@ -633,9 +632,39 @@ namespace Corrosive {
 			}
 
 
+			for (auto&& b : ast_node->compile_blocks) {
+				auto scope = ScopeState().context(ILContext::compile).function(nullptr, nullptr);
+				RecognizedToken tok;
+				Cursor c = load_cursor(b, ast_node->get_source(), tok);
+				BlockTermination termination;
+				Statement::parse(c, tok, termination, ForceCompile::single);
+			}
+
+
+
 		}
 
 
+	}
+
+
+	void StructureTemplate::var_wrapper(dword_t dw, Type* type) {
+		uint8_t* data = Compiler::current()->constant_manager()->register_generic_storage((uint8_t*)dw.p1, (size_t)dw.p2, Compiler::current()->types()->t_u8);
+		std::basic_string_view<char> name((char*)data, (size_t)dw.p2);
+		StructureInstance* sinst = (StructureInstance*)Compiler::current()->workspace();
+
+		sinst->member_table[name] = std::make_pair((uint16_t)sinst->member_vars.size(), MemberTableEntryType::var);
+		sinst->member_vars.push_back(std::make_pair(type, 0));
+	}
+
+	void StructureTemplate::var_alias_wrapper(dword_t dw, Type* type) {
+		uint8_t* data = Compiler::current()->constant_manager()->register_generic_storage((uint8_t*)dw.p1, (size_t)dw.p2, Compiler::current()->types()->t_u8);
+		std::basic_string_view<char> name((char*)data, (size_t)dw.p2);
+		StructureInstance* sinst = (StructureInstance*)Compiler::current()->workspace();
+
+		sinst->member_table[name] = std::make_pair((uint16_t)sinst->member_vars.size(), MemberTableEntryType::var); 
+		sinst->member_composites.push_back((uint16_t)sinst->member_vars.size());
+		sinst->member_vars.push_back(std::make_pair(type, 0));
 	}
 
 

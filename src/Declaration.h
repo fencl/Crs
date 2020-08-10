@@ -143,7 +143,8 @@ namespace Corrosive {
 
 		unsigned char compile_state = 0;
 
-
+		static void var_wrapper(dword_t dw, Type* type);
+		static void var_alias_wrapper(dword_t dw, Type* type);
 	private:
 		struct GenericTemplateCompare {
 			StructureTemplate* parent;
