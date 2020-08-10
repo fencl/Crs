@@ -56,7 +56,33 @@ namespace Corrosive {
 
 	class FunctionInstance;
 
-	class DefaultTypes {
+	class StandardLibraryCode {
+	public:
+		static void 	print(dword_t slice);
+
+		static void* 	share(dword_t slice);
+		static void* 	function(void* lib, dword_t slice);
+		static void 	release(void* lib);
+
+		static void* 	malloc(size_t size);
+		static void* 	realloc(void* ptr, size_t size);
+		static void 	free(void* ref);
+	};
+
+	class BuiltInCode {
+	public:
+		static void 	ask_for(dword_t slice);
+		static void 	print_type(Type* t);
+		static void 	compile();
+		static Type* 	build_array(uint32_t size, Type* t);
+		static Type* 	build_reference(Type* t);
+		static Type* 	build_subtype(Type* t, dword_t slice);
+		static Type* 	build_slice(Type* t);
+		static size_t 	type_size(Type* t);
+		static void 	entry_point(dword_t slice);
+	};
+
+	class BuiltInTypes {
 	public:
 		Type* t_i8;
 		Type* t_i16;
@@ -96,9 +122,6 @@ namespace Corrosive {
 		FunctionInstance* f_build_slice;
 		FunctionInstance* f_build_subtype;
 		FunctionInstance* f_type_size;
-
-		static void ask_for(dword_t slice);
-		static void print_type_provider(Type* t);
 
 		void setup();
 	};

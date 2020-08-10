@@ -20,7 +20,7 @@ namespace Corrosive {
 	class FunctionTemplate;
 	class TraitInstance;
 	class Type;
-	class DefaultTypes;
+	class BuiltInTypes;
 
 	enum class TypeInstanceType {
 		type_structure_template,type_structure_instance,type_array,type_reference,type_function,type_trait_template,type_trait,type_function_template,type_template,type_slice,type_undefined
@@ -203,7 +203,7 @@ namespace Corrosive {
 	public:
 		inline virtual TypeInstanceType type() { return TypeInstanceType::type_template; }
 		virtual ILDataType rvalue();
-		DefaultTypes* owner;
+		BuiltInTypes* owner;
 		size_t argument_array_id;
 		virtual ILSize size();
 		virtual void print(std::ostream& os);		

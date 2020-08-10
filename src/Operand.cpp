@@ -20,11 +20,7 @@ namespace Corrosive {
 		val.reflock = false;
 	}
 
-	size_t Operand::priv_type_size(Type* t) {
-		return t->size().eval(Compiler::current()->global_module(), compiler_arch);
-	}
-
-	void Operand::priv_type_template_cast_crsr(ILEvaluator* eval, Cursor& err) {
+	void Operand::type_template_cast_crsr(ILEvaluator* eval, Cursor& err) {
 
 		Type* template_cast = eval->pop_register_value<Type*>();
 		Type* template_type = eval->read_register_value<Type*>();
@@ -64,7 +60,7 @@ namespace Corrosive {
 		}
 	}
 
-	void Operand::priv_type_template_cast(ILEvaluator* eval) {
+	void Operand::type_template_cast(ILEvaluator* eval) {
 		Type* template_cast = eval->pop_register_value<Type*>();
 		Type* template_type = eval->read_register_value<Type*>();
 
@@ -112,7 +108,7 @@ namespace Corrosive {
 		if (res.type == Compiler::current()->types()->t_type && to->type() == TypeInstanceType::type_template) {
 			if (cpt == CompileType::eval) {
 				ILBuilder::eval_const_type(Compiler::current()->evaluator(), to);
-				priv_type_template_cast_crsr(Compiler::current()->evaluator(), err);
+				Operand::type_template_cast_crsr(Compiler::current()->evaluator(), err);
 
 				res.type = to;
 
@@ -1381,14 +1377,14 @@ namespace Corrosive {
 
 	}
 
-	void Operand::priv_build_push_template(ILEvaluator* eval) {
+	void Operand::push_template(ILEvaluator* eval) {
 		Type* t = eval->pop_register_value<Type*>();
 		template_stack[template_sp] = t;
 		template_sp++;
 
 	}
 
-	void Operand::priv_build_build_template(ILEvaluator* eval) {
+	void Operand::build_template(ILEvaluator* eval) {
 		Type* gen_type = template_stack[template_sp - 1];
 		gen_type->compile();
 
@@ -1600,57 +1596,6 @@ namespace Corrosive {
 
 	}
 
-	Type* Operand::priv_build_reference(Type* t) {
-		return t->generate_reference();
-	}
-
-	Type* Operand::priv_build_subtype(Type* t, dword_t slice) {
-		std::string_view slice_str((char*)slice.p1, (size_t)slice.p2);
-
-		Type* str = Compiler::current()->types()->t_u8->generate_slice();
-
-		if (t->type() == TypeInstanceType::type_structure_instance) {
-			TypeStructureInstance* tsi = (TypeStructureInstance*)t;
-
-			auto res = tsi->owner->find_name(slice_str);
-
-			if (auto struct_template = res.get_structure()) {
-				struct_template->compile();
-				if (!struct_template->ast_node->is_generic) {
-					StructureInstance* sinst;
-					struct_template->generate(nullptr, sinst);
-					sinst->compile();
-					return sinst->type.get();
-				}
-				else {
-					return struct_template->type.get();
-				}
-			}
-			else if (auto function_temaplte = res.get_function()) {
-				function_temaplte->compile();
-				return function_temaplte->type.get();
-			}
-			else if (auto trait_template = res.get_trait()) {
-				trait_template->compile();
-				if (!trait_template->ast_node->is_generic) {
-					TraitInstance* trait_instance;
-					trait_template->generate(nullptr, trait_instance);
-					return trait_instance->type.get();
-				}
-				else {
-					return trait_template->type.get();
-				}
-			}
-
-		}
-
-		return nullptr;
-	}
-
-	Type* Operand::priv_build_slice(Type* t) {
-		return t->generate_slice();
-	}
-
 	void Operand::parse_reference(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType cpt, bool targets_defer) {
 		Cursor operr = c;
 
@@ -1790,10 +1735,6 @@ namespace Corrosive {
 		ret.type = base_slice;
 
 
-	}
-
-	Type* Operand::priv_build_array(uint32_t size, Type* t) {
-		return t->generate_array(size);
 	}
 
 	void Operand::parse_array_type(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType cpt, bool targets_defer) {

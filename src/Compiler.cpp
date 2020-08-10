@@ -3,11 +3,11 @@
 
 namespace Corrosive {
 	void Compiler::setup() {
-		target_module->insintric_function[(unsigned char)ILInsintric::push_template] = &Operand::priv_build_push_template;
+		target_module->insintric_function[(unsigned char)ILInsintric::push_template] = &Operand::push_template;
 		target_module->insintric_function_name[(unsigned char)ILInsintric::push_template] = "push_template";
-		target_module->insintric_function[(unsigned char)ILInsintric::build_template] = &Operand::priv_build_build_template;
+		target_module->insintric_function[(unsigned char)ILInsintric::build_template] = &Operand::build_template;
 		target_module->insintric_function_name[(unsigned char)ILInsintric::build_template] = "build_template";
-		target_module->insintric_function[(unsigned char)ILInsintric::type_dynamic_cast] = &Operand::priv_type_template_cast;
+		target_module->insintric_function[(unsigned char)ILInsintric::type_dynamic_cast] = &Operand::type_template_cast;
 		target_module->insintric_function_name[(unsigned char)ILInsintric::type_dynamic_cast] = "dynamic_cast";
 		compiler_evaluator->parent = target_module.get();
 		constant_stack_manager.compiler = this;
@@ -133,35 +133,6 @@ namespace Corrosive {
 
 	void Compiler::eval_local(stackid_t id) {
 		compiler_evaluator->write_register_value<void*>(stack_ptr(id));
-	}
-
-	void Compiler::compile() {
-		if (!Compiler::current()->entry_point.empty()) {
-			auto res = Compiler::current()->find_name(Compiler::current()->entry_point);
-
-			ILFunction* main = nullptr;
-
-			if (auto fun = res.get_function()) {
-				FunctionInstance* finst;
-				fun->generate(nullptr, finst);
-				finst->compile();
-				main = finst->func;
-			}
-			else {
-				throw std::exception("Entry point was set but function not found");
-			}
-
-			Compiler::current()->global_module()->entry_point = main;
-			Compiler::current()->global_module()->exported_functions.push_back(main);
-		}
-		else {
-			for (auto&& ft : Compiler::current()->exported_functions) {
-				FunctionInstance* finst;
-				ft->generate(nullptr, finst);
-				finst->compile();
-				Compiler::current()->global_module()->exported_functions.push_back(finst->func);
-			}
-		}
 	}
 
 	std::unique_ptr<ILModule> Compiler::finalize() {

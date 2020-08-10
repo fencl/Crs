@@ -25,7 +25,7 @@ namespace Corrosive {
 		ILBlock* loop_break() { return loop_block_stack.back().first; }
 		ILBlock* loop_continue() { return loop_block_stack.back().second; }
 		bool has_loop() { return loop_block_stack.size() > 0; }
-		DefaultTypes* types() { return default_types.get(); }
+		BuiltInTypes* types() { return default_types.get(); }
 		ILContext scope_context() { return scope_context_stack.back(); }
 		Namespace* workspace() { return outer_namespace_stack.back(); }
 		StackManager* stack() { return &runtime_stack_manager; }
@@ -97,7 +97,7 @@ namespace Corrosive {
 		std::map<std::filesystem::path, std::unique_ptr<Source>> included_sources;
 
 		std::unique_ptr<ILModule> target_module = std::make_unique<ILModule>();
-		std::unique_ptr<DefaultTypes> default_types = std::make_unique<DefaultTypes>();
+		std::unique_ptr<BuiltInTypes> default_types = std::make_unique<BuiltInTypes>();
 		std::unique_ptr<Namespace> target_global_namespace = std::make_unique<Namespace>();
 		std::unique_ptr<ILEvaluator> compiler_evaluator = std::make_unique<ILEvaluator>();
 
@@ -135,7 +135,6 @@ namespace Corrosive {
 		void			eval_local(stackid_t id);
 
 		std::unique_ptr<ILModule> finalize();
-		static void compile();
 	};
 
 	class ScopeState {
