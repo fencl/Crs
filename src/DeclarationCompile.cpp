@@ -8,7 +8,6 @@
 #include "Type.hpp"
 #include <algorithm>
 #include "Statement.hpp"
-#include "Utilities.hpp"
 #include "Operand.hpp"
 #include "Compiler.hpp"
 
@@ -1109,6 +1108,18 @@ namespace Corrosive {
 			Cursor c = load_cursor(ast_node->name, ast_node->get_source(), tok);
 			throw_specific_error(c, "Build cycle");
 		}
+	}
+
+	uint32_t upper_power_of_two(uint32_t v)
+	{
+		v--;
+		v |= v >> 1;
+		v |= v >> 2;
+		v |= v >> 4;
+		v |= v >> 8;
+		v |= v >> 16;
+		v++;
+		return v;
 	}
 
 	void StructureInstance::compile() {

@@ -91,12 +91,12 @@ namespace Corrosive {
 	void Compiler::stack_push(size_t align) {
 		if (local_stack_base.size() == 0) {
 			size_t new_base = (size_t)(memory_stack);
-			new_base = _align_up(new_base, align);
+			new_base = align_up(new_base, align);
 			local_stack_base.push_back((unsigned char*)new_base);
 		}
 		else {
 			size_t new_base = (size_t)(local_stack_base.back() + local_stack_size.back());
-			new_base = _align_up(new_base, align);
+			new_base = align_up(new_base, align);
 			local_stack_base.push_back((unsigned char*)new_base);
 		}
 

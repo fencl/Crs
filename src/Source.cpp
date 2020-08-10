@@ -5,7 +5,6 @@
 #include <algorithm>
 #include <string>
 #include <string_view>
-#include "Utilities.hpp"
 #include "CompileContext.hpp"
 #include "Error.hpp"
 #include "ConstantManager.hpp"
@@ -488,7 +487,6 @@ namespace Corrosive {
 
 		auto f = Compiler::current()->included_sources.find(abs);
 		if (f == Compiler::current()->included_sources.end()) {
-			std::cout << abs << "\n";
 			auto new_src = std::make_unique<Source>();
 			new_src->path = abs;
 			new_src->load(abs.generic_string().c_str());

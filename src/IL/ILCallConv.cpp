@@ -491,7 +491,7 @@ namespace Corrosive {
 			}
 
 			if (stack > 0) {
-				size_t saligned = _align_up(stack + 8, 32) - 8;
+				size_t saligned = align_up(stack + 8, 32) - 8;
 
 				call_wrapper.insert(call_wrapper.begin(),0x48);
 				call_wrapper.insert(call_wrapper.begin()+1,0x83);

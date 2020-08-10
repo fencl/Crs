@@ -35,7 +35,7 @@ namespace Corrosive {
 	void throw_il_wrong_arguments_error();
 	void throw_il_wrong_type_error();
 
-	size_t _align_up(size_t value, size_t alignment);
+	size_t align_up(size_t value, size_t alignment);
 
 	class ILBytecodeFunction;
 	class ILFunction;

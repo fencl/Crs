@@ -1,11 +1,11 @@
 #include "Operand.hpp"
 #include "Error.hpp"
-#include "Utilities.hpp"
 #include "BuiltIn.hpp"
 #include "Expression.hpp"
 #include "StackManager.hpp"
 #include "ConstantManager.hpp"
 #include <iostream>
+#include <charconv>
 
 namespace Corrosive {
 
@@ -1179,6 +1179,22 @@ namespace Corrosive {
 	}
 
 
+	
+	unsigned long long svtoi(std::string_view sv) {
+		unsigned long long r = 0;
+		for (size_t i = 0; i < sv.length(); i++) {
+			r *= 10;
+			r += (unsigned char)(sv[i] - '0');
+		}
+		return r;
+	}
+	
+	double svtod(std::string_view sv)
+	{
+		double dbl;
+		auto result = std::from_chars(sv.data(), sv.data() + sv.size(), dbl);
+		return dbl;
+	}
 
 
 	void Operand::parse_number(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType cpt) {

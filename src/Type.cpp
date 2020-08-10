@@ -3,7 +3,6 @@
 #include <iostream>
 #include "Declaration.hpp"
 #include "BuiltIn.hpp"
-#include "Utilities.hpp"
 #include <csetjmp>
 #include "Compiler.hpp"
 

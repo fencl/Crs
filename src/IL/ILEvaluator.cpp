@@ -862,7 +862,7 @@ namespace Corrosive {
 				unsigned char* lstack_pointer = eval_ctx->stack_pointer;
 
 				eval_ctx->stack_base = eval_ctx->stack_pointer;
-				eval_ctx->stack_base_aligned = (unsigned char*)_align_up((size_t)eval_ctx->stack_base, bytecode_fun->calculated_local_stack_alignment);
+				eval_ctx->stack_base_aligned = (unsigned char*)align_up((size_t)eval_ctx->stack_base, bytecode_fun->calculated_local_stack_alignment);
 				eval_ctx->stack_pointer = eval_ctx->stack_base_aligned + bytecode_fun->calculated_local_stack_size;
 
 

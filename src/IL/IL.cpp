@@ -48,7 +48,7 @@ namespace Corrosive {
 		}
 	}
 
-	size_t _align_up(size_t value, size_t alignment) {
+	size_t align_up(size_t value, size_t alignment) {
 		return alignment == 0 ? value : ((value % alignment == 0) ? value : value + (alignment - (value % alignment)));
 	}
 
@@ -278,7 +278,7 @@ namespace Corrosive {
 						size_t elem_align = ptr_s.alignment(parent, arch);
 						calculated_local_stack_alignment = std::max(elem_align, calculated_local_stack_alignment);
 
-						stack_size = _align_up(stack_size, elem_align);
+						stack_size = align_up(stack_size, elem_align);
 						calculated_local_offsets[lid++] = stack_size;
 						size_t sz = ptr_s.eval(parent, arch);
 						stack_size += sz;
@@ -419,13 +419,13 @@ namespace Corrosive {
 			size_t id = 0;
 			for (auto elem = elements.begin(); elem != elements.end(); elem++) {
 				size_t elem_align = elem->alignment(mod, arch);
-				calculated_size = _align_up(calculated_size, elem_align);
+				calculated_size = align_up(calculated_size, elem_align);
 				calculated_offsets[id++] = calculated_size;
 				calculated_size += elem->eval(mod, arch);
 				calculated_alignment = std::max(calculated_alignment, elem_align);
 			}
 
-			calculated_size = _align_up(calculated_size, calculated_alignment);
+			calculated_size = align_up(calculated_size, calculated_alignment);
 			calculated_for = arch;
 		}
 	}
@@ -433,7 +433,7 @@ namespace Corrosive {
 	void ILArrayTable::calculate(ILModule* mod, ILArchitecture arch) {
 		if (arch != calculated_for) {
 			calculated_alignment = element.alignment(mod, arch);
-			calculated_size = (size_t)(_align_up(element.eval(mod, arch), calculated_alignment) * count);
+			calculated_size = (size_t)(align_up(element.eval(mod, arch), calculated_alignment) * count);
 			calculated_for = arch;
 		}
 	}

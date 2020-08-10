@@ -2,7 +2,6 @@
 #include "Declaration.hpp"
 #include "Error.hpp"
 #include "BuiltIn.hpp"
-#include "Utilities.hpp"
 #include <iostream>
 #include "Expression.hpp"
 #include "Compiler.hpp"
