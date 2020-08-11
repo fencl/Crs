@@ -138,7 +138,8 @@ namespace Corrosive {
 		virtual void constantize(Cursor& err, unsigned char* target, unsigned char* source);
 
 		Type* owner;
-		tableid_t table;
+		//tableid_t table;
+		ILSize size_value;
 
 		virtual ILContext context();
 		virtual void compile();

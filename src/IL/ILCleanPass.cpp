@@ -4,6 +4,56 @@
 
 
 namespace Corrosive {
+
+
+	void ILStructTable::clean_prepass(ILModule& mod, std::unordered_set<size_t>& used_tables, std::unordered_set<size_t>& used_arrays) {
+		for (auto&& elem: elements) {
+			if (elem.type == ILSizeType::table) {
+				auto ins = used_tables.insert(elem.value);
+				if (ins.second) {
+					mod.structure_tables[elem.value].clean_prepass(mod,used_tables,used_arrays);
+				}
+			} else if (elem.type == ILSizeType::array) {
+				auto ins = used_arrays.insert(elem.value);
+				if (ins.second) {
+					mod.array_tables[elem.value].clean_prepass(mod,used_tables,used_arrays);
+				}
+			}
+		}
+	}
+
+	void ILArrayTable::clean_prepass(ILModule& mod, std::unordered_set<size_t>& used_tables, std::unordered_set<size_t>& used_arrays) {		
+		if (element.type == ILSizeType::table) {
+			auto ins = used_tables.insert(element.value);
+			if (ins.second) {
+				mod.structure_tables[element.value].clean_prepass(mod,used_tables,used_arrays);
+			}
+		} else if (element.type == ILSizeType::array) {
+			auto ins = used_arrays.insert(element.value);
+			if (ins.second) {
+				mod.array_tables[element.value].clean_prepass(mod,used_tables,used_arrays);
+			}
+		}
+	}
+
+	void ILStructTable::clean_pass(ILModule& mod, std::unordered_map<size_t, size_t>& map_tables, std::unordered_map<size_t, size_t>& map_arrays){
+		for (auto&& elem: elements) {
+			if (elem.type == ILSizeType::table) {
+				elem.value = (tableid_t)map_tables[elem.value];
+			}else if (elem.type == ILSizeType::array) {
+				elem.value = (tableid_t)map_arrays[elem.value];
+			}
+		}
+	}
+
+	void ILArrayTable::clean_pass(ILModule& mod, std::unordered_map<size_t, size_t>& map_tables, std::unordered_map<size_t, size_t>& map_arrays){
+		if (element.type == ILSizeType::table) {
+			element.value = (tableid_t)map_tables[element.value];
+		}else if (element.type == ILSizeType::array) {
+			element.value = (tableid_t)map_arrays[element.value];
+		}
+	}
+
 	void ILModule::strip_unused_content() {
 		release_jit_code();
 
@@ -26,6 +76,14 @@ namespace Corrosive {
 			}
 		}
 
+		for (auto&& tid : used_tables) {
+			structure_tables[tid].clean_prepass(*this, used_tables, used_arrays);
+		}
+		
+		for (auto&& tid : used_arrays) {
+			array_tables[tid].clean_prepass(*this, used_tables, used_arrays);
+		}
+
 		std::unordered_map<size_t, size_t> map_functions;
 		std::unordered_map<size_t, size_t> map_constants;
 		std::unordered_map<size_t, size_t> map_statics;
@@ -33,6 +91,7 @@ namespace Corrosive {
 		std::unordered_map<size_t, size_t> map_decls;
 		std::unordered_map<size_t, size_t> map_tables;
 		std::unordered_map<size_t, size_t> map_arrays;
+		external_functions.clear();
 
 		std::vector<std::unique_ptr<ILFunction>> new_functions; 
 		for (auto&& used_func : used_functions) {
@@ -115,7 +174,17 @@ namespace Corrosive {
 
 			if (auto bf = dynamic_cast<ILBytecodeFunction*>(fun)) {
 				bf->clean_pass(map_functions, map_constants, map_statics, map_vtables, map_decls, map_tables, map_arrays);
+			}else {
+				external_functions[fun->alias] = fun->id;
 			}
+		}
+
+		for (auto&& t : structure_tables) {
+			t.clean_pass(*this, map_tables, map_arrays);
+		}
+
+		for (auto&& t : array_tables) {
+			t.clean_pass(*this, map_tables, map_arrays);
 		}
 	}
 
@@ -315,10 +384,24 @@ namespace Corrosive {
 						ILBlock::read_data<uint32_t>(it);
 					} break;
 					case ILInstruction::constref: {
-						used_constants.insert(ILBlock::read_data<uint32_t>(it));
+						uint32_t cid = ILBlock::read_data<uint32_t>(it);
+						used_constants.insert(cid);
+						ILSize& s = parent->constant_memory[cid].first;
+						if (s.type == ILSizeType::table) {
+							used_tables.insert(s.value);
+						}else if (s.type == ILSizeType::array) {
+							used_arrays.insert(s.value);
+						}
 					} break;
 					case ILInstruction::staticref: {
-						used_statics.insert(ILBlock::read_data<uint32_t>(it));
+						uint32_t cid = ILBlock::read_data<uint32_t>(it);
+						used_statics.insert(cid);
+						ILSize& s = parent->constant_memory[cid].first;
+						if (s.type == ILSizeType::table) {
+							used_tables.insert(s.value);
+						}else if (s.type == ILSizeType::array) {
+							used_arrays.insert(s.value);
+						}
 					} break;
 					case ILInstruction::roffset32: {
 						ILBlock::read_data<ILDataType>(it);

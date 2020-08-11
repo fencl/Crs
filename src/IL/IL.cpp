@@ -4,8 +4,12 @@
 #include <algorithm>
 #include <sstream>
 #include <unordered_map>
+#include <fstream>
 
 namespace Corrosive {
+
+	thread_local std::vector<ILModule*> ILModule::current;
+
 	void throw_il_wrong_data_flow_error() {
 		throw std::exception("Compiler Error, Wrong data flow inside compiler IL");
 	}
@@ -98,11 +102,13 @@ namespace Corrosive {
 		return function_ptr;
 	}
 
-	ILNativeFunction* ILModule::create_native_function() {
+	ILNativeFunction* ILModule::create_native_function(std::string alias) {
 		std::unique_ptr<ILNativeFunction> function = std::make_unique<ILNativeFunction>();
 		ILNativeFunction* function_ptr = function.get();
 		function_ptr->id = (uint32_t)functions.size();
 		function_ptr->parent = this;
+		external_functions[alias] = function_ptr->id;
+		function_ptr->alias = std::move(alias);
 		functions.push_back(std::move(function));
 		return function_ptr;
 	}
@@ -146,12 +152,6 @@ namespace Corrosive {
 		ILDataType* w = (ILDataType*)reserve_data(sizeof(type));
 		(*w) = type;
 	}
-
-	void ILBlock::write_value(size_t size, unsigned char* value) {
-		unsigned char* w = reserve_data(size);
-		memcpy(w, value, size);
-	}
-
 
 
 	void ILBytecodeFunction::dump() {
@@ -295,6 +295,7 @@ namespace Corrosive {
 
 
 	void ILModule::run(ILFunction* func) {
+		current.push_back(this);
 		auto eval = std::make_unique<ILEvaluator>();
 		eval->parent = this;
 		ILBuilder::eval_fncall(eval.get(), func);
@@ -307,6 +308,13 @@ namespace Corrosive {
 		if (lr4b) { std::cout << "leaked 4 byte registers: " << lr4b << "\n"; }
 		auto lr8b = (size_t)(eval->register_stack_pointer_8b - eval->register_stack_8b);
 		if (lr8b) { std::cout << "leaked 8 byte registers: " << lr8b << "\n"; }
+		current.pop_back();
+	}
+
+	
+	bool operator < (const ILSize& l,const ILSize& r) {
+		if (l.type < r.type) return true;
+		return l.value < r.value;
 	}
 
 
@@ -314,15 +322,39 @@ namespace Corrosive {
 		structure_tables.push_back(ILStructTable());
 		return (uint32_t)(structure_tables.size() - 1);
 	}
-	uint32_t ILModule::register_array_table() {
-		array_tables.push_back(ILArrayTable());
-		return (uint32_t)(array_tables.size() - 1);
+	uint32_t ILModule::register_array_table(ILSize s, tableelement_t count) {
+		std::pair<ILSize, tableelement_t> key(s,count);
+		auto ins = array_tables_map.insert(std::make_pair(key,(tableid_t)0));
+		if (ins.second) {
+			ILArrayTable t;
+			t.count = count;
+			t.element = s;
+			ins.first->second = (tableid_t)(array_tables.size() - 1);
+			array_tables.push_back(t);
+		}
+
+		return ins.first->second;
 	}
 
 	size_t ILSize::eval(ILModule* mod, ILArchitecture arch) const {
 		switch (type) {
-			case ILSizeType::absolute: {
+			case ILSizeType::_0: return 0;
+
+			case ILSizeType::abs8: {
 				return (size_t)value;
+			}
+			case ILSizeType::abs16: {
+				return (size_t)value*2;
+			}
+			
+			case ILSizeType::absf32:
+			case ILSizeType::abs32: {
+				return (size_t)value*4;
+			}
+			
+			case ILSizeType::absf64:
+			case ILSizeType::abs64: {
+				return (size_t)value*8;
 			}
 
 			case ILSizeType::word: {
@@ -367,13 +399,24 @@ namespace Corrosive {
 
 	size_t ILSize::alignment(ILModule* mod, ILArchitecture arch) const {
 		switch (type) {
-			case ILSizeType::absolute: {
+			case ILSizeType::_0:
+			case ILSizeType::abs8: return 1;
+
+			case ILSizeType::abs16: return 2;
+
+			case ILSizeType::absf32:
+			case ILSizeType::abs32: return 4;
+
+			
+			case ILSizeType::absf64: return 8;
+
+			case ILSizeType::abs64: {
 				switch (arch)
 				{
 					case ILArchitecture::bit32:
-						return (size_t)_upper_power_of_two((uint32_t)std::min<size_t>((size_t)value, 4));
+						return 4;
 					case ILArchitecture::bit64:
-						return (size_t)_upper_power_of_two((uint32_t)std::min<size_t>((size_t)value, 8));
+						return 8;
 					default:
 						return 0;
 				}
@@ -438,25 +481,60 @@ namespace Corrosive {
 		}
 	}
 
-	void ILSize::print() {
+	void ILSize::print(ILModule* mod) {
 		switch (type) {
-			case ILSizeType::absolute: {
-				std::cout << value;
+			case ILSizeType::_0: {
+				std::cout<<"[0]";
+			}
+			case ILSizeType::abs8: {
+				std::cout << "["<<value << " x i8]";
+			}break;
+			case ILSizeType::abs16: {
+				std::cout << "["<<value << " x i16]";
+			}break;
+			case ILSizeType::abs32: {
+				std::cout << "["<<value << " x i32]";
+			}break;
+			case ILSizeType::abs64: {
+				std::cout << "["<<value << " x i64]";
+			}break;
+			
+			case ILSizeType::absf32: {
+				std::cout << "["<<value << " x f32]";
+			}break;
+			
+			case ILSizeType::absf64: {
+				std::cout << "["<<value << " x f64]";
 			}break;
 
 			case ILSizeType::word: {
-				std::cout << value << "w";
+				std::cout << "["<<value << " x word]";
 			}break;
 
 			case ILSizeType::table: {
-				std::cout << "[T " << value << "]";
+				ILStructTable& table = mod->structure_tables[value];
+				std::cout << "{";
+				for (size_t i=0; i<table.elements.size(); ++i) {
+					if (i>0) std::cout<<",";
+					std::cout<<" ";
+					table.elements[i].print(mod);
+				}
+				
+				std::cout << " }";
 			}break;
+
+			case ILSizeType::array: {
+				ILArrayTable& table = mod->array_tables[value];
+				std::cout<<"["<<table.count<<" x ";
+				table.element.print(mod);
+				std::cout<<"]";
+			} break;
 		}
 	}
 
 
 
-	ILSize::ILSize() : type(ILSizeType::absolute), value(0) {}
+	ILSize::ILSize() : type(ILSizeType::_0), value(0) {}
 	ILSize::ILSize(ILSizeType t, tableid_t v) : type(t), value(v) {}
 
 
@@ -815,7 +893,7 @@ namespace Corrosive {
 					std::cout << "   offset ";
 					auto t = ILBlock::read_data<ILSizeType>(it);
 					auto off = ILBlock::read_data<uint32_t>(it);
-					ILSize(t,off).print();
+					ILSize(t,off).print(parent->parent);
 					std::cout << "\n";
 					break;
 				}
@@ -823,7 +901,7 @@ namespace Corrosive {
 					std::cout << "   offset ";
 					auto t = ILBlock::read_data<ILSizeType>(it);
 					auto off = ILBlock::read_data<uint16_t>(it);
-					ILSize(t, off).print();
+					ILSize(t, off).print(parent->parent);
 					std::cout << "\n";
 					break;
 				}
@@ -831,7 +909,7 @@ namespace Corrosive {
 					std::cout << "   offset ";
 					auto t = ILBlock::read_data<ILSizeType>(it);
 					auto off = ILBlock::read_data<uint8_t>(it);
-					ILSize(t, off).print();
+					ILSize(t, off).print(parent->parent);
 					std::cout << "\n";
 					break;
 				}
@@ -863,14 +941,14 @@ namespace Corrosive {
 				case ILInstruction::memcpy: {
 					std::cout << "   memcpy ";
 					auto off = ILBlock::read_data<ILSize>(it);
-					off.print();
+					off.print(parent->parent);
 					std::cout << "\n";
 					break;
 				}
 				case ILInstruction::memcpy2: {
 					std::cout << "   memcpy rev ";
 					auto off = ILBlock::read_data<ILSize>(it);
-					off.print();
+					off.print(parent->parent);
 					std::cout << "\n";
 					break;
 				}
@@ -904,7 +982,7 @@ namespace Corrosive {
 					dump_data_type(pair.second());
 					std::cout << "]\n";
 
-					ILSize(t,off).print();
+					ILSize(t,off).print(parent->parent);
 					break;
 				}
 				case ILInstruction::roffset16: {
@@ -918,7 +996,7 @@ namespace Corrosive {
 					dump_data_type(pair.second());
 					std::cout << "]\n";
 
-					ILSize(t, off).print();
+					ILSize(t, off).print(parent->parent);
 					break;
 				}
 				case ILInstruction::roffset8: {
@@ -932,7 +1010,7 @@ namespace Corrosive {
 					dump_data_type(pair.second());
 					std::cout << "]\n";
 
-					ILSize(t, off).print();
+					ILSize(t, off).print(parent->parent);
 					break;
 				}
 				case ILInstruction::aroffset: {
@@ -965,14 +1043,14 @@ namespace Corrosive {
 				case ILInstruction::memcmp: {
 					std::cout << "   memcmp ";
 					auto size = ILBlock::read_data<ILSize>(it);
-					size.print();
+					size.print(parent->parent);
 					std::cout << "\n";
 				} break;
 
 				case ILInstruction::memcmp2: {
 					std::cout << "   memcmp rev ";
 					auto size = ILBlock::read_data<ILSize>(it);
-					size.print();
+					size.print(parent->parent);
 					std::cout << "\n";
 				} break;
 
@@ -1032,21 +1110,21 @@ namespace Corrosive {
 					std::cout << "   size ";
 					auto t = ILBlock::read_data<ILSizeType>(it);
 					auto v = ILBlock::read_data<uint8_t>(it);
-					ILSize(t,(tableid_t)v).print();
+					ILSize(t,(tableid_t)v).print(parent->parent);
 					std::cout << "\n";
 				}break;
 				case ILInstruction::size16: {
 					std::cout << "   size ";
 					auto t = ILBlock::read_data<ILSizeType>(it);
 					auto v = ILBlock::read_data<uint16_t>(it);
-					ILSize(t, (tableid_t)v).print();
+					ILSize(t, (tableid_t)v).print(parent->parent);
 					std::cout << "\n";
 				}break;
 				case ILInstruction::size32: {
 					std::cout << "   size ";
 					auto t = ILBlock::read_data<ILSizeType>(it);
 					auto v = ILBlock::read_data<uint32_t>(it);
-					ILSize(t, (tableid_t)v).print();
+					ILSize(t, (tableid_t)v).print(parent->parent);
 					std::cout << "\n";
 				}break;
 
@@ -1103,4 +1181,480 @@ namespace Corrosive {
 				return (void*)(register_stack_pointer_8b - 1);
 		}
 	}
+
+	
+	void ILModule::try_link(std::string name,void* ptr){
+		auto f = external_functions.find(name);
+		if (f != external_functions.end()) {
+			((ILNativeFunction*)functions[f->second].get())->ptr = ptr;
+		}
+	}
+
+	void ILBytecodeFunction::save(ILOutputStream& file) {
+
+		file.u32(local_stack_lifetime.id);
+		file.s( local_stack_lifetime.lifetime.size());
+		file.write(local_stack_lifetime.lifetime.data(), local_stack_lifetime.lifetime.size());
+		file.s(blocks.size());
+		for (auto&& block : blocks) {
+			file.s(block->data_pool.size());
+			file.write(block->data_pool.data(), block->data_pool.size());
+		}
+	}
+
+	void ILBytecodeFunction::load(ILInputStream& file) {
+		local_stack_lifetime.id = file.u32();
+		local_stack_lifetime.lifetime = std::vector<uint8_t>(file.s());
+		file.read(local_stack_lifetime.lifetime.data(), local_stack_lifetime.lifetime.size());
+
+
+		blocks_memory = std::vector<std::unique_ptr<ILBlock>>(file.s());
+		blocks = std::vector<ILBlock*>(blocks_memory.size());
+
+		for (size_t i=0; i<blocks_memory.size(); ++i) {
+			std::unique_ptr<ILBlock> block = std::make_unique<ILBlock>();
+			block->parent = this;
+
+			size_t datapool_size = file.s();
+			block->data_pool = std::vector<uint8_t>(datapool_size);
+			file.read((char*)block->data_pool.data(), datapool_size);
+
+			blocks[i] = block.get();
+			blocks_memory[i] = std::move(block);
+		}
+
+	}
+
+
+	void ILModule::save(ILOutputStream& file) {
+		bool has_entry_point = entry_point != nullptr;
+		file.b(has_entry_point);
+		file.u32(entry_point->id);
+
+		file.s(functions.size());
+		for (auto&& func: functions) {
+			if (auto bfunc = dynamic_cast<ILBytecodeFunction*>(func.get())) {
+				file.u8(1);
+				file.u32(func->decl_id);
+				file.s(func->alias.size());
+				file.write(func->alias.data(), func->alias.size());
+				bfunc->save(file);
+			}else {
+				file.u8(2);
+				file.u32(func->decl_id);
+				file.s(func->alias.size());
+				file.write(func->alias.data(), func->alias.size());
+			}
+		}
+
+		file.s(function_decl.size());
+		for (auto&& decl : function_decl) {
+			file.u8((uint8_t)std::get<0>(decl));
+			file.dt(std::get<1>(decl));
+			file.s(std::get<2>(decl).size());
+			file.write(std::get<2>(decl).data(), std::get<2>(decl).size());
+		}
+
+		
+		file.s(structure_tables.size());
+		for (auto&& table : structure_tables) {
+			file.s(table.elements.size());
+			for (auto && elem : table.elements) {
+				file.u8((uint8_t)elem.type);
+				file.u32(elem.value);
+			}
+		}
+
+		file.s(array_tables.size());
+		for (auto&& table : array_tables) {
+			file.u32(table.count);
+			file.u8((uint8_t)table.element.type);
+			file.u32(table.element.value);
+		}
+
+		
+		file.s(vtable_data.size());
+		for (auto&& vtable : vtable_data) {
+			file.u32(vtable.first);
+			for (uint32_t i=0; i<vtable.first; ++i) {
+				ILFunction* fun = (ILFunction*)vtable.second[i];
+				file.u32(fun->id);
+			}
+		}
+
+		file.s(constant_memory.size());
+		for (auto&& con_mem: constant_memory) {
+			file.u8((uint8_t)con_mem.first.type);
+			file.u32((uint8_t)con_mem.first.value);
+			con_mem.first.save(this, file, con_mem.second.get());
+		}
+
+		
+		file.s(static_memory.size());
+		for (auto&& static_mem: static_memory) {
+			file.u8((uint8_t)static_mem.first.type);
+			file.u32((uint8_t)static_mem.first.value);
+			static_mem.first.save(this, file, static_mem.second.get());
+		}
+
+	}
+
+	void ILModule::load(ILInputStream& file) {
+		external_functions.clear();
+
+		bool has_entry_point = file.b();
+		uint32_t e_point_id = file.u32();
+
+
+		size_t read_size = file.s();
+		functions = std::vector<std::unique_ptr<ILFunction>>(read_size);
+		for (size_t funcid = 0; funcid < read_size; ++funcid) {
+			uint8_t ftype = file.u8();			
+			if (ftype == 1) {
+				auto fun = std::make_unique<ILBytecodeFunction>();
+				fun->parent = this;
+				fun->id = funcid;
+				fun->decl_id = file.u32();
+				size_t alias_size = file.s();
+				fun->alias = std::string(alias_size,'\0');
+				file.read(fun->alias.data(), alias_size);
+				fun->load(file);
+				functions[funcid] = std::move(fun);
+			} else if (ftype == 2) {
+				auto fun = std::make_unique<ILNativeFunction>();
+				fun->parent = this;
+				fun->id = funcid;
+				fun->decl_id = file.u32();
+				size_t alias_size = file.s();
+				fun->alias = std::string(alias_size,'\0');
+				file.read(fun->alias.data(), alias_size);
+				external_functions[fun->alias] = fun->id;
+				functions[funcid] = std::move(fun);
+			}
+		}
+
+		read_size = file.s();
+		function_decl = std::vector<std::tuple<ILCallingConvention, ILDataType, std::vector<ILDataType>>>(read_size);
+		for (size_t declid = 0; declid < read_size; ++declid) {
+			ILCallingConvention cconv = (ILCallingConvention)file.u8();
+			ILDataType ret = file.dt();
+			size_t asize = file.s();
+			std::vector<ILDataType> args(asize);
+			file.read(args.data(),args.size());
+			function_decl[declid] = std::make_tuple(cconv, ret, std::move(args));
+		}
+
+
+		read_size = file.s();
+		structure_tables = std::vector<ILStructTable>(read_size);
+		for (size_t tid = 0; tid < read_size; ++tid) {
+			ILStructTable table;
+			size_t elem_size = file.s();
+			table.elements = std::vector<ILSize>(elem_size);
+			for (size_t elem_id = 0; elem_id<elem_size; ++elem_id) {
+				table.elements[elem_id].type = (ILSizeType)file.u8();
+				table.elements[elem_id].value = file.u32();
+			}
+			structure_tables[tid] = std::move(table);
+		}
+
+		read_size = file.s();
+		array_tables = std::vector<ILArrayTable>(read_size);
+		for (size_t tid = 0; tid < read_size; ++tid) {
+			ILArrayTable table;
+			table.count = file.u32();
+			table.element.type = (ILSizeType)file.u8();
+			table.element.value = file.u32();
+			array_tables_map[std::make_pair(table.element, table.count)] = tid;
+			array_tables[tid] = std::move(table);
+		}
+
+		read_size = file.s();
+		vtable_data = std::vector<std::pair<uint32_t,std::unique_ptr<void*[]>>>(read_size);
+		for (size_t tid = 0; tid < read_size; ++tid) {
+			std::pair<uint32_t, std::unique_ptr<void*[]>> vtable;
+			vtable.first = file.u32();
+			vtable.second = std::make_unique<void*[]>(vtable.first);
+			for(uint32_t i=0;i<vtable.first;++i) {
+				vtable.second[i] = functions[file.u32()].get();
+			}
+			vtable_data[tid] = std::move(vtable);
+		}
+
+		read_size = file.s();
+		constant_memory = std::vector<std::pair<ILSize,std::unique_ptr<unsigned char[]>>>(read_size);
+		for (size_t cid = 0; cid < read_size; ++cid) {
+			ILSize s;
+			s.type = (ILSizeType)file.u8();
+			s.value = file.u32();
+			size_t es = s.eval(this, compiler_arch);
+			auto mem = std::make_unique<unsigned char[]>(es);
+			s.load(this, file, mem.get());
+			constant_memory[cid] = std::make_pair(s, std::move(mem));
+		}
+
+		read_size = file.s();
+		static_memory = std::vector<std::pair<ILSize,std::unique_ptr<unsigned char[]>>>(read_size);
+		for (size_t sid = 0; sid < read_size; ++sid) {
+			ILSize s;
+			s.type = (ILSizeType)file.u8();
+			s.value = file.u32();
+			size_t es = s.eval(this, compiler_arch);
+			auto mem = std::make_unique<unsigned char[]>(es);
+			s.load(this, file, mem.get());
+			static_memory[sid] = std::make_pair(s, std::move(mem));
+		}
+
+		entry_point = has_entry_point?functions[e_point_id].get() : nullptr;
+	}
+
+
+	void ILOutputStream::u8(uint8_t v) {
+		target.put(v);
+	}
+	void ILOutputStream::i8(int8_t v) {
+		target.put(v);
+	}
+	void ILOutputStream::u16(uint16_t v){
+		target.put((uint8_t)((v)&0x00ff));
+		target.put((uint8_t)((v>>8)&0x00ff));
+	}
+	void ILOutputStream::i16(int16_t v){
+		u16(*(uint16_t*)&v);
+	}
+	void ILOutputStream::u32(uint32_t v){
+		target.put((uint8_t)((v)&0x000000ff));
+		target.put((uint8_t)((v>>8)&0x000000ff));
+		target.put((uint8_t)((v>>16)&0x000000ff));
+		target.put((uint8_t)((v>>24)&0x000000ff));
+	}
+	void ILOutputStream::i32(int32_t v){
+		u32(*(uint32_t*)&v);
+	}
+	void ILOutputStream::u64(uint64_t v){
+		target.put((uint8_t)((v)&0x00000000000000ff));
+		target.put((uint8_t)((v>>8)&0x00000000000000ff));
+		target.put((uint8_t)((v>>16)&0x00000000000000ff));
+		target.put((uint8_t)((v>>24)&0x00000000000000ff));
+		target.put((uint8_t)((v>>32)&0x00000000000000ff));
+		target.put((uint8_t)((v>>40)&0x00000000000000ff));
+		target.put((uint8_t)((v>>48)&0x00000000000000ff));
+		target.put((uint8_t)((v>>56)&0x00000000000000ff));
+	}
+	void ILOutputStream::i64(int64_t v){
+		u64(*(uint64_t*)&v);
+	}
+	void ILOutputStream::s(size_t v){
+		u64((uint64_t)v);
+	}
+	
+	void ILOutputStream::dt(ILDataType v){
+		u8((uint8_t)v);
+	}
+	
+	void ILOutputStream::b(bool v){
+		u8((uint8_t)(v?1:0));
+	}
+
+	
+	void ILOutputStream::write(void* v, size_t s) {
+		if (s>0) {
+			uint8_t* ptr = (uint8_t*)v;
+			for (size_t i=0; i<s; ++i) {
+				target.put(*ptr++);
+			}
+		}
+	}
+
+
+	uint8_t ILInputStream::u8(){
+		return (uint8_t)target.get();
+	}
+	int8_t ILInputStream::i8() {
+		uint8_t v= u8();
+		return *(int8_t*)&v;
+	}
+	
+	uint16_t ILInputStream::u16(){
+		uint16_t v = 0;
+		uint8_t r;
+		r = (uint8_t)target.get();
+		v |= (((uint16_t)r))     & 0x00ff;
+		r = (uint8_t)target.get();
+		v |= (((uint16_t)r)<<8)  & 0xff00;
+		return v;
+	}
+	int16_t ILInputStream::i16() {
+		uint16_t v = u16();
+		return *(int16_t*)&v;
+	}
+
+	uint32_t ILInputStream::u32(){
+		uint32_t v = 0;
+		uint8_t r;
+		r = (uint8_t)target.get();
+		v |= (((uint32_t)r))     & 0x000000ff;
+		r = (uint8_t)target.get();
+		v |= (((uint32_t)r)<<8)  & 0x0000ff00;
+		r = (uint8_t)target.get();
+		v |= (((uint32_t)r)<<16) & 0x00ff0000;
+		r = (uint8_t)target.get();
+		v |= (((uint32_t)r)<<24) & 0xff000000;
+		return v;
+	}
+	int32_t ILInputStream::i32() {
+		uint32_t v = u32();
+		return *(int32_t*)&v;
+	}
+	uint64_t ILInputStream::u64() {
+		uint64_t v = 0;
+		uint8_t r;
+		r = (uint8_t)target.get();
+		v |= (((uint64_t)r))     & 0x00000000000000ff;
+		r = (uint8_t)target.get();
+		v |= (((uint64_t)r)<<8)  & 0x000000000000ff00;
+		r = (uint8_t)target.get();
+		v |= (((uint64_t)r)<<16) & 0x0000000000ff0000;
+		r = (uint8_t)target.get();
+		v |= (((uint64_t)r)<<24) & 0x00000000ff000000;
+		r = (uint8_t)target.get();
+		v |= (((uint64_t)r)<<32) & 0x000000ff00000000;
+		r = (uint8_t)target.get();
+		v |= (((uint64_t)r)<<40) & 0x0000ff0000000000;
+		r = (uint8_t)target.get();
+		v |= (((uint64_t)r)<<48) & 0x00ff000000000000;
+		r = (uint8_t)target.get();
+		v |= (((uint64_t)r)<<56) & 0xff00000000000000;
+		return v;
+	}
+	int64_t ILInputStream::i64() {
+		uint64_t v = u64();
+		return *(int64_t*)&v;
+	}
+	size_t ILInputStream::s() {
+		return (size_t)u64();
+	}
+	ILDataType ILInputStream::dt() {
+		return (ILDataType)u8();
+	}
+	bool ILInputStream::b() {
+		return (bool)u8();
+	}
+	void ILInputStream::read(void* v, size_t s) {
+		if (s>0) {
+			uint8_t* ptr = (uint8_t*)v;
+			for (size_t i=0; i<s; ++i) {
+				uint8_t vb = (uint8_t)target.get();
+				*ptr++ = vb;
+			}
+		}
+	}
+
+	
+	void ILSize::load(ILModule* mod, ILInputStream& stream, unsigned char* ptr) {
+		switch (type)
+		{
+			case ILSizeType::abs8:
+				for (uint32_t i=0;i<value;++i) { *(uint8_t*)ptr = stream.u8(); ptr+=1; }
+				break;
+
+			case ILSizeType::abs16:
+				for (uint32_t i=0;i<value;++i) { *(uint16_t*)ptr = stream.u16(); ptr+=2; }
+				break;
+
+			case ILSizeType::absf32:
+			case ILSizeType::abs32:
+				for (uint32_t i=0;i<value;++i) { *(uint32_t*)ptr = stream.u32(); ptr+=4; }
+				break;
+
+			case ILSizeType::absf64:
+			case ILSizeType::abs64:
+				for (uint32_t i=0;i<value;++i) { *(uint64_t*)ptr = stream.u64(); ptr+=8; }
+				break;
+
+			case ILSizeType::word:
+				switch (compiler_arch)
+				{
+					case ILArchitecture::bit64:
+						ptr+=8;
+						break;
+
+					case ILArchitecture::bit32:
+						ptr+=4;
+						break;
+				}
+				break;
+			case ILSizeType::table: {
+				size_t s = eval(mod, compiler_arch);
+				auto& table = mod->structure_tables[value];
+				table.calculate(mod, compiler_arch);
+				for (size_t e = 0; e<table.elements.size(); ++e) {
+					unsigned char* elem_off = ptr + table.calculated_offsets[e];
+					table.elements[e].load(mod,stream, elem_off);
+				}
+				ptr+=s;
+			}
+			case ILSizeType::array: {
+				size_t s = eval(mod, compiler_arch);
+				auto& table = mod->array_tables[value];
+				table.calculate(mod, compiler_arch);
+				table.element.load(mod, stream, ptr);
+				ptr+=s;
+			}
+		}
+	}
+
+	void ILSize::save(ILModule* mod, ILOutputStream& stream, unsigned char* ptr) {
+		switch (type)
+		{
+			case ILSizeType::abs8:
+				for (uint32_t i=0;i<value;++i) { stream.u8(*(uint8_t*)ptr); ptr+=1; }
+				break;
+
+			case ILSizeType::abs16:
+				for (uint32_t i=0;i<value;++i) { stream.u16(*(uint16_t*)ptr); ptr+=2; }
+				break;
+
+			case ILSizeType::abs32:
+			case ILSizeType::absf32:
+				for (uint32_t i=0;i<value;++i) { stream.u32(*(uint32_t*)ptr); ptr+=4; }
+				break;
+
+			case ILSizeType::abs64:
+			case ILSizeType::absf64:
+				for (uint32_t i=0;i<value;++i) { stream.u64(*(uint64_t*)ptr); ptr+=8; }
+				break;
+
+			case ILSizeType::word:
+				switch (compiler_arch)
+				{
+					case ILArchitecture::bit64:
+						ptr+=8;
+						break;
+
+					case ILArchitecture::bit32:
+						ptr+=4;
+						break;
+				}
+				break;
+			case ILSizeType::table: {
+				size_t s = eval(mod, compiler_arch);
+				auto& table = mod->structure_tables[value];
+				table.calculate(mod, compiler_arch);
+				for (size_t e = 0; e<table.elements.size(); ++e) {
+					unsigned char* elem_off = ptr + table.calculated_offsets[e];
+					table.elements[e].save(mod,stream, elem_off);
+				}
+				ptr+=s;
+			}
+			case ILSizeType::array: {
+				size_t s = eval(mod, compiler_arch);
+				auto& table = mod->array_tables[value];
+				table.calculate(mod, compiler_arch);
+				table.element.save(mod, stream, ptr);
+				ptr+=s;
+			}
+		}
+	}
+
 }

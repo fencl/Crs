@@ -14,6 +14,7 @@
 #include <memory>
 #include "Compiler.hpp"
 #include "Ast.hpp"
+#include <fstream>
 
 namespace Corrosive {
 	const ILArchitecture compiler_arch = (sizeof(void*) == 8) ? ILArchitecture::bit64 : ILArchitecture::bit32;
@@ -58,6 +59,18 @@ namespace Corrosive {
 
 
 			std::cout << "========= TEST =========\n";
+
+			/*{
+				std::ofstream file("output.bin",std::ios::binary);
+				compiled_module->save(ILOutputStream(file));
+			}
+
+			{
+				std::ifstream file("output.bin",std::ios::binary);
+				compiled_module->load(ILInputStream(file));
+				StandardLibraryCode::link(compiled_module.get());
+			}*/
+
 
 			std::chrono::steady_clock::time_point runtime_start = std::chrono::steady_clock::now();
 			compiled_module->run(compiled_module->entry_point);

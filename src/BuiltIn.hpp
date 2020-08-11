@@ -67,6 +67,8 @@ namespace Corrosive {
 		static void* 	malloc(size_t size);
 		static void* 	realloc(void* ptr, size_t size);
 		static void 	free(void* ref);
+
+		static void     link(ILModule* mod);
 	};
 
 	class BuiltInCode {

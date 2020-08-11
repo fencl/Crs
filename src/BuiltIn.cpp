@@ -100,6 +100,17 @@ namespace Corrosive {
 		Compiler::current()->entry_point = sv;
 	}
 
+	
+	void StandardLibraryCode::link(ILModule* mod) {
+		mod->try_link("std::print_slice", StandardLibraryCode::print);
+		mod->try_link("std::malloc", StandardLibraryCode::malloc);
+		mod->try_link("std::free", StandardLibraryCode::free);
+		mod->try_link("std::realloc", StandardLibraryCode::realloc);
+		mod->try_link("std::library::share", StandardLibraryCode::share);
+		mod->try_link("std::library::function", StandardLibraryCode::function);
+		mod->try_link("std::library::release", StandardLibraryCode::release);
+	}
+
 	void BuiltInCode::ask_for(dword_t slice) {
 		std::basic_string_view<char> data_string((char*)slice.p1, (size_t)slice.p2);
 
@@ -235,18 +246,18 @@ namespace Corrosive {
 		std_lib.root_node = AstRootNode::parse(&std_lib);
 		std_lib.root_node->populate();
 
-		setup_type("void", t_void, { ILSizeType::absolute,0 }, ILDataType::none, ILContext::both, std_lib.root_node.get());
-		setup_type("i8", t_i8, { ILSizeType::absolute,1 }, ILDataType::i8, ILContext::both, std_lib.root_node.get());
-		setup_type("bool", t_bool, { ILSizeType::absolute,1 }, ILDataType::i8, ILContext::both, std_lib.root_node.get());
-		setup_type("i16", t_i16, { ILSizeType::absolute,2 }, ILDataType::i16, ILContext::both, std_lib.root_node.get());
-		setup_type("i32", t_i32, { ILSizeType::absolute,4 }, ILDataType::i32, ILContext::both, std_lib.root_node.get());
-		setup_type("u8", t_u8, { ILSizeType::absolute,1 }, ILDataType::u8, ILContext::both, std_lib.root_node.get());
-		setup_type("u16", t_u16, { ILSizeType::absolute,2 }, ILDataType::u16, ILContext::both, std_lib.root_node.get());
-		setup_type("u32", t_u32, { ILSizeType::absolute,4 }, ILDataType::u32, ILContext::both, std_lib.root_node.get());
-		setup_type("f32", t_f32, { ILSizeType::absolute,4 }, ILDataType::f32, ILContext::both, std_lib.root_node.get());
-		setup_type("f64", t_f64, { ILSizeType::absolute,8 }, ILDataType::f64, ILContext::both, std_lib.root_node.get());
-		setup_type("i64", t_i64, { ILSizeType::absolute,8 }, ILDataType::i64, ILContext::both, std_lib.root_node.get());
-		setup_type("u64", t_u64, { ILSizeType::absolute,8 }, ILDataType::u64, ILContext::both, std_lib.root_node.get());
+		setup_type("void", t_void, { ILSizeType::_0,0 }, ILDataType::none, ILContext::both, std_lib.root_node.get());
+		setup_type("i8", t_i8, { ILSizeType::abs8,1 }, ILDataType::i8, ILContext::both, std_lib.root_node.get());
+		setup_type("bool", t_bool, { ILSizeType::abs8,1 }, ILDataType::i8, ILContext::both, std_lib.root_node.get());
+		setup_type("i16", t_i16, { ILSizeType::abs16,1 }, ILDataType::i16, ILContext::both, std_lib.root_node.get());
+		setup_type("i32", t_i32, { ILSizeType::abs32,1 }, ILDataType::i32, ILContext::both, std_lib.root_node.get());
+		setup_type("u8", t_u8, { ILSizeType::abs8,1 }, ILDataType::u8, ILContext::both, std_lib.root_node.get());
+		setup_type("u16", t_u16, { ILSizeType::abs16,1 }, ILDataType::u16, ILContext::both, std_lib.root_node.get());
+		setup_type("u32", t_u32, { ILSizeType::abs32,1 }, ILDataType::u32, ILContext::both, std_lib.root_node.get());
+		setup_type("f32", t_f32, { ILSizeType::absf32,1 }, ILDataType::f32, ILContext::both, std_lib.root_node.get());
+		setup_type("f64", t_f64, { ILSizeType::absf64,1 }, ILDataType::f64, ILContext::both, std_lib.root_node.get());
+		setup_type("i64", t_i64, { ILSizeType::abs64,1 }, ILDataType::i64, ILContext::both, std_lib.root_node.get());
+		setup_type("u64", t_u64, { ILSizeType::abs64,1 }, ILDataType::u64, ILContext::both, std_lib.root_node.get());
 		setup_type("size", t_size, { ILSizeType::word,1 }, ILDataType::word, ILContext::both, std_lib.root_node.get());
 		setup_type("type", t_type, { ILSizeType::word,1 }, ILDataType::word, ILContext::compile, std_lib.root_node.get());
 

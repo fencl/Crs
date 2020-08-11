@@ -23,7 +23,6 @@ namespace Corrosive {
 		const char* what() const throw() { return s.c_str(); }
 	};
 
-
 	using stackid_t = uint32_t;
 	using tableid_t = uint32_t;
 	using tableelement_t = uint32_t;
@@ -92,11 +91,50 @@ namespace Corrosive {
 	};
 
 	enum class ILSizeType : unsigned char {
-		array, table, absolute, word
+		array, table, abs8, abs16, abs32, abs64, absf32, absf64, word, _0
 	};
 
 	enum class ILCallingConvention : uint8_t {
 		bytecode, native, stdcall, __max
+	};
+
+
+	class ILOutputStream {
+	public:
+		ILOutputStream(std::ostream& tg): target(tg) {}
+		void u8(uint8_t v);
+		void i8(int8_t v);
+		void u16(uint16_t v);
+		void i16(int16_t v);
+		void u32(uint32_t v);
+		void i32(int32_t v);
+		void u64(uint64_t v);
+		void i64(int64_t v);
+		void s(size_t v);
+		void dt(ILDataType v);
+		void b(bool v);
+		void write(void* v, size_t s);
+	private:
+		std::ostream& target;
+	};
+
+	class ILInputStream {
+	public:
+		ILInputStream(std::istream& tg): target(tg) {}
+		uint8_t u8();
+		int8_t i8();
+		uint16_t u16();
+		int16_t i16();
+		uint32_t u32();
+		int32_t i32();
+		uint64_t u64();
+		int64_t i64();
+		size_t s();
+		ILDataType dt();
+		bool b();
+		void read(void* v, size_t s);
+	private:
+		std::istream& target;
 	};
 
 	struct ILSize {
@@ -112,8 +150,13 @@ namespace Corrosive {
 		static const ILSize single_ptr;
 		static const ILSize double_ptr;
 
-		void print();
+		void print(ILModule* mod);
+
+		void load(ILModule* mod, ILInputStream& stream, unsigned char* ptr);
+		void save(ILModule* mod, ILOutputStream& stream, unsigned char* ptr);
 	};
+
+	bool operator < (const ILSize& l,const ILSize& r);
 
 	struct ILStructTable {
 		std::vector<ILSize> elements;
@@ -122,6 +165,12 @@ namespace Corrosive {
 		size_t calculated_alignment;
 		ILArchitecture calculated_for = ILArchitecture::none;
 		void calculate(ILModule* mod, ILArchitecture arch);
+
+		void clean_prepass(ILModule& mod, std::unordered_set<size_t>& used_tables,
+			std::unordered_set<size_t>& used_arrays);
+
+		void clean_pass(ILModule& mod, std::unordered_map<size_t, size_t>& map_tables,
+			std::unordered_map<size_t, size_t>& map_arrays);
 	};
 
 	struct ILArrayTable {
@@ -131,8 +180,13 @@ namespace Corrosive {
 		size_t calculated_alignment;
 		ILArchitecture calculated_for = ILArchitecture::none;
 		void calculate(ILModule* mod, ILArchitecture arch);
-	};
 
+		void clean_prepass(ILModule& mod, std::unordered_set<size_t>& used_tables,
+			std::unordered_set<size_t>& used_arrays);
+
+		void clean_pass(ILModule& mod, std::unordered_map<size_t, size_t>& map_tables,
+			std::unordered_map<size_t, size_t>& map_arrays);
+	};
 
 	class ILBlock {
 	public:
@@ -147,24 +201,131 @@ namespace Corrosive {
 		std::set<ILBlock*> predecessors;
 
 		void write_instruction(ILInstruction instruction);
-		void write_value(size_t size, unsigned char* value);
 		void write_const_type(ILDataType type);
 
 
-		template<typename T> inline void write_value(T v) {
-			write_value(sizeof(T), (unsigned char*)&v);
-		}
-
-		template<typename T> inline T pop() {
-			T r = *(T*)&data_pool[data_pool.size() - sizeof(T)];
-			data_pool.resize(data_pool.size() - sizeof(T));
-			return r;
+		template<typename T> inline void write_value(T av) {
+			switch(sizeof(T)) {
+				case 1: data_pool.push_back(*(uint8_t*)&av); break;
+				case 2: {
+					uint16_t v = *(uint16_t*)&av;
+					data_pool.push_back((uint8_t)(v & 0x00ff));
+					data_pool.push_back((uint8_t)((v>>8) & 0x00ff)); 
+				} break;
+				case 3:{
+					uint32_t v = *(uint32_t*)&av;
+					data_pool.push_back((uint8_t)(v & 0x000000ff));
+					data_pool.push_back((uint8_t)((v>>8) & 0x000000ff));
+					data_pool.push_back((uint8_t)((v>>16) & 0x000000ff));
+				} break;
+				case 4: {
+					uint32_t v = *(uint32_t*)&av;
+					data_pool.push_back((uint8_t)(v & 0x000000ff));
+					data_pool.push_back((uint8_t)((v>>8) & 0x000000ff));
+					data_pool.push_back((uint8_t)((v>>16) & 0x000000ff));
+					data_pool.push_back((uint8_t)((v>>24) & 0x000000ff));
+				} break;
+				case 5:{
+					uint64_t v = *(uint64_t*)&av;
+					data_pool.push_back((uint8_t)(v & 0x00000000000000ff));
+					data_pool.push_back((uint8_t)((v>>8) & 0x00000000000000ff));
+					data_pool.push_back((uint8_t)((v>>16) & 0x00000000000000ff));
+					data_pool.push_back((uint8_t)((v>>24) & 0x00000000000000ff));
+					data_pool.push_back((uint8_t)((v>>32) & 0x00000000000000ff));
+				} break;
+				case 6:{
+					uint64_t v = *(uint64_t*)&av;
+					data_pool.push_back((uint8_t)(v & 0x00000000000000ff));
+					data_pool.push_back((uint8_t)((v>>8) & 0x00000000000000ff));
+					data_pool.push_back((uint8_t)((v>>16) & 0x00000000000000ff));
+					data_pool.push_back((uint8_t)((v>>24) & 0x00000000000000ff));
+					data_pool.push_back((uint8_t)((v>>32) & 0x00000000000000ff));
+					data_pool.push_back((uint8_t)((v>>40) & 0x00000000000000ff));
+				} break;
+				case 7:{
+					uint64_t v = *(uint64_t*)&av;
+					data_pool.push_back((uint8_t)(v & 0x00000000000000ff));
+					data_pool.push_back((uint8_t)((v>>8) & 0x00000000000000ff));
+					data_pool.push_back((uint8_t)((v>>16) & 0x00000000000000ff));
+					data_pool.push_back((uint8_t)((v>>24) & 0x00000000000000ff));
+					data_pool.push_back((uint8_t)((v>>32) & 0x00000000000000ff));
+					data_pool.push_back((uint8_t)((v>>40) & 0x00000000000000ff));
+					data_pool.push_back((uint8_t)((v>>48) & 0x00000000000000ff));
+				} break;
+				case 8: {
+					uint64_t v = *(uint64_t*)&av;
+					data_pool.push_back((uint8_t)(v & 0x00000000000000ff));
+					data_pool.push_back((uint8_t)((v>>8) & 0x00000000000000ff));
+					data_pool.push_back((uint8_t)((v>>16) & 0x00000000000000ff));
+					data_pool.push_back((uint8_t)((v>>24) & 0x00000000000000ff));
+					data_pool.push_back((uint8_t)((v>>32) & 0x00000000000000ff));
+					data_pool.push_back((uint8_t)((v>>40) & 0x00000000000000ff));
+					data_pool.push_back((uint8_t)((v>>48) & 0x00000000000000ff));
+					data_pool.push_back((uint8_t)((v>>56) & 0x00000000000000ff));
+				} break;
+				default: throw std::exception("data too large");
+			}
 		}
 
 		template<typename T> inline static T read_data(std::vector<uint8_t>::iterator& it) {
-			T r = *(T*)(&*it);
-			it += sizeof(T);
-			return r;
+			
+			uint64_t v = 0;
+
+			switch(sizeof(T)) {
+				case 1: v=*it++; break;
+				case 2: {
+					v |= ((uint16_t)*it++) & 0x00ff;
+					v |= ((uint16_t)*it++ << 8) & 0xff00;
+				} break;
+				case 3: {
+					v |= ((uint32_t)*it++)       & 0x000000ff;
+					v |= ((uint32_t)*it++ << 8)  & 0x0000ff00;
+					v |= ((uint32_t)*it++ << 16) & 0x00ff0000;
+				} break;
+				case 4: {
+					v |= ((uint32_t)*it++)       & 0x000000ff;
+					v |= ((uint32_t)*it++ << 8)  & 0x0000ff00;
+					v |= ((uint32_t)*it++ << 16) & 0x00ff0000;
+					v |= ((uint32_t)*it++ << 24) & 0xff000000;
+				} break;
+				case 5:{
+					v |= ((uint64_t)*it++)     & 0x00000000000000ff;
+					v |= ((uint64_t)*it++<<8)  & 0x000000000000ff00;
+					v |= ((uint64_t)*it++<<16) & 0x0000000000ff0000;
+					v |= ((uint64_t)*it++<<24) & 0x00000000ff000000;
+					v |= ((uint64_t)*it++<<32) & 0x000000ff00000000;
+				} break;
+				case 6:{
+					v |= ((uint64_t)*it++)     & 0x00000000000000ff;
+					v |= ((uint64_t)*it++<<8)  & 0x000000000000ff00;
+					v |= ((uint64_t)*it++<<16) & 0x0000000000ff0000;
+					v |= ((uint64_t)*it++<<24) & 0x00000000ff000000;
+					v |= ((uint64_t)*it++<<32) & 0x000000ff00000000;
+					v |= ((uint64_t)*it++<<40) & 0x0000ff0000000000;
+				} break;
+				case 7:{
+					v |= ((uint64_t)*it++)     & 0x00000000000000ff;
+					v |= ((uint64_t)*it++<<8)  & 0x000000000000ff00;
+					v |= ((uint64_t)*it++<<16) & 0x0000000000ff0000;
+					v |= ((uint64_t)*it++<<24) & 0x00000000ff000000;
+					v |= ((uint64_t)*it++<<32) & 0x000000ff00000000;
+					v |= ((uint64_t)*it++<<40) & 0x0000ff0000000000;
+					v |= ((uint64_t)*it++<<48) & 0x00ff000000000000;
+				} break;
+				case 8: {
+					v |= ((uint64_t)*it++)     & 0x00000000000000ff;
+					v |= ((uint64_t)*it++<<8)  & 0x000000000000ff00;
+					v |= ((uint64_t)*it++<<16) & 0x0000000000ff0000;
+					v |= ((uint64_t)*it++<<24) & 0x00000000ff000000;
+					v |= ((uint64_t)*it++<<32) & 0x000000ff00000000;
+					v |= ((uint64_t)*it++<<40) & 0x0000ff0000000000;
+					v |= ((uint64_t)*it++<<48) & 0x00ff000000000000;
+					v |= ((uint64_t)*it++<<56) & 0xff00000000000000;
+				} break;
+				default: throw std::exception("data too large");
+			}
+
+			return *(T*)&v;
 		}
 
 		void dump();
@@ -193,7 +354,7 @@ namespace Corrosive {
 	};
 
 	enum class ILLifetimeEvent : unsigned char {
-		push=100, pop=127, append=255
+		push=1, pop=2, append=3
 	};
 
 	enum class ILBitWidth {
@@ -227,7 +388,7 @@ namespace Corrosive {
 	public:
 		virtual ~ILFunction();
 		std::string alias;
-		unsigned int id;
+		uint32_t id;
 		ILModule* parent;
 
 		uint32_t decl_id = UINT32_MAX;
@@ -271,6 +432,10 @@ namespace Corrosive {
 			std::unordered_map<size_t, size_t>& map_decls,
 			std::unordered_map<size_t, size_t>& map_tables,
 			std::unordered_map<size_t, size_t>& map_arrays);
+
+			
+		void load(ILInputStream& stream);
+		void save(ILOutputStream& stream);
 	};
 
 	class ILNativeFunction : public ILFunction {
@@ -397,7 +562,12 @@ namespace Corrosive {
 	void throw_runtime_handler_exception(const ILEvaluator* eval);
 
 	class ILModule {
+	private:
+		static thread_local std::vector<ILModule*> current;
 	public:
+		static ILModule* active() { return current.back(); }
+
+		std::map<std::string, uint32_t> external_functions;
 		std::vector<std::pair<ILSize,std::unique_ptr<unsigned char[]>>> constant_memory;
 		std::vector<std::pair<ILSize,std::unique_ptr<unsigned char[]>>> static_memory;
 
@@ -405,13 +575,16 @@ namespace Corrosive {
 		std::vector<std::pair<uint32_t,std::unique_ptr<void* []>>> vtable_data;
 		std::vector<ILStructTable> structure_tables;
 		std::vector<ILArrayTable> array_tables;
+		std::map<std::pair<ILSize, tableelement_t>, tableid_t> array_tables_map;
 		std::vector<std::tuple<ILCallingConvention, ILDataType, std::vector<ILDataType>>> function_decl;
 
+		void try_link(std::string name,void* ptr);
+
 		tableid_t register_structure_table();
-		tableid_t register_array_table();
+		tableid_t register_array_table(ILSize type,tableelement_t count);
 		uint32_t register_vtable(uint32_t size, std::unique_ptr<void* []> table);
 		ILBytecodeFunction* create_function(ILContext context);
-		ILNativeFunction* create_native_function();
+		ILNativeFunction* create_native_function(std::string alias);
 		uint32_t register_constant(unsigned char* memory, ILSize size);
 		uint32_t register_static(unsigned char* memory, ILSize size);
 		uint32_t register_function_decl(std::tuple<ILCallingConvention, ILDataType, std::vector<ILDataType>> decl);
@@ -426,6 +599,8 @@ namespace Corrosive {
 		std::vector<ILFunction*> exported_functions;
 
 		void run(ILFunction* func);
+		void load(ILInputStream& stream);
+		void save(ILOutputStream& stream);
 	};
 
 	void abi_dynamic_call(ILEvaluator* eval, ILCallingConvention conv, void* ptr, std::tuple<ILCallingConvention, ILDataType, std::vector<ILDataType>>& decl);

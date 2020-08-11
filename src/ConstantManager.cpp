@@ -8,11 +8,11 @@
 
 namespace Corrosive {
 
-	std::pair<const std::string_view, uint32_t> ConstantManager::register_string_literal(std::string string) {
+	std::pair<const std::string_view, uint32_t> ConstantManager::register_constant(std::string string, ILSize s) {
 		auto empl = string_literals.emplace(std::move(string), 0);
 
 		if (empl.second) {
-			empl.first->second = compiler->global_module()->register_constant((unsigned char*)empl.first->first.data(), ILSize(ILSizeType::absolute, (tableid_t)empl.first->first.length()));
+			empl.first->second = compiler->global_module()->register_constant((unsigned char*)empl.first->first.data(), s);
 		}
 
 		return std::move(std::make_pair(std::string_view(empl.first->first),empl.first->second));
@@ -49,8 +49,8 @@ namespace Corrosive {
 					escaped = false;
 				}
 			}
-
-			auto res_id = register_string_literal(std::move(holder));
+			ILSize size(ILSizeType::abs8, (tableid_t)holder.length());
+			auto res_id = register_constant(std::move(holder), size);
 			string_holders.insert(std::make_pair(c, res_id));
 			return res_id;
 		}

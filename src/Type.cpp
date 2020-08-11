@@ -128,13 +128,25 @@ namespace Corrosive {
 			uint8_t* ptr_src = (uint8_t*)me.p1;
 			uint8_t* ptr_dst = (uint8_t*)data.data();
 			size_t elem_size = owner->size().eval(compiler->global_module(), compiler_arch);
-			for (size_t i=0;i<((size_t)me.p2)/elem_size; ++i) {
+			size_t count = ((size_t)me.p2)/elem_size;
+			for (size_t i=0;i<count; ++i) {
 				owner->constantize(err, ptr_dst, ptr_src);
 				ptr_src += elem_size;
 				ptr_dst += elem_size;
 			}
 
-			auto val = compiler->constant_manager()->register_string_literal(data);
+			ILSize s;
+			if (owner->size().type == ILSizeType::table || owner->size().type == ILSizeType::array) {
+				s.type = ILSizeType::array;
+				s.value = compiler->global_module()->register_array_table(owner->size(),count);
+			}else if (owner->size().type == ILSizeType::_0) {
+				s.type = ILSizeType::_0;
+			}else{
+				s = owner->size();
+				s.value *= count;
+			}
+
+			auto val = compiler->constant_manager()->register_constant(std::move(data), s);
 
 			if (target) {
 				dword_t* tg = (dword_t*)target;
@@ -170,7 +182,7 @@ namespace Corrosive {
 				memcpy(target, data.data(), data.size()); // no need to register as constant
 			}
 			else {
-				auto val = compiler->constant_manager()->register_string_literal(data);
+				auto val = compiler->constant_manager()->register_constant(std::move(data), size());
 
 				stackid_t local_id = compiler->target()->local_stack_lifetime.append(size());
 				compiler->temp_stack()->push_item("$tmp", this, local_id);
@@ -270,10 +282,19 @@ namespace Corrosive {
 			Compiler* compiler = Compiler::current();
 			std::unique_ptr<TypeArray> ti = std::make_unique<TypeArray>();
 			ti->owner = this;
-			
-			ti->table = compiler->global_module()->register_array_table();
-			compiler->global_module()->array_tables[ti->table].count = count;
-			compiler->global_module()->array_tables[ti->table].element = size();
+			ILSize s = size();
+
+			if (s.type == ILSizeType::table || s.type == ILSizeType::array) {
+				ti->size_value.type = ILSizeType::array;
+				ti->size_value.value = compiler->global_module()->register_array_table(s, count);
+			}else if (s.type == ILSizeType::_0) {
+				ti->size_value.type = ILSizeType::_0;
+				ti->size_value.value = 0;
+			}else {
+				ti->size_value = s;
+				ti->size_value.value *= count;
+			}
+
 			TypeArray* rt = ti.get();
 			arrays[count] = std::move(ti);
 			return rt;
@@ -322,7 +343,7 @@ namespace Corrosive {
 	}
 
 	void TypeArray::print(std::ostream& os) {
-		os << "[" << Compiler::current()->global_module()->array_tables[table].count << "]";
+		//TODO: os << "[" << Compiler::current()->global_module()->array_tables[table].count << "]";
 		owner->print(os);
 	}
 
@@ -359,7 +380,7 @@ namespace Corrosive {
 	// ==============================================================================================  SIZE/ALIGNMENT
 
 	ILSize Type::size() {
-		return { ILSizeType::absolute,0 };
+		return { ILSizeType::_0,0 };
 	}
 
 
@@ -389,7 +410,7 @@ namespace Corrosive {
 	}
 
 	ILSize TypeArray::size() {
-		return  ILSize(ILSizeType::array, table);
+		return size_value; //ILSize(ILSizeType::array, table);
 	}
 
 

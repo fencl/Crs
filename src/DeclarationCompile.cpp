@@ -1090,14 +1090,24 @@ namespace Corrosive {
 
 					func->assert_flow();
 				}
-
-
 			}
 			else {
 				type->compile();
-				auto func = Compiler::current()->global_module()->create_native_function();
+				std::string name = std::string(ast_node->name_string);
+				Namespace* nspc = parent;
+				while(nspc && nspc->ast_node) {
+					if (auto stct = dynamic_cast<StructureInstance*>(nspc)) {
+						name.insert(0,"::");
+						name.insert(0,((AstStructureNode*)stct->ast_node)->name_string);
+					}else {
+						name.insert(0,"::");
+						name.insert(0,((AstNamedNamespaceNode*)nspc->ast_node)->name_string);
+					}
+					nspc = nspc->parent;
+				}
+
+				auto func = Compiler::current()->global_module()->create_native_function(name);
 				this->func = func;
-				func->alias = ast_node->name_string;
 				func->decl_id = type->il_function_decl;
 				compile_state = 3;
 			}
@@ -1138,18 +1148,17 @@ namespace Corrosive {
 			generic_inst.insert_key_on_stack();
 
 			ILStructTable table;
-			uint32_t max_align = 0;
-			size = ILSize(ILSizeType::absolute, 0);
+			size = ILSize(ILSizeType::_0, 0);
 
 			for (auto&& m : member_vars) {
 				m.first->compile();
 
 				ILSize m_s = m.first->size();
 
-				if (m_s.type == ILSizeType::absolute && m_s.value <= 4) { // up to 4 bytes always aligned to 4 bytes or less
-					if (size.type == ILSizeType::absolute) {
-						max_align = std::max(m_s.value, max_align);
-						size.value = (uint32_t)align_up(size.value, upper_power_of_two(m_s.value));
+				if (m_s.type == ILSizeType::abs8) {
+					if (size.type == ILSizeType::_0) size.type = ILSizeType::abs8;
+
+					if (size.type == ILSizeType::abs8) {
 						m.second = size.value;
 						size.value += m_s.value;
 					}
@@ -1157,15 +1166,69 @@ namespace Corrosive {
 						size.type = ILSizeType::table;
 					}
 				}
+				else if (m_s.type == ILSizeType::abs16) {
+					if (size.type == ILSizeType::_0) size.type = ILSizeType::abs16;
+
+					if (size.type == ILSizeType::abs16) {
+						m.second = size.value*2;
+						size.value += m_s.value;
+					}
+					else {
+						size.type = ILSizeType::table;
+					}
+				}
+				else if (m_s.type == ILSizeType::abs32) {
+					if (size.type == ILSizeType::_0) size.type = ILSizeType::abs32;
+
+					if (size.type == ILSizeType::abs32) {
+						m.second = size.value*4;
+						size.value += m_s.value;
+					}
+					else {
+						size.type = ILSizeType::table;
+					}
+				}
+				else if (m_s.type == ILSizeType::abs64) {
+					if (size.type == ILSizeType::_0) size.type = ILSizeType::abs64;
+
+					if (size.type == ILSizeType::abs64) {
+						m.second = size.value*8;
+						size.value += m_s.value;
+					}
+					else {
+						size.type = ILSizeType::table;
+					}
+				}
+				else if (m_s.type == ILSizeType::absf32) {
+					if (size.type == ILSizeType::_0) size.type = ILSizeType::absf32;
+
+					if (size.type == ILSizeType::absf32) {
+						m.second = size.value*4;
+						size.value += m_s.value;
+					}
+					else {
+						size.type = ILSizeType::table;
+					}
+				}
+				else if (m_s.type == ILSizeType::absf64) {
+					if (size.type == ILSizeType::_0) size.type = ILSizeType::absf64;
+
+					if (size.type == ILSizeType::absf64) {
+						m.second = size.value*8;
+						size.value += m_s.value;
+					}
+					else {
+						size.type = ILSizeType::table;
+					}
+				}
 				else if (m_s.type == ILSizeType::word) { // words are automatically aligned
-					if (size.type == ILSizeType::absolute && size.value == 0) size.type = ILSizeType::word;
+					if (size.type == ILSizeType::_0) size.type = ILSizeType::word;
 
 					if (size.type == ILSizeType::word) {
 						m.second = size.value; // aligned to single word
 						size.value += m_s.value;
 					}
 					else {
-
 						size.type = ILSizeType::table;
 					}
 				}
@@ -1173,8 +1236,13 @@ namespace Corrosive {
 					size.type = ILSizeType::table;
 				}
 
-
-				table.elements.push_back(m_s);
+				if (table.elements.empty() || table.elements.back().type != m_s.type) {
+					table.elements.push_back(m_s);
+				} else if (m_s.type != ILSizeType::table && m_s.type!=ILSizeType::array) {
+					table.elements.back().value += m_s.value;
+				} else {
+					table.elements.push_back(m_s);
+				}
 			}
 
 
@@ -1188,9 +1256,6 @@ namespace Corrosive {
 					size = table.elements.back();
 					wrapper = true;
 				}
-			}
-			else if (size.type == ILSizeType::absolute) {
-				size.value = (uint32_t)align_up(size.value, max_align);
 			}
 
 
@@ -1315,6 +1380,7 @@ namespace Corrosive {
 			Compiler* compiler = Compiler::current();
 			
 			if (!ast_node->has_value) {
+
 				if (typevalue.type != compiler->types()->t_type) {
 					throw_cannot_cast_error(err, typevalue.type, compiler->types()->t_type);
 				}

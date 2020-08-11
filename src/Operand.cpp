@@ -2033,81 +2033,102 @@ namespace Corrosive {
 
 		mem_type = member.first;
 
-		if (ret.lvalue)
+		if (ret.lvalue || ret.type->rvalue_stacked())
 		{
 			if (cpt == CompileType::compile) {
 				if (!si->wrapper) {
-					if (elem_size.type == ILSizeType::table)
-						ILBuilder::build_tableoffset(compiler->scope(), elem_size.value, elem_id);
-					else if (elem_size.type == ILSizeType::absolute)
-						ILBuilder::build_aoffset(compiler->scope(), (uint32_t)elem_size.value);
-					else if (elem_size.type == ILSizeType::word)
-						ILBuilder::build_woffset(compiler->scope(), (uint32_t)elem_size.value);
+
+					switch (elem_size.type)
+					{
+						case ILSizeType::table:
+							ILBuilder::build_tableoffset(compiler->scope(), elem_size.value, elem_id); break;
+						case ILSizeType::abs8: 
+							ILBuilder::build_aoffset(compiler->scope(), (uint32_t)elem_size.value); break;
+						case ILSizeType::abs16: 
+							ILBuilder::build_aoffset(compiler->scope(), (uint32_t)(elem_size.value*2)); break;
+						case ILSizeType::abs32: 
+							ILBuilder::build_aoffset(compiler->scope(), (uint32_t)(elem_size.value*4)); break;
+						case ILSizeType::abs64: 
+							ILBuilder::build_aoffset(compiler->scope(), (uint32_t)(elem_size.value*8)); break;
+						case ILSizeType::word:
+							ILBuilder::build_woffset(compiler->scope(), (uint32_t)elem_size.value); break;
+						default:
+							break;
+					}
+					if (!ret.lvalue && !mem_type->rvalue_stacked()) {
+						ILBuilder::build_load(compiler->scope(), mem_type->rvalue());
+					}
 				}
 			}
 			else if (cpt == CompileType::eval) {
 				if (!si->wrapper) {
-					if (elem_size.type == ILSizeType::table)
-						ILBuilder::eval_tableoffset(compiler->evaluator(), elem_size.value, elem_id);
-					else if (elem_size.type == ILSizeType::absolute)
-						ILBuilder::eval_aoffset(compiler->evaluator(), (uint32_t)elem_size.value);
-					else if (elem_size.type == ILSizeType::word)
-						ILBuilder::eval_woffset(compiler->evaluator(), (uint32_t)elem_size.value);
-				}
-			}
-		}
-		else if (ret.type->rvalue_stacked()) {
-			if (cpt == CompileType::compile) {
-				if (!si->wrapper) {
-					if (elem_size.type == ILSizeType::table)
-						ILBuilder::build_tableoffset(compiler->scope(), elem_size.value, elem_id);
-					else if (elem_size.type == ILSizeType::absolute)
-						ILBuilder::build_aoffset(compiler->scope(), (uint32_t)elem_size.value);
-					else if (elem_size.type == ILSizeType::word)
-						ILBuilder::build_woffset(compiler->scope(), (uint32_t)elem_size.value);
-				}
-
-				if (!mem_type->rvalue_stacked()) {
-					ILBuilder::build_load(compiler->scope(), mem_type->rvalue());
-				}
-			}
-			else if (cpt == CompileType::eval) {
-
-				if (!si->wrapper) {
-					if (elem_size.type == ILSizeType::table)
-						ILBuilder::eval_tableoffset(compiler->evaluator(), elem_size.value, elem_id);
-					else if (elem_size.type == ILSizeType::absolute)
-						ILBuilder::eval_aoffset(compiler->evaluator(), (uint32_t)elem_size.value);
-					else if (elem_size.type == ILSizeType::word)
-						ILBuilder::eval_woffset(compiler->evaluator(), (uint32_t)elem_size.value);
-				}
-
-				if (!mem_type->rvalue_stacked()) {
-					ILBuilder::eval_load(compiler->evaluator(), mem_type->rvalue());
-				}
+					switch (elem_size.type)
+					{
+						case ILSizeType::table:
+							ILBuilder::eval_tableoffset(compiler->evaluator(), elem_size.value, elem_id); break;
+						case ILSizeType::abs8: 
+							ILBuilder::eval_aoffset(compiler->evaluator(), (uint32_t)elem_size.value); break;
+						case ILSizeType::abs16: 
+							ILBuilder::eval_aoffset(compiler->evaluator(), (uint32_t)(elem_size.value*2)); break;
+						case ILSizeType::abs32: 
+							ILBuilder::eval_aoffset(compiler->evaluator(), (uint32_t)(elem_size.value*4)); break;
+						case ILSizeType::abs64: 
+							ILBuilder::eval_aoffset(compiler->evaluator(), (uint32_t)(elem_size.value*8)); break;
+						case ILSizeType::word:
+							ILBuilder::eval_woffset(compiler->evaluator(), (uint32_t)elem_size.value); break;
+						default:
+							break;
+					}	
+					if (!ret.lvalue && !mem_type->rvalue_stacked()) {
+						ILBuilder::eval_load(compiler->evaluator(), mem_type->rvalue());
+					}
+				}	
 			}
 		}
 		else {
 			if (cpt == CompileType::compile) {
 				if (!si->wrapper) {
-					if (elem_size.type == ILSizeType::table)
-						ILBuilder::build_tableroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), elem_size.value, elem_id);
-					else if (elem_size.type == ILSizeType::absolute)
-						ILBuilder::build_aroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), elem_size.value);
-					else if (elem_size.type == ILSizeType::word)
-						ILBuilder::build_wroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), elem_size.value);
+					switch (elem_size.type)
+					{
+						case ILSizeType::table:
+							ILBuilder::build_tableroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), elem_size.value, elem_id); break;
+						case ILSizeType::abs8: 
+							ILBuilder::build_aroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), (uint32_t)elem_size.value); break;
+						case ILSizeType::abs16: 
+							ILBuilder::build_aroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), (uint32_t)(elem_size.value*2)); break;
+						case ILSizeType::abs32: 
+							ILBuilder::build_aroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), (uint32_t)(elem_size.value*4)); break;
+						case ILSizeType::abs64: 
+							ILBuilder::build_aroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), (uint32_t)(elem_size.value*8)); break;
+						case ILSizeType::word:
+							ILBuilder::build_wroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), (uint32_t)elem_size.value); break;
+						default:
+							break;
+					}
 				}
 
 			}
 			else if (cpt == CompileType::eval) {
 
 				if (!si->wrapper) {
-					if (elem_size.type == ILSizeType::table)
-						ILBuilder::eval_tableroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), elem_size.value, elem_id);
-					else if (elem_size.type == ILSizeType::absolute)
-						ILBuilder::eval_aroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), elem_size.value);
-					else if (elem_size.type == ILSizeType::word)
-						ILBuilder::eval_wroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), elem_size.value);
+
+					switch (elem_size.type)
+					{
+						case ILSizeType::table:
+							ILBuilder::eval_tableroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), elem_size.value, elem_id); break;
+						case ILSizeType::abs8: 
+							ILBuilder::eval_aroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (uint32_t)elem_size.value); break;
+						case ILSizeType::abs16: 
+							ILBuilder::eval_aroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (uint32_t)(elem_size.value*2)); break;
+						case ILSizeType::abs32: 
+							ILBuilder::eval_aroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (uint32_t)(elem_size.value*4)); break;
+						case ILSizeType::abs64: 
+							ILBuilder::eval_aroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (uint32_t)(elem_size.value*8)); break;
+						case ILSizeType::word:
+							ILBuilder::eval_wroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (uint32_t)elem_size.value); break;
+						default:
+							break;
+					}
 				}
 
 			}
@@ -2149,7 +2170,7 @@ namespace Corrosive {
 					}
 				}
 
-				if (ts->owner->size().type != ILSizeType::absolute || ts->owner->size().value > 1) {
+				if ((ts->owner->size().type != ILSizeType::table && ts->owner->size().type != ILSizeType::array) || ts->owner->size().value > 1) {
 					if (cpt == CompileType::compile) {
 						ILBuilder::build_const_size(compiler->scope(), ts->owner->size());
 						ILBuilder::build_div(compiler->scope(), ILDataType::word, ILDataType::word);

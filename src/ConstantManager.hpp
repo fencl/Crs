@@ -12,7 +12,7 @@ namespace Corrosive {
 	class ConstantManager {
 	public:
 		Compiler* compiler;
-		std::pair<const std::string_view, uint32_t> register_string_literal(std::string string);
+		std::pair<const std::string_view, uint32_t> register_constant(std::string string, ILSize size);
 		std::pair<const std::string_view, uint32_t> register_string_literal(Cursor& c);
 		uint8_t* register_generic_storage(uint8_t* ptr, size_t size, Type* of);
 
