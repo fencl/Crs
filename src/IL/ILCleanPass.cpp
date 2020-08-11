@@ -196,6 +196,7 @@ namespace Corrosive {
 		std::unordered_set<size_t>& used_tables,
 		std::unordered_set<size_t>& used_arrays) {
 		
+		
 		local_stack_lifetime.clean_prepass(used_tables, used_arrays);
 
 		for (auto&& block : blocks) {
@@ -621,9 +622,7 @@ namespace Corrosive {
 
 				}
 			}
-
 		}
-
 	}
 
 
@@ -642,6 +641,14 @@ namespace Corrosive {
 
 
 		local_stack_lifetime.clean_pass(map_tables, map_arrays);
+
+		std::unordered_map<size_t, size_t> map_blocks;
+		size_t nid = 0;
+		for (auto&& block : blocks) {
+			map_blocks[block->id] = nid++;
+		}
+
+
 
 		for (auto&& block : blocks) {
 			std::vector<uint8_t> original_data = std::move(block->data_pool);
@@ -781,7 +788,7 @@ namespace Corrosive {
 
 					case ILInstruction::jmp: {
 						block->write_value(inst);
-						block->write_value(ILBlock::read_data<uint32_t>(it));
+						block->write_value((uint32_t)map_blocks[ILBlock::read_data<uint32_t>(it)]);
 					}break;
 
 					case ILInstruction::offset16: {
@@ -1478,8 +1485,8 @@ namespace Corrosive {
 
 					case ILInstruction::jmpz: {
 						block->write_value(inst);
-						block->write_value(ILBlock::read_data<uint32_t>(it));
-						block->write_value(ILBlock::read_data<uint32_t>(it));
+						block->write_value((uint32_t)map_blocks[ILBlock::read_data<uint32_t>(it)]);
+						block->write_value((uint32_t)map_blocks[ILBlock::read_data<uint32_t>(it)]);
 					} break;
 
 					case ILInstruction::u8:   block->write_value(inst); block->write_value(ILBlock::read_data<uint8_t>(it)); break;
@@ -1611,6 +1618,12 @@ namespace Corrosive {
 			}
 
 		}
+
+		std::vector<std::unique_ptr<ILBlock>> new_block_memory(map_blocks.size());
+		for (auto&& p : map_blocks) {
+			new_block_memory[p.second] = std::move(blocks_memory[p.first]);
+		}
+		blocks_memory = std::move(new_block_memory);
 
 	}
 

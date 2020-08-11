@@ -60,7 +60,7 @@ namespace Corrosive {
 
 			std::cout << "========= TEST =========\n";
 
-			/*{
+			{
 				std::ofstream file("output.bin",std::ios::binary);
 				compiled_module->save(ILOutputStream(file));
 			}
@@ -69,7 +69,7 @@ namespace Corrosive {
 				std::ifstream file("output.bin",std::ios::binary);
 				compiled_module->load(ILInputStream(file));
 				StandardLibraryCode::link(compiled_module.get());
-			}*/
+			}
 
 
 			std::chrono::steady_clock::time_point runtime_start = std::chrono::steady_clock::now();

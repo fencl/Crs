@@ -155,8 +155,7 @@ namespace Corrosive {
 
 
 	void ILBytecodeFunction::dump() {
-		std::cout << "function " << id << " -> ";
-		ILBlock::dump_data_type((*return_blocks.begin())->yields);
+		std::cout << "function " << id;
 		std::cout << " \"" << alias << "\"\n";
 
 		for (auto b = blocks.begin(); b != blocks.end(); b++) {
@@ -557,11 +556,7 @@ namespace Corrosive {
 
 
 	void ILBlock::dump() {
-		std::cout << " " << id << " [";
-		dump_data_type(accepts);
-		std::cout << "] -> ";
-		dump_data_type(yields);
-		std::cout << " \"" << alias << "\"\n";
+		std::cout << " " << id << "\n";
 
 		std::vector<uint8_t>::iterator it = data_pool.begin();
 		size_t memoff = 0;
@@ -1196,7 +1191,7 @@ namespace Corrosive {
 		file.s( local_stack_lifetime.lifetime.size());
 		file.write(local_stack_lifetime.lifetime.data(), local_stack_lifetime.lifetime.size());
 		file.s(blocks.size());
-		for (auto&& block : blocks) {
+		for (auto&& block : blocks_memory) {
 			file.s(block->data_pool.size());
 			file.write(block->data_pool.data(), block->data_pool.size());
 		}
@@ -1214,6 +1209,7 @@ namespace Corrosive {
 		for (size_t i=0; i<blocks_memory.size(); ++i) {
 			std::unique_ptr<ILBlock> block = std::make_unique<ILBlock>();
 			block->parent = this;
+			block->id = i;
 
 			size_t datapool_size = file.s();
 			block->data_pool = std::vector<uint8_t>(datapool_size);
