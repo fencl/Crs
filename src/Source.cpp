@@ -455,10 +455,8 @@ namespace Corrosive {
 
 		auto func = compiler->global_module()->create_function(ILContext::compile);
 		func->decl_id = compiler->types()->t_build_script->il_function_decl;
-		func->alias = "build_script";
 
 		ILBlock* b = func->create_and_append_block();
-		b->alias = "entry";
 
 		auto scope = ScopeState().function(func, compiler->types()->t_void).context(ILContext::compile).stack().compiler_stack();
 
@@ -468,7 +466,6 @@ namespace Corrosive {
 		BlockTermination term;
 		c.move(tok);
 		Statement::parse_inner_block(c, tok, term, true, &name);
-		func->assert_flow();
 		return func;
 	}
 

@@ -362,7 +362,6 @@ namespace Corrosive {
 			compiler->switch_scope(continue_block);
 
 			ILBlock* block = compiler->target()->create_and_append_block();
-			block->alias = "true";
 
 			BlockTermination term = BlockTermination::continued;
 			Statement::parse_inner_block_start(block);
@@ -375,7 +374,6 @@ namespace Corrosive {
 					c.move(tok);
 
 					ILBlock* else_block = compiler->target()->create_and_append_block();
-					else_block->alias = "false";
 
 					BlockTermination term2 = BlockTermination::continued;
 					Statement::parse_inner_block_start(else_block);
@@ -475,7 +473,6 @@ namespace Corrosive {
 
 		if (Statement::runtime(compile)) {
 			ILBlock* test_block = compiler->target()->create_and_append_block();
-			test_block->alias = "while_test_block";
 
 			ILBuilder::build_jmp(compiler->scope(), test_block);
 			compiler->switch_scope(test_block);
@@ -494,12 +491,10 @@ namespace Corrosive {
 			c.move(tok);
 
 			ILBlock* continue_block = compiler->target()->create_block();
-			continue_block->alias = "while_continue_block";
 
 			compiler->loop_block_stack.push_back(std::make_pair(continue_block, test_block));
 
 			ILBlock* block = compiler->target()->create_and_append_block();
-			block->alias = "while_block";
 			Statement::parse_inner_block_start(block);
 			bool term = false;
 			Statement::parse_inner_block(c, tok, termination);
@@ -615,10 +610,8 @@ namespace Corrosive {
 			c.move(tok);
 
 			ILBlock* continue_block = compiler->target()->create_block();
-			continue_block->alias = "for_continue_block";
 
 			ILBlock* increment_block = compiler->target()->create_and_append_block();
-			increment_block->alias = "for_increment";
 			compiler->push_scope(increment_block);
 
 			Expression::parse(cc, tok2, test_value, CompileType::compile, false);
@@ -629,7 +622,6 @@ namespace Corrosive {
 			compiler->loop_block_stack.push_back(std::make_pair(continue_block, increment_block));
 
 			ILBlock* block = compiler->target()->create_and_append_block();
-			block->alias = "for";
 
 			Statement::parse_inner_block_start(block);
 			bool term = false;
@@ -770,7 +762,6 @@ namespace Corrosive {
 
 			if (has_defer) {
 				ILBlock* exit_block = compiler->target()->create_and_append_block();
-				exit_block->alias = "exit_block";
 				ILBuilder::build_jmp(compiler->scope(), exit_block);
 				compiler->switch_scope(exit_block);
 				ILBuilder::build_accept(exit_block, compiler->return_type()->rvalue());

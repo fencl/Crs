@@ -41,7 +41,7 @@ namespace Corrosive {
 	}
 
 	void throw_runtime_exception_footer(const ILEvaluator* eval, std::stringstream& cerr) {
-		cerr << "\n |\n";
+		/*cerr << "\n |\n";
 		for (auto t = eval->callstack_debug.rbegin(); t != eval->callstack_debug.rend(); t++) {
 			if (std::get<1>(*t) < eval->debug_file_names.size()) {
 				cerr << "\n | At (" << eval->debug_file_names[std::get<1>(*t)] << ": " << (std::get<0>(*t) + 1) << ") " << std::get<2>(*t);
@@ -49,7 +49,7 @@ namespace Corrosive {
 			else {
 				cerr << "\n | At (?) " << std::get<2>(*t);
 			}
-		}
+		}*/
 	}
 
 	size_t align_up(size_t value, size_t alignment) {
@@ -108,7 +108,7 @@ namespace Corrosive {
 		function_ptr->id = (uint32_t)functions.size();
 		function_ptr->parent = this;
 		external_functions[alias] = function_ptr->id;
-		function_ptr->alias = std::move(alias);
+		function_ptr->name = std::move(alias);
 		functions.push_back(std::move(function));
 		return function_ptr;
 	}
@@ -155,9 +155,7 @@ namespace Corrosive {
 
 
 	void ILBytecodeFunction::dump() {
-		std::cout << "function " << id;
-		std::cout << " \"" << alias << "\"\n";
-
+		std::cout << "function " << id << "\n";
 		for (auto b = blocks.begin(); b != blocks.end(); b++) {
 			(*b)->dump();
 		}
@@ -588,14 +586,14 @@ namespace Corrosive {
 					std::cout << "   fnptr ";
 					auto ind = ILBlock::read_data<uint32_t>(it);
 					ILFunction* fn = parent->parent->functions[ind].get();
-					std::cout << ind << " \"" << fn->alias << "\"\n";
+					std::cout << ind << "\n";
 				} break;
 
 				case ILInstruction::fncall: {
 					std::cout << "   fncall ";
 					auto ind = ILBlock::read_data<uint32_t>(it);
 					ILFunction* fn = parent->parent->functions[ind].get();
-					std::cout << ind << " \"" << fn->alias << "\"\n";
+					std::cout << ind << "\n";
 				} break;
 
 				case ILInstruction::vtable: {
@@ -857,7 +855,7 @@ namespace Corrosive {
 				case ILInstruction::jmp: {
 					std::cout << "   jmp ";
 					auto address = ILBlock::read_data<uint32_t>(it);
-					std::cout << address << " \"" << parent->blocks_memory[address]->alias << "\"\n";
+					std::cout << address << "\n";
 					break;
 				}
 				case ILInstruction::local8: {
@@ -1082,9 +1080,9 @@ namespace Corrosive {
 					std::cout << "   jmpz ";
 					auto address = ILBlock::read_data<uint32_t>(it);
 
-					std::cout << address << " \"" << parent->blocks_memory[address]->alias << "\" : ";
+					std::cout << address << " : ";
 					address = ILBlock::read_data<uint32_t>(it);
-					std::cout << address << " \"" << parent->blocks_memory[address]->alias << "\"\n";
+					std::cout << address << "\n";
 					break;
 				}
 
@@ -1126,40 +1124,6 @@ namespace Corrosive {
 			}
 		}
 	}
-
-	bool ILBytecodeFunction::assert_flow() {
-		if (return_blocks.size() == 0) {
-			throw_il_wrong_data_flow_error();
-			return false;
-		}
-
-		for (auto b = blocks.begin(); b != blocks.end(); b++) {
-			if (!(*b)->assert_flow()) return false;
-		}
-
-		auto assert_ret_type = (*return_blocks.begin())->yields;
-
-		for (auto b = return_blocks.begin(); b != return_blocks.end(); b++) {
-			if ((*b)->yields != assert_ret_type) {
-				throw_il_wrong_data_flow_error();
-				return false;
-			}
-		}
-
-		return true;
-	}
-
-	bool ILBlock::assert_flow() {
-		for (auto b = predecessors.begin(); b != predecessors.end(); b++) {
-			if ((*b)->yields != accepts) {
-				throw_il_wrong_data_flow_error();
-				return false;
-			}
-		}
-
-		return true;
-	}
-
 
 
 	void* ILEvaluator::read_last_register_value_indirect(ILDataType rs) {
@@ -1232,14 +1196,13 @@ namespace Corrosive {
 			if (auto bfunc = dynamic_cast<ILBytecodeFunction*>(func.get())) {
 				file.u8(1);
 				file.u32(func->decl_id);
-				file.s(func->alias.size());
-				file.write(func->alias.data(), func->alias.size());
 				bfunc->save(file);
 			}else {
+				ILNativeFunction* nfun = (ILNativeFunction*)func.get();
 				file.u8(2);
 				file.u32(func->decl_id);
-				file.s(func->alias.size());
-				file.write(func->alias.data(), func->alias.size());
+				file.s(nfun->name.size());
+				file.write(nfun->name.data(), nfun->name.size());
 			}
 		}
 
@@ -1311,9 +1274,6 @@ namespace Corrosive {
 				fun->parent = this;
 				fun->id = funcid;
 				fun->decl_id = file.u32();
-				size_t alias_size = file.s();
-				fun->alias = std::string(alias_size,'\0');
-				file.read(fun->alias.data(), alias_size);
 				fun->load(file);
 				functions[funcid] = std::move(fun);
 			} else if (ftype == 2) {
@@ -1322,9 +1282,9 @@ namespace Corrosive {
 				fun->id = funcid;
 				fun->decl_id = file.u32();
 				size_t alias_size = file.s();
-				fun->alias = std::string(alias_size,'\0');
-				file.read(fun->alias.data(), alias_size);
-				external_functions[fun->alias] = fun->id;
+				fun->name = std::string(alias_size,'\0');
+				file.read(fun->name.data(), alias_size);
+				external_functions[fun->name] = fun->id;
 				functions[funcid] = std::move(fun);
 			}
 		}

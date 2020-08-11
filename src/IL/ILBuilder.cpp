@@ -53,8 +53,6 @@ namespace Corrosive {
 			block->write_instruction(ILInstruction::accept);
 			block->write_const_type(type);
 		}
-		block->accepts = type;
-
 	}
 
 	void ILBuilder::build_discard(ILBlock* block, ILDataType type) {
@@ -62,8 +60,6 @@ namespace Corrosive {
 			block->write_instruction(ILInstruction::discard);
 			block->write_const_type(type);
 		}
-		block->accepts = type;
-
 	}
 
 	void ILBuilder::build_yield(ILBlock* block, ILDataType type) {
@@ -71,8 +67,6 @@ namespace Corrosive {
 			block->write_instruction(ILInstruction::yield);
 			block->write_const_type(type);
 		}
-		block->yields = type;
-
 	}
 
 	void ILBuilder::build_forget(ILBlock* block, ILDataType type) {
@@ -80,14 +74,11 @@ namespace Corrosive {
 			block->write_instruction(ILInstruction::forget);
 			block->write_const_type(type);
 		}
-
 	}
 
 	void ILBuilder::build_ret(ILBlock* block, ILDataType type) {
-		block->parent->return_blocks.insert(block);
 		block->write_instruction(ILInstruction::ret);
 		block->write_const_type(type);
-		block->yields = type;
 		block->data_pool.shrink_to_fit();
 
 	}
@@ -128,7 +119,6 @@ namespace Corrosive {
 	}
 
 	void ILBuilder::build_jmp(ILBlock* block, ILBlock* address) {
-		address->predecessors.insert(block);
 		block->write_instruction(ILInstruction::jmp);
 		block->write_value(address->id);
 		block->data_pool.shrink_to_fit();
@@ -142,9 +132,6 @@ namespace Corrosive {
 	}
 
 	void ILBuilder::build_jmpz(ILBlock* block, ILBlock* ifz, ILBlock* ifnz) {
-		ifz->predecessors.insert(block);
-		ifnz->predecessors.insert(block);
-
 		block->write_instruction(ILInstruction::jmpz);
 		block->write_value(ifz->id);
 		block->write_value(ifnz->id);

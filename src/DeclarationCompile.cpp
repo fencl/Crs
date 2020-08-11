@@ -1024,10 +1024,8 @@ namespace Corrosive {
 				auto func = compiler->global_module()->create_function(context);
 				this->func = func;
 				func->decl_id = type->il_function_decl;
-				func->alias = ast_node->name_string;
 
 				ILBlock* b = func->create_and_append_block();
-				b->alias = "entry";
 
 				{
 					auto scope = ScopeState().function(func, returns).workspace(parent).context(context).compiler_stack().stack();
@@ -1088,7 +1086,6 @@ namespace Corrosive {
 					//func->dump();
 					//std::cout << std::endl;
 
-					func->assert_flow();
 				}
 			}
 			else {

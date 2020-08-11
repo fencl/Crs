@@ -190,15 +190,11 @@ namespace Corrosive {
 
 	class ILBlock {
 	public:
-		std::string alias;
+		//std::string alias;
 
 		uint32_t id;
-		ILDataType yields = ILDataType::none;
-		ILDataType accepts = ILDataType::none;
 		ILBytecodeFunction* parent;
-		//std::list<std::unique_ptr<ILBlockData>> data_pool;
 		std::vector<uint8_t> data_pool;
-		std::set<ILBlock*> predecessors;
 
 		void write_instruction(ILInstruction instruction);
 		void write_const_type(ILDataType type);
@@ -330,7 +326,6 @@ namespace Corrosive {
 
 		void dump();
 		static void dump_data_type(ILDataType dt);
-		bool assert_flow();
 		
 		unsigned char* reserve_data(size_t size);
 	};
@@ -387,10 +382,8 @@ namespace Corrosive {
 	class ILFunction {
 	public:
 		virtual ~ILFunction();
-		std::string alias;
 		uint32_t id;
 		ILModule* parent;
-
 		uint32_t decl_id = UINT32_MAX;
 	};
 
@@ -408,13 +401,11 @@ namespace Corrosive {
 
 		std::vector<ILBlock*>						blocks;
 		std::vector<std::unique_ptr<ILBlock>>		blocks_memory;
-		std::set<ILBlock*>							return_blocks;
 
 		ILBlock*	create_block();
 		ILBlock*	create_and_append_block();
 		void		append_block(ILBlock* block);
 		void		dump();
-		bool		assert_flow();
 
 		void clean_prepass(std::unordered_set<size_t>& used_functions,
 			std::unordered_set<size_t>& used_constants,
@@ -440,6 +431,7 @@ namespace Corrosive {
 
 	class ILNativeFunction : public ILFunction {
 	public:
+		std::string name;
 		void* ptr = nullptr;
 	};
 
@@ -476,7 +468,7 @@ namespace Corrosive {
 		ilsize_t yield_storage;
 
 		std::vector<void*> callstack;
-		std::vector<std::tuple<uint16_t, uint16_t, std::string_view>> callstack_debug;
+		//std::vector<std::tuple<uint16_t, uint16_t, std::string_view>> callstack_debug;
 
 		uint16_t debug_line = 0;
 		uint16_t debug_file = 0;

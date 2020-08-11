@@ -175,7 +175,8 @@ namespace Corrosive {
 			if (auto bf = dynamic_cast<ILBytecodeFunction*>(fun)) {
 				bf->clean_pass(map_functions, map_constants, map_statics, map_vtables, map_decls, map_tables, map_arrays);
 			}else {
-				external_functions[fun->alias] = fun->id;
+				ILNativeFunction* nfun = (ILNativeFunction*)fun;
+				external_functions[nfun->name] = fun->id;
 			}
 		}
 

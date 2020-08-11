@@ -850,7 +850,7 @@ namespace Corrosive {
 			if (std::get<0>(declaration) == ILCallingConvention::bytecode) {
 				ILBytecodeFunction* bytecode_fun = (ILBytecodeFunction*)ptr;
 
-				eval_ctx->callstack_debug.push_back(std::make_tuple(eval_ctx->debug_line, eval_ctx->debug_file, std::string_view(bytecode_fun->alias)));
+				//eval_ctx->callstack_debug.push_back(std::make_tuple(eval_ctx->debug_line, eval_ctx->debug_file, std::string_view(bytecode_fun->alias)));
 
 				bytecode_fun->calculate_stack(compiler_arch);
 
@@ -1350,16 +1350,16 @@ namespace Corrosive {
 				throw_il_wrong_data_flow_error();
 
 			returned:
-				eval_ctx->callstack_debug.pop_back();
+				//eval_ctx->callstack_debug.pop_back();
 				eval_ctx->stack_pointer = lstack_pointer;
 				eval_ctx->stack_base_aligned = lstack_base_aligned;
 				eval_ctx->stack_base = lstack_base;
 				
 			}
 			else {
-				eval_ctx->callstack_debug.push_back(std::make_tuple(eval_ctx->debug_line, eval_ctx->debug_file, "External code"));
+				//eval_ctx->callstack_debug.push_back(std::make_tuple(eval_ctx->debug_line, eval_ctx->debug_file, "External code"));
 				abi_dynamic_call(eval_ctx, std::get<0>(declaration), ptr, declaration);
-				eval_ctx->callstack_debug.pop_back();
+				//eval_ctx->callstack_debug.pop_back();
 			}
 
 		}
