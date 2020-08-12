@@ -588,7 +588,15 @@ namespace Corrosive {
 					case ILInstruction::word: ILBlock::read_data<void*>(it); break;
 					case ILInstruction::slice: {
 						used_constants.insert(ILBlock::read_data<uint32_t>(it));
-						ILBlock::read_data<uint64_t>(it);
+						
+						auto t = ILBlock::read_data<ILSizeType>(it);
+						auto v = ILBlock::read_data<uint32_t>(it);
+						if (t == ILSizeType::table) {
+							used_tables.insert(v);
+						}
+						else if (t == ILSizeType::array) {
+							used_arrays.insert(v);
+						}
 					}break;
 					case ILInstruction::size8: {
 						auto t = ILBlock::read_data<ILSizeType>(it);
@@ -1504,7 +1512,21 @@ namespace Corrosive {
 					case ILInstruction::slice: {
 						block->write_value(inst);
 						block->write_value((uint32_t) map_constants[ILBlock::read_data<uint32_t>(it)]);
-						block->write_value(ILBlock::read_data<uint64_t>(it));
+						
+						auto t = ILBlock::read_data<ILSizeType>(it);
+						auto v = ILBlock::read_data<uint32_t>(it);
+
+						uint32_t new_id = v;
+						if (t == ILSizeType::table) {
+							new_id = (tableid_t)map_tables[new_id];
+						}
+						else if (t == ILSizeType::array) {
+							new_id = (tableid_t)map_arrays[new_id];
+						}
+
+						
+						block->write_value(t);
+						block->write_value(new_id);
 					}break;
 
 					case ILInstruction::size16: {

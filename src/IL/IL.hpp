@@ -610,10 +610,10 @@ namespace Corrosive {
 		static void eval_const_u64(ILEvaluator* eval_ctx, uint64_t value);
 		static void eval_const_f32(ILEvaluator* eval_ctx, float    value);
 		static void eval_const_f64(ILEvaluator* eval_ctx, double   value);
-		static void eval_const_type(ILEvaluator* eval_ctx, void* value);
-		static void eval_const_ptr(ILEvaluator* eval_ctx, void* value);
+		static void eval_const_word(ILEvaluator* eval_ctx, void* value);
+		static void eval_const_dword(ILEvaluator* eval_ctx, dword_t value);
 		static void eval_const_size(ILEvaluator* eval_ctx, size_t   value);
-		static void eval_const_slice(ILEvaluator* eval_ctx, uint32_t constid, uint64_t size);
+		static void eval_const_slice(ILEvaluator* eval_ctx, uint32_t constid, ILSize size);
 
 		static void build_const_i8(ILBlock* block, int8_t   value);
 		static void build_const_i16(ILBlock* block, int16_t  value);
@@ -625,9 +625,10 @@ namespace Corrosive {
 		static void build_const_u64(ILBlock* block, uint64_t value);
 		static void build_const_f32(ILBlock* block, float    value);
 		static void build_const_f64(ILBlock* block, double   value);
-		static void build_const_type(ILBlock* block, void* value);
-		static void build_const_size(ILBlock* block, ILSize   value);
-		static void build_const_slice(ILBlock* block, uint32_t constid, uint64_t size);
+		static void build_const_word(ILBlock* block, void* value);
+		static void build_const_dword(ILBlock* block, dword_t value);
+		static void build_const_size(ILBlock* block, ILSize value);
+		static void build_const_slice(ILBlock* block, uint32_t constid, ILSize size);
 
 		static void eval_combine_dword(ILEvaluator* eval_ctx);
 		static void eval_high_word(ILEvaluator* eval_ctx);

@@ -14,7 +14,8 @@ namespace Corrosive {
 	void ILBuilder::build_const_u64(ILBlock* block, uint64_t value) { block->write_instruction(ILInstruction::u64);    block->write_value(value); }
 	void ILBuilder::build_const_f32(ILBlock* block, float    value) { block->write_instruction(ILInstruction::f32);    block->write_value(value); }
 	void ILBuilder::build_const_f64(ILBlock* block, double   value) { block->write_instruction(ILInstruction::f64);    block->write_value(value); }
-	void ILBuilder::build_const_type(ILBlock* block, void* value) { block->write_instruction(ILInstruction::word); 	  block->write_value(value); }
+	void ILBuilder::build_const_word(ILBlock* block, void* value) { block->write_instruction(ILInstruction::word); 	  block->write_value(value); }
+	void ILBuilder::build_const_dword(ILBlock* block, dword_t value) { block->write_instruction(ILInstruction::dword); 	  block->write_value(value.p1); block->write_value(value.p2); }
 	
 	void ILBuilder::build_const_size(ILBlock* block, ILSize value) {
 		if (value.value <= UINT8_MAX) {
@@ -40,10 +41,11 @@ namespace Corrosive {
 	}
 	
 
-	void ILBuilder::build_const_slice(ILBlock* block, uint32_t constid, uint64_t size) {
+	void ILBuilder::build_const_slice(ILBlock* block, uint32_t constid, ILSize size) {
 		block->write_instruction(ILInstruction::slice);
 		block->write_value(constid);
-		block->write_value(size);
+		block->write_value(size.type);
+		block->write_value(size.value);
 	}
 
 

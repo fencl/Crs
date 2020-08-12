@@ -1086,7 +1086,15 @@ namespace Corrosive {
 					break;
 				}
 
-				case ILInstruction::slice: std::cout << "   slice constref " << ILBlock::read_data<uint32_t>(it) <<", " << ILBlock::read_data<uint64_t>(it) << "\n"; break;
+				case ILInstruction::slice: {
+					auto id = ILBlock::read_data<uint32_t>(it);
+					auto t = ILBlock::read_data<ILSizeType>(it);
+					auto v = ILBlock::read_data<uint16_t>(it);
+
+					std::cout << "   slice constref " << id <<" ";
+					ILSize(t,v).print(parent->parent);
+					std::cout<<"\n";
+				} break;
 
 				case ILInstruction::u8:  std::cout << "   u8 " << (uint16_t)ILBlock::read_data<uint8_t>(it) << "\n"; break;
 				case ILInstruction::u16: std::cout << "   u16 " << ILBlock::read_data<uint16_t>(it) << "\n"; break;

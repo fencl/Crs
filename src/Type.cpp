@@ -76,7 +76,9 @@ namespace Corrosive {
 	void TypeStructureInstance::constantize(Cursor& err, unsigned char* target, unsigned char* source) {
 
 		if (setjmp(sandbox) == 0) {
-			if (owner->structure_type == StructureInstanceType::primitive_structure && rvalue() != ILDataType::word && rvalue() != ILDataType::none && rvalue() != ILDataType::dword) {
+			if (owner->structure_type == StructureInstanceType::primitive_structure && rvalue() != ILDataType::none) {
+				
+
 				if (target != nullptr) {
 					switch (rvalue())
 					{
@@ -90,6 +92,8 @@ namespace Corrosive {
 						case ILDataType::i64: *(int64_t*)target = *(int64_t*)source; break;
 						case ILDataType::f32: *(float*)target = *(float*)source; break;
 						case ILDataType::f64: *(double*)target = *(double*)source; break;
+						case ILDataType::word: *(void**)target = *(void**)source; break;
+						case ILDataType::dword: *(dword_t*)target = *(dword_t*)source; break;
 						default: break;
 					}
 				}
@@ -107,6 +111,18 @@ namespace Corrosive {
 						case ILDataType::i64: ILBuilder::build_const_i64(compiler->scope(), *(int64_t*)source); break;
 						case ILDataType::f32: ILBuilder::build_const_f32(compiler->scope(), *(float*)source); break;
 						case ILDataType::f64: ILBuilder::build_const_f64(compiler->scope(), *(double*)source); break;
+						case ILDataType::word: {
+							if (compiler->scope_context()!=ILContext::compile) {
+								throw_specific_error(err, "Cannot create constant value of this type");
+							}
+							ILBuilder::build_const_word(compiler->scope(), *(void**)source);
+						}
+						case ILDataType::dword: {
+							if (compiler->scope_context()!=ILContext::compile) {
+								throw_specific_error(err, "Cannot create constant value of this type");
+							}
+							ILBuilder::build_const_dword(compiler->scope(), *(dword_t*)source);
+						}
 						default: break;
 					}
 				}
@@ -154,7 +170,7 @@ namespace Corrosive {
 				tg->p2 = (void*)val.first.size();
 			}
 			else {
-				ILBuilder::build_const_slice(compiler->scope(), val.second, val.first.size());
+				ILBuilder::build_const_slice(compiler->scope(), val.second, s);
 			}
 		}
 		else {

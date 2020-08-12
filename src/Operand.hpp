@@ -7,7 +7,7 @@ namespace Corrosive {
 
 	class Operand {
 	public:
-		static void parse(Cursor& c, RecognizedToken& tok, CompileValue& res, CompileType copm_type, bool targets_defer);
+		static void parse(Cursor& c, RecognizedToken& tok, CompileValue& res, CompileType copm_type, bool targets_defer, Type* request = nullptr);
 		static void cast(Cursor& err, CompileValue& from, Type*& to, CompileType copm_type, bool implicit);
 
 		template<typename T, typename S>
@@ -25,7 +25,7 @@ namespace Corrosive {
 		static void function_call(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType cpt, unsigned int argi, bool targets_defer);
 		static void structure_element_offset(CompileValue& ret, tableelement_t id, CompileType cpt);
 		static void parse_const_type_function(Cursor& c, RecognizedToken& tok, CompileValue& res);
-		static void parse_expression(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType copm_type);
+		static void parse_expression(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType copm_type, Type* request);
 		static void parse_reference(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType copm_type, bool targets_defer);
 		static void parse_array_type(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType copm_type, bool targets_defer);
 		static void parse_symbol(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType copm_type, bool targets_defer);

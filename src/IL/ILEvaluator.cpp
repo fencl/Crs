@@ -116,8 +116,8 @@ namespace Corrosive {
 	void ILBuilder::eval_const_u64(ILEvaluator* eval_ctx, uint64_t value) { eval_ctx->write_register_value_indirect(sizeof(uint64_t), (unsigned char*)&value); }
 	void ILBuilder::eval_const_f32(ILEvaluator* eval_ctx, float    value) { eval_ctx->write_register_value_indirect(sizeof(float), (unsigned char*)&value); }
 	void ILBuilder::eval_const_f64(ILEvaluator* eval_ctx, double   value) { eval_ctx->write_register_value_indirect(sizeof(double), (unsigned char*)&value); }
-	void ILBuilder::eval_const_type(ILEvaluator* eval_ctx, void* value) { eval_ctx->write_register_value_indirect(sizeof(void*), (unsigned char*)&value); }
-	void ILBuilder::eval_const_ptr(ILEvaluator* eval_ctx, void* value) { eval_ctx->write_register_value_indirect(sizeof(void*), (unsigned char*)&value); }
+	void ILBuilder::eval_const_word(ILEvaluator* eval_ctx, void* value) { eval_ctx->write_register_value_indirect(sizeof(void*), (unsigned char*)&value); }
+	void ILBuilder::eval_const_dword(ILEvaluator* eval_ctx, dword_t value) { eval_ctx->write_register_value_indirect(sizeof(dword_t), (unsigned char*)&value); }
 	void ILBuilder::eval_const_size(ILEvaluator* eval_ctx, size_t value) { eval_ctx->write_register_value_indirect(sizeof(size_t), (unsigned char*)&value); }
 
 
@@ -507,8 +507,8 @@ namespace Corrosive {
 		eval_ctx->write_register_value(eval_ctx->parent->constant_memory[cid].second.get());
 	}
 	
-	void ILBuilder::eval_const_slice(ILEvaluator* eval_ctx, uint32_t cid, uint64_t v) {
-		dword_t val = { eval_ctx->parent->constant_memory[cid].second.get() , (void*)v };
+	void ILBuilder::eval_const_slice(ILEvaluator* eval_ctx, uint32_t cid, ILSize s) {
+		dword_t val = { eval_ctx->parent->constant_memory[cid].second.get() , (void*)(s.eval(eval_ctx->parent,compiler_arch)) };
 		eval_ctx->write_register_value(val);
 	}
 
@@ -1136,19 +1136,19 @@ namespace Corrosive {
 							case ILInstruction::local8: {
 								auto id = ILBlock::read_data<uint8_t>(it);
 								auto& offset = bytecode_fun->calculated_local_offsets[id];
-								eval_const_ptr(eval_ctx, local_base + offset);
+								eval_const_word(eval_ctx, local_base + offset);
 							} break;
 								
 							case ILInstruction::local16: {
 								auto id = ILBlock::read_data<uint16_t>(it);
 								auto& offset = bytecode_fun->calculated_local_offsets[id];
-								eval_const_ptr(eval_ctx, local_base + offset);
+								eval_const_word(eval_ctx, local_base + offset);
 							} break;
 								
 							case ILInstruction::local32: {
 								auto id = ILBlock::read_data<uint32_t>(it);
 								auto& offset = bytecode_fun->calculated_local_offsets[id];
-								eval_const_ptr(eval_ctx, local_base + offset);
+								eval_const_word(eval_ctx, local_base + offset);
 							} break;
 
 							case ILInstruction::table8offset8: {
@@ -1317,11 +1317,18 @@ namespace Corrosive {
 							case ILInstruction::i64: eval_const_i64(eval_ctx, ILBlock::read_data<int64_t>(it)); break;
 							case ILInstruction::f32: eval_const_f32(eval_ctx, ILBlock::read_data<float>(it)); break;
 							case ILInstruction::f64: eval_const_f64(eval_ctx, ILBlock::read_data<double>(it)); break;
-							case ILInstruction::word: eval_const_ptr(eval_ctx, ILBlock::read_data<void*>(it)); break;
+							case ILInstruction::word: eval_const_word(eval_ctx, ILBlock::read_data<void*>(it)); break;
+							case ILInstruction::dword: {
+								dword_t v;
+								v.p1 = ILBlock::read_data<void*>(it);
+								v.p2 = ILBlock::read_data<void*>(it);
+								eval_const_dword(eval_ctx, v); break;
+							}
 							case ILInstruction::slice: {
 								uint32_t cid = ILBlock::read_data<uint32_t>(it);
-								uint64_t s = ILBlock::read_data<uint64_t>(it);
-								eval_const_slice(eval_ctx, cid, s); 
+								auto st = ILBlock::read_data<ILSizeType>(it);
+								auto sv = ILBlock::read_data<uint32_t>(it);
+								eval_const_slice(eval_ctx, cid, ILSize(st,sv)); 
 							}break;
 							case ILInstruction::size8: {
 								auto t = ILBlock::read_data<ILSizeType>(it);

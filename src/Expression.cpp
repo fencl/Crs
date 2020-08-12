@@ -333,10 +333,10 @@ namespace Corrosive {
 		}
 	}
 
-	void Expression::parse(Cursor& c,RecognizedToken& tok, CompileValue& res, CompileType cpt, bool require_output) {
+	void Expression::parse(Cursor& c,RecognizedToken& tok, CompileValue& res, CompileType cpt, bool require_output, Type* request) {
 		Compiler* compiler = Compiler::current();
 		CompileValue val;
-		parse_or(c,tok, val, cpt);
+		parse_or(c,tok, val, cpt, request);
 		unsigned char op = 0;
 		bool assign = false;
 		switch (tok) {
@@ -477,12 +477,12 @@ namespace Corrosive {
 		}
 	}
 
-	void Expression::parse_and(Cursor& c, RecognizedToken& tok, CompileValue& res, CompileType cpt) {
+	void Expression::parse_and(Cursor& c, RecognizedToken& tok, CompileValue& res, CompileType cpt, Type* request) {
 		Compiler* compiler = Compiler::current();
 		ILBlock* fallback = nullptr;
 		CompileValue value;
 		Cursor err = c;
-		Expression::parse_operators(c,tok, value, cpt);
+		Expression::parse_operators(c,tok, value, cpt, request);
 
 		while (tok == RecognizedToken::DoubleAnd) {
 
@@ -498,7 +498,7 @@ namespace Corrosive {
 				compiler->evaluator()->pop_register_value<uint8_t>();
 				CompileValue right;
 				err = c;
-				Expression::parse_operators(c,tok, right, cpt);
+				Expression::parse_operators(c,tok, right, cpt, request);
 				Operand::deref(right, cpt);
 				Operand::cast(err, right, compiler->types()->t_bool, cpt, true);
 				Expression::rvalue(right, cpt);
@@ -529,7 +529,7 @@ namespace Corrosive {
 				compiler->push_scope(positive_block);
 
 				err = c;
-				Expression::parse_operators(c,tok, value, cpt);
+				Expression::parse_operators(c,tok, value, cpt, request);
 
 			}
 
@@ -559,13 +559,13 @@ namespace Corrosive {
 
 
 
-	void Expression::parse_or(Cursor& c,RecognizedToken& tok, CompileValue& res, CompileType cpt) {
+	void Expression::parse_or(Cursor& c,RecognizedToken& tok, CompileValue& res, CompileType cpt, Type* request) {
 		Compiler* compiler = Compiler::current();
 		ILBlock* fallback = nullptr;
 
 		CompileValue value;
 		Cursor err = c;
-		Expression::parse_and(c,tok, value, cpt);
+		Expression::parse_and(c,tok, value, cpt, request);
 
 		while (tok == RecognizedToken::DoubleOr) {
 			Operand::deref(value, cpt);
@@ -579,7 +579,7 @@ namespace Corrosive {
 
 				compiler->evaluator()->pop_register_value<uint8_t>();
 				CompileValue right;
-				Expression::parse_and(c,tok, right, cpt);
+				Expression::parse_and(c,tok, right, cpt, request);
 				Operand::deref(right, cpt);
 				Operand::cast(err, right, compiler->types()->t_bool, cpt, true);
 				Expression::rvalue(right, cpt);
@@ -608,7 +608,7 @@ namespace Corrosive {
 				compiler->push_scope(positive_block);
 
 				err = c;
-				Expression::parse_and(c,tok, value, cpt);
+				Expression::parse_and(c,tok, value, cpt, request);
 			}
 
 		}
@@ -638,7 +638,7 @@ namespace Corrosive {
 		res = value;
 	}
 
-	void Expression::parse_operators(Cursor& c, RecognizedToken& tok, CompileValue& res, CompileType cpt) {
+	void Expression::parse_operators(Cursor& c, RecognizedToken& tok, CompileValue& res, CompileType cpt, Type* request) {
 
 		int op_type[5] = { -1 };
 		Cursor op_cursors[5];
@@ -650,7 +650,7 @@ namespace Corrosive {
 		while (true) {
 			CompileValue value;
 			Cursor err = c;
-			Operand::parse(c,tok, value, cpt,false);
+			Operand::parse(c,tok, value, cpt,false, request);
 			int op_v = -1;
 			int op_t = -1;
 

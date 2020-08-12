@@ -874,7 +874,7 @@ namespace Corrosive {
 
 			compiler->compiler_stack()->push_item(name.buffer(), new_t, loc_id);
 
-			ILBuilder::eval_const_ptr(compiler->evaluator(), loc_ptr);
+			ILBuilder::eval_const_word(compiler->evaluator(), loc_ptr);
 			Expression::copy_from_rvalue(new_t, CompileType::eval);
 		}
 		
