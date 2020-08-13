@@ -1,4 +1,4 @@
-![Crs](/docs/logo.svg)
+![Crs](/docs/logomd.svg)
 
 # Corrosive
 Corrosive is a programming language based on selected ideas and concepts from programming languages like Rust, C++, C or Jai.
