@@ -140,6 +140,7 @@ namespace Corrosive {
 		Type* owner;
 		//tableid_t table;
 		ILSize size_value;
+		uint32_t count;
 
 		virtual ILContext context();
 		virtual void compile();

@@ -61,12 +61,12 @@ namespace Corrosive {
 			std::cout << "========= TEST =========\n";
 
 			{
-				std::ofstream file("output.bin",std::ios::binary);
+				std::ofstream file("bin/output.bin",std::ios::binary);
 				compiled_module->save(ILOutputStream(file));
 			}
 
 			{
-				std::ifstream file("output.bin",std::ios::binary);
+				std::ifstream file("bin/output.bin",std::ios::binary);
 				compiled_module->load(ILInputStream(file));
 				StandardLibraryCode::link(compiled_module.get());
 			}

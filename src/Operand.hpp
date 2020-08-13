@@ -8,6 +8,7 @@ namespace Corrosive {
 	class Operand {
 	public:
 		static void parse(Cursor& c, RecognizedToken& tok, CompileValue& res, CompileType copm_type, bool targets_defer, Type* request = nullptr);
+		static void parse_const_decl(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType copm_type, Type* request);
 		static void cast(Cursor& err, CompileValue& from, Type*& to, CompileType copm_type, bool implicit);
 
 		template<typename T, typename S>

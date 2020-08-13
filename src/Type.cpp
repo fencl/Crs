@@ -82,6 +82,7 @@ namespace Corrosive {
 				if (target != nullptr) {
 					switch (rvalue())
 					{
+						case ILDataType::none: break;
 						case ILDataType::u8: *(uint8_t*)target = *(uint8_t*)source; break;
 						case ILDataType::u16: *(uint16_t*)target = *(uint16_t*)source; break;
 						case ILDataType::u32: *(uint32_t*)target = *(uint32_t*)source; break;
@@ -92,8 +93,10 @@ namespace Corrosive {
 						case ILDataType::i64: *(int64_t*)target = *(int64_t*)source; break;
 						case ILDataType::f32: *(float*)target = *(float*)source; break;
 						case ILDataType::f64: *(double*)target = *(double*)source; break;
-						case ILDataType::word: *(void**)target = *(void**)source; break;
-						case ILDataType::dword: *(dword_t*)target = *(dword_t*)source; break;
+						//case ILDataType::word: *(void**)target = *(void**)source; break;
+						//case ILDataType::dword: *(dword_t*)target = *(dword_t*)source; break;
+						case ILDataType::word: throw_specific_error(err, "Cannot create constant value of this type"); break;
+						case ILDataType::dword: throw_specific_error(err, "Cannot create constant value of this type"); break;
 						default: break;
 					}
 				}
@@ -101,6 +104,7 @@ namespace Corrosive {
 					Compiler* compiler = Compiler::current();
 					switch (rvalue())
 					{
+						case ILDataType::none: break;
 						case ILDataType::u8: ILBuilder::build_const_u8(compiler->scope(), *(uint8_t*)source); break;
 						case ILDataType::u16: ILBuilder::build_const_u16(compiler->scope(), *(uint16_t*)source); break;
 						case ILDataType::u32: ILBuilder::build_const_u32(compiler->scope(), *(uint32_t*)source); break;
@@ -111,7 +115,9 @@ namespace Corrosive {
 						case ILDataType::i64: ILBuilder::build_const_i64(compiler->scope(), *(int64_t*)source); break;
 						case ILDataType::f32: ILBuilder::build_const_f32(compiler->scope(), *(float*)source); break;
 						case ILDataType::f64: ILBuilder::build_const_f64(compiler->scope(), *(double*)source); break;
-						case ILDataType::word: {
+						case ILDataType::word: throw_specific_error(err, "Cannot create constant value of this type"); break;
+						case ILDataType::dword: throw_specific_error(err, "Cannot create constant value of this type"); break;
+						/*case ILDataType::word: {
 							if (compiler->scope_context()!=ILContext::compile) {
 								throw_specific_error(err, "Cannot create constant value of this type");
 							}
@@ -122,7 +128,7 @@ namespace Corrosive {
 								throw_specific_error(err, "Cannot create constant value of this type");
 							}
 							ILBuilder::build_const_dword(compiler->scope(), *(dword_t*)source);
-						}
+						}*/
 						default: break;
 					}
 				}
@@ -165,9 +171,10 @@ namespace Corrosive {
 			auto val = compiler->constant_manager()->register_constant(std::move(data), s);
 
 			if (target) {
-				dword_t* tg = (dword_t*)target;
+				/*dword_t* tg = (dword_t*)target;
 				tg->p1 = (void*)val.first.data();
-				tg->p2 = (void*)val.first.size();
+				tg->p2 = (void*)val.first.size();*/
+				throw_specific_error(err, "Cannot create constant value of this type");
 			}
 			else {
 				ILBuilder::build_const_slice(compiler->scope(), val.second, s);
@@ -298,6 +305,7 @@ namespace Corrosive {
 			Compiler* compiler = Compiler::current();
 			std::unique_ptr<TypeArray> ti = std::make_unique<TypeArray>();
 			ti->owner = this;
+			ti->count = count;
 			ILSize s = size();
 
 			if (s.type == ILSizeType::table || s.type == ILSizeType::array) {

@@ -326,77 +326,7 @@ namespace Corrosive {
 			}break;
 
 			case RecognizedToken::OpenBrace: {
-				if (request == nullptr) {
-					throw_specific_error(c,"Constant array had no requested type");
-				}else {
-					if (request->type() == TypeInstanceType::type_slice) {
-						auto scope = ScopeState().context(ILContext::compile);
-
-						Type* target = ((TypeSlice*)request)->owner;
-						//std::vector<uint8_t> storage;
-						std::string storage;
-						size_t count = 0;
-						c.move(tok);
-						if (tok != RecognizedToken::CloseBrace) {
-							while (true) {
-								Cursor err = c;
-								CompileValue cv;
-								Expression::parse(c,tok, cv, CompileType::eval, true, target);
-								Operand::deref(cv, CompileType::eval);
-								Operand::cast(err, cv, target, CompileType::eval, true);
-								Expression::rvalue(cv, CompileType::eval);
-
-								size_t size = cv.type->size().eval(compiler->global_module(), compiler_arch);
-								storage.resize(storage.size() + size);
-
-								if (cv.type->rvalue_stacked()) {
-									unsigned char* src = compiler->evaluator()->pop_register_value<unsigned char*>();
-									cv.type->constantize(err, (unsigned char*)&storage.data()[storage.size()-size], src);
-								} else {
-									ilsize_t srcstorage;
-									compiler->evaluator()->pop_register_value_indirect(compiler->evaluator()->compile_time_register_size(cv.type->rvalue()), &srcstorage);
-									cv.type->constantize(err, (unsigned char*)&storage.data()[storage.size()-size], (unsigned char*)&srcstorage);
-								}
-
-								++count;
-
-								if (tok == RecognizedToken::CloseBrace) {
-									break;
-								}else if (tok == RecognizedToken::Comma) {
-									c.move(tok);
-								}else {
-									throw_wrong_token_error(c, "',' or '}'");
-								}
-							}
-						}
-						c.move(tok);
-
-						ILSize s;
-						if (target->size().type == ILSizeType::table || target->size().type == ILSizeType::array) {
-							s.type = ILSizeType::array;
-							s.value = compiler->global_module()->register_array_table(target->size(),count);
-						}else if (target->size().type == ILSizeType::_0) {
-							s.type = ILSizeType::_0;
-						}else{
-							s = target->size();
-							s.value *= count;
-						}
-
-						auto cid = compiler->constant_manager()->register_constant(std::move(storage), s);
-						if (cpt == CompileType::compile) {
-							ILBuilder::build_const_slice(compiler->scope(), cid.second, s);
-						}else {
-							ILBuilder::eval_const_slice(compiler->evaluator(), cid.second, s);
-						}
-
-						res.type = request;
-						res.lvalue = false;
-						res.reflock = false;
-					} else {
-						throw_specific_error(c,"Not yet implemented");
-					}
-				}
-
+				Operand::parse_const_decl(res, c, tok, cpt, request);
 				return;
 			}
 
@@ -424,6 +354,14 @@ namespace Corrosive {
 
 					auto to = compiler->evaluator()->pop_register_value<Type*>();
 					to->compile();
+
+					if (to->context()==ILContext::compile && compiler->scope_context() != ILContext::compile) {
+						throw_specific_error(err,"Type cannot be used outside compile context");
+					}
+
+					if (to->context()==ILContext::runtime && compiler->scope_context() != ILContext::runtime) {
+						throw_specific_error(err,"Type cannot be used outside runtime context");
+					}
 
 					if (tok != RecognizedToken::CloseParenthesis) {
 						throw_wrong_token_error(c, "')'");
@@ -461,6 +399,14 @@ namespace Corrosive {
 
 					auto to = compiler->evaluator()->pop_register_value<Type*>();
 					to->compile();
+
+					if (to->context()==ILContext::compile && compiler->scope_context() != ILContext::compile) {
+						throw_specific_error(err,"Type cannot be used outside compile context");
+					}
+
+					if (to->context()==ILContext::runtime && compiler->scope_context() != ILContext::runtime) {
+						throw_specific_error(err,"Type cannot be used outside runtime context");
+					}
 
 					if (tok != RecognizedToken::CloseParenthesis) {
 						throw_wrong_token_error(c, "')'");
@@ -583,6 +529,14 @@ namespace Corrosive {
 						auto to = compiler->evaluator()->pop_register_value<Type*>();
 						to->compile();
 
+						if (to->context()==ILContext::compile && compiler->scope_context() != ILContext::compile) {
+							throw_specific_error(err,"Type cannot be used outside compile context");
+						}
+
+						if (to->context()==ILContext::runtime && compiler->scope_context	() != ILContext::runtime) {
+							throw_specific_error(err,"Type cannot be used outside runtime context");
+						}
+
 						if (tok != RecognizedToken::CloseParenthesis) {
 							throw_wrong_token_error(c, "')'");
 
@@ -619,6 +573,14 @@ namespace Corrosive {
 
 						auto to = compiler->evaluator()->pop_register_value<Type*>();
 						to->compile();
+
+						if (to->context()==ILContext::compile && compiler->scope_context() != ILContext::compile) {
+							throw_specific_error(err,"Type cannot be used outside compile context");
+						}
+
+					if (to->context()==ILContext::runtime && compiler->scope_context() != ILContext::runtime) {
+							throw_specific_error(err,"Type cannot be used outside runtime context");
+						}
 
 						if (tok != RecognizedToken::CloseParenthesis) {
 							throw_wrong_token_error(c, "')'");
@@ -664,6 +626,125 @@ namespace Corrosive {
 			continue;
 		break_while:
 			break;
+		}
+	}
+
+	void Operand::parse_const_decl(CompileValue& ret, Cursor& c, RecognizedToken& tok, CompileType cpt, Type* request) {
+		if (request == nullptr) {
+			throw_specific_error(c,"Constant array had no requested type");
+		} else {
+			Compiler* compiler = Compiler::current();
+
+			if (request->type() == TypeInstanceType::type_slice || request->type() == TypeInstanceType::type_array) {
+				auto scope = ScopeState().context(ILContext::compile);
+				Type* target;
+				uint32_t req_count = 0;
+				if (request->type() == TypeInstanceType::type_slice) {
+					target = ((TypeSlice*)request)->owner;
+				} else {
+					target = ((TypeArray*)request)->owner;
+					req_count = ((TypeArray*)request)->count;
+				}
+
+				ILSize target_size = target->size();
+				size_t target_size_value = target_size.eval(compiler->global_module(), compiler_arch);
+				std::string storage;
+				size_t count = 0;
+				Cursor err = c;
+				c.move(tok);
+				if (tok != RecognizedToken::CloseBrace) {
+					while (true) {
+						Cursor err = c;
+						CompileValue cv;
+						Expression::parse(c,tok, cv, CompileType::eval, true, target);
+						Operand::deref(cv, CompileType::eval);
+						Operand::cast(err, cv, target, CompileType::eval, true);
+						Expression::rvalue(cv, CompileType::eval);
+
+								
+						storage.resize(storage.size() + target_size_value);
+
+						if (cpt == CompileType::compile) {
+							if (cv.type->rvalue_stacked()) {
+								unsigned char* src = compiler->evaluator()->pop_register_value<unsigned char*>();
+								cv.type->constantize(err, (unsigned char*)&storage.data()[storage.size()	-target_size_value], src);
+							} else {
+								ilsize_t srcstorage;
+								compiler->evaluator()->pop_register_value_indirect(compiler->evaluator()	->compile_time_register_size(cv.type->rvalue()), &srcstorage);
+								cv.type->constantize(err, (unsigned char*)&storage.data()[storage.size()	-target_size_value], (unsigned char*)&srcstorage);
+							}
+						} else {
+							if (cv.type->rvalue_stacked()) {
+								unsigned char* src = compiler->evaluator()->pop_register_value<unsigned char*>();
+								memcpy((unsigned char*)&storage.data()[storage.size()-target_size_value], src, target_size_value);
+							} else {
+								ilsize_t srcstorage;
+								compiler->evaluator()->pop_register_value_indirect(compiler->evaluator()	->compile_time_register_size(cv.type->rvalue()), &srcstorage);
+								memcpy((unsigned char*)&storage.data()[storage.size()-target_size_value], (unsigned char*)&srcstorage,target_size_value);
+							}
+						}
+
+						++count;
+
+						if (tok == RecognizedToken::CloseBrace) {
+							break;
+						}else if (tok == RecognizedToken::Comma) {
+							c.move(tok);
+						}else {
+							throw_wrong_token_error(c, "',' or '}'");
+						}
+					}
+				}
+				c.move(tok);
+
+				if (req_count > 0 && req_count < count) {
+					throw_specific_error(err,"Not enough elements");
+				}
+
+				if (req_count > 0 && req_count > count) {
+					throw_specific_error(err,"Too many elements");
+				}
+
+				ILSize s;
+				if (target_size.type == ILSizeType::table || target_size.type == ILSizeType::array) {
+					s.type = ILSizeType::array;
+					s.value = compiler->global_module()->register_array_table(target_size,count);
+				}else if (target_size.type == ILSizeType::_0) {
+					s.type = ILSizeType::_0;
+				}else{
+					s = target_size;
+					s.value *= count;
+				}
+
+				if (cpt == CompileType::compile) {
+					auto cid = compiler->constant_manager()->register_constant(std::move(storage), s);
+					if (request->type() == TypeInstanceType::type_slice) {
+						ILBuilder::build_const_slice(compiler->scope(), cid.second, s);
+					} else {
+						ILBuilder::build_constref(compiler->scope(), cid.second);
+					}
+				} else {
+					stackid_t local_id = compiler->push_local(s);
+					compiler->compiler_stack()->push_item("$tmp", target->generate_array(count), local_id);
+					unsigned char* dst = compiler->stack_ptr(local_id);
+					memcpy(dst, storage.data(), storage.size());
+					
+					if (request->type() == TypeInstanceType::type_slice) {
+						dword_t v;
+						v.p1 = dst;
+						v.p2 = (void*)(target_size_value*count);
+						ILBuilder::eval_const_dword(compiler->evaluator(),v);
+					} else {
+						ILBuilder::eval_const_word(compiler->evaluator(), dst);
+					}
+				}
+
+				ret.type = request;
+				ret.lvalue = false;
+				ret.reflock = false;
+			} else {
+				throw_specific_error(c,"Not yet implemented");
+			}
 		}
 	}
 
