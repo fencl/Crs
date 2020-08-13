@@ -1,4 +1,4 @@
-![Crs](/docs/logomd.svg)
+![Crs](/resources/logomd.svg)
 
 # Crs
 Corrosive is a programming language based on ideas and concepts from programming languages like C, C++ and newer languages like Rust or Zig. 
