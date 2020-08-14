@@ -16,16 +16,19 @@ namespace Corrosive {
 	class Source;
 	class Cursor {
 	public:
-		Cursor next(RecognizedToken& tok) const;
-		void move(RecognizedToken& tok);
+		Cursor next() const;
+		void move();
 
-
+		
 		Source* src = nullptr;
 		std::string_view buffer() const;
 		size_t offset = 0;
 		size_t length = 0;
+		size_t y = 0;
+		size_t x = 0;
+		RecognizedToken tok;
 		size_t line();
-		void move_matching(RecognizedToken& tok);
+		void move_matching();
 	};
 
 	bool operator < (const Cursor& c1, const Cursor& c2);

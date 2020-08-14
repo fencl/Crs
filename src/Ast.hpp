@@ -8,12 +8,12 @@
 namespace Corrosive {
 	using AstCursor = size_t;
 
-	inline Cursor load_cursor(AstCursor c, Source* src,RecognizedToken& tok) {
+	inline Cursor load_cursor(AstCursor c, Source* src) {
 		Cursor cr;
 		cr.offset = c;
 		cr.length = 0;
 		cr.src = src;
-		cr.move(tok);
+		cr.move();
 		return cr;
 	}
 
@@ -36,7 +36,7 @@ namespace Corrosive {
 		AstCursor type;
 		bool alias;
 
-		static std::unique_ptr<AstVariableNode> parse(Cursor& c, RecognizedToken& tok, AstNode* parent);
+		static std::unique_ptr<AstVariableNode> parse(Cursor& c, AstNode* parent);
 	};
 
 	class AstFunctionDeclarationNode : public AstRegularNode {
@@ -61,7 +61,7 @@ namespace Corrosive {
 
 		virtual bool has_body() override { return true; }
 
-		static std::unique_ptr<AstFunctionDeclarationNode> parse(Cursor& c, RecognizedToken& tok, AstNode* parent, ILContext force_context);
+		static std::unique_ptr<AstFunctionDeclarationNode> parse(Cursor& c, AstNode* parent, ILContext force_context);
 	};
 
 	class AstTraitNode : public AstRegularNode {
@@ -73,7 +73,7 @@ namespace Corrosive {
 		ILContext context;
 		std::vector<std::unique_ptr<AstFunctionDeclarationNode>> declarations;
 
-		static std::unique_ptr<AstTraitNode> parse(Cursor& c, RecognizedToken& tok, AstNode* parent);
+		static std::unique_ptr<AstTraitNode> parse(Cursor& c, AstNode* parent);
 	};
 
 	class AstImplementationNode : public AstRegularNode {
@@ -82,7 +82,7 @@ namespace Corrosive {
 		AstCursor trait;
 		std::vector<std::unique_ptr<AstFunctionNode>> functions;
 
-		static std::unique_ptr<AstImplementationNode> parse(Cursor& c, RecognizedToken& tok, AstNode* parent);
+		static std::unique_ptr<AstImplementationNode> parse(Cursor& c, AstNode* parent);
 	};
 
 
@@ -94,7 +94,7 @@ namespace Corrosive {
 		ILContext context;
 		bool has_value;
 
-		static std::unique_ptr<AstStaticNode> parse(Cursor& c, RecognizedToken& tok, AstNode* parent);
+		static std::unique_ptr<AstStaticNode> parse(Cursor& c, AstNode* parent);
 	};
 
 
@@ -115,7 +115,7 @@ namespace Corrosive {
 		std::vector<std::unique_ptr<AstStaticNode>> statics;
 		std::vector<AstCursor> compile_blocks;
 
-		static std::unique_ptr<AstStructureNode> parse(Cursor& c, RecognizedToken& tok, AstNode* parent);
+		static std::unique_ptr<AstStructureNode> parse(Cursor& c, AstNode* parent);
 	};
 
 	class Compiler;
@@ -136,7 +136,7 @@ namespace Corrosive {
 	public:
 		std::string_view name_string;
 		AstCursor name;
-		static std::unique_ptr<AstNamedNamespaceNode> parse(Cursor& c, RecognizedToken& tok, AstNode* parent);
+		static std::unique_ptr<AstNamedNamespaceNode> parse(Cursor& c, AstNode* parent);
 	};
 
 	class AstRootNode : public AstNode {

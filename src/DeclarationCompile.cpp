@@ -46,22 +46,21 @@ namespace Corrosive {
 
 			if (ast_node->has_body() && ((AstFunctionNode*)ast_node)->is_generic) {
 				Compiler* compiler = Compiler::current();
-				RecognizedToken tok;
-				Cursor c = load_cursor(((AstFunctionNode*)ast_node)->annotation, ast_node->get_source(), tok);
-				c.move(tok);
+				Cursor c = load_cursor(((AstFunctionNode*)ast_node)->annotation, ast_node->get_source());
+				c.move();
 				while (true) {
-					if (tok != RecognizedToken::Symbol) {
+					if (c.tok != RecognizedToken::Symbol) {
 						throw_not_a_name_error(c);
 					}
 					Cursor name = c;
-					c.move(tok);
-					if (tok != RecognizedToken::Colon) {
+					c.move();
+					if (c.tok != RecognizedToken::Colon) {
 						throw_wrong_token_error(c, "':'");
 					}
-					c.move(tok);
+					c.move();
 					Cursor err = c;
 					CompileValue value;
-					Expression::parse(c, tok, value, CompileType::eval);
+					Expression::parse(c, value, CompileType::eval);
 					Operand::deref(value, CompileType::eval);
 					Expression::rvalue(value, CompileType::eval);
 
@@ -82,10 +81,10 @@ namespace Corrosive {
 					generic_ctx.generate_heap_size += t->size().eval(compiler->global_module(), compiler_arch);
 					generic_ctx.generic_layout.push_back(std::make_tuple(name, t));
 
-					if (tok == RecognizedToken::Comma) {
-						c.move(tok);
+					if (c.tok == RecognizedToken::Comma) {
+						c.move();
 					}
-					else if (tok == RecognizedToken::CloseParenthesis) {
+					else if (c.tok == RecognizedToken::CloseParenthesis) {
 						break;
 					}
 					else {
@@ -106,8 +105,7 @@ namespace Corrosive {
 
 		}
 		else {
-			RecognizedToken tok;
-			Cursor c = load_cursor(ast_node->name, ast_node->get_source(), tok);
+			Cursor c = load_cursor(ast_node->name, ast_node->get_source());
 			throw_specific_error(c, "compile cycle");
 		}
 	}
@@ -126,27 +124,24 @@ namespace Corrosive {
 			type = std::make_unique<TypeStructureTemplate>();
 			type->owner = this;
 
-
-			RecognizedToken tok;
-
 			if (ast_node->is_generic) {
-				Cursor c = load_cursor(ast_node->annotation, ast_node->get_source(), tok);
-				c.move(tok);
+				Cursor c = load_cursor(ast_node->annotation, ast_node->get_source());
+				c.move();
 				Compiler* compiler = Compiler::current();
 
 				while (true) {
-					if (tok != RecognizedToken::Symbol) {
+					if (c.tok != RecognizedToken::Symbol) {
 						throw_not_a_name_error(c);
 					}
 					Cursor name = c;
-					c.move(tok);
-					if (tok != RecognizedToken::Colon) {
+					c.move();
+					if (c.tok != RecognizedToken::Colon) {
 						throw_wrong_token_error(c, "':'");
 					}
-					c.move(tok);
+					c.move();
 					Cursor err = c;
 					CompileValue value;
-					Expression::parse(c, tok, value, CompileType::eval);
+					Expression::parse(c, value, CompileType::eval);
 					Operand::deref(value, CompileType::eval);
 					Expression::rvalue(value, CompileType::eval);
 
@@ -168,10 +163,10 @@ namespace Corrosive {
 					generic_ctx.generic_layout.push_back(std::make_tuple(name, t));
 
 
-					if (tok == RecognizedToken::Comma) {
-						c.move(tok);
+					if (c.tok == RecognizedToken::Comma) {
+						c.move();
 					}
-					else if (tok == RecognizedToken::CloseParenthesis) {
+					else if (c.tok == RecognizedToken::CloseParenthesis) {
 						break;
 					}
 					else {
@@ -192,8 +187,7 @@ namespace Corrosive {
 
 		}
 		else {
-			RecognizedToken tok;
-			Cursor c = load_cursor(ast_node->name, ast_node->get_source(), tok);
+			Cursor c = load_cursor(ast_node->name, ast_node->get_source());
 			throw_specific_error(c, "compile cycle");
 		}
 	}
@@ -213,24 +207,23 @@ namespace Corrosive {
 
 
 			if (ast_node->is_generic) {
-				RecognizedToken tok;
 				Compiler* compiler = Compiler::current();
-				Cursor c = load_cursor(ast_node->annotation, ast_node->get_source(), tok);
-				c.move(tok);
+				Cursor c = load_cursor(ast_node->annotation, ast_node->get_source());
+				c.move();
 
 				while (true) {
-					if (tok != RecognizedToken::Symbol) {
+					if (c.tok != RecognizedToken::Symbol) {
 						throw_not_a_name_error(c);
 					}
 					Cursor name = c;
-					c.move(tok);
-					if (tok != RecognizedToken::Colon) {
+					c.move();
+					if (c.tok != RecognizedToken::Colon) {
 						throw_wrong_token_error(c, "':'");
 					}
-					c.move(tok);
+					c.move();
 					Cursor err = c;
 					CompileValue value;
-					Expression::parse(c, tok, value, CompileType::eval);
+					Expression::parse(c, value, CompileType::eval);
 					Operand::deref(value, CompileType::eval);
 					Expression::rvalue(value, CompileType::eval);
 
@@ -252,10 +245,10 @@ namespace Corrosive {
 					generic_ctx.generic_layout.push_back(std::make_tuple(name, t));
 
 
-					if (tok == RecognizedToken::Comma) {
-						c.move(tok);
+					if (c.tok == RecognizedToken::Comma) {
+						c.move();
 					}
-					else if (tok == RecognizedToken::CloseParenthesis) {
+					else if (c.tok == RecognizedToken::CloseParenthesis) {
 						break;
 					}
 					else {
@@ -275,8 +268,7 @@ namespace Corrosive {
 
 		}
 		else {
-			RecognizedToken tok;
-			Cursor c = load_cursor(ast_node->name, ast_node->get_source(), tok);
+			Cursor c = load_cursor(ast_node->name, ast_node->get_source());
 			throw_specific_error(c, "compile cycle");
 		}
 	}
@@ -346,8 +338,6 @@ namespace Corrosive {
 
 			auto state = ScopeState().workspace(new_inst);
 
-			RecognizedToken tok;
-
 			new_inst->generic_inst.insert_key_on_stack();
 
 			for (auto&& m : ast_node->functions) {
@@ -358,7 +348,7 @@ namespace Corrosive {
 				ft->generic_ctx.generator = &new_inst->generic_inst;
 
 				if (new_inst->name_table.find(m->name_string) != new_inst->name_table.end()) {
-					Cursor c = load_cursor(m->name, src, tok);
+					Cursor c = load_cursor(m->name, src);
 					throw_specific_error(c, "Name already exists in the structure");
 				}
 
@@ -373,7 +363,7 @@ namespace Corrosive {
 				decl->generic_ctx.generator = &new_inst->generic_inst;
 
 				if (new_inst->name_table.find(t->name_string) != new_inst->name_table.end()) {
-					Cursor c = load_cursor(t->name, src, tok);
+					Cursor c = load_cursor(t->name, src);
 					throw_specific_error(c, "Name already exists in the structure");
 				}
 
@@ -388,7 +378,7 @@ namespace Corrosive {
 				decl->generator = &new_inst->generic_inst;
 
 				if (new_inst->name_table.find(s->name_string) != new_inst->name_table.end()) {
-					Cursor c = load_cursor(s->name, src, tok);
+					Cursor c = load_cursor(s->name, src);
 					throw_specific_error(c, "Name already exists in the structure");
 				}
 
@@ -400,9 +390,9 @@ namespace Corrosive {
 			for (auto&& m : ast_node->implementations) {
 
 				CompileValue value;
-				Cursor c = load_cursor(m->trait, src, tok);
+				Cursor c = load_cursor(m->trait, src);
 				Cursor err = c;
-				Expression::parse(c, tok, value, CompileType::eval);
+				Expression::parse(c, value, CompileType::eval);
 				Operand::deref(value, CompileType::eval);
 				Expression::rvalue(value, CompileType::eval);
 
@@ -457,11 +447,11 @@ namespace Corrosive {
 						Cursor name_c;
 						if (!m->fast) {
 							name_str = f->name_string;
-							name_c = load_cursor(f->name, src, tok);
+							name_c = load_cursor(f->name, src);
 						}
 						else {
 							name_str = tt->owner->ast_node->declarations[0]->name_string;
-							name_c = load_cursor(tt->owner->ast_node->declarations[0]->name, src, tok);
+							name_c = load_cursor(tt->owner->ast_node->declarations[0]->name, src);
 						}
 
 						auto ttid = tt->owner->member_table.find(name_str);
@@ -484,24 +474,24 @@ namespace Corrosive {
 
 						auto& args = compiler->types()->argument_array_storage.get(fundecl->argument_array_id);
 
-						c = load_cursor(f->type, src, tok);
-						c.move(tok);
+						c = load_cursor(f->type, src);
+						c.move();
 
-						if (tok != RecognizedToken::CloseParenthesis) {
+						if (c.tok != RecognizedToken::CloseParenthesis) {
 							while (true) {
-								if (tok != RecognizedToken::Symbol) {
+								if (c.tok != RecognizedToken::Symbol) {
 									throw_not_a_name_error(c);
 								}
 								Cursor name = c;
-								c.move(tok);
-								if (tok != RecognizedToken::Colon) {
+								c.move();
+								if (c.tok != RecognizedToken::Colon) {
 									throw_wrong_token_error(c, "':'");
 								}
-								c.move(tok);
+								c.move();
 
 								Cursor err = c;
 								CompileValue res;
-								Expression::parse(c, tok, res, CompileType::eval);
+								Expression::parse(c, res, CompileType::eval);
 								Operand::deref(value, CompileType::eval);
 								Expression::rvalue(res, CompileType::eval);
 								if (res.type != compiler->types()->t_type) {
@@ -529,10 +519,10 @@ namespace Corrosive {
 									ft->arguments.push_back(argt);
 								}
 
-								if (tok == RecognizedToken::Comma) {
-									c.move(tok);
+								if (c.tok == RecognizedToken::Comma) {
+									c.move();
 								}
-								else if (tok == RecognizedToken::CloseParenthesis) {
+								else if (c.tok == RecognizedToken::CloseParenthesis) {
 									break;
 								}
 								else {
@@ -545,12 +535,12 @@ namespace Corrosive {
 							throw_specific_error(c, "Trait function declaration lacks arguments from the original");
 						}
 
-						c.move(tok);
+						c.move();
 
-						if (tok != RecognizedToken::OpenBrace) {
+						if (c.tok != RecognizedToken::OpenBrace) {
 							Cursor err = c;
 							CompileValue res;
-							Expression::parse(c, tok, res, CompileType::eval);
+							Expression::parse(c, res, CompileType::eval);
 							Operand::deref(value, CompileType::eval);
 							Expression::rvalue(res, CompileType::eval);
 
@@ -582,7 +572,7 @@ namespace Corrosive {
 					}
 
 					if (func_count != tt->owner->member_declarations.size()) {
-						Cursor c = load_cursor(m->trait, src, tok);
+						Cursor c = load_cursor(m->trait, src);
 						throw_specific_error(c, "Trait implementation is missing some functions");
 					}
 					
@@ -599,9 +589,9 @@ namespace Corrosive {
 
 				CompileValue value;
 
-				Cursor c = load_cursor(m->type, src, tok);
+				Cursor c = load_cursor(m->type, src);
 				Cursor err = c;
-				Expression::parse(c, tok, value, CompileType::eval);
+				Expression::parse(c, value, CompileType::eval);
 				Operand::deref(value, CompileType::eval);
 				Expression::rvalue(value, CompileType::eval);
 				if (value.type != compiler->types()->t_type) {
@@ -637,19 +627,17 @@ namespace Corrosive {
 
 			for (auto&& b : ast_node->compile_blocks) {
 				auto scope = ScopeState().context(ILContext::compile).function(nullptr, nullptr);
-				RecognizedToken tok;
-				Cursor c = load_cursor(b, ast_node->get_source(), tok);
-				if (tok == RecognizedToken::OpenBrace) {
+				Cursor c = load_cursor(b, ast_node->get_source());
+				if (c.tok == RecognizedToken::OpenBrace) {
 					BlockTermination termination;
-					Statement::parse(c, tok, termination, ForceCompile::single);
+					Statement::parse(c, termination, ForceCompile::single);
 				} else {
 					CompileValue res;
-					Expression::parse(c,tok, res, CompileType::eval, false);
-					if (tok != RecognizedToken::Semicolon) {
+					Expression::parse(c, res, CompileType::eval, false);
+					if (c.tok != RecognizedToken::Semicolon) {
 						throw_wrong_token_error(c,"';'");
 					}
-					
-					c.move(tok);
+					c.move();
 				}
 			}
 
@@ -750,15 +738,14 @@ namespace Corrosive {
 				args.push_back(compiler->types()->t_ptr);
 				Type* ret_type;
 
-				RecognizedToken tok;
-				Cursor c = load_cursor(m->type, src, tok);
-				c.move(tok);
+				Cursor c = load_cursor(m->type, src);
+				c.move();
 
-				if (tok != RecognizedToken::CloseParenthesis) {
+				if (c.tok != RecognizedToken::CloseParenthesis) {
 					while (true) {
 						Cursor err = c;
 						CompileValue val;
-						Expression::parse(c, tok, val, CompileType::eval);
+						Expression::parse(c, val, CompileType::eval);
 						Operand::deref(val, CompileType::eval);
 						Expression::rvalue(val, CompileType::eval);
 
@@ -786,10 +773,10 @@ namespace Corrosive {
 						}
 
 						args.push_back(t);
-						if (tok == RecognizedToken::Comma) {
-							c.move(tok);
+						if (c.tok == RecognizedToken::Comma) {
+							c.move();
 						}
-						else if (tok == RecognizedToken::CloseParenthesis) {
+						else if (c.tok == RecognizedToken::CloseParenthesis) {
 							break;
 						}
 						else {
@@ -797,15 +784,15 @@ namespace Corrosive {
 						}
 					}
 				}
-				c.move(tok);
+				c.move();
 
-				if (tok == RecognizedToken::Semicolon) {
+				if (c.tok == RecognizedToken::Semicolon) {
 					ret_type = compiler->types()->t_void;
 				}
 				else {
 					Cursor err = c;
 					CompileValue val;
-					Expression::parse(c, tok, val, CompileType::eval);
+					Expression::parse(c, val, CompileType::eval);
 					Operand::deref(val, CompileType::eval);
 					Expression::rvalue(val, CompileType::eval);
 
@@ -917,26 +904,25 @@ namespace Corrosive {
 
 			CompileValue cvres;
 
-			RecognizedToken tok;
-			Cursor c = load_cursor(ast_node->type, ast_node->get_source(), tok);
-			c.move(tok);
-			if (tok != RecognizedToken::CloseParenthesis) {
+			Cursor c = load_cursor(ast_node->type, ast_node->get_source());
+			c.move();
+			if (c.tok != RecognizedToken::CloseParenthesis) {
 				while (true) {
 
 					Cursor argname = c;
 					if (ast_node->has_body()) {
-						if (tok != RecognizedToken::Symbol) {
+						if (c.tok != RecognizedToken::Symbol) {
 							throw_not_a_name_error(c);
 						}
-						c.move(tok);
-						if (tok != RecognizedToken::Colon) {
+						c.move();
+						if (c.tok != RecognizedToken::Colon) {
 							throw_wrong_token_error(c, "':'");
 						}
-						c.move(tok);
+						c.move();
 					}
 
 					Cursor err = c;
-					Expression::parse(c, tok, cvres, CompileType::eval);
+					Expression::parse(c, cvres, CompileType::eval);
 					Operand::deref(cvres, CompileType::eval);
 					Expression::rvalue(cvres, CompileType::eval);
 
@@ -964,11 +950,11 @@ namespace Corrosive {
 
 					new_inst->arguments.push_back(t);
 
-					if (tok == RecognizedToken::Comma) {
-						c.move(tok);
+					if (c.tok == RecognizedToken::Comma) {
+						c.move();
 					}
-					else if (tok == RecognizedToken::CloseParenthesis) {
-						c.move(tok);
+					else if (c.tok == RecognizedToken::CloseParenthesis) {
+						c.move();
 						break;
 					}
 					else {
@@ -976,11 +962,11 @@ namespace Corrosive {
 					}
 				}
 			}
-			else { c.move(tok); }
+			else { c.move(); }
 
-			if (tok != RecognizedToken::OpenBrace && tok != RecognizedToken::Semicolon) {
+			if (c.tok != RecognizedToken::OpenBrace && c.tok != RecognizedToken::Semicolon) {
 				Cursor err = c;
-				Expression::parse(c, tok, cvres, CompileType::eval);
+				Expression::parse(c, cvres, CompileType::eval);
 				Operand::deref(cvres, CompileType::eval);
 				Expression::rvalue(cvres, CompileType::eval);
 
@@ -1085,12 +1071,12 @@ namespace Corrosive {
 
 					compile_state = 3;
 					Source* src = ast_node->get_source();
-					RecognizedToken tok;
-					Cursor name = load_cursor(ast_node->name, src, tok);
-					Cursor cb = load_cursor(((AstFunctionNode*)ast_node)->block, src, tok);
+					
+					Cursor name = load_cursor(ast_node->name, src);
+					Cursor cb = load_cursor(((AstFunctionNode*)ast_node)->block, src);
 					BlockTermination term;
-					cb.move(tok);
-					Statement::parse_inner_block(cb, tok, term, true, &name);
+					cb.move();
+					Statement::parse_inner_block(cb, term, true, &name);
 
 
 					//func->dump();
@@ -1123,13 +1109,13 @@ namespace Corrosive {
 
 		}
 		else if (compile_state == 2) {
-			RecognizedToken tok;
-			Cursor c = load_cursor(ast_node->name, ast_node->get_source(), tok);
+			
+			Cursor c = load_cursor(ast_node->name, ast_node->get_source());
 			throw_specific_error(c, "Build cycle");
 		}
 		else if (compile_state == 0) {
-			RecognizedToken tok;
-			Cursor c = load_cursor(ast_node->name, ast_node->get_source(), tok);
+			
+			Cursor c = load_cursor(ast_node->name, ast_node->get_source());
 			throw_specific_error(c, "Build cycle");
 		}
 	}
@@ -1318,8 +1304,7 @@ namespace Corrosive {
 
 		}
 		else {
-			RecognizedToken tok;
-			Cursor c = load_cursor(((AstStructureNode*)ast_node)->name, ast_node->get_source(), tok);
+			Cursor c = load_cursor(((AstStructureNode*)ast_node)->name, ast_node->get_source());
 			throw_specific_error(c, "Build cycle");
 		}
 	}
@@ -1375,12 +1360,11 @@ namespace Corrosive {
 				generator->insert_key_on_stack();
 			}
 
-			RecognizedToken tok;
-			Cursor c = load_cursor(ast_node->type, ast_node->get_source(), tok);
+			Cursor c = load_cursor(ast_node->type, ast_node->get_source());
 			Cursor err = c;
 
 			CompileValue typevalue;
-			Expression::parse(c, tok, typevalue, CompileType::eval);
+			Expression::parse(c, typevalue, CompileType::eval);
 			Operand::deref(typevalue, CompileType::eval);
 			Expression::rvalue(typevalue, CompileType::eval);
 
@@ -1449,8 +1433,7 @@ namespace Corrosive {
 			compile_state = 2;
 		}
 		else if (compile_state == 1) {
-			RecognizedToken tok;
-			Cursor c = load_cursor(ast_node->name, ast_node->get_source(), tok);
+			Cursor c = load_cursor(ast_node->name, ast_node->get_source());
 			throw_specific_error(c, "Build cycle");
 		}
 	}

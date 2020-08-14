@@ -105,13 +105,13 @@ namespace Corrosive {
 		name = nm;
 	}
 
-	void Source::read_after(Cursor& out, const Cursor& c, RecognizedToken& tok) {
-		read(out, c.offset + c.length,tok);
+	void Source::read_after(Cursor& out, const Cursor& c) {
+		read(out, c.offset + c.length);
 	}
 
-	Cursor Source::read_first(RecognizedToken& tok) {
+	Cursor Source::read_first() {
 		Cursor c;
-		read(c, 0, tok);
+		read(c, 0);
 		return c;
 	}
 
@@ -127,17 +127,17 @@ namespace Corrosive {
 		return src->data().substr(offset, length);
 	}
 
-	Cursor Cursor::next(RecognizedToken& tok) const {
+	Cursor Cursor::next() const {
 		Cursor c;
-		((Corrosive::Source*)src)->read_after(c, *this, tok);
+		((Corrosive::Source*)src)->read_after(c, *this);
 		return c;
 	}
 
-	void Cursor::move(RecognizedToken& tok) {
-		((Corrosive::Source*)src)->read_after(*this, *this, tok);
+	void Cursor::move() {
+		((Corrosive::Source*)src)->read_after(*this, *this);
 	}
 
-	void Source::read(Cursor& out, size_t offset, RecognizedToken& tok) {
+	void Source::read(Cursor& out, size_t offset) {
 		while (true) {
 			while (offset < buffer.size() && isspace(buffer[offset]))
 			{
@@ -181,7 +181,7 @@ namespace Corrosive {
 				out.offset = start;
 				out.length = offset - start;
 
-				tok = RecognizedToken::Symbol;
+				out.tok = RecognizedToken::Symbol;
 
 				return;
 			}
@@ -223,21 +223,21 @@ namespace Corrosive {
 				
 				if (floatt) {
 					if (doublet)
-						tok = (RecognizedToken::DoubleNumber);
+						out.tok = (RecognizedToken::DoubleNumber);
 					else
-						tok = (RecognizedToken::FloatNumber);
+						out.tok = (RecognizedToken::FloatNumber);
 				}
 				else if (islong) {
 					if (isusg)
-						tok = (RecognizedToken::UnsignedLongNumber);
+						out.tok = (RecognizedToken::UnsignedLongNumber);
 					else
-						tok = (RecognizedToken::LongNumber);
+						out.tok = (RecognizedToken::LongNumber);
 				}
 				else {
 					if (isusg)
-						tok = (RecognizedToken::UnsignedNumber);
+						out.tok = (RecognizedToken::UnsignedNumber);
 					else
-						tok = (RecognizedToken::Number);
+						out.tok = (RecognizedToken::Number);
 				}
 
 
@@ -272,7 +272,7 @@ namespace Corrosive {
 				offset++;
 
 
-				tok = RecognizedToken::String;
+				out.tok = RecognizedToken::String;
 				out.src = this;
 				out.offset = start;
 				out.length = offset - start;
@@ -290,80 +290,80 @@ namespace Corrosive {
 
 				switch (c)
 				{
-					case '@': tok = (RecognizedToken::At); break;
-					case '[': tok = (RecognizedToken::OpenBracket); break;
-					case ']': tok = (RecognizedToken::CloseBracket); break;
-					case '{': tok = (RecognizedToken::OpenBrace); break;
-					case '}': tok = (RecognizedToken::CloseBrace); break;
-					case '(': tok = (RecognizedToken::OpenParenthesis); break;
-					case ')': tok = (RecognizedToken::CloseParenthesis); break;
+					case '@': out.tok = (RecognizedToken::At); break;
+					case '[': out.tok = (RecognizedToken::OpenBracket); break;
+					case ']': out.tok = (RecognizedToken::CloseBracket); break;
+					case '{': out.tok = (RecognizedToken::OpenBrace); break;
+					case '}': out.tok = (RecognizedToken::CloseBrace); break;
+					case '(': out.tok = (RecognizedToken::OpenParenthesis); break;
+					case ')': out.tok = (RecognizedToken::CloseParenthesis); break;
 					case '+': switch (nc)
 					{
-						case '=': offset++; tok = (RecognizedToken::PlusEquals); break;
-						default: tok = (RecognizedToken::Plus); break;
+						case '=': offset++; out.tok = (RecognizedToken::PlusEquals); break;
+						default: out.tok = (RecognizedToken::Plus); break;
 					} break;
 					case '-': switch (nc)
 					{
-						case '=': offset++; tok = (RecognizedToken::MinusEquals); break;
-						case '>': offset++; tok = (RecognizedToken::Arrow); break;
-						default: tok = (RecognizedToken::Minus); break;
+						case '=': offset++; out.tok = (RecognizedToken::MinusEquals); break;
+						case '>': offset++; out.tok = (RecognizedToken::Arrow); break;
+						default: out.tok = (RecognizedToken::Minus); break;
 					}break;
 					case '*': switch (nc)
 					{
-						case '=': offset++; tok = (RecognizedToken::StarEquals); break;
-						default: tok = (RecognizedToken::Star); break;
+						case '=': offset++; out.tok = (RecognizedToken::StarEquals); break;
+						default: out.tok = (RecognizedToken::Star); break;
 					} break;
 					case '/': switch (nc)
 					{
-						case '=': offset++; tok = (RecognizedToken::SlashEquals); break;
-						default: tok = (RecognizedToken::Slash); break;
+						case '=': offset++; out.tok = (RecognizedToken::SlashEquals); break;
+						default: out.tok = (RecognizedToken::Slash); break;
 					} break;
-					case ';': tok = (RecognizedToken::Semicolon); break;
-					case ',': tok = (RecognizedToken::Comma); break;
-					case '.': tok = (RecognizedToken::Dot); break;
-					case '%': tok = (RecognizedToken::Percent); break;
-					case '^': tok = (RecognizedToken::Xor); break;
-					case '\\': tok = (RecognizedToken::Backslash); break;
-					case '?': tok = (RecognizedToken::QestionMark); break;
+					case ';': out.tok = (RecognizedToken::Semicolon); break;
+					case ',': out.tok = (RecognizedToken::Comma); break;
+					case '.': out.tok = (RecognizedToken::Dot); break;
+					case '%': out.tok = (RecognizedToken::Percent); break;
+					case '^': out.tok = (RecognizedToken::Xor); break;
+					case '\\': out.tok = (RecognizedToken::Backslash); break;
+					case '?': out.tok = (RecognizedToken::QestionMark); break;
 					case '!': switch (nc)
 						{
-						case '=': offset++; tok = (RecognizedToken::NotEquals); break;
-						default: tok = (RecognizedToken::ExclamationMark); break;
+						case '=': offset++; out.tok = (RecognizedToken::NotEquals); break;
+						default: out.tok = (RecognizedToken::ExclamationMark); break;
 						} break;
 					case '>': switch (nc)
 						{
-						case '=': offset++; tok = (RecognizedToken::GreaterOrEqual); break;
-						default: tok = (RecognizedToken::GreaterThan); break;
+						case '=': offset++; out.tok = (RecognizedToken::GreaterOrEqual); break;
+						default: out.tok = (RecognizedToken::GreaterThan); break;
 						}break;
 					case '<': switch (nc)
 						{
-						case '=': offset++; tok = (RecognizedToken::LessOrEqual); break;
-						case '-': offset++; tok = (RecognizedToken::BackArrow); break;
-						default: tok = (RecognizedToken::LessThan); break;
+						case '=': offset++; out.tok = (RecognizedToken::LessOrEqual); break;
+						case '-': offset++; out.tok = (RecognizedToken::BackArrow); break;
+						default: out.tok = (RecognizedToken::LessThan); break;
 						}break;
 					case ':': switch (nc)
 						{
-						case ':': offset++; tok = (RecognizedToken::DoubleColon); break;
-						case '=': offset++; tok = (RecognizedToken::ColonEquals); break;
-						default: tok = (RecognizedToken::Colon); break;
+						case ':': offset++; out.tok = (RecognizedToken::DoubleColon); break;
+						case '=': offset++; out.tok = (RecognizedToken::ColonEquals); break;
+						default: out.tok = (RecognizedToken::Colon); break;
 						}break;
 					case '|': switch (nc)
 						{
-						case '|': offset++; tok = (RecognizedToken::DoubleOr); break;
-						default: tok = (RecognizedToken::Or); break;
+						case '|': offset++; out.tok = (RecognizedToken::DoubleOr); break;
+						default: out.tok = (RecognizedToken::Or); break;
 						}break;
 					case '&': switch (nc)
 						{
-						case '&': offset++; tok = (RecognizedToken::DoubleAnd); break;
-						default: tok = (RecognizedToken::And); break;
+						case '&': offset++; out.tok = (RecognizedToken::DoubleAnd); break;
+						default: out.tok = (RecognizedToken::And); break;
 						}break;
 					case '=': switch (nc)
 						{
-						case '=': offset++; tok = (RecognizedToken::DoubleEquals); break;
-						default: tok = (RecognizedToken::Equals); break;
+						case '=': offset++; out.tok = (RecognizedToken::DoubleEquals); break;
+						default: out.tok = (RecognizedToken::Equals); break;
 						}break;
 
-					default: tok = (RecognizedToken::Unknown); break;
+					default: out.tok = (RecognizedToken::Unknown); break;
 				}
 
 
@@ -375,7 +375,7 @@ namespace Corrosive {
 			}
 		}
 		else {
-			tok = RecognizedToken::Eof;
+			out.tok = RecognizedToken::Eof;
 			out.src = this;
 			out.offset = offset+1;
 			out.length = 0;
@@ -383,7 +383,7 @@ namespace Corrosive {
 
 	}
 
-	void Cursor::move_matching(RecognizedToken& tok) {
+	void Cursor::move_matching() {
 		if (src != nullptr && (tok == RecognizedToken::OpenBrace || tok == RecognizedToken::OpenParenthesis)) {
 			src->move_matching(*this);
 			if (tok == RecognizedToken::OpenBrace) tok = RecognizedToken::CloseBrace;
@@ -396,16 +396,15 @@ namespace Corrosive {
 	}
 
 	void Source::pair_tokens() {
-		RecognizedToken tok;
-		Cursor c = read_first(tok);
+		Cursor c = read_first();
 		int level_braces = 0;
 		int level_parenthesies = 0;
 		std::vector<Cursor> open_braces;
 		std::vector<Cursor> open_parenthesies;
 
-		while (tok != RecognizedToken::Eof) {
+		while (c.tok != RecognizedToken::Eof) {
 			
-			switch (tok)
+			switch (c.tok)
 			{
 				case RecognizedToken::OpenBrace:
 					open_braces.push_back(c);
@@ -438,7 +437,7 @@ namespace Corrosive {
 					break;
 			}
 
-			c.move(tok);
+			c.move();
 		}
 
 		if (level_braces != 0) {
@@ -461,11 +460,10 @@ namespace Corrosive {
 		auto scope = ScopeState().function(func, compiler->types()->t_void).context(ILContext::compile).stack().compiler_stack();
 
 		Statement::parse_inner_block_start(b);
-		RecognizedToken tok;
 		Cursor name = c;
 		BlockTermination term;
-		c.move(tok);
-		Statement::parse_inner_block(c, tok, term, true, &name);
+		c.move();
+		Statement::parse_inner_block(c, term, true, &name);
 		return func;
 	}
 
@@ -498,13 +496,12 @@ namespace Corrosive {
 			compiler->source_stack.push_back(ptr);
 
 			for (auto&& r : ptr->root_node->compile) {
-				RecognizedToken tok;
 				auto scope = ScopeState().context(ILContext::compile).compiler_stack().function(nullptr,nullptr);
 
-				Cursor c = load_cursor(r, ptr,tok);
+				Cursor c = load_cursor(r, ptr);
 
 				BlockTermination termination;
-				Statement::parse(c, tok, termination, ForceCompile::single);
+				Statement::parse(c, termination, ForceCompile::single);
 				//auto fn = compile_build_block(c);
 				//ILBuilder::eval_fncall(compiler->evaluator(), fn);
 			}

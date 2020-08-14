@@ -32,9 +32,9 @@ namespace Corrosive {
 		std::string_view const data();
 		void load(const char* file);
 		void load_data(const char* data, const char* name);
-		void read(Cursor& out, size_t offset, RecognizedToken& tok);
-		void read_after(Cursor& out, const Cursor& c, RecognizedToken& tok);
-		Cursor read_first(RecognizedToken& tok);
+		void read(Cursor& out, size_t offset);
+		void read_after(Cursor& out, const Cursor& c);
+		Cursor read_first();
 
 		void pair_tokens();
 		void move_matching(Cursor& c) const;

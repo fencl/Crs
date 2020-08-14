@@ -22,7 +22,7 @@ namespace Corrosive {
 		compiler->stack_push_block();
 	}
 
-	void Statement::parse_inner_block(Cursor& c,RecognizedToken& tok, BlockTermination& termination, bool exit_returns, Cursor* err, ForceCompile force_compile) {
+	void Statement::parse_inner_block(Cursor& c, BlockTermination& termination, bool exit_returns, Cursor* err, ForceCompile force_compile) {
 		Compiler* compiler = Compiler::current();
 
 		StackItem sitm;
@@ -30,7 +30,7 @@ namespace Corrosive {
 
 		int d = 0;
 
-		while (tok != RecognizedToken::CloseBrace) {
+		while (c.tok != RecognizedToken::CloseBrace) {
 			if (force_compile == ForceCompile::no || force_compile == ForceCompile::inlineblock)
 				compiler->temp_stack()->push();
 
@@ -54,9 +54,9 @@ namespace Corrosive {
 					break;
 			}
 
-			Statement::parse(c, tok, termination, new_fc);
+			Statement::parse(c, termination, new_fc);
 
-			if (termination != BlockTermination::continued && tok != RecognizedToken::CloseBrace) {
+			if (termination != BlockTermination::continued && c.tok != RecognizedToken::CloseBrace) {
 				throw_specific_error(c, "Instruction after the current branch has been terminated");
 			}
 
@@ -71,7 +71,7 @@ namespace Corrosive {
 				if (compiler->compile_loop_state() != CompileTimeBlockState::run) break;
 			}
 		}
-		c.move(tok);
+		c.move();
 
 		if (force_compile == ForceCompile::no) {
 			auto ret = compiler->return_type();
@@ -138,13 +138,13 @@ namespace Corrosive {
 		compiler->compiler_stack()->pop_block();
 	}
 
-	void Statement::parse(Cursor& c,RecognizedToken& tok, BlockTermination& termination, ForceCompile force_compile) {
+	void Statement::parse(Cursor& c, BlockTermination& termination, ForceCompile force_compile) {
 		Compiler* compiler = Compiler::current();
 
 		ForceCompile compile = force_compile;
 		if (c.buffer() == "compile") {
 			if(Statement::runtime(compile)) compile = ForceCompile::single;
-			c.move(tok);
+			c.move();
 		}
 		else if (c.buffer() == "runtime") {
 			if (!compiler->target()) {
@@ -152,7 +152,7 @@ namespace Corrosive {
 			}
 
 			if (!Statement::runtime(compile)) compile = ForceCompile::inlineblock;
-			c.move(tok);
+			c.move();
 		}
 
 		auto scope = ScopeState();
@@ -161,7 +161,7 @@ namespace Corrosive {
 		}
 
 
-		switch (tok) {
+		switch (c.tok) {
 			case RecognizedToken::Symbol:
 			{
 				auto buf = c.buffer();
@@ -171,26 +171,26 @@ namespace Corrosive {
 					}
 
 					termination = BlockTermination::terminated;
-					parse_return(c,tok);
+					parse_return(c);
 					return; 
 				}else if (buf == "make") {
-					parse_make(c,tok, compile);
+					parse_make(c, compile);
 					return;
 				}
 				else if (buf == "let") {
-					parse_let(c,tok, compile);
+					parse_let(c, compile);
 					return;
 				}
 				else if (buf == "if") {
-					parse_if(c,tok, termination, compile);
+					parse_if(c, termination, compile);
 					return;
 				}
 				else if (buf == "while") {
-					parse_while(c,tok, termination, compile);
+					parse_while(c, termination, compile);
 					return;
 				}
 				else if (buf == "for") {
-					parse_for(c,tok, termination, compile);
+					parse_for(c, termination, compile);
 					return;
 				}
 				
@@ -222,11 +222,11 @@ namespace Corrosive {
 						compiler->compile_loop_state() = CompileTimeBlockState::jump_over;
 					}
 
-					c.move(tok);
-					if (tok != RecognizedToken::Semicolon) {
+					c.move();
+					if (c.tok != RecognizedToken::Semicolon) {
 						throw_wrong_token_error(c, "';'");
 					}
-					c.move(tok);
+					c.move();
 					return;
 				}
 				else if (buf == "continue") {
@@ -257,21 +257,20 @@ namespace Corrosive {
 						compiler->compile_loop_state() = CompileTimeBlockState::jump_back;
 					}
 
-					c.move(tok);
-					if (tok != RecognizedToken::Semicolon) {
+					c.move();
+					if (c.tok != RecognizedToken::Semicolon) {
 						throw_wrong_token_error(c, "';'");
 					}
-					c.move(tok);
+					c.move();
 					return;
 				}
 				else if (buf == "defer") {
-
-					c.move(tok);
+					c.move();
 
 					if (Statement::runtime(compile)) {
 						CompileValue cval;
 						Cursor err = c;
-						Operand::parse(c, tok, cval, CompileType::compile, true);
+						Operand::parse(c, cval, CompileType::compile, true);
 
 						if (cval.type != compiler->types()->t_void || !cval.lvalue) {
 							throw_specific_error(err, "Only function call can be defered");
@@ -280,23 +279,23 @@ namespace Corrosive {
 					else {
 						CompileValue cval;
 						Cursor err = c;
-						Operand::parse(c, tok, cval, CompileType::eval, true);
+						Operand::parse(c, cval, CompileType::eval, true);
 
 						if (cval.type != compiler->types()->t_void || !cval.lvalue) {
 							throw_specific_error(err, "Only function call can be defered");
 						}
 					}
 
-					if (tok != RecognizedToken::Semicolon) {
+					if (c.tok != RecognizedToken::Semicolon) {
 						throw_wrong_token_error(c, "';'");
 					}
-					c.move(tok);
+					c.move();
 					return;
 				}
 
 			}break;
 			case RecognizedToken::OpenBrace: {
-				c.move(tok);
+				c.move();
 				if (compile == ForceCompile::no) {
 					ILBlock* block = compiler->target()->create_and_append_block();
 
@@ -306,12 +305,12 @@ namespace Corrosive {
 
 					compiler->switch_scope(continue_block);
 					parse_inner_block_start(block, compile);
-					parse_inner_block(c, tok, termination, false, nullptr, compile);
+					parse_inner_block(c, termination, false, nullptr, compile);
 					compiler->target()->append_block(continue_block);
 				}
 				else {
 					parse_inner_block_start(nullptr, compile);
-					parse_inner_block(c, tok, termination, false, nullptr, compile);
+					parse_inner_block(c, termination, false, nullptr, compile);
 				}
 				return;
 			}break;
@@ -321,38 +320,38 @@ namespace Corrosive {
 
 		CompileValue ret_val;
 		if (Statement::runtime(compile)) {
-			Expression::parse(c, tok, ret_val, CompileType::compile, false);
+			Expression::parse(c, ret_val, CompileType::compile, false);
 			Operand::deref(ret_val, CompileType::compile);
 		}
 		else {
-			Expression::parse(c, tok, ret_val, CompileType::eval, false);
+			Expression::parse(c,ret_val, CompileType::eval, false);
 			Operand::deref(ret_val, CompileType::eval);
 		}
 
-		if (tok != RecognizedToken::Semicolon) {
+		if (c.tok != RecognizedToken::Semicolon) {
 			throw_wrong_token_error(c, "';'");
 		}
-		c.move(tok);
+		c.move();
 	}
 
-	void Statement::parse_if(Cursor& c,RecognizedToken& tok, BlockTermination& termination, ForceCompile force_compile, bool do_next) {
+	void Statement::parse_if(Cursor& c, BlockTermination& termination, ForceCompile force_compile, bool do_next) {
 		Compiler* compiler = Compiler::current();
 		ForceCompile compile = force_compile;
-		c.move(tok);
+		c.move();
 
 		if (Statement::runtime(compile)) {
 			CompileValue test_value;
 			Cursor err = c;
 
-			Expression::parse(c, tok, test_value, CompileType::compile);
+			Expression::parse(c, test_value, CompileType::compile);
 			Operand::deref(test_value, CompileType::compile);
 			Operand::cast(err, test_value, compiler->types()->t_bool, CompileType::compile, true);
 			Expression::rvalue(test_value, CompileType::compile);
 
-			if (tok != RecognizedToken::OpenBrace) {
+			if (c.tok != RecognizedToken::OpenBrace) {
 				throw_wrong_token_error(c, "'{'");
 			}
-			c.move(tok);
+			c.move();
 
 			ILBlock* block_from = compiler->scope();
 			ILBuilder::build_yield(block_from, ILDataType::none);
@@ -365,19 +364,19 @@ namespace Corrosive {
 
 			BlockTermination term = BlockTermination::continued;
 			Statement::parse_inner_block_start(block);
-			Statement::parse_inner_block(c, tok, term);
+			Statement::parse_inner_block(c, term);
 
 			if (c.buffer() == "else") {
-				c.move(tok);
+				c.move();
 
-				if (tok == RecognizedToken::OpenBrace) {
-					c.move(tok);
+				if (c.tok == RecognizedToken::OpenBrace) {
+					c.move();
 
 					ILBlock* else_block = compiler->target()->create_and_append_block();
 
 					BlockTermination term2 = BlockTermination::continued;
 					Statement::parse_inner_block_start(else_block);
-					Statement::parse_inner_block(c, tok, term2);
+					Statement::parse_inner_block(c, term2);
 
 					if (term == BlockTermination::terminated && term2 == BlockTermination::terminated) { termination = BlockTermination::terminated; }
 					else { termination = BlockTermination::continued; }
@@ -386,7 +385,7 @@ namespace Corrosive {
 				}
 				else if (c.buffer() == "if") {
 					BlockTermination term2 = BlockTermination::continued;
-					parse_if(c, tok, term2, force_compile);
+					parse_if(c, term2, force_compile);
 
 					if (term == BlockTermination::terminated && term2 == BlockTermination::terminated) { termination = BlockTermination::terminated; }
 					else { termination = BlockTermination::continued; }
@@ -409,7 +408,7 @@ namespace Corrosive {
 			CompileValue test_value;
 			Cursor err = c;
 
-			Expression::parse(c, tok, test_value, CompileType::eval);
+			Expression::parse(c, test_value, CompileType::eval);
 			Operand::deref(test_value, CompileType::eval);
 			Operand::cast(err, test_value, compiler->types()->t_bool, CompileType::eval, true);
 			Expression::rvalue(test_value, CompileType::eval);
@@ -417,7 +416,7 @@ namespace Corrosive {
 
 			bool condition = compiler->evaluator()->pop_register_value<bool>() & do_next;
 
-			if (tok != RecognizedToken::OpenBrace) {
+			if (c.tok != RecognizedToken::OpenBrace) {
 				throw_wrong_token_error(c, "'{'");
 			}
 
@@ -428,22 +427,22 @@ namespace Corrosive {
 				auto scope = ScopeState();
 				if (compile != ForceCompile::force) scope.context(compiler->target()->context);
 
-				Statement::parse(c, tok, termination, compile == ForceCompile::force ? ForceCompile::force : ForceCompile::inlineblock);
+				Statement::parse(c, termination, compile == ForceCompile::force ? ForceCompile::force : ForceCompile::inlineblock);
 			}
 			else {
 				condition = do_next;
-				c.move_matching(tok);
-				c.move(tok);
+				c.move_matching();
+				c.move();
 			}
 			
 
 			if (c.buffer() == "else") {
-				c.move(tok);
+				c.move();
 				if (c.buffer() == "if") {
-					parse_if(c, tok, termination, compile== ForceCompile::force? ForceCompile::force: ForceCompile::no, condition);
+					parse_if(c, termination, compile== ForceCompile::force? ForceCompile::force: ForceCompile::no, condition);
 				}
 				else {
-					if (tok != RecognizedToken::OpenBrace) {
+					if (c.tok != RecognizedToken::OpenBrace) {
 						throw_wrong_token_error(c, "'{'");
 					}
 
@@ -451,12 +450,12 @@ namespace Corrosive {
 						
 						auto scope = ScopeState();
 						if (compile != ForceCompile::force) scope.context(compiler->target()->context);
-						Statement::parse(c, tok, termination, compile == ForceCompile::force ? ForceCompile::force : ForceCompile::inlineblock);
+						Statement::parse(c, termination, compile == ForceCompile::force ? ForceCompile::force : ForceCompile::inlineblock);
 						
 					}
 					else {
-						c.move_matching(tok);
-						c.move(tok);
+						c.move_matching();
+						c.move();
 					}
 				}
 			}
@@ -465,11 +464,11 @@ namespace Corrosive {
 	}
 
 
-	void Statement::parse_while(Cursor& c, RecognizedToken& tok, BlockTermination& termination, ForceCompile force_compile) {
+	void Statement::parse_while(Cursor& c, BlockTermination& termination, ForceCompile force_compile) {
 		Compiler* compiler = Compiler::current();
 
 		ForceCompile compile = force_compile;
-		c.move(tok);
+		c.move();
 
 		if (Statement::runtime(compile)) {
 			ILBlock* test_block = compiler->target()->create_and_append_block();
@@ -480,15 +479,15 @@ namespace Corrosive {
 			CompileValue test_value;
 			Cursor err = c;
 
-			Expression::parse(c, tok, test_value, CompileType::compile);
+			Expression::parse(c, test_value, CompileType::compile);
 			Operand::deref(test_value, CompileType::compile);
 			Operand::cast(err, test_value, compiler->types()->t_bool, CompileType::compile, true);
 			Expression::rvalue(test_value, CompileType::compile);
 
-			if (tok != RecognizedToken::OpenBrace) {
+			if (c.tok != RecognizedToken::OpenBrace) {
 				throw_wrong_token_error(c, "'{'");
 			}
-			c.move(tok);
+			c.move();
 
 			ILBlock* continue_block = compiler->target()->create_block();
 
@@ -497,7 +496,7 @@ namespace Corrosive {
 			ILBlock* block = compiler->target()->create_and_append_block();
 			Statement::parse_inner_block_start(block);
 			bool term = false;
-			Statement::parse_inner_block(c, tok, termination);
+			Statement::parse_inner_block(c, termination);
 
 			ILBuilder::build_jmpz(test_block, continue_block, block);
 
@@ -509,34 +508,29 @@ namespace Corrosive {
 		}
 		else {
 			Cursor save = c;
-			RecognizedToken save_tok = tok;
-
 			bool jump_over_set = false;
-			RecognizedToken jump_over_tok;
 			Cursor jump_over = c;
 
 			CompileTimeBlockState state = CompileTimeBlockState::run;
 			compiler->push_compile_loop_state(state);
 			while (state == CompileTimeBlockState::run) {
 				c = save;
-				tok = save_tok;
 				Cursor err = c;
 				CompileValue res;
-				Expression::parse(c, tok, res, CompileType::eval, true);
+				Expression::parse(c, res, CompileType::eval, true);
 				Operand::deref(res, CompileType::eval);
 				Operand::cast(err, res, compiler->types()->t_bool, CompileType::eval, true);
 				Expression::rvalue(res, CompileType::eval);
 
-				if (tok != RecognizedToken::OpenBrace) {
+				if (c.tok != RecognizedToken::OpenBrace) {
 					throw_wrong_token_error(c, "'{'");
 				}
 
 				if (!jump_over_set) {
 					jump_over_set = true;
-					jump_over_tok = tok;
 					jump_over = c;
-					jump_over.move_matching(jump_over_tok);
-					jump_over.move(jump_over_tok);
+					jump_over.move_matching();
+					jump_over.move();
 				}
 
 				bool condition = compiler->evaluator()->pop_register_value<bool>();
@@ -547,7 +541,7 @@ namespace Corrosive {
 					auto scope = ScopeState();
 					if (compile != ForceCompile::force) scope.context(compiler->target()->context);
 					
-					Statement::parse(c, tok, termination, compile == ForceCompile::force ? ForceCompile::force : ForceCompile::inlineblock);
+					Statement::parse(c, termination, compile == ForceCompile::force ? ForceCompile::force : ForceCompile::inlineblock);
 				}
 
 				if (termination != BlockTermination::continued) break;
@@ -557,19 +551,18 @@ namespace Corrosive {
 
 			compiler->pop_compile_loop_state();
 			c = jump_over;
-			tok = jump_over_tok;
 
 		}
 	}
 
 
-	void Statement::parse_for(Cursor& c, RecognizedToken& tok, BlockTermination& termination, ForceCompile force_compile) {
+	void Statement::parse_for(Cursor& c, BlockTermination& termination, ForceCompile force_compile) {
 		Compiler* compiler = Compiler::current();
 
 		ForceCompile compile = force_compile;
-		c.move(tok);
+		c.move();
 
-		if (tok != RecognizedToken::OpenParenthesis) {
+		if (c.tok != RecognizedToken::OpenParenthesis) {
 			throw_wrong_token_error(c, "'('");
 		}
 
@@ -579,9 +572,8 @@ namespace Corrosive {
 
 			Cursor cc = c;
 			Cursor err = cc;
-			RecognizedToken tok2;
-			cc.move(tok2);
-			Statement::parse(cc, tok2, termination);
+			cc.move();
+			Statement::parse(cc, termination);
 
 
 			ILBlock* test_block = compiler->target()->create_and_append_block();
@@ -591,30 +583,30 @@ namespace Corrosive {
 			CompileValue test_value;
 
 			err = cc;
-			Expression::parse(cc, tok2, test_value, CompileType::compile);
+			Expression::parse(cc, test_value, CompileType::compile);
 			Operand::deref(test_value, CompileType::compile);
 			Operand::cast(err, test_value, compiler->types()->t_bool, CompileType::compile, true);
 			Expression::rvalue(test_value, CompileType::compile);
 
-			if (tok2 != RecognizedToken::Semicolon) {
+			if (cc.tok != RecognizedToken::Semicolon) {
 				throw_wrong_token_error(c, "';'");
 			}
-			cc.move(tok2);
+			cc.move();
 
 
-			c.move_matching(tok);
-			c.move(tok);
-			if (tok != RecognizedToken::OpenBrace) {
+			c.move_matching();
+			c.move();
+			if (c.tok != RecognizedToken::OpenBrace) {
 				throw_wrong_token_error(c, "'{'");
 			}
-			c.move(tok);
+			c.move();
 
 			ILBlock* continue_block = compiler->target()->create_block();
 
 			ILBlock* increment_block = compiler->target()->create_and_append_block();
 			compiler->push_scope(increment_block);
 
-			Expression::parse(cc, tok2, test_value, CompileType::compile, false);
+			Expression::parse(cc, test_value, CompileType::compile, false);
 			Operand::deref(test_value, CompileType::compile);
 			ILBuilder::build_jmp(increment_block, test_block);
 
@@ -625,7 +617,7 @@ namespace Corrosive {
 
 			Statement::parse_inner_block_start(block);
 			bool term = false;
-			Statement::parse_inner_block(c, tok, termination);
+			Statement::parse_inner_block(c, termination);
 			if (termination == BlockTermination::breaked) termination = BlockTermination::continued;
 
 
@@ -640,31 +632,28 @@ namespace Corrosive {
 			compiler->target()->append_block(continue_block);
 		}
 		else {
-			RecognizedToken statement_tok = tok;
 			Cursor statement = c;
-			statement.move_matching(statement_tok);
-			statement.move(statement_tok);
+			statement.move_matching();
+			statement.move();
 
-			if (statement_tok != RecognizedToken::OpenBrace) {
+			if (statement.tok != RecognizedToken::OpenBrace) {
 				throw_wrong_token_error(statement, "'{'");
 			}
 
 			compiler->compiler_stack()->push_block();
 			Cursor c_init = c;
-			RecognizedToken c_init_tok;
-			c_init.move(c_init_tok);
+			c_init.move();
 			BlockTermination unused;
-			Statement::parse(c_init, c_init_tok, unused, ForceCompile::force);
+			Statement::parse(c_init, unused, ForceCompile::force);
 
 			CompileTimeBlockState state = CompileTimeBlockState::run;
 			compiler->push_compile_loop_state(state);
 
 			while (state == CompileTimeBlockState::run) {
-				RecognizedToken c_condition_tok = c_init_tok;
 				Cursor c_condition = c_init;
 				Cursor err = c_condition;
 				CompileValue res;
-				Expression::parse(c_condition, c_condition_tok, res, CompileType::eval);
+				Expression::parse(c_condition, res, CompileType::eval);
 				Operand::deref(res, CompileType::eval);
 				Operand::cast(err, res, compiler->types()->t_bool, CompileType::eval, true);
 				Expression::rvalue(res, CompileType::eval);
@@ -674,32 +663,30 @@ namespace Corrosive {
 
 
 				Cursor statement_copy = statement;
-				RecognizedToken statement_tok_copy = statement_tok;
 
 				{
 					auto scope = ScopeState();
 					if (compile != ForceCompile::force) scope.context(compiler->target()->context);
-					Statement::parse(statement_copy, statement_tok_copy, termination, compile == ForceCompile::force ? ForceCompile::force : ForceCompile::inlineblock);
+					Statement::parse(statement_copy, termination, compile == ForceCompile::force ? ForceCompile::force : ForceCompile::inlineblock);
 				}
 
 				if (termination == BlockTermination::terminated) break;
 				if (state == CompileTimeBlockState::jump_over) break;
 				if (state == CompileTimeBlockState::jump_back) state = CompileTimeBlockState::run;
 
-				if (c_condition_tok != RecognizedToken::Semicolon) {
+				if (c_condition.tok != RecognizedToken::Semicolon) {
 					throw_wrong_token_error(c_condition, "';'");
 				}
-				c_condition.move(c_condition_tok);
-				Expression::parse(c_condition, c_condition_tok, res, CompileType::eval,false);
+				c_condition.move();
+				Expression::parse(c_condition, res, CompileType::eval,false);
 			}
 			compiler->pop_compile_loop_state();
 
 			compiler->compiler_stack()->pop_block();
 
 			c = statement;
-			tok = statement_tok;
-			c.move_matching(tok);
-			c.move(tok);
+			c.move_matching();
+			c.move();
 		}
 		
 	}
@@ -707,7 +694,7 @@ namespace Corrosive {
 
 
 
-	void Statement::parse_return(Cursor& c, RecognizedToken& tok) {
+	void Statement::parse_return(Cursor& c) {
 		Compiler* compiler = Compiler::current();
 
 		bool has_defer = false;
@@ -719,10 +706,10 @@ namespace Corrosive {
 			if (has_defer) break;
 		}
 
-		c.move(tok);
+		c.move();
 		CompileValue ret_val;
 		Cursor err = c;
-		Expression::parse(c,tok, ret_val, CompileType::compile);
+		Expression::parse(c, ret_val, CompileType::compile);
 		Operand::deref(ret_val, CompileType::compile);
 
 		Type* to = compiler->return_type();
@@ -771,42 +758,42 @@ namespace Corrosive {
 		}
 
 
-		if (tok != RecognizedToken::Semicolon) {
+		if (c.tok != RecognizedToken::Semicolon) {
 			throw_wrong_token_error(c, "';'");
 		}
 
-		c.move(tok);
+		c.move();
 	}
 
-	void Statement::parse_let(Cursor& c, RecognizedToken& tok, ForceCompile force_compile) {
+	void Statement::parse_let(Cursor& c, ForceCompile force_compile) {
 		Compiler* compiler = Compiler::current();
 		ForceCompile compile = force_compile;
-		c.move(tok);
+		c.move();
 
 		bool reference = false;
-		if (tok == RecognizedToken::And) {
+		if (c.tok == RecognizedToken::And) {
 			reference = true;
-			c.move(tok);
+			c.move();
 		}
 
-		if (tok != RecognizedToken::Symbol) {
+		if (c.tok != RecognizedToken::Symbol) {
 			throw_not_a_name_error(c);
 		}
 		Cursor name = c;
-		c.move(tok);
+		c.move();
 
 		if (!reference) {
-			if (tok != RecognizedToken::Equals) {
+			if (c.tok != RecognizedToken::Equals) {
 				throw_wrong_token_error(c, "'='");
 			}
 		}
 		else {
-			if (tok != RecognizedToken::Equals) {
+			if (c.tok != RecognizedToken::Equals) {
 				throw_wrong_token_error(c, "'='");
 			}
 		}
 		
-		c.move(tok);
+		c.move();
 
 		if (Statement::runtime(compile)) {
 			size_t let_holder;
@@ -814,7 +801,7 @@ namespace Corrosive {
 
 			Cursor err = c;
 			CompileValue val;
-			Expression::parse(c, tok, val, CompileType::compile);
+			Expression::parse(c, val, CompileType::compile);
 			Operand::deref(val, CompileType::compile);
 
 			if (!reference) {
@@ -847,7 +834,7 @@ namespace Corrosive {
 
 			Cursor err = c;
 			CompileValue val;
-			Expression::parse(c, tok, val, CompileType::eval);
+			Expression::parse(c, val, CompileType::eval);
 			Operand::deref(val, CompileType::eval);
 
 			if (!reference) {
@@ -878,27 +865,27 @@ namespace Corrosive {
 			Expression::copy_from_rvalue(new_t, CompileType::eval);
 		}
 		
-		if (tok != RecognizedToken::Semicolon) {
+		if (c.tok != RecognizedToken::Semicolon) {
 			throw_wrong_token_error(c, "';'");
 		}
-		c.move(tok);
+		c.move();
 	}
 
-	void Statement::parse_make(Cursor& c, RecognizedToken& tok, ForceCompile force_compile) {
+	void Statement::parse_make(Cursor& c, ForceCompile force_compile) {
 		Compiler* compiler = Compiler::current();
 
 		ForceCompile compile = force_compile;
-		c.move(tok);
+		c.move();
 
-		if (tok != RecognizedToken::Symbol) {
+		if (c.tok != RecognizedToken::Symbol) {
 			throw_not_a_name_error(c);
 		}
 		Cursor name = c;
-		c.move(tok);
-		if (tok != RecognizedToken::Colon) {
+		c.move();
+		if (c.tok != RecognizedToken::Colon) {
 			throw_wrong_token_error(c, "':'");
 		}
-		c.move(tok);
+		c.move();
 		if (Statement::runtime(compile)) {
 			Cursor err = c;
 			CompileValue val;
@@ -907,7 +894,7 @@ namespace Corrosive {
 				auto scope = ScopeState().context(ILContext::compile);
 
 
-				Expression::parse(c, tok, val, CompileType::eval);
+				Expression::parse(c, val, CompileType::eval);
 				Operand::deref(val, CompileType::eval);
 				Expression::rvalue(val, CompileType::eval);
 
@@ -933,7 +920,7 @@ namespace Corrosive {
 			CompileValue val;
 
 
-			Expression::parse(c, tok, val, CompileType::eval);
+			Expression::parse(c, val, CompileType::eval);
 			Operand::deref(val, CompileType::eval);
 			Expression::rvalue(val, CompileType::eval);
 
@@ -953,9 +940,9 @@ namespace Corrosive {
 			compiler->compiler_stack()->push_item(name.buffer(), new_t, local_id);
 		}
 
-		if (tok != RecognizedToken::Semicolon) {
+		if (c.tok != RecognizedToken::Semicolon) {
 			throw_wrong_token_error(c, "';'");
 		}
-		c.move(tok);
+		c.move();
 	}
 }
