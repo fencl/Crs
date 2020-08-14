@@ -35,7 +35,6 @@ namespace Corrosive {
 		static_assert(sizeof(float) == 4, "Error, float must be 32bit");   //      on architectures with different floating point format
 
 		ILEvaluator::sandbox_begin();
-
 		try {
 			std::unique_ptr<ILModule> compiled_module = nullptr;
 

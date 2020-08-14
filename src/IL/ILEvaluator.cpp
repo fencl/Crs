@@ -5,28 +5,27 @@
 #include <iostream>
 
 #include <csignal>
-#include <csetjmp>
 
 namespace Corrosive {
 
 
-	jmp_buf sandbox;
 	int sigint_value = INT_MIN;
 	int sigseg_value = INT_MIN;
 
 	void sandbox_siginthandler(int signum) {
 		sigseg_value = INT_MIN;
 		sigint_value = signum;
-		longjmp(sandbox, 1);
+		longjmp_func(sandbox, 1);
 	}
 
 	void sandbox_sigseghandler(int signum) {
 		sigseg_value = signum;
 		sigint_value = INT_MIN;
-		longjmp(sandbox, 1);
+		longjmp_func(sandbox, 1);
 	}
 
 	void ILEvaluator::sandbox_begin() {
+		build_sandbox();
 		signal(SIGINT, sandbox_siginthandler);
 		signal(SIGSEGV, sandbox_sigseghandler);
 		signal(SIGILL, sandbox_siginthandler);
@@ -51,7 +50,7 @@ namespace Corrosive {
 
 
 	void ILEvaluator::write_register_value_indirect(size_t size, void* value) {
-		if (setjmp(sandbox) == 0) {
+		if (!wrap || wrap(sandbox) == 0) {
 			switch (size) {
 				case 0: break;
 				case 1:
@@ -76,7 +75,7 @@ namespace Corrosive {
 	}
 
 	void ILEvaluator::pop_register_value_indirect(size_t size, void* into) {
-		if (setjmp(sandbox) == 0) {
+		if (!wrap || wrap(sandbox) == 0) {
 			ilsize_t storage;
 			if (into == nullptr) into = &storage;
 
@@ -100,7 +99,6 @@ namespace Corrosive {
 			}
 		}
 		else {
-
 			throw_runtime_handler_exception(this);
 		}
 	}
@@ -467,7 +465,7 @@ namespace Corrosive {
 
 	void ILBuilder::eval_load(ILEvaluator* eval_ctx, ILDataType type) {
 
-		if (setjmp(sandbox) == 0) {
+		if (!wrap || wrap(sandbox) == 0) {
 			auto ptr = eval_ctx->pop_register_value<void*>();
 			eval_ctx->write_register_value_indirect(eval_ctx->compile_time_register_size(type), ptr);
 		}
@@ -592,7 +590,7 @@ namespace Corrosive {
 	}
 
 	void ILBuilder::eval_store_rev(ILEvaluator* eval_ctx, ILDataType type) {
-		if (setjmp(sandbox) == 0) {
+		if (!wrap || wrap(sandbox) == 0) {
 			ilsize_t storage;
 			size_t regs = eval_ctx->compile_time_register_size(type);
 			eval_ctx->pop_register_value_indirect(regs, &storage);
@@ -667,7 +665,7 @@ namespace Corrosive {
 
 	void ILBuilder::eval_memcpy(ILEvaluator* eval_ctx, size_t size) {
 
-		if (setjmp(sandbox) == 0) {
+		if (!wrap || wrap(sandbox) == 0) {
 			auto dst = eval_ctx->pop_register_value<void*>();
 			auto src = eval_ctx->pop_register_value<void*>();
 			memcpy(dst, src, size);
@@ -681,7 +679,7 @@ namespace Corrosive {
 
 	void ILBuilder::eval_memcpy_rev(ILEvaluator* eval_ctx, size_t size) {
 
-		if (setjmp(sandbox) == 0) {
+		if (!wrap || wrap(sandbox) == 0) {
 			auto src = eval_ctx->pop_register_value<void*>();
 			auto dst = eval_ctx->pop_register_value<void*>();
 			memcpy(dst, src, size);
@@ -696,7 +694,7 @@ namespace Corrosive {
 
 	void ILBuilder::eval_memcmp(ILEvaluator* eval_ctx, size_t size) {
 
-		if (setjmp(sandbox) == 0) {
+		if (!wrap || wrap(sandbox) == 0) {
 			auto dst = eval_ctx->pop_register_value<void*>();
 			auto src = eval_ctx->pop_register_value<void*>();
 			eval_ctx->write_register_value((int8_t)memcmp(dst, src, size));
@@ -710,7 +708,7 @@ namespace Corrosive {
 
 	void ILBuilder::eval_memcmp_rev(ILEvaluator* eval_ctx, size_t size) {
 
-		if (setjmp(sandbox) == 0) {
+		if (!wrap || wrap(sandbox) == 0) {
 			auto src = eval_ctx->pop_register_value<void*>();
 			auto dst = eval_ctx->pop_register_value<void*>();
 			eval_ctx->write_register_value((int8_t)memcmp(dst, src, size));
@@ -742,7 +740,7 @@ namespace Corrosive {
 
 	void ILBuilder::eval_rmemcmp(ILEvaluator* eval_ctx, ILDataType type) {
 
-		if (setjmp(sandbox) == 0) {
+		if (!wrap || wrap(sandbox) == 0) {
 			size_t reg_v = eval_ctx->compile_time_register_size(type);
 			ilsize_t s1, s2;
 			eval_ctx->pop_register_value_indirect(reg_v, &s1);
@@ -758,7 +756,7 @@ namespace Corrosive {
 
 	void ILBuilder::eval_rmemcmp_rev(ILEvaluator* eval_ctx, ILDataType type) {
 
-		if (setjmp(sandbox) == 0) {
+		if (!wrap || wrap(sandbox) == 0) {
 			size_t reg_v = eval_ctx->compile_time_register_size(type);
 			ilsize_t s1, s2;
 			eval_ctx->pop_register_value_indirect(reg_v, &s2);
@@ -841,7 +839,7 @@ namespace Corrosive {
 
 	void ILBuilder::eval_call(ILEvaluator* eval_ctx, uint32_t decl) {
 
-		if (setjmp(sandbox) == 0) {
+		if (!wrap || wrap(sandbox) == 0) {
 			auto& declaration = eval_ctx->parent->function_decl[decl];
 
 			void* ptr = eval_ctx->callstack.back();

@@ -29,20 +29,32 @@ namespace Corrosive {
 		termination = BlockTermination::continued;
 
 		int d = 0;
+		size_t line = 0;
 
 		while (c.tok != RecognizedToken::CloseBrace) {
 			if (force_compile == ForceCompile::no || force_compile == ForceCompile::inlineblock)
 				compiler->temp_stack()->push();
 
-			//TODO
-			/*if (c.src != nullptr) {
-				Source* src = (Source*)c.src;
-				ILBuilder::build_debug(compiler->scope(),src->debug_id, top);
+			
+			if (c.y != line) {
+				if (Statement::runtime(force_compile)) {
+					if (c.src != nullptr) {
+						ILBuilder::build_debug(compiler->scope(), c.src->debug_id, c.y);
+					}
+					else {
+						ILBuilder::build_debug(compiler->scope(), UINT16_MAX, c.y);
+					}
+				} else {
+					if (c.src != nullptr) {
+						ILBuilder::eval_debug(compiler->evaluator(), c.src->debug_id, c.y);
+					}
+					else {
+						ILBuilder::eval_debug(compiler->evaluator(), UINT16_MAX, c.y);
+					}
+				}
+				line = c.y;
 			}
-			else {
 
-				ILBuilder::build_debug(compiler->scope(), UINT16_MAX, top);
-			}*/
 			ForceCompile new_fc;
 			switch (force_compile)
 			{

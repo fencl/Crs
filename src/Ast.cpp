@@ -10,11 +10,21 @@ namespace Corrosive {
 		cr.offset = c;
 		cr.length = 0;
 		cr.src = src;
+
+		SourceRange sr = {cr.offset, cr.length};
+		auto f = src->lines.find(sr);
+		if (f!=src->lines.end()) {
+			cr.y = f->second;
+			cr.x = cr.offset - f->first.offset;
+		} else {
+			throw std::exception("Compiler error: cursor location was not found!");
+		}
+
 		cr.move();
 		return cr;
 	}
 
-	
+
 	std::unique_ptr<AstRootNode> AstRootNode::parse(Source* src) {
 		auto root = std::make_unique<AstRootNode>();
 		root->parent = src;

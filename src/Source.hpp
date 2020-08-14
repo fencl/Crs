@@ -32,7 +32,7 @@ namespace Corrosive {
 		std::string_view const data();
 		void load(const char* file);
 		void load_data(const char* data, const char* name);
-		void read(Cursor& out, size_t offset);
+		void read(Cursor& out, size_t offset, size_t x, size_t y);
 		void read_after(Cursor& out, const Cursor& c);
 		Cursor read_first();
 

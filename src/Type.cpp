@@ -7,11 +7,8 @@
 #include "Compiler.hpp"
 
 namespace Corrosive {
-
-	extern jmp_buf sandbox;
-
 	int8_t Type::compare_for_generic_storage(unsigned char* me, unsigned char* to) {
-		if (setjmp(sandbox) == 0) {
+		if (!wrap || wrap(sandbox) == 0) {
 			auto v = memcmp(me, to, size().eval(Compiler::current()->global_module(), compiler_arch));
 			if (v < 0) return -1;
 			else if (v > 0) return 1;
@@ -25,7 +22,7 @@ namespace Corrosive {
 	}
 
 	void Type::copy_to_generic_storage(unsigned char* me, unsigned char* to) {
-		if (setjmp(sandbox) == 0) {
+		if (!wrap || wrap(sandbox) == 0) {
 			memcpy(to, me, size().eval(Compiler::current()->global_module(), compiler_arch));
 		}
 		else {
@@ -37,7 +34,7 @@ namespace Corrosive {
 		dword_t* me_dw = (dword_t*)me;
 		dword_t* to_dw = (dword_t*)to;
 
-		if (setjmp(sandbox) == 0) {
+		if (!wrap || wrap(sandbox) == 0) {
 
 			if (me_dw->p2 < to_dw->p2) return -1;
 			else if (me_dw->p2 > to_dw->p2) return 1;
@@ -57,7 +54,7 @@ namespace Corrosive {
 		dword_t* me_dw = (dword_t*)me;
 		dword_t* to_dw = (dword_t*)to;
 
-		if (setjmp(sandbox) == 0) {
+		if (!wrap || wrap(sandbox) == 0) {
 			to_dw->p1 = Compiler::current()->constant_manager()->register_generic_storage((uint8_t*)me_dw->p1, (size_t)me_dw->p2, owner);
 			to_dw->p2 = me_dw->p2;
 		}
@@ -71,38 +68,9 @@ namespace Corrosive {
 		throw_specific_error(err, "Cannot create constant value of this type");
 	}
 
-	
-	void TypeFunction::constantize(Cursor& err, unsigned char* target, unsigned char* source) {
-		if (setjmp(sandbox) == 0) {
-			/*if (target != nullptr) {
-				*(void**)target = *(void**)source;
-			} else {
-				throw_specific_error(err, "not implemented yet");
-			}*/
-			throw_specific_error(err, "Cannot create constant value of this type");
-		}
-		else {
-			throw_runtime_handler_exception(Compiler::current()->evaluator());
-		}
-	}
-
-	void TypeTraitInstance::constantize(Cursor& err, unsigned char* target, unsigned char* source) {
-		if (setjmp(sandbox) == 0) {
-			/*if (target != nullptr) {
-				*(dword_t**)target = *(dword_t**)source;
-			} else {
-				throw_specific_error(err, "not implemented yet");
-			}*/
-			throw_specific_error(err, "Cannot create constant value of this type");
-		}
-		else {
-			throw_runtime_handler_exception(Compiler::current()->evaluator());
-		}
-	}
-
 	void TypeStructureInstance::constantize(Cursor& err, unsigned char* target, unsigned char* source) {
 
-		if (setjmp(sandbox) == 0) {
+		if (!wrap || wrap(sandbox) == 0) {
 			if (owner->structure_type == StructureInstanceType::primitive_structure && rvalue() != ILDataType::none) {
 				
 
@@ -170,11 +138,14 @@ namespace Corrosive {
 	}
 
 	void TypeSlice::constantize(Cursor& err, unsigned char* target, unsigned char* source) {
-		if (setjmp(sandbox) == 0) {
+		std::string data;
+
+		if (!wrap || wrap(sandbox) == 0) {
 			Compiler* compiler = Compiler::current();
 			dword_t me = *(dword_t*)source;
-			
-			std::string data((size_t)me.p2,'\0');
+			size_t storage_size = (size_t)me.p2;
+			data = std::string(storage_size,'\0');
+
 			uint8_t* ptr_src = (uint8_t*)me.p1;
 			uint8_t* ptr_dst = (uint8_t*)data.data();
 			size_t elem_size = owner->size().eval(compiler->global_module(), compiler_arch);
@@ -214,12 +185,13 @@ namespace Corrosive {
 	}
 	
 	void TypeArray::constantize(Cursor& err, unsigned char* target, unsigned char* source) {
+		std::string data;
 
-		if (setjmp(sandbox) == 0) {
+		if (!wrap || wrap(sandbox) == 0) {
 			Compiler* compiler = Compiler::current();
 			size_t me_size = size().eval(compiler->global_module(), compiler_arch);
-
-			std::string data(me_size,'\0');
+			data = std::string(me_size,'\0');
+			
 			uint8_t* ptr_src = (uint8_t*)source;
 			uint8_t* ptr_dst = (uint8_t*)data.data();
 			size_t elem_size = owner->size().eval(compiler->global_module(), compiler_arch);

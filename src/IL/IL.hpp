@@ -365,6 +365,14 @@ namespace Corrosive {
 		return (v <= UINT8_MAX) ? ILBitWidth::b8 : ((v <= UINT16_MAX) ? ILBitWidth::b16 : ILBitWidth::b32);
 	}
 
+	
+	void build_sandbox();
+
+	extern void* sandbox;
+	extern int (*wrap)(void*);
+	extern void (*longjmp_func)(void*, int);
+	
+
 	struct ILLifetime {
 		stackid_t id = 0;
 		std::vector<unsigned char> lifetime;

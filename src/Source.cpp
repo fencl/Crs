@@ -106,12 +106,12 @@ namespace Corrosive {
 	}
 
 	void Source::read_after(Cursor& out, const Cursor& c) {
-		read(out, c.offset + c.length);
+		read(out, c.offset + c.length,c.x,c.y);
 	}
 
 	Cursor Source::read_first() {
 		Cursor c;
-		read(c, 0);
+		read(c, 0, 0, 0);
 		return c;
 	}
 
@@ -137,10 +137,16 @@ namespace Corrosive {
 		((Corrosive::Source*)src)->read_after(*this, *this);
 	}
 
-	void Source::read(Cursor& out, size_t offset) {
+	void Source::read(Cursor& out, size_t offset, size_t x, size_t y) {
 		while (true) {
 			while (offset < buffer.size() && isspace(buffer[offset]))
 			{
+				if (buffer[offset] == '\n')
+				{
+					x = 0;
+					y++;
+				}
+
 				offset++;
 			}
 
@@ -149,6 +155,12 @@ namespace Corrosive {
 
 				while (offset < buffer.size() && (buffer[offset] != '/' || buffer[offset - 1] != '*'))
 				{
+					if (buffer[offset] == '\n')
+					{
+						x = 0;
+						y++;
+					}
+
 					offset++;
 				}
 				offset++;
@@ -158,7 +170,13 @@ namespace Corrosive {
 
 				while (offset < buffer.size())
 				{
-					if (buffer[offset] == '\n') break;
+					if (buffer[offset] == '\n')
+					{
+						x = 0;
+						y++;
+						break;
+					}
+
 					offset++;
 				}
 
@@ -172,11 +190,15 @@ namespace Corrosive {
 			if (isalpha(buffer[offset]) || buffer[offset] == '_')
 			{
 				size_t start = offset;
+				size_t start_x = x;
 
 				while (isalnum(buffer[offset]) || buffer[offset] == '_')
 				{
 					offset++;
+					x++;
 				}
+				out.x = start_x;
+				out.y = y;
 				out.src = this;
 				out.offset = start;
 				out.length = offset - start;
@@ -193,6 +215,7 @@ namespace Corrosive {
 				bool isusg = false;
 
 				size_t start = offset;
+				size_t start_x = x;
 
 				while (isdigit(buffer[offset]) || buffer[offset] == '.')
 				{
@@ -200,26 +223,32 @@ namespace Corrosive {
 						floatt = true;
 
 					offset++;
+					x++;
 				}
 
 				if (buffer[offset] == 'd' && floatt) {
 					doublet = true;
 					offset++;
+					x++;
 				}
 
 				if (buffer[offset] == 'u' && !floatt) {
 					isusg = true;
 					offset++;
+					x++;
 				}
 
 				if (buffer[offset] == 'l' && !floatt) {
 					islong = true;
 					offset++;
+					x++;
 				}
 
 				out.src = this;
 				out.offset = start;
 				out.length = offset - start;
+				out.y = y;
+				out.x = start_x;
 				
 				if (floatt) {
 					if (doublet)
@@ -244,6 +273,7 @@ namespace Corrosive {
 				return;
 			} else if (buffer[offset] == '"') {
 				size_t start = offset;
+				size_t start_x = x;
 
 				bool escaped = false;
 				while (true) {
@@ -254,6 +284,8 @@ namespace Corrosive {
 						out.src = this;
 						out.offset = start;
 						out.length = offset - start;
+						out.x = start_x;
+						out.y = y;
 						throw_specific_error(out, "String literal not closed");
 					}
 					else if (boff == '"' && !escaped) {
@@ -271,15 +303,19 @@ namespace Corrosive {
 
 				offset++;
 
+				x += offset-start;
 
 				out.tok = RecognizedToken::String;
 				out.src = this;
 				out.offset = start;
 				out.length = offset - start;
+				out.x = start_x;
+				out.y = y;
 			}
 			else
 			{
 				size_t start = offset;
+				size_t start_x = x;
 
 				char c = buffer[offset++];
 				char nc = '\0';
@@ -366,11 +402,13 @@ namespace Corrosive {
 					default: out.tok = (RecognizedToken::Unknown); break;
 				}
 
-
+				x+= offset - start;
 
 				out.src = this;
 				out.offset = start;
 				out.length = offset - start;
+				out.x = start_x;
+				out.y = y;
 				return;
 			}
 		}
@@ -378,9 +416,10 @@ namespace Corrosive {
 			out.tok = RecognizedToken::Eof;
 			out.src = this;
 			out.offset = offset+1;
+			out.x = x+1;
+			out.y = y;
 			out.length = 0;
 		}
-
 	}
 
 	void Cursor::move_matching() {
