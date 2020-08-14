@@ -34,7 +34,6 @@ namespace Corrosive {
 		static_assert(sizeof(double) == 8, "Error, double must be 64bit"); // TODO lets maybe create wrapper class to ensure correct format
 		static_assert(sizeof(float) == 4, "Error, float must be 32bit");   //      on architectures with different floating point format
 
-		//TODO ENDIANNESS !!!		
 		ILEvaluator::sandbox_begin();
 
 		try {
@@ -60,9 +59,10 @@ namespace Corrosive {
 
 			std::cout << "========= TEST =========\n";
 
+			std::chrono::steady_clock::time_point saveload_start = std::chrono::steady_clock::now();
 			{
 				std::ofstream file("bin/output.bin",std::ios::binary);
-				compiled_module->save(ILOutputStream(file));
+				compiled_module->save(ILOutputStream(&file));
 			}
 
 			{
@@ -70,6 +70,7 @@ namespace Corrosive {
 				compiled_module->load(ILInputStream(file));
 				StandardLibraryCode::link(compiled_module.get());
 			}
+			std::chrono::steady_clock::time_point saveload_end = std::chrono::steady_clock::now();
 
 
 			std::chrono::steady_clock::time_point runtime_start = std::chrono::steady_clock::now();
@@ -79,6 +80,7 @@ namespace Corrosive {
 
 			std::cout << "========= ==== =========\n";
 			std::cout << "\ncompile time: " << std::chrono::duration_cast<std::chrono::milliseconds>(compile_end - compile_begin).count() << "[ms]\n";
+			std::cout << "\nsave and load time: " << std::chrono::duration_cast<std::chrono::milliseconds>(saveload_end - saveload_start).count() << "[ms]\n";
 			std::cout << "runtime: " << std::chrono::duration_cast<std::chrono::milliseconds>(runtime_end - runtime_start).count() << "[ms]\n" << std::endl;
 			
 		}

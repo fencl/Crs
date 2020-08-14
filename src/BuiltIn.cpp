@@ -259,7 +259,7 @@ namespace Corrosive {
 		setup_type("i64", t_i64, { ILSizeType::abs64,1 }, ILDataType::i64, ILContext::both, std_lib.root_node.get());
 		setup_type("u64", t_u64, { ILSizeType::abs64,1 }, ILDataType::u64, ILContext::both, std_lib.root_node.get());
 		setup_type("size", t_size, { ILSizeType::word,1 }, ILDataType::word, ILContext::both, std_lib.root_node.get());
-		setup_type("type", t_type, { ILSizeType::word,1 }, ILDataType::word, ILContext::compile, std_lib.root_node.get());
+		setup_type("type", t_type, { ILSizeType::ptr,1 }, ILDataType::word, ILContext::compile, std_lib.root_node.get());
 
 		t_ptr = t_void->generate_reference();
 

@@ -639,8 +639,18 @@ namespace Corrosive {
 				auto scope = ScopeState().context(ILContext::compile).function(nullptr, nullptr);
 				RecognizedToken tok;
 				Cursor c = load_cursor(b, ast_node->get_source(), tok);
-				BlockTermination termination;
-				Statement::parse(c, tok, termination, ForceCompile::single);
+				if (tok == RecognizedToken::OpenBrace) {
+					BlockTermination termination;
+					Statement::parse(c, tok, termination, ForceCompile::single);
+				} else {
+					CompileValue res;
+					Expression::parse(c,tok, res, CompileType::eval, false);
+					if (tok != RecognizedToken::Semicolon) {
+						throw_wrong_token_error(c,"';'");
+					}
+					
+					c.move(tok);
+				}
 			}
 
 
@@ -1218,10 +1228,10 @@ namespace Corrosive {
 						size.type = ILSizeType::table;
 					}
 				}
-				else if (m_s.type == ILSizeType::word) { // words are automatically aligned
-					if (size.type == ILSizeType::_0) size.type = ILSizeType::word;
+				else if (m_s.type == ILSizeType::ptr) { // words are automatically aligned
+					if (size.type == ILSizeType::_0) size.type = ILSizeType::ptr;
 
-					if (size.type == ILSizeType::word) {
+					if (size.type == ILSizeType::ptr) {
 						m.second = size.value; // aligned to single word
 						size.value += m_s.value;
 					}

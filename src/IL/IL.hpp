@@ -91,7 +91,7 @@ namespace Corrosive {
 	};
 
 	enum class ILSizeType : unsigned char {
-		array, table, abs8, abs16, abs32, abs64, absf32, absf64, word, _0
+		array, table, abs8, abs16, abs32, abs64, absf32, absf64, ptr, word, slice, _0
 	};
 
 	enum class ILCallingConvention : uint8_t {
@@ -101,7 +101,7 @@ namespace Corrosive {
 
 	class ILOutputStream {
 	public:
-		ILOutputStream(std::ostream& tg): target(tg) {}
+		ILOutputStream(std::variant<std::ostream*, std::vector<uint8_t>*> tg): target(tg) {}
 		void u8(uint8_t v);
 		void i8(int8_t v);
 		void u16(uint16_t v);
@@ -114,8 +114,9 @@ namespace Corrosive {
 		void dt(ILDataType v);
 		void b(bool v);
 		void write(void* v, size_t s);
+		size_t offset();
 	private:
-		std::ostream& target;
+		std::variant<std::ostream*, std::vector<uint8_t>*> target;
 	};
 
 	class ILInputStream {
@@ -149,8 +150,12 @@ namespace Corrosive {
 
 		static const ILSize single_ptr;
 		static const ILSize double_ptr;
+		static const ILSize slice;
+		static const ILSize single_word;
 
 		void print(ILModule* mod);
+
+		void clean_prepass(ILModule* mod, std::set<void*>& pointer_offsets, unsigned char* ptr);
 
 		void load(ILModule* mod, ILInputStream& stream, unsigned char* ptr);
 		void save(ILModule* mod, ILOutputStream& stream, unsigned char* ptr);
@@ -553,6 +558,10 @@ namespace Corrosive {
 	void throw_interrupt_exception(const ILEvaluator* eval, int signal);
 	void throw_runtime_handler_exception(const ILEvaluator* eval);
 
+	enum class ILPointerType {
+		function, vtable, constant, staticstorage
+	};
+
 	class ILModule {
 	private:
 		static thread_local std::vector<ILModule*> current;
@@ -593,6 +602,10 @@ namespace Corrosive {
 		void run(ILFunction* func);
 		void load(ILInputStream& stream);
 		void save(ILOutputStream& stream);
+
+		struct MemoryMapCompare {
+			bool operator()(const std::pair<void*,void*>& l, const std::pair<void*,void*>& r) const;
+		};
 	};
 
 	void abi_dynamic_call(ILEvaluator* eval, ILCallingConvention conv, void* ptr, std::tuple<ILCallingConvention, ILDataType, std::vector<ILDataType>>& decl);
@@ -750,6 +763,7 @@ namespace Corrosive {
 		static void build_forget(ILBlock* block, ILDataType type);
 		static void build_ret(ILBlock* block, ILDataType type);
 		static void build_fnptr(ILBlock* block, ILFunction* fun);
+		static void build_fnptr_id(ILBlock* block, uint32_t id);
 		static void build_fncall(ILBlock* eval_ctx, ILFunction* fun);
 		static void build_call(ILBlock* block, uint32_t decl);
 		static void build_callstart(ILBlock* block);

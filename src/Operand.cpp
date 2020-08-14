@@ -667,11 +667,11 @@ namespace Corrosive {
 						if (cpt == CompileType::compile) {
 							if (cv.type->rvalue_stacked()) {
 								unsigned char* src = compiler->evaluator()->pop_register_value<unsigned char*>();
-								cv.type->constantize(err, (unsigned char*)&storage.data()[storage.size()	-target_size_value], src);
+								cv.type->constantize(err, (unsigned char*)&storage.data()[storage.size()-target_size_value], src);
 							} else {
 								ilsize_t srcstorage;
-								compiler->evaluator()->pop_register_value_indirect(compiler->evaluator()	->compile_time_register_size(cv.type->rvalue()), &srcstorage);
-								cv.type->constantize(err, (unsigned char*)&storage.data()[storage.size()	-target_size_value], (unsigned char*)&srcstorage);
+								compiler->evaluator()->pop_register_value_indirect(compiler->evaluator()->compile_time_register_size(cv.type->rvalue()), &srcstorage);
+								cv.type->constantize(err, (unsigned char*)&storage.data()[storage.size()-target_size_value], (unsigned char*)&srcstorage);
 							}
 						} else {
 							if (cv.type->rvalue_stacked()) {
@@ -679,7 +679,7 @@ namespace Corrosive {
 								memcpy((unsigned char*)&storage.data()[storage.size()-target_size_value], src, target_size_value);
 							} else {
 								ilsize_t srcstorage;
-								compiler->evaluator()->pop_register_value_indirect(compiler->evaluator()	->compile_time_register_size(cv.type->rvalue()), &srcstorage);
+								compiler->evaluator()->pop_register_value_indirect(compiler->evaluator()->compile_time_register_size(cv.type->rvalue()), &srcstorage);
 								memcpy((unsigned char*)&storage.data()[storage.size()-target_size_value], (unsigned char*)&srcstorage,target_size_value);
 							}
 						}
@@ -2206,7 +2206,7 @@ namespace Corrosive {
 							ILBuilder::build_aoffset(compiler->scope(), (uint32_t)(elem_size.value*4)); break;
 						case ILSizeType::abs64: 
 							ILBuilder::build_aoffset(compiler->scope(), (uint32_t)(elem_size.value*8)); break;
-						case ILSizeType::word:
+						case ILSizeType::ptr:
 							ILBuilder::build_woffset(compiler->scope(), (uint32_t)elem_size.value); break;
 						default:
 							break;
@@ -2230,7 +2230,7 @@ namespace Corrosive {
 							ILBuilder::eval_aoffset(compiler->evaluator(), (uint32_t)(elem_size.value*4)); break;
 						case ILSizeType::abs64: 
 							ILBuilder::eval_aoffset(compiler->evaluator(), (uint32_t)(elem_size.value*8)); break;
-						case ILSizeType::word:
+						case ILSizeType::ptr:
 							ILBuilder::eval_woffset(compiler->evaluator(), (uint32_t)elem_size.value); break;
 						default:
 							break;
@@ -2256,7 +2256,7 @@ namespace Corrosive {
 							ILBuilder::build_aroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), (uint32_t)(elem_size.value*4)); break;
 						case ILSizeType::abs64: 
 							ILBuilder::build_aroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), (uint32_t)(elem_size.value*8)); break;
-						case ILSizeType::word:
+						case ILSizeType::ptr:
 							ILBuilder::build_wroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), (uint32_t)elem_size.value); break;
 						default:
 							break;
@@ -2280,7 +2280,7 @@ namespace Corrosive {
 							ILBuilder::eval_aroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (uint32_t)(elem_size.value*4)); break;
 						case ILSizeType::abs64: 
 							ILBuilder::eval_aroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (uint32_t)(elem_size.value*8)); break;
-						case ILSizeType::word:
+						case ILSizeType::ptr:
 							ILBuilder::eval_wroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (uint32_t)elem_size.value); break;
 						default:
 							break;

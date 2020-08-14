@@ -99,6 +99,12 @@ namespace Corrosive {
 		block->write_value((fun->id));
 	}
 	
+
+	void ILBuilder::build_fnptr_id(ILBlock* block, uint32_t id) {
+		block->write_instruction(ILInstruction::fnptr);
+		block->write_value(id);
+	}
+
 	void ILBuilder::build_fncall(ILBlock* block, ILFunction* fun) {
 		block->write_instruction(ILInstruction::fncall);
 		block->write_value((fun->id));

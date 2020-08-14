@@ -85,6 +85,10 @@ namespace Corrosive {
 	}
 
 
+	bool ILModule::MemoryMapCompare::operator()(const std::pair<void*,void*>& l, const std::pair<void*,void*>& r) const {
+		return l.second <= r.first;
+	}
+	
 	uint16_t ILEvaluator::register_debug_source(std::string name) {
 		debug_file_names.push_back(name);
 		return (uint16_t)debug_file_names.size() - 1;
@@ -131,6 +135,9 @@ namespace Corrosive {
 
 	uint32_t ILModule::register_vtable(uint32_t size, std::unique_ptr<void* []> table) {
 		vtable_data.push_back(std::make_pair(size,std::move(table)));
+
+		unsigned char* ptr1 = (unsigned char*)vtable_data.back().second.get();
+		unsigned char* ptr2 = ptr1 + vtable_data.back().first*sizeof(void*);
 		return (uint32_t)vtable_data.size() - 1;
 	}
 
@@ -232,6 +239,9 @@ namespace Corrosive {
 		auto data = std::make_unique<unsigned char[]>(compile_size);
 		memcpy(data.get(), memory, compile_size);
 		constant_memory.push_back(std::make_pair(size,std::move(data)));
+
+		unsigned char* ptr1 = (unsigned char*)constant_memory.back().second.get();
+		unsigned char* ptr2 = ptr1 + compile_size;
 		return (uint32_t)constant_memory.size() - 1;
 	}
 
@@ -242,6 +252,9 @@ namespace Corrosive {
 			memcpy(data.get(), memory, compile_size);
 		}
 		static_memory.push_back(std::make_pair(size, std::move(data)));
+
+		unsigned char* ptr1 = (unsigned char*)static_memory.back().second.get();
+		unsigned char* ptr2 = ptr1 + compile_size;
 		return (uint32_t)static_memory.size() - 1;
 	}
 
@@ -354,13 +367,26 @@ namespace Corrosive {
 				return (size_t)value*8;
 			}
 
-			case ILSizeType::word: {
+			case ILSizeType::word: 
+			case ILSizeType::ptr: {
 				switch (arch)
 				{
 					case ILArchitecture::bit32:
 						return (size_t)value * 4;
 					case ILArchitecture::bit64:
 						return (size_t)value * 8;
+					default:
+						return 0;
+				}
+			}
+
+			case ILSizeType::slice: {
+				switch (arch)
+				{
+					case ILArchitecture::bit32:
+						return (size_t)value * 4 * 2;
+					case ILArchitecture::bit64:
+						return (size_t)value * 8 * 2;
 					default:
 						return 0;
 				}
@@ -419,7 +445,9 @@ namespace Corrosive {
 				}
 			}
 
-			case ILSizeType::word: {
+			case ILSizeType::slice:
+			case ILSizeType::word:
+			case ILSizeType::ptr: {
 				switch (arch)
 				{
 					case ILArchitecture::bit32:
@@ -447,8 +475,10 @@ namespace Corrosive {
 		return 0;
 	}
 
-	const ILSize ILSize::single_ptr = { ILSizeType::word,1 };
-	const ILSize ILSize::double_ptr = { ILSizeType::word,2 };
+	const ILSize ILSize::single_ptr = { ILSizeType::ptr,1 };
+	const ILSize ILSize::double_ptr = { ILSizeType::ptr,2 };
+	const ILSize ILSize::slice = { ILSizeType::slice, 1};
+	const ILSize ILSize::single_word = { ILSizeType::word, 1};
 
 	void ILStructTable::calculate(ILModule* mod, ILArchitecture arch) {
 		if (arch != calculated_for) {
@@ -504,7 +534,7 @@ namespace Corrosive {
 				std::cout << "["<<value << " x f64]";
 			}break;
 
-			case ILSizeType::word: {
+			case ILSizeType::ptr: {
 				std::cout << "["<<value << " x word]";
 			}break;
 
@@ -1153,7 +1183,11 @@ namespace Corrosive {
 	void ILModule::try_link(std::string name,void* ptr){
 		auto f = external_functions.find(name);
 		if (f != external_functions.end()) {
-			((ILNativeFunction*)functions[f->second].get())->ptr = ptr;
+			ILNativeFunction* nfunc = ((ILNativeFunction*)functions[f->second].get());
+			if (nfunc->ptr == nullptr) {
+				//memory_map_table[std::make_pair(nfunc->ptr,(unsigned char*)nfunc->ptr+1)] = std::make_pair(ILPointerType::function, nfunc->id);
+				nfunc->ptr = ptr;
+			}
 		}
 	}
 
@@ -1249,6 +1283,11 @@ namespace Corrosive {
 			}
 		}
 
+		//std::vector<uint8_t> const_static_data;
+		//std::multimap<void*, size_t> pointer_offsets;
+
+		//ILOutputStream os(&const_static_data);
+
 		file.s(constant_memory.size());
 		for (auto&& con_mem: constant_memory) {
 			file.u8((uint8_t)con_mem.first.type);
@@ -1263,7 +1302,6 @@ namespace Corrosive {
 			file.u32((uint8_t)static_mem.first.value);
 			static_mem.first.save(this, file, static_mem.second.get());
 		}
-
 	}
 
 	void ILModule::load(ILInputStream& file) {
@@ -1374,36 +1412,64 @@ namespace Corrosive {
 
 
 	void ILOutputStream::u8(uint8_t v) {
-		target.put(v);
+		if (target.index() == 0) {
+			std::get<0>(target)->put(v);
+		} else {
+			std::get<1>(target)->push_back(v);
+		}
 	}
 	void ILOutputStream::i8(int8_t v) {
-		target.put(v);
+		u8(*(uint8_t*)&v);
 	}
 	void ILOutputStream::u16(uint16_t v){
-		target.put((uint8_t)((v)&0x00ff));
-		target.put((uint8_t)((v>>8)&0x00ff));
+		if (target.index() == 0) {
+			std::get<0>(target)->put((uint8_t)((v)&0x00ff))
+			.put((uint8_t)((v>>8)&0x00ff));
+		} else {
+			std::get<1>(target)->push_back((uint8_t)((v)&0x00ff));
+			std::get<1>(target)->push_back((uint8_t)((v>>8)&0x00ff));
+		}
 	}
 	void ILOutputStream::i16(int16_t v){
 		u16(*(uint16_t*)&v);
 	}
 	void ILOutputStream::u32(uint32_t v){
-		target.put((uint8_t)((v)&0x000000ff));
-		target.put((uint8_t)((v>>8)&0x000000ff));
-		target.put((uint8_t)((v>>16)&0x000000ff));
-		target.put((uint8_t)((v>>24)&0x000000ff));
+		if (target.index() == 0) {
+			std::get<0>(target)->put((uint8_t)((v)&0x000000ff))
+			.put((uint8_t)((v>>8)&0x000000ff))
+			.put((uint8_t)((v>>16)&0x000000ff))
+			.put((uint8_t)((v>>24)&0x000000ff));
+		} else {
+			std::get<1>(target)->push_back((uint8_t)((v)&0x000000ff));
+			std::get<1>(target)->push_back((uint8_t)((v>>8)&0x000000ff));
+			std::get<1>(target)->push_back((uint8_t)((v>>16)&0x000000ff));
+			std::get<1>(target)->push_back((uint8_t)((v>>24)&0x000000ff));			
+		}
 	}
 	void ILOutputStream::i32(int32_t v){
 		u32(*(uint32_t*)&v);
 	}
 	void ILOutputStream::u64(uint64_t v){
-		target.put((uint8_t)((v)&0x00000000000000ff));
-		target.put((uint8_t)((v>>8)&0x00000000000000ff));
-		target.put((uint8_t)((v>>16)&0x00000000000000ff));
-		target.put((uint8_t)((v>>24)&0x00000000000000ff));
-		target.put((uint8_t)((v>>32)&0x00000000000000ff));
-		target.put((uint8_t)((v>>40)&0x00000000000000ff));
-		target.put((uint8_t)((v>>48)&0x00000000000000ff));
-		target.put((uint8_t)((v>>56)&0x00000000000000ff));
+		
+		if (target.index() == 0) {
+			std::get<0>(target)->put((uint8_t)((v)&0x00000000000000ff))
+			.put((uint8_t)((v>>8)&0x00000000000000ff))
+			.put((uint8_t)((v>>16)&0x00000000000000ff))
+			.put((uint8_t)((v>>24)&0x00000000000000ff))
+			.put((uint8_t)((v>>32)&0x00000000000000ff))
+			.put((uint8_t)((v>>40)&0x00000000000000ff))
+			.put((uint8_t)((v>>48)&0x00000000000000ff))
+			.put((uint8_t)((v>>56)&0x00000000000000ff));
+		} else {
+			std::get<1>(target)->push_back((uint8_t)((v)&0x00000000000000ff));
+			std::get<1>(target)->push_back((uint8_t)((v>>8)&0x00000000000000ff));
+			std::get<1>(target)->push_back((uint8_t)((v>>16)&0x00000000000000ff));
+			std::get<1>(target)->push_back((uint8_t)((v>>24)&0x00000000000000ff));
+			std::get<1>(target)->push_back((uint8_t)((v>>32)&0x00000000000000ff));
+			std::get<1>(target)->push_back((uint8_t)((v>>40)&0x00000000000000ff));
+			std::get<1>(target)->push_back((uint8_t)((v>>48)&0x00000000000000ff));
+			std::get<1>(target)->push_back((uint8_t)((v>>56)&0x00000000000000ff));
+		}
 	}
 	void ILOutputStream::i64(int64_t v){
 		u64(*(uint64_t*)&v);
@@ -1424,8 +1490,15 @@ namespace Corrosive {
 	void ILOutputStream::write(void* v, size_t s) {
 		if (s>0) {
 			uint8_t* ptr = (uint8_t*)v;
-			for (size_t i=0; i<s; ++i) {
-				target.put(*ptr++);
+			
+			if (target.index() == 0) {
+				for (size_t i=0; i<s; ++i) {
+					std::get<0>(target)->put(*ptr++);
+				}
+			} else {
+				for (size_t i=0; i<s; ++i) {
+					std::get<1>(target)->push_back(*ptr++);
+				}
 			}
 		}
 	}
@@ -1536,18 +1609,18 @@ namespace Corrosive {
 				for (uint32_t i=0;i<value;++i) { *(uint64_t*)ptr = stream.u64(); ptr+=8; }
 				break;
 
-			case ILSizeType::word:
-				switch (compiler_arch)
-				{
-					case ILArchitecture::bit64:
-						ptr+=8;
-						break;
+			case ILSizeType::word: {
+				throw std::exception("Compiler error: found size value inside imported data");
+			}break;
 
-					case ILArchitecture::bit32:
-						ptr+=4;
-						break;
-				}
-				break;
+			case ILSizeType::ptr: {				
+				throw std::exception("Compiler error: found pointer value inside imported data");
+			} break;
+
+			case ILSizeType::slice: {				
+				throw std::exception("Compiler error: found pointer value inside imported data");
+			} break;
+
 			case ILSizeType::table: {
 				size_t s = eval(mod, compiler_arch);
 				auto& table = mod->structure_tables[value];
@@ -1566,6 +1639,14 @@ namespace Corrosive {
 				ptr+=s;
 			}
 		}
+	}
+
+	
+	size_t ILOutputStream::offset() {
+		if (target.index() == 1) {
+			return std::get<1>(target)->size();
+		}
+		return 0;
 	}
 
 	void ILSize::save(ILModule* mod, ILOutputStream& stream, unsigned char* ptr) {
@@ -1589,18 +1670,15 @@ namespace Corrosive {
 				for (uint32_t i=0;i<value;++i) { stream.u64(*(uint64_t*)ptr); ptr+=8; }
 				break;
 
-			case ILSizeType::word:
-				switch (compiler_arch)
-				{
-					case ILArchitecture::bit64:
-						ptr+=8;
-						break;
-
-					case ILArchitecture::bit32:
-						ptr+=4;
-						break;
-				}
-				break;
+			case ILSizeType::word: {
+				throw std::exception("Compiler error: there are size values inside data export");
+			} break;
+			case ILSizeType::ptr: {
+				throw std::exception("Compiler error: there are pointer values inside data export");
+			} break;
+			case ILSizeType::slice: {
+				throw std::exception("Compiler error: there are pointers values inside data export");
+			}break;
 			case ILSizeType::table: {
 				size_t s = eval(mod, compiler_arch);
 				auto& table = mod->structure_tables[value];
@@ -1620,5 +1698,4 @@ namespace Corrosive {
 			}
 		}
 	}
-
 }

@@ -71,7 +71,34 @@ namespace Corrosive {
 		throw_specific_error(err, "Cannot create constant value of this type");
 	}
 
+	
+	void TypeFunction::constantize(Cursor& err, unsigned char* target, unsigned char* source) {
+		if (setjmp(sandbox) == 0) {
+			/*if (target != nullptr) {
+				*(void**)target = *(void**)source;
+			} else {
+				throw_specific_error(err, "not implemented yet");
+			}*/
+			throw_specific_error(err, "Cannot create constant value of this type");
+		}
+		else {
+			throw_runtime_handler_exception(Compiler::current()->evaluator());
+		}
+	}
 
+	void TypeTraitInstance::constantize(Cursor& err, unsigned char* target, unsigned char* source) {
+		if (setjmp(sandbox) == 0) {
+			/*if (target != nullptr) {
+				*(dword_t**)target = *(dword_t**)source;
+			} else {
+				throw_specific_error(err, "not implemented yet");
+			}*/
+			throw_specific_error(err, "Cannot create constant value of this type");
+		}
+		else {
+			throw_runtime_handler_exception(Compiler::current()->evaluator());
+		}
+	}
 
 	void TypeStructureInstance::constantize(Cursor& err, unsigned char* target, unsigned char* source) {
 
@@ -93,10 +120,10 @@ namespace Corrosive {
 						case ILDataType::i64: *(int64_t*)target = *(int64_t*)source; break;
 						case ILDataType::f32: *(float*)target = *(float*)source; break;
 						case ILDataType::f64: *(double*)target = *(double*)source; break;
-						//case ILDataType::word: *(void**)target = *(void**)source; break;
-						//case ILDataType::dword: *(dword_t*)target = *(dword_t*)source; break;
 						case ILDataType::word: throw_specific_error(err, "Cannot create constant value of this type"); break;
 						case ILDataType::dword: throw_specific_error(err, "Cannot create constant value of this type"); break;
+						//case ILDataType::word: *(void**)target = *(void**)source; break;
+						//case ILDataType::dword: *(dword_t*)target = *(dword_t*)source; break;
 						default: break;
 					}
 				}
@@ -146,6 +173,7 @@ namespace Corrosive {
 		if (setjmp(sandbox) == 0) {
 			Compiler* compiler = Compiler::current();
 			dword_t me = *(dword_t*)source;
+			
 			std::string data((size_t)me.p2,'\0');
 			uint8_t* ptr_src = (uint8_t*)me.p1;
 			uint8_t* ptr_dst = (uint8_t*)data.data();
@@ -171,14 +199,14 @@ namespace Corrosive {
 			auto val = compiler->constant_manager()->register_constant(std::move(data), s);
 
 			if (target) {
-				/*dword_t* tg = (dword_t*)target;
+				dword_t* tg = (dword_t*)target;
 				tg->p1 = (void*)val.first.data();
-				tg->p2 = (void*)val.first.size();*/
-				throw_specific_error(err, "Cannot create constant value of this type");
+				tg->p2 = (void*)val.first.size();
 			}
 			else {
 				ILBuilder::build_const_slice(compiler->scope(), val.second, s);
 			}
+			
 		}
 		else {
 			throw_runtime_handler_exception(Compiler::current()->evaluator());
@@ -422,7 +450,7 @@ namespace Corrosive {
 	}
 
 	ILSize TypeSlice::size() {
-		return ILSize::double_ptr;
+		return ILSize::slice;
 	}
 
 

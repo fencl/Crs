@@ -163,8 +163,18 @@ namespace Corrosive {
 			else if (buf == "compile") {
 				c.move(tok);
 				structure->compile_blocks.push_back(c.offset);
-				c.move_matching(tok);
-				c.move(tok);
+				if (tok == RecognizedToken::OpenBrace) {
+					c.move_matching(tok);
+					c.move(tok);
+				}else {
+					while(tok != RecognizedToken::Semicolon) {
+						if (tok == RecognizedToken::Eof) {
+							throw_eof_error(c,"parsing of compile expression");
+						}
+						c.move(tok);
+					}
+					c.move(tok);
+				}
 			}
 			else {
 				throw_wrong_token_error(c, "var, fn, struct, impl, trait, static or compile");

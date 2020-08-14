@@ -1,6 +1,7 @@
 #include "IL.hpp"
 #include <unordered_map>
 #include <vector>
+#include <deque>
 
 
 namespace Corrosive {
@@ -55,8 +56,6 @@ namespace Corrosive {
 	}
 
 	void ILModule::strip_unused_content() {
-		release_jit_code();
-
 		std::unordered_set<size_t> used_functions;
 		std::unordered_set<size_t> used_constants;
 		std::unordered_set<size_t> used_statics;
@@ -66,11 +65,13 @@ namespace Corrosive {
 		std::unordered_set<size_t> used_arrays;
 
 
+		std::vector<ILFunction*> remaining_build;
 		for (auto&& f : exported_functions) {
 			used_functions.insert(f->id);
+			remaining_build.push_back(f);
 		}
 
-		for (auto&& f : exported_functions) {
+		for (auto&& f : remaining_build) {
 			if (auto bf = dynamic_cast<ILBytecodeFunction*>(f)) {
 				bf->clean_prepass(used_functions, used_constants, used_statics, used_vtables, used_decls, used_tables, used_arrays);
 			}
@@ -187,6 +188,8 @@ namespace Corrosive {
 		for (auto&& t : array_tables) {
 			t.clean_pass(*this, map_tables, map_arrays);
 		}
+
+		//rebuild_pointer_table();
 	}
 
 	void ILBytecodeFunction::clean_prepass(std::unordered_set<size_t>& used_functions,
@@ -391,17 +394,17 @@ namespace Corrosive {
 						ILSize& s = parent->constant_memory[cid].first;
 						if (s.type == ILSizeType::table) {
 							used_tables.insert(s.value);
-						}else if (s.type == ILSizeType::array) {
+						} else if (s.type == ILSizeType::array) {
 							used_arrays.insert(s.value);
 						}
 					} break;
 					case ILInstruction::staticref: {
 						uint32_t cid = ILBlock::read_data<uint32_t>(it);
 						used_statics.insert(cid);
-						ILSize& s = parent->constant_memory[cid].first;
+						ILSize& s = parent->static_memory[cid].first;
 						if (s.type == ILSizeType::table) {
 							used_tables.insert(s.value);
-						}else if (s.type == ILSizeType::array) {
+						} else if (s.type == ILSizeType::array) {
 							used_arrays.insert(s.value);
 						}
 					} break;
@@ -587,8 +590,16 @@ namespace Corrosive {
 					case ILInstruction::f64: ILBlock::read_data<double>(it); break;
 					case ILInstruction::word: ILBlock::read_data<void*>(it); break;
 					case ILInstruction::slice: {
-						used_constants.insert(ILBlock::read_data<uint32_t>(it));
-						
+
+						uint32_t cid = ILBlock::read_data<uint32_t>(it);
+						used_constants.insert(cid);
+						ILSize& s = parent->constant_memory[cid].first;
+						if (s.type == ILSizeType::table) {
+							used_tables.insert(s.value);
+						} else if (s.type == ILSizeType::array) {
+							used_arrays.insert(s.value);
+						}
+
 						auto t = ILBlock::read_data<ILSizeType>(it);
 						auto v = ILBlock::read_data<uint32_t>(it);
 						if (t == ILSizeType::table) {
@@ -1707,6 +1718,74 @@ namespace Corrosive {
 				default:break;
 			}
 		}
-
 	}
+
+	void ILSize::clean_prepass(ILModule* mod, std::set<void*>& pointer_offsets, unsigned char* ptr) {
+		switch(type) {
+			case ILSizeType::abs8:
+				ptr += value;
+				break;
+
+			case ILSizeType::abs16:
+				ptr += value*2;
+				break;
+
+			case ILSizeType::abs32:
+			case ILSizeType::absf32:
+				ptr += value*4;
+				break;
+
+			case ILSizeType::abs64:
+			case ILSizeType::absf64:
+				ptr += value*8;
+				break;
+
+			case ILSizeType::word: {
+				ptr += value*sizeof(size_t);
+			} break;
+			case ILSizeType::ptr: {
+				for (uint32_t i=0;i<value;++i) { 
+					void* target = *(void**)ptr;
+
+					pointer_offsets.insert(target);
+
+					ptr += sizeof(void*);
+				}
+			} break;
+			case ILSizeType::slice: {
+				for (uint32_t i=0;i<value;++i) {
+					void* target = *(void**)ptr;
+
+					pointer_offsets.insert(target);
+
+					ptr += sizeof(void*);
+					ptr+=sizeof(size_t);
+				}
+			}break;
+			case ILSizeType::table: {
+				size_t s = eval(mod, compiler_arch);
+				auto& table = mod->structure_tables[value];
+				table.calculate(mod, compiler_arch);
+				for (size_t e = 0; e<table.elements.size(); ++e) {
+					unsigned char* elem_off = ptr + table.calculated_offsets[e];
+					table.elements[e].clean_prepass(mod, pointer_offsets, elem_off);
+				}
+				ptr+=s;
+			}
+			case ILSizeType::array: {
+				size_t s = eval(mod, compiler_arch);
+				auto& table = mod->array_tables[value];
+				size_t es = table.element.eval(mod, compiler_arch);
+				table.calculate(mod, compiler_arch);
+				unsigned char* offset = ptr;
+				for (uint32_t i=0; i<table.count; ++i) {
+					table.element.clean_prepass(mod, pointer_offsets, offset);
+					offset += es;
+				}
+				ptr+=s;
+			}
+		}
+	}
+
+	
 }

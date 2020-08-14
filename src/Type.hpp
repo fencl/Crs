@@ -107,14 +107,14 @@ namespace Corrosive {
 		virtual ILDataType rvalue();
 
 		inline virtual TypeInstanceType type() { return TypeInstanceType::type_trait; }
+		
+		virtual void constantize(Cursor& err, unsigned char* target, unsigned char* source);
 
 		virtual ILContext context();
 		virtual ILSize size();
 
 		virtual bool rvalue_stacked();
-		virtual void print(std::ostream& os);
-
-		
+		virtual void print(std::ostream& os);		
 	};
 
 	class TypeTraitTemplate : public Type {
@@ -193,6 +193,8 @@ namespace Corrosive {
 		Type* return_type;
 		uint32_t il_function_decl;
 		ILCallingConvention call_conv;
+		
+		virtual void constantize(Cursor& err, unsigned char* target, unsigned char* source);
 
 		virtual ILContext context();
 		virtual ILSize size();
