@@ -7,15 +7,7 @@
 
 namespace Corrosive {
 	using AstCursor = size_t;
-
-	inline Cursor load_cursor(AstCursor c, Source* src) {
-		Cursor cr;
-		cr.offset = c;
-		cr.length = 0;
-		cr.src = src;
-		cr.move();
-		return cr;
-	}
+	Cursor load_cursor(AstCursor c, Source* src);
 
 	class AstNode {
 	public:

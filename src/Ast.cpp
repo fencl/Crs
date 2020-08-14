@@ -4,6 +4,17 @@
 #include "Declaration.hpp"
 
 namespace Corrosive {
+
+	Cursor load_cursor(AstCursor c, Source* src) {
+		Cursor cr;
+		cr.offset = c;
+		cr.length = 0;
+		cr.src = src;
+		cr.move();
+		return cr;
+	}
+
+	
 	std::unique_ptr<AstRootNode> AstRootNode::parse(Source* src) {
 		auto root = std::make_unique<AstRootNode>();
 		root->parent = src;

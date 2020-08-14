@@ -502,8 +502,6 @@ namespace Corrosive {
 
 				BlockTermination termination;
 				Statement::parse(c, termination, ForceCompile::single);
-				//auto fn = compile_build_block(c);
-				//ILBuilder::eval_fncall(compiler->evaluator(), fn);
 			}
 
 			compiler->source_stack.pop_back();
