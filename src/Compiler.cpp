@@ -137,6 +137,8 @@ namespace Corrosive {
 
 	std::unique_ptr<ILModule> Compiler::finalize() {
 		target_module->strip_unused_content();
+		release_jit_code();
+		if (ILEvaluator::sandboxed()) build_sandbox();
 		return std::move(target_module);
 	}
 

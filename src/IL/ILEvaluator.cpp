@@ -12,20 +12,26 @@ namespace Corrosive {
 
 	int sigint_value = INT_MIN;
 	int sigseg_value = INT_MIN;
+	bool sandbox_started = false;
 
-	void sandbox_siginthandler(int signum) {
+	void sandbox_siginthandler(int signum) noexcept {
 		sigseg_value = INT_MIN;
 		sigint_value = signum;
 		longjmp_func(sandbox, 1);
 	}
 
-	void sandbox_sigseghandler(int signum) {
+	void sandbox_sigseghandler(int signum) noexcept {
 		sigseg_value = signum;
 		sigint_value = INT_MIN;
 		longjmp_func(sandbox, 1);
 	}
 
+	bool ILEvaluator::sandboxed() {
+		return sandbox_started;
+	}
+
 	void ILEvaluator::sandbox_begin() {
+		sandbox_started = true;
 		build_sandbox();
 		signal(SIGINT, sandbox_siginthandler);
 		signal(SIGSEGV, sandbox_sigseghandler);
@@ -34,6 +40,7 @@ namespace Corrosive {
 	}
 
 	void ILEvaluator::sandbox_end() {
+		sandbox_started = false;
 		signal(SIGINT, SIG_DFL);
 		signal(SIGSEGV, SIG_DFL);
 		signal(SIGILL, SIG_DFL);

@@ -368,10 +368,11 @@ namespace Corrosive {
 
 	
 	void build_sandbox();
+	void invalidate_sandbox();
 
 	extern void* sandbox;
-	extern int (*wrap)(void*);
-	extern void (*longjmp_func)(void*, int);
+	extern int (*wrap)(void*) noexcept;
+	extern void (*longjmp_func)(void*, int) noexcept;
 	
 
 	struct ILLifetime {
@@ -492,6 +493,7 @@ namespace Corrosive {
 
 		static void sandbox_begin();
 		static void sandbox_end();
+		static bool sandboxed();
 
 		void	write_register_value_indirect(std::size_t size, void* value);
 		void	pop_register_value_indirect(std::size_t size, void* into);

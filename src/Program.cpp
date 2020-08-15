@@ -78,8 +78,7 @@ namespace Corrosive {
 		catch (string_exception& e) {
 			std::cerr << e.what()<<"\n";
 		}
-
-		release_jit_code();
+		
 		ILEvaluator::sandbox_end();
 
 

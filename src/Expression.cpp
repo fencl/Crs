@@ -383,6 +383,7 @@ namespace Corrosive {
 					case RecognizedToken::MinusEquals: op = 2; break;
 					case RecognizedToken::StarEquals: op = 3; break;
 					case RecognizedToken::SlashEquals: op = 4; break;
+					default: break;
 				}
 
 				if (!Operand::is_numeric_value(val.type)) {
@@ -452,6 +453,7 @@ namespace Corrosive {
 					val.type = compiler->types()->t_void;
 				}
 			} break;
+			default: break;
 		}
 
 		res = val;
@@ -716,6 +718,7 @@ namespace Corrosive {
 					op_v = 4;
 					op_t = 2;
 				}break;
+				default: break;
 			}
 
 			if (op_v >= 0 || current_layer >= 0) {

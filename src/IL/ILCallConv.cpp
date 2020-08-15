@@ -38,7 +38,11 @@ namespace Corrosive {
 		}
 	};
 
-	std::unordered_map < std::tuple<ILDataType, std::uint32_t, ILDataType*>, void*, call_wrapper_hash, call_wrapper_compare> call_wrappers[(std::uint8_t)ILCallingConvention::__max];
+	std::unordered_map < std::tuple<ILDataType, std::uint32_t, ILDataType*>, void*, call_wrapper_hash, call_wrapper_compare> call_wrappers[(std::uint8_t)ILCallingConvention::__max] = {
+		std::unordered_map < std::tuple<ILDataType, std::uint32_t, ILDataType*>, void*, call_wrapper_hash, call_wrapper_compare>(256),
+		std::unordered_map < std::tuple<ILDataType, std::uint32_t, ILDataType*>, void*, call_wrapper_hash, call_wrapper_compare>(256),
+		std::unordered_map < std::tuple<ILDataType, std::uint32_t, ILDataType*>, void*, call_wrapper_hash, call_wrapper_compare>(256)
+	};
 
 	void* exec_alloc(std::size_t bytes) {
 		if (memory_pages.size() == 0) {
@@ -60,6 +64,8 @@ namespace Corrosive {
 	}
 
 	void release_jit_code() {
+		invalidate_sandbox();
+
 		for (auto&& p : memory_pages) {
 			VirtualFree(p.first, 0, MEM_RELEASE);
 		}
@@ -87,17 +93,24 @@ namespace Corrosive {
 			{
 				case ILDataType::i8:
 				case ILDataType::u8:
-					b4_stack[off++] = eval->pop_register_value<std::uint8_t>(); break;
+					b4_stack[off++] = eval->pop_register_value<std::uint8_t>(); 
+					break;
+
 				case ILDataType::i16:
 				case ILDataType::u16:
-					b4_stack[off++] = eval->pop_register_value<std::uint16_t>(); break;
+					b4_stack[off++] = eval->pop_register_value<std::uint16_t>(); 
+					break;
+
 				case ILDataType::i32:
 				case ILDataType::u32:
 				case ILDataType::f32:
 				case ILDataType::word:
-					b4_stack[off++] = eval->pop_register_value<std::uint32_t>(); break;
+					b4_stack[off++] = eval->pop_register_value<std::uint32_t>(); 
+					break;
+
 				case ILDataType::f64:
 				case ILDataType::i64:
+				case ILDataType::dword: 
 				case ILDataType::u64: {
 					std::uint64_t v = eval->pop_register_value<std::uint64_t>();
 					b4_stack[off++] = (std::uint32_t)(v >> 32);
@@ -112,26 +125,42 @@ namespace Corrosive {
 		b4_stack[off++] = (std::uint32_t)pointer;
 	}
 
-	void pop_32bit_temp_stack(ILEvaluator* eval, std::tuple<ILCallingConvention, ILDataType, std::vector<ILDataType>>& decl) {
-		switch (std::get<1>(decl)) {
-			case ILDataType::i8:
-			case ILDataType::u8:
-				eval->write_register_value_indirect(sizeof(std::uint8_t), &return_storage_1); break;
+	struct state
+	{
+	    std::uint32_t ebx;
+	    std::uint32_t esi;
+	    std::uint32_t edi;
+	    std::uint32_t ebp;
+	    std::uint32_t esp;
+		std::uint32_t rip;
+	};
 
-			case ILDataType::i16:
-			case ILDataType::u16:
-				eval->write_register_value_indirect(sizeof(std::uint16_t), &return_storage_1); break;
+#  ifdef __GNUC__
+#    define _CDECL_ __attribute__ ((__cdecl__))
+#  else
+#    define _CDECL_ __cdecl
+#  endif
 
-			case ILDataType::i32:
-			case ILDataType::u32:
-			case ILDataType::f32:
-				eval->write_register_value_indirect(sizeof(std::uint32_t), &return_storage_1); break;
+	state sandbox_state;
+	void* sandbox = &sandbox_state;
+	int (_CDECL_ *wrap)(void*) noexcept = nullptr;
+	void (_CDECL_ *longjmp_func)(void*, int) noexcept = nullptr;
 
-			case ILDataType::i64:
-			case ILDataType::u64: {
-				std::uint64_t v = (std::uint64_t)return_storage_1 | (((std::uint64_t)return_storage_2) << 32);
-				eval->write_register_value_indirect(sizeof(std::uint64_t), &v);
-			} break;
+	unsigned char setjmp_data[] = { 0x8B, 0x44, 0x24, 0x04, 0x89, 0x18, 0x89, 0x70, 0x04, 0x89, 0x78, 0x08, 0x89, 0x68, 0x0C, 0x8D, 0x4C, 0x24, 0x04, 0x89, 0x48, 0x10, 0x8B, 0x0C, 0x24, 0x89, 0x48, 0x14, 0x31, 0xC0, 0xC3 };
+
+	unsigned char longjmp_data[] = { 0x8B, 0x54, 0x24, 0x04, 0x8B, 0x44, 0x24, 0x08, 0x8B, 0x1A, 0x8B, 0x72, 0x04, 0x8B, 0x7A, 0x08, 0x8B, 0x6A, 0x0C, 0x8B, 0x4A, 0x10, 0x89, 0xCC, 0x8B, 0x4A, 0x14, 0xFF, 0xE1 };
+
+	void build_sandbox() {
+		if (!wrap) {
+			void* mem = exec_alloc(sizeof(setjmp_data));
+			std::memcpy(mem, setjmp_data, sizeof(setjmp_data));
+			wrap = (int(*)(void*)noexcept) mem;
+		}
+
+		if (!longjmp_func) {
+			void* mem = exec_alloc(sizeof(longjmp_data));
+			std::memcpy(mem, longjmp_data, sizeof(longjmp_data));
+			longjmp_func = (void(*)(void*,int)noexcept) mem;
 		}
 	}
 
@@ -192,6 +221,19 @@ namespace Corrosive {
 
 						stack += 4;
 						break;
+					case ILDataType::dword:
+						call_wrapper.push_back(0xFF);
+						call_wrapper.push_back(0x30); // push [eax]
+						call_wrapper.push_back(0x83);
+						call_wrapper.push_back(0xC0);
+						call_wrapper.push_back(0x04); // add eax, 4
+						call_wrapper.push_back(0xFF);
+						call_wrapper.push_back(0x30); // push [eax]
+						call_wrapper.push_back(0x83);
+						call_wrapper.push_back(0xC0);
+						call_wrapper.push_back(0x04); // add eax, 4
+						stack += 8;
+						break;
 
 				}
 			}
@@ -247,6 +289,8 @@ namespace Corrosive {
 				eval->write_register_value(((float(*)())asm_call_wrapper)()); break;
 			case ILDataType::f64:
 				eval->write_register_value(((double(*)())asm_call_wrapper)()); break;
+			case ILDataType::dword:
+				eval->write_register_value(((dword_t(*)())asm_call_wrapper)()); break;
 			case ILDataType::none:
 				((void(*)())asm_call_wrapper)(); break;
 		}
@@ -276,6 +320,8 @@ namespace Corrosive {
 				eval->write_register_value(((float(*)())asm_call_wrapper)()); break;
 			case ILDataType::f64:
 				eval->write_register_value(((double(*)())asm_call_wrapper)()); break;
+			case ILDataType::dword:
+				eval->write_register_value(((dword_t(*)())asm_call_wrapper)()); break;
 			case ILDataType::none:
 				((void(*)())asm_call_wrapper)(); break;
 		}
@@ -313,8 +359,8 @@ namespace Corrosive {
 					b8_stack[off++] = eval->pop_register_value<std::uint64_t>(); break;
 				case ILDataType::dword: {
 					auto dw = eval->pop_register_value<dword_t>(); 
-					b8_stack[off++] = (std::size_t)dw.p1;
-					b8_stack[off++] = (std::size_t)dw.p2;
+					b8_stack[off++] = (std::uint64_t)dw.p1;
+					b8_stack[off++] = (std::uint64_t)dw.p2;
 				} break;
 
 				default:
@@ -344,7 +390,7 @@ namespace Corrosive {
 	    std::uint64_t rip;
 	    std::uint32_t mxcsr;
 	    std::uint16_t fpcsr;
-	    std::uint16_t spare;
+	    std::uint16_t __align;
 	    uint128_t xmm6;
 	    uint128_t xmm7;
 	    uint128_t xmm8;
@@ -359,8 +405,8 @@ namespace Corrosive {
 
 	state sandbox_state;
 	void* sandbox = &sandbox_state;
-	int (*wrap)(void*) = nullptr;
-	void (*longjmp_func)(void*, int) = nullptr;
+	int (*wrap)(void*) noexcept = nullptr;
+	void (*longjmp_func)(void*, int) noexcept = nullptr;
 
 	unsigned char setjmp_data[] = {
 		0x48, 0x89, 0x11,
@@ -438,13 +484,13 @@ namespace Corrosive {
 		if (!wrap) {
 			void* mem = exec_alloc(sizeof(setjmp_data));
 			std::memcpy(mem, setjmp_data, sizeof(setjmp_data));
-			wrap = (int(*)(void*)) mem;
+			wrap = (int(*)(void*)noexcept) mem;
 		}
 
 		if (!longjmp_func) {
 			void* mem = exec_alloc(sizeof(longjmp_data));
 			std::memcpy(mem, longjmp_data, sizeof(longjmp_data));
-			longjmp_func = (void(*)(void*,int)) mem;
+			longjmp_func = (void(*)(void*,int)noexcept) mem;
 		}
 	}
 
@@ -706,4 +752,12 @@ namespace Corrosive {
 				break;
 		}
 	}
+
+	void invalidate_sandbox() {
+		wrap = nullptr;
+		longjmp_func = nullptr;
+	}
 }
+
+
+	
