@@ -617,24 +617,31 @@ namespace Corrosive {
 	}
 
 	void ILBuilder::eval_fnptr(ILEvaluator* eval_ctx, ILFunction* fun) {
-
-		if (auto native_fun = dynamic_cast<ILNativeFunction*>(fun)) {
-			eval_ctx->write_register_value(native_fun->ptr);
-		}
-		else {
-			eval_ctx->write_register_value(fun);
+		if (!wrap || wrap(sandbox) == 0) {
+			if (auto native_fun = dynamic_cast<ILNativeFunction*>(fun)) {
+				eval_ctx->write_register_value(native_fun->ptr);
+			}
+			else {
+				eval_ctx->write_register_value(fun);
+			}
+		} else {
+			throw_runtime_handler_exception(eval_ctx);
 		}
 	}
 
 
 	void ILBuilder::eval_fncall(ILEvaluator* eval_ctx, ILFunction* fun) {
-		if (auto native_fun = dynamic_cast<ILNativeFunction*>(fun)) {
-			eval_ctx->callstack.push_back(native_fun->ptr);
-			eval_call(eval_ctx, fun->decl_id);
-		}
-		else {
-			eval_ctx->callstack.push_back(fun);
-			eval_call(eval_ctx, fun->decl_id);
+		if (!wrap || wrap(sandbox) == 0) {
+			if (auto native_fun = dynamic_cast<ILNativeFunction*>(fun)) {
+				eval_ctx->callstack.push_back(native_fun->ptr);
+				eval_call(eval_ctx, fun->decl_id);
+			}
+			else {
+				eval_ctx->callstack.push_back(fun);
+				eval_call(eval_ctx, fun->decl_id);
+			}
+		} else {
+			throw_runtime_handler_exception(eval_ctx);
 		}
 	}
 
@@ -1385,12 +1392,20 @@ namespace Corrosive {
 
 
 	void ILBuilder::eval_div(ILEvaluator* eval_ctx, ILDataType t_l, ILDataType t_r) {
-		_il_evaluator_const_op<std::divides>(eval_ctx, t_l, t_r);
+		if (!wrap || wrap(sandbox) == 0) {
+			_il_evaluator_const_op<std::divides>(eval_ctx, t_l, t_r);
+		} else {
+			throw_runtime_exception(eval_ctx, "Division operation failed");
+		}
 	}
 
 
 	void ILBuilder::eval_rem(ILEvaluator* eval_ctx, ILDataType t_l, ILDataType t_r) {
-		_il_evaluator_const_op_binary<std::modulus>(eval_ctx, t_l, t_r);
+		if (!wrap || wrap(sandbox) == 0) {
+			_il_evaluator_const_op_binary<std::modulus>(eval_ctx, t_l, t_r);
+		} else {
+			throw_runtime_exception(eval_ctx, "Division operation failed");
+		}
 	}
 
 

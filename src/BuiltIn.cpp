@@ -127,10 +127,12 @@ namespace Corrosive {
 
 	
 	Type* BuiltInCode::build_reference(Type* t) {
+		Type::assert(t);
 		return t->generate_reference();
 	}
 
 	Type* BuiltInCode::build_subtype(Type* t, dword_t slice) {
+		Type::assert(t);
 		std::string_view slice_str((char*)slice.p1, (size_t)slice.p2);
 
 		Type* str = Compiler::current()->types()->t_u8->generate_slice();
@@ -175,15 +177,18 @@ namespace Corrosive {
 
 
 	Type* BuiltInCode::build_array(uint32_t size, Type* t) {
+		Type::assert(t);
 		return t->generate_array(size);
 	}
 
 	Type* BuiltInCode::build_slice(Type* t) {
+		Type::assert(t);
 		return t->generate_slice();
 	}
 
 	
 	size_t BuiltInCode::type_size(Type* t) {
+		Type::assert(t);
 		return t->size().eval(Compiler::current()->global_module(), compiler_arch);
 	}
 

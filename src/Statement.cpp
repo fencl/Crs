@@ -917,6 +917,7 @@ namespace Corrosive {
 			}
 
 			Type* new_t = compiler->evaluator()->pop_register_value<Type*>();
+			Type::assert(err, new_t);
 			new_t->compile();
 
 			if (new_t->context() != ILContext::both && compiler->scope_context() != new_t->context()) {
@@ -941,6 +942,7 @@ namespace Corrosive {
 			}
 
 			Type* new_t = compiler->evaluator()->pop_register_value<Type*>();
+			Type::assert(err, new_t);
 			new_t->compile();
 
 			if (new_t->context() != ILContext::both && compiler->scope_context() != new_t->context()) {

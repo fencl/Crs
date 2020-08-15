@@ -90,8 +90,6 @@ namespace Corrosive {
 						case ILDataType::f64: *(double*)target = *(double*)source; break;
 						case ILDataType::word: throw_specific_error(err, "Cannot create constant value of this type"); break;
 						case ILDataType::dword: throw_specific_error(err, "Cannot create constant value of this type"); break;
-						//case ILDataType::word: *(void**)target = *(void**)source; break;
-						//case ILDataType::dword: *(dword_t*)target = *(dword_t*)source; break;
 						default: break;
 					}
 				}
@@ -112,18 +110,6 @@ namespace Corrosive {
 						case ILDataType::f64: ILBuilder::build_const_f64(compiler->scope(), *(double*)source); break;
 						case ILDataType::word: throw_specific_error(err, "Cannot create constant value of this type"); break;
 						case ILDataType::dword: throw_specific_error(err, "Cannot create constant value of this type"); break;
-						/*case ILDataType::word: {
-							if (compiler->scope_context()!=ILContext::compile) {
-								throw_specific_error(err, "Cannot create constant value of this type");
-							}
-							ILBuilder::build_const_word(compiler->scope(), *(void**)source);
-						}
-						case ILDataType::dword: {
-							if (compiler->scope_context()!=ILContext::compile) {
-								throw_specific_error(err, "Cannot create constant value of this type");
-							}
-							ILBuilder::build_const_dword(compiler->scope(), *(dword_t*)source);
-						}*/
 						default: break;
 					}
 				}
@@ -456,5 +442,38 @@ namespace Corrosive {
 	ILContext TypeStructureInstance::context() {
 		return owner->context;
 	}
+
+	
+	void Type::assert(Cursor& c, Type* t) {
+		if (!wrap || wrap(sandbox)==0) {
+			if (t->magic() & type_magic_mask != type_magic) {
+				throw_specific_error(c, "Value is not a type");
+			}
+		} else {
+			throw_specific_error(c, "Value is not a type");
+		}
+	}
+
+	void Type::assert(Type* t) {
+		if (!wrap || wrap(sandbox)==0) {
+			if (t->magic() & type_magic_mask != type_magic) {
+				throw_runtime_exception(Compiler::current()->evaluator(), "Value is not a type");
+			}
+		} else {
+			throw_runtime_exception(Compiler::current()->evaluator(), "Value is not a type");
+		}
+	}
+	
+	uint64_t Type::magic() { return type_magic & type_magic_mask & 0x01u; }
+	uint64_t TypeStructureInstance::magic() { return type_magic & type_magic_mask & 0x02u; }
+	uint64_t TypeStructureTemplate::magic() { return type_magic & type_magic_mask & 0x03u; }
+	uint64_t TypeTraitInstance::magic() { return type_magic & type_magic_mask & 0x04u; }
+	uint64_t TypeTraitTemplate::magic() { return type_magic & type_magic_mask & 0x05u; }
+	uint64_t TypeFunction::magic() { return type_magic & type_magic_mask & 0x06u; }
+	uint64_t TypeFunctionTemplate::magic() { return type_magic & type_magic_mask & 0x07u; }
+	uint64_t TypeSlice::magic() { return type_magic & type_magic_mask & 0x08u; }
+	uint64_t TypeArray::magic() { return type_magic & type_magic_mask & 0x09u; }
+	uint64_t TypeReference::magic() { return type_magic & type_magic_mask & 0x0au; }
+	uint64_t TypeTemplate::magic() { return type_magic & type_magic_mask & 0x0bu; }
 
 }

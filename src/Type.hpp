@@ -29,8 +29,15 @@ namespace Corrosive {
 	class TypeReference;
 	class TypeSlice;
 
+	const uint64_t type_magic_mask = 0xffffffffffffff00u;
+	const uint64_t type_magic = 9223372036854775807u & type_magic_mask;
+
 	class Type {
 	public:
+		static void assert(Cursor&c, Type* t);
+		static void assert(Type* t);
+		virtual uint64_t magic();
+
 		inline virtual ~Type() {}
 		virtual ILDataType rvalue();
 		virtual ILContext context();
@@ -60,6 +67,8 @@ namespace Corrosive {
 
 	class TypeStructureInstance : public Type {
 	public:
+		virtual uint64_t magic();
+
 		StructureInstance* owner;
 
 		virtual ILDataType rvalue();
@@ -80,6 +89,7 @@ namespace Corrosive {
 
 	class TypeStructureTemplate : public Type {
 	public:
+		virtual uint64_t magic();
 		inline virtual TypeInstanceType type() { return TypeInstanceType::type_structure_template; }
 
 		StructureTemplate* owner;
@@ -91,6 +101,7 @@ namespace Corrosive {
 
 	class TypeFunctionTemplate : public Type {
 	public:
+		virtual uint64_t magic();
 		inline virtual TypeInstanceType type() { return TypeInstanceType::type_function_template; }
 
 		FunctionTemplate* owner;
@@ -102,6 +113,7 @@ namespace Corrosive {
 
 	class TypeTraitInstance : public Type {
 	public:
+		virtual uint64_t magic();
 		TraitInstance* owner;
 
 		virtual ILDataType rvalue();
@@ -117,6 +129,7 @@ namespace Corrosive {
 
 	class TypeTraitTemplate : public Type {
 	public:
+		virtual uint64_t magic();
 		inline virtual TypeInstanceType type() { return TypeInstanceType::type_trait_template; }
 
 		TraitTemplate* owner;
@@ -129,6 +142,7 @@ namespace Corrosive {
 
 	class TypeArray : public Type {
 	public:
+		virtual uint64_t magic();
 		inline virtual TypeInstanceType type() { return TypeInstanceType::type_array; }
 
 		virtual ILDataType rvalue();
@@ -149,6 +163,7 @@ namespace Corrosive {
 	
 	class TypeReference : public Type {
 	public:
+		virtual uint64_t magic();
 		inline virtual TypeInstanceType type() { return TypeInstanceType::type_reference; }
 
 		virtual ILDataType rvalue();
@@ -162,6 +177,7 @@ namespace Corrosive {
 
 	class TypeSlice : public Type {
 	public:
+		virtual uint64_t magic();
 		inline virtual TypeInstanceType type() { return TypeInstanceType::type_slice; }
 		Type* owner;
 
@@ -181,6 +197,7 @@ namespace Corrosive {
 
 	class TypeFunction : public Type {
 	public:
+		virtual uint64_t magic();
 		inline virtual TypeInstanceType type() { return TypeInstanceType::type_function; }
 
 		virtual ILDataType rvalue();
@@ -201,6 +218,7 @@ namespace Corrosive {
 
 	class TypeTemplate : public Type {
 	public:
+		virtual uint64_t magic();
 		inline virtual TypeInstanceType type() { return TypeInstanceType::type_template; }
 		virtual ILDataType rvalue();
 		BuiltInTypes* owner;

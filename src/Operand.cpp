@@ -23,7 +23,9 @@ namespace Corrosive {
 	void Operand::type_template_cast_crsr(ILEvaluator* eval, Cursor& err) {
 		Compiler* compiler = Compiler::current();
 		Type* template_cast = eval->pop_register_value<Type*>();
+		Type::assert(err,template_cast);
 		Type* template_type = eval->read_register_value<Type*>();
+		Type::assert(err,template_type);
 
 		if (template_type->type() == TypeInstanceType::type_structure_template) {
 			TypeStructureTemplate* st = (TypeStructureTemplate*)template_type;
@@ -63,7 +65,9 @@ namespace Corrosive {
 	void Operand::type_template_cast(ILEvaluator* eval) {
 		Compiler* compiler = Compiler::current();
 		Type* template_cast = eval->pop_register_value<Type*>();
+		Type::assert(template_cast);
 		Type* template_type = eval->read_register_value<Type*>();
+		Type::assert(template_type);
 
 		if (template_type->type() == TypeInstanceType::type_structure_template) {
 			TypeStructureTemplate* st = (TypeStructureTemplate*)template_type;
@@ -353,6 +357,7 @@ namespace Corrosive {
 					}
 
 					auto to = compiler->evaluator()->pop_register_value<Type*>();
+					Type::assert(err, to);
 					to->compile();
 
 					if (to->context()==ILContext::compile && compiler->scope_context() != ILContext::compile) {
@@ -397,6 +402,7 @@ namespace Corrosive {
 					}
 
 					auto to = compiler->evaluator()->pop_register_value<Type*>();
+					Type::assert(err, to);
 					to->compile();
 
 					if (to->context()==ILContext::compile && compiler->scope_context() != ILContext::compile) {
@@ -526,6 +532,7 @@ namespace Corrosive {
 						}
 
 						auto to = compiler->evaluator()->pop_register_value<Type*>();
+						Type::assert(err, to);
 						to->compile();
 
 						if (to->context()==ILContext::compile && compiler->scope_context() != ILContext::compile) {
@@ -569,6 +576,7 @@ namespace Corrosive {
 						}
 
 						auto to = compiler->evaluator()->pop_register_value<Type*>();
+						Type::assert(err, to);
 						to->compile();
 
 						if (to->context()==ILContext::compile && compiler->scope_context() != ILContext::compile) {
@@ -757,6 +765,7 @@ namespace Corrosive {
 				compiler->eval_local(sitm.id);
 				ILBuilder::eval_load(compiler->evaluator(), ILDataType::word);
 				Type* rec_type = compiler->evaluator()->pop_register_value<Type*>();
+				Type::assert(err, rec_type);
 
 
 				if (rec_type->type() == TypeInstanceType::type_structure_instance) {
@@ -990,6 +999,7 @@ namespace Corrosive {
 			}
 
 			auto tp = compiler->evaluator()->pop_register_value<Type*>();
+			Type::assert(err, tp);
 			tp->compile();
 
 			if (cpt == CompileType::compile) {
@@ -1025,6 +1035,7 @@ namespace Corrosive {
 						}
 
 						auto type = compiler->evaluator()->pop_register_value<Type*>();
+						Type::assert(err, type);
 						arg_types.push_back(type);
 
 						if (c.tok == RecognizedToken::Comma) {
@@ -1106,6 +1117,7 @@ namespace Corrosive {
 					}
 
 					auto type = compiler->evaluator()->pop_register_value<Type*>();
+					Type::assert(err, type);
 					arg_types.push_back(type);
 
 					if (c.tok == RecognizedToken::Comma) {
@@ -1134,6 +1146,7 @@ namespace Corrosive {
 
 				}
 				ret_type = compiler->evaluator()->pop_register_value<Type*>();
+				Type::assert(err, ret_type);
 			}
 
 			Type* ftype = compiler->types()->load_or_register_function_type(call_conv, std::move(arg_types), ret_type, t_context);
@@ -1533,6 +1546,7 @@ namespace Corrosive {
 
 	void Operand::push_template(ILEvaluator* eval) {
 		Type* t = eval->pop_register_value<Type*>();
+		Type::assert(t);
 		template_stack[template_sp] = t;
 		template_sp++;
 
@@ -1642,6 +1656,7 @@ namespace Corrosive {
 				Type* dt = nullptr;
 
 				dt = compiler->evaluator()->pop_register_value<Type*>();
+				Type::assert(nm_err, dt);
 
 				if (dt->type() != TypeInstanceType::type_structure_template && dt->type() != TypeInstanceType::type_trait_template && dt->type() != TypeInstanceType::type_function_template) {
 					throw_specific_error(c, "this type is not a generic type");
@@ -1773,6 +1788,7 @@ namespace Corrosive {
 
 			if (cpt == CompileType::eval) {
 				Type* t = compiler->evaluator()->pop_register_value<Type*>();
+				Type::assert(err, t);
 				for (unsigned int i = 0; i < type_ref_count; i++)
 					t = t->generate_reference();
 
@@ -1916,6 +1932,7 @@ namespace Corrosive {
 
 			if (cpt == CompileType::eval) {
 				Type* t = compiler->evaluator()->pop_register_value<Type*>();
+				Type::assert(t_err, t);
 				Type* nt = t->generate_slice();
 				ILBuilder::eval_const_word(compiler->evaluator(), nt);
 			}
@@ -1947,6 +1964,7 @@ namespace Corrosive {
 
 			if (cpt == CompileType::eval) {
 				Type* t = compiler->evaluator()->pop_register_value<Type*>();
+				Type::assert(t_err, t);
 				uint32_t val = compiler->evaluator()->pop_register_value<uint32_t>();
 				TypeArray* nt = t->generate_array(val);
 				ILBuilder::eval_const_word(compiler->evaluator(), nt);

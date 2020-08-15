@@ -69,6 +69,7 @@ namespace Corrosive {
 					}
 
 					Type* t = compiler->evaluator()->pop_register_value<Type*>();
+					Type::assert(err,t);
 					t->compile();
 					if (t->context() == ILContext::runtime) {
 						throw_specific_error(err, "Runtime type cannot be used as generic argument");
@@ -150,6 +151,7 @@ namespace Corrosive {
 					}
 
 					Type* t = compiler->evaluator()->pop_register_value<Type*>();
+					Type::assert(err,t);
 					t->compile();
 					if (t->context() == ILContext::runtime) {
 						throw_specific_error(err, "Runtime type cannot be used as generic argument");
@@ -232,6 +234,7 @@ namespace Corrosive {
 					}
 
 					Type* t = compiler->evaluator()->pop_register_value<Type*>();
+					Type::assert(err,t);
 					t->compile();
 					if (t->context() == ILContext::runtime) {
 						throw_specific_error(err, "Runtime type cannot be used as generic argument");
@@ -401,6 +404,7 @@ namespace Corrosive {
 				}
 
 				Type* t = compiler->evaluator()->pop_register_value<Type*>();
+				Type::assert(err, t);
 
 				if (t->type() != TypeInstanceType::type_trait) {
 					throw_specific_error(err, "Expected trait instance type");
@@ -498,6 +502,7 @@ namespace Corrosive {
 									throw_specific_error(err, "Expected type");
 								}
 								Type* argt = compiler->evaluator()->pop_register_value<Type*>();
+								Type::assert(err,argt);
 								if (ft->arguments.size() == 0) {
 									Type* this_type = new_inst->type->generate_reference();
 									if (argt != this_type) {
@@ -548,7 +553,7 @@ namespace Corrosive {
 								throw_specific_error(err, "Expected type");
 							}
 							Type* rett = compiler->evaluator()->pop_register_value<Type*>();
-
+							Type::assert(err,rett);
 							Type* req_type = fundecl->return_type;
 							if (rett != req_type) {
 								throw_specific_error(err, "Return type does not match the type of the original trait function");
@@ -599,6 +604,7 @@ namespace Corrosive {
 				}
 
 				Type* m_t = compiler->evaluator()->pop_register_value<Type*>();
+				Type::assert(err,m_t);
 				m_t->compile();
 				if (m_t->context() == ILContext::compile) {
 					if (new_inst->context != ILContext::runtime) {
@@ -753,6 +759,7 @@ namespace Corrosive {
 							throw_specific_error(err, "Expected type");
 						}
 						Type* t = compiler->evaluator()->pop_register_value<Type*>();
+						Type::assert(err,t);
 						t->compile();
 
 						if (t->context() == ILContext::compile) {
@@ -800,6 +807,7 @@ namespace Corrosive {
 						throw_specific_error(err, "Expected type");
 					}
 					Type* t = compiler->evaluator()->pop_register_value<Type*>();
+					Type::assert(err,t);
 					t->compile();
 
 					if (t->context() == ILContext::compile) {
@@ -825,11 +833,6 @@ namespace Corrosive {
 
 				new_inst->member_table[m->name_string] = (uint16_t)decls.size();
 				decls.push_back(std::make_pair(ret_type, std::move(args)));
-
-				/*TypeFunction* type = compiler->types()->load_or_register_function_type(ILCallingConvention::bytecode, std::move(args), ret_type, ILContext::both);
-
-				new_inst->member_table[m->name_string] = (uint16_t)new_inst->member_declarations.size();
-				new_inst->member_declarations.push_back(type);*/
 			}
 
 			for (auto&& d : decls) {
@@ -925,11 +928,10 @@ namespace Corrosive {
 					Expression::parse(c, cvres, CompileType::eval);
 					Operand::deref(cvres, CompileType::eval);
 					Expression::rvalue(cvres, CompileType::eval);
+					Operand::cast(err, cvres, compiler->types()->t_type, CompileType::eval, true);
 
-					if (cvres.type != compiler->types()->t_type) {
-						throw_cannot_cast_error(err, cvres.type, compiler->types()->t_type);
-					}
 					Type* t = compiler->evaluator()->pop_register_value<Type*>();
+					Type::assert(err,t);
 
 					if (t->context() == ILContext::compile) {
 						if (new_inst->context != ILContext::runtime) {
@@ -969,11 +971,10 @@ namespace Corrosive {
 				Expression::parse(c, cvres, CompileType::eval);
 				Operand::deref(cvres, CompileType::eval);
 				Expression::rvalue(cvres, CompileType::eval);
+				Operand::cast(err, cvres, compiler->types()->t_type, CompileType::eval, true);
 
-				if (cvres.type != compiler->types()->t_type) {
-					throw_cannot_cast_error(err, cvres.type, compiler->types()->t_type);
-				}
 				Type* t = compiler->evaluator()->pop_register_value<Type*>();
+				Type::assert(err,t);
 				new_inst->returns = t;
 
 				if (t->context() == ILContext::compile) {
@@ -1371,11 +1372,9 @@ namespace Corrosive {
 			Compiler* compiler = Compiler::current();
 			
 			if (!ast_node->has_value) {
-
-				if (typevalue.type != compiler->types()->t_type) {
-					throw_cannot_cast_error(err, typevalue.type, compiler->types()->t_type);
-				}
+				Operand::cast(err, typevalue, compiler->types()->t_type, CompileType::eval, true);
 				type = compiler->evaluator()->pop_register_value<Type*>();
+				Type::assert(err,type);
 				type->compile();
 
 				if (type->context() == ILContext::compile) {
