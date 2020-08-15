@@ -13,10 +13,10 @@ Clone Crs:
 - `cd Crs`
 
 Build on Windows using Visual Studio 2019:
-- `premake vs2019`
+- `premake5 vs2019`
 	- open solution crs_build.sln inside build folder and build solution
 
 Build on Windows through MSYS using make and gcc:
-- `premake gmake2`
+- `premake5 gmake2`
 - `cd build`
 - `make config=release_x64` ( debug | release | static _ x86 | x64 )
