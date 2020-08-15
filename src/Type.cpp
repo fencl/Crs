@@ -5,9 +5,10 @@
 #include "BuiltIn.hpp"
 #include <csetjmp>
 #include "Compiler.hpp"
+#include <cstring>
 
 namespace Corrosive {
-	int8_t Type::compare_for_generic_storage(unsigned char* me, unsigned char* to) {
+	std::int8_t Type::compare_for_generic_storage(unsigned char* me, unsigned char* to) {
 		if (!wrap || wrap(sandbox) == 0) {
 			auto v = memcmp(me, to, size().eval(Compiler::current()->global_module(), compiler_arch));
 			if (v < 0) return -1;
@@ -23,14 +24,14 @@ namespace Corrosive {
 
 	void Type::copy_to_generic_storage(unsigned char* me, unsigned char* to) {
 		if (!wrap || wrap(sandbox) == 0) {
-			memcpy(to, me, size().eval(Compiler::current()->global_module(), compiler_arch));
+			std::memcpy(to, me, size().eval(Compiler::current()->global_module(), compiler_arch));
 		}
 		else {
 			throw_runtime_handler_exception(Compiler::current()->evaluator());
 		}
 	}
 
-	int8_t TypeSlice::compare_for_generic_storage(unsigned char* me, unsigned char* to) {
+	std::int8_t TypeSlice::compare_for_generic_storage(unsigned char* me, unsigned char* to) {
 		dword_t* me_dw = (dword_t*)me;
 		dword_t* to_dw = (dword_t*)to;
 
@@ -38,7 +39,7 @@ namespace Corrosive {
 
 			if (me_dw->p2 < to_dw->p2) return -1;
 			else if (me_dw->p2 > to_dw->p2) return 1;
-			auto v = memcmp(me_dw->p1, to_dw->p1, (size_t)me_dw->p2);
+			auto v = memcmp(me_dw->p1, to_dw->p1, (std::size_t)me_dw->p2);
 			if (v < 0) return -1;
 			else if (v > 0) return 1;
 			else return 0;
@@ -55,7 +56,7 @@ namespace Corrosive {
 		dword_t* to_dw = (dword_t*)to;
 
 		if (!wrap || wrap(sandbox) == 0) {
-			to_dw->p1 = Compiler::current()->constant_manager()->register_generic_storage((uint8_t*)me_dw->p1, (size_t)me_dw->p2, owner);
+			to_dw->p1 = Compiler::current()->constant_manager()->register_generic_storage((std::uint8_t*)me_dw->p1, (std::size_t)me_dw->p2, owner);
 			to_dw->p2 = me_dw->p2;
 		}
 		else {
@@ -78,14 +79,14 @@ namespace Corrosive {
 					switch (rvalue())
 					{
 						case ILDataType::none: break;
-						case ILDataType::u8: *(uint8_t*)target = *(uint8_t*)source; break;
-						case ILDataType::u16: *(uint16_t*)target = *(uint16_t*)source; break;
-						case ILDataType::u32: *(uint32_t*)target = *(uint32_t*)source; break;
-						case ILDataType::u64: *(uint64_t*)target = *(uint64_t*)source; break;
-						case ILDataType::i8: *(int8_t*)target = *(int8_t*)source; break;
-						case ILDataType::i16: *(int16_t*)target = *(int16_t*)source; break;
-						case ILDataType::i32: *(int32_t*)target = *(int32_t*)source; break;
-						case ILDataType::i64: *(int64_t*)target = *(int64_t*)source; break;
+						case ILDataType::u8: *(std::uint8_t*)target = *(std::uint8_t*)source; break;
+						case ILDataType::u16: *(std::uint16_t*)target = *(std::uint16_t*)source; break;
+						case ILDataType::u32: *(std::uint32_t*)target = *(std::uint32_t*)source; break;
+						case ILDataType::u64: *(std::uint64_t*)target = *(std::uint64_t*)source; break;
+						case ILDataType::i8: *(std::int8_t*)target = *(std::int8_t*)source; break;
+						case ILDataType::i16: *(std::int16_t*)target = *(std::int16_t*)source; break;
+						case ILDataType::i32: *(std::int32_t*)target = *(std::int32_t*)source; break;
+						case ILDataType::i64: *(std::int64_t*)target = *(std::int64_t*)source; break;
 						case ILDataType::f32: *(float*)target = *(float*)source; break;
 						case ILDataType::f64: *(double*)target = *(double*)source; break;
 						case ILDataType::word: throw_specific_error(err, "Cannot create constant value of this type"); break;
@@ -98,14 +99,14 @@ namespace Corrosive {
 					switch (rvalue())
 					{
 						case ILDataType::none: break;
-						case ILDataType::u8: ILBuilder::build_const_u8(compiler->scope(), *(uint8_t*)source); break;
-						case ILDataType::u16: ILBuilder::build_const_u16(compiler->scope(), *(uint16_t*)source); break;
-						case ILDataType::u32: ILBuilder::build_const_u32(compiler->scope(), *(uint32_t*)source); break;
-						case ILDataType::u64: ILBuilder::build_const_u64(compiler->scope(), *(uint64_t*)source); break;
-						case ILDataType::i8: ILBuilder::build_const_i8(compiler->scope(), *(int8_t*)source); break;
-						case ILDataType::i16: ILBuilder::build_const_i16(compiler->scope(), *(int16_t*)source); break;
-						case ILDataType::i32: ILBuilder::build_const_i32(compiler->scope(), *(int32_t*)source); break;
-						case ILDataType::i64: ILBuilder::build_const_i64(compiler->scope(), *(int64_t*)source); break;
+						case ILDataType::u8: ILBuilder::build_const_u8(compiler->scope(), *(std::uint8_t*)source); break;
+						case ILDataType::u16: ILBuilder::build_const_u16(compiler->scope(), *(std::uint16_t*)source); break;
+						case ILDataType::u32: ILBuilder::build_const_u32(compiler->scope(), *(std::uint32_t*)source); break;
+						case ILDataType::u64: ILBuilder::build_const_u64(compiler->scope(), *(std::uint64_t*)source); break;
+						case ILDataType::i8: ILBuilder::build_const_i8(compiler->scope(), *(std::int8_t*)source); break;
+						case ILDataType::i16: ILBuilder::build_const_i16(compiler->scope(), *(std::int16_t*)source); break;
+						case ILDataType::i32: ILBuilder::build_const_i32(compiler->scope(), *(std::int32_t*)source); break;
+						case ILDataType::i64: ILBuilder::build_const_i64(compiler->scope(), *(std::int64_t*)source); break;
 						case ILDataType::f32: ILBuilder::build_const_f32(compiler->scope(), *(float*)source); break;
 						case ILDataType::f64: ILBuilder::build_const_f64(compiler->scope(), *(double*)source); break;
 						case ILDataType::word: throw_specific_error(err, "Cannot create constant value of this type"); break;
@@ -129,14 +130,14 @@ namespace Corrosive {
 		if (!wrap || wrap(sandbox) == 0) {
 			Compiler* compiler = Compiler::current();
 			dword_t me = *(dword_t*)source;
-			size_t storage_size = (size_t)me.p2;
+			std::size_t storage_size = (std::size_t)me.p2;
 			data = std::string(storage_size,'\0');
 
-			uint8_t* ptr_src = (uint8_t*)me.p1;
-			uint8_t* ptr_dst = (uint8_t*)data.data();
-			size_t elem_size = owner->size().eval(compiler->global_module(), compiler_arch);
-			size_t count = ((size_t)me.p2)/elem_size;
-			for (size_t i=0;i<count; ++i) {
+			std::uint8_t* ptr_src = (std::uint8_t*)me.p1;
+			std::uint8_t* ptr_dst = (std::uint8_t*)data.data();
+			std::size_t elem_size = owner->size().eval(compiler->global_module(), compiler_arch);
+			std::uint32_t count = (std::uint32_t)(((std::size_t)me.p2)/elem_size);
+			for (std::uint32_t i=0;i<count; ++i) {
 				owner->constantize(err, ptr_dst, ptr_src);
 				ptr_src += elem_size;
 				ptr_dst += elem_size;
@@ -175,13 +176,13 @@ namespace Corrosive {
 
 		if (!wrap || wrap(sandbox) == 0) {
 			Compiler* compiler = Compiler::current();
-			size_t me_size = size().eval(compiler->global_module(), compiler_arch);
+			std::size_t me_size = size().eval(compiler->global_module(), compiler_arch);
 			data = std::string(me_size,'\0');
 			
-			uint8_t* ptr_src = (uint8_t*)source;
-			uint8_t* ptr_dst = (uint8_t*)data.data();
-			size_t elem_size = owner->size().eval(compiler->global_module(), compiler_arch);
-			for (size_t i=0;i<(me_size)/elem_size; ++i) {
+			std::uint8_t* ptr_src = (std::uint8_t*)source;
+			std::uint8_t* ptr_dst = (std::uint8_t*)data.data();
+			std::size_t elem_size = owner->size().eval(compiler->global_module(), compiler_arch);
+			for (std::size_t i=0;i<(me_size)/elem_size; ++i) {
 				owner->constantize(err, ptr_dst, ptr_src);
 				ptr_src += elem_size;
 				ptr_dst += elem_size;
@@ -284,7 +285,7 @@ namespace Corrosive {
 	}
 
 
-	TypeArray* Type::generate_array(uint32_t count) {
+	TypeArray* Type::generate_array(std::uint32_t count) {
 		
 		auto f = arrays.find(count);
 		if (f == arrays.end()) {
@@ -446,7 +447,8 @@ namespace Corrosive {
 	
 	void Type::assert(Cursor& c, Type* t) {
 		if (!wrap || wrap(sandbox)==0) {
-			if (t->magic() & type_magic_mask != type_magic) {
+			std::uint64_t num = t->magic() & type_magic_mask;
+			if (num != type_magic) {
 				throw_specific_error(c, "Value is not a type");
 			}
 		} else {
@@ -456,7 +458,7 @@ namespace Corrosive {
 
 	void Type::assert(Type* t) {
 		if (!wrap || wrap(sandbox)==0) {
-			if (t->magic() & type_magic_mask != type_magic) {
+			if ((t->magic() & type_magic_mask) != type_magic) {
 				throw_runtime_exception(Compiler::current()->evaluator(), "Value is not a type");
 			}
 		} else {
@@ -464,16 +466,16 @@ namespace Corrosive {
 		}
 	}
 	
-	uint64_t Type::magic() { return type_magic & type_magic_mask & 0x01u; }
-	uint64_t TypeStructureInstance::magic() { return type_magic & type_magic_mask & 0x02u; }
-	uint64_t TypeStructureTemplate::magic() { return type_magic & type_magic_mask & 0x03u; }
-	uint64_t TypeTraitInstance::magic() { return type_magic & type_magic_mask & 0x04u; }
-	uint64_t TypeTraitTemplate::magic() { return type_magic & type_magic_mask & 0x05u; }
-	uint64_t TypeFunction::magic() { return type_magic & type_magic_mask & 0x06u; }
-	uint64_t TypeFunctionTemplate::magic() { return type_magic & type_magic_mask & 0x07u; }
-	uint64_t TypeSlice::magic() { return type_magic & type_magic_mask & 0x08u; }
-	uint64_t TypeArray::magic() { return type_magic & type_magic_mask & 0x09u; }
-	uint64_t TypeReference::magic() { return type_magic & type_magic_mask & 0x0au; }
-	uint64_t TypeTemplate::magic() { return type_magic & type_magic_mask & 0x0bu; }
+	std::uint64_t Type::magic() { return type_magic | 0x01u; }
+	std::uint64_t TypeStructureInstance::magic() { return type_magic | 0x02u; }
+	std::uint64_t TypeStructureTemplate::magic() { return type_magic | 0x03u; }
+	std::uint64_t TypeTraitInstance::magic() { return type_magic | 0x04u; }
+	std::uint64_t TypeTraitTemplate::magic() { return type_magic | 0x05u; }
+	std::uint64_t TypeFunction::magic() { return type_magic | 0x06u; }
+	std::uint64_t TypeFunctionTemplate::magic() { return type_magic | 0x07u; }
+	std::uint64_t TypeSlice::magic() { return type_magic | 0x08u; }
+	std::uint64_t TypeArray::magic() { return type_magic | 0x09u; }
+	std::uint64_t TypeReference::magic() { return type_magic | 0x0au; }
+	std::uint64_t TypeTemplate::magic() { return type_magic | 0x0bu; }
 
 }

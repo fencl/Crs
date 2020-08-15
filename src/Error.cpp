@@ -21,8 +21,8 @@ namespace Corrosive {
 		if (cc.length > 0 && cc.src!=nullptr) {
 			Source* src = (Source*)cc.src;
 			std::string_view data = src->data();
-			size_t from = std::min(cc.offset, data.size() - 1);
-			size_t to = std::min(cc.offset, data.size() - 1);
+			std::size_t from = std::min(cc.offset, data.size() - 1);
+			std::size_t to = std::min(cc.offset, data.size() - 1);
 
 			while (from > 0 && (from == 1 || data[from - 1] != '\n') && (cc.offset - from) < 40) {
 				from--;
@@ -35,7 +35,7 @@ namespace Corrosive {
 			std::string_view line = data.substr(from, to - from);
 			cerr << "... ";
 			bool remove_whitespace = true;
-			for (size_t i = 0; i < line.length(); i++) {
+			for (std::size_t i = 0; i < line.length(); i++) {
 
 				if (remove_whitespace) {
 					if (isspace(line[i]))
@@ -60,7 +60,7 @@ namespace Corrosive {
 			for (int i = 0; i < req_offset; i++)
 				cerr << " ";
 
-			for (size_t i = 0; i < cc.length; i++)
+			for (std::size_t i = 0; i < cc.length; i++)
 				cerr << "^";
 		}
 

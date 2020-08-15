@@ -29,7 +29,7 @@ namespace Corrosive {
 		termination = BlockTermination::continued;
 
 		int d = 0;
-		size_t line = 0;
+		std::size_t line = 0;
 
 		while (c.tok != RecognizedToken::CloseBrace) {
 			if (force_compile == ForceCompile::no || force_compile == ForceCompile::inlineblock)
@@ -39,17 +39,17 @@ namespace Corrosive {
 			if (c.y != line) {
 				if (Statement::runtime(force_compile)) {
 					if (c.src != nullptr) {
-						ILBuilder::build_debug(compiler->scope(), c.src->debug_id, c.y);
+						ILBuilder::build_debug(compiler->scope(), c.src->debug_id, (std::uint16_t)c.y);
 					}
 					else {
-						ILBuilder::build_debug(compiler->scope(), UINT16_MAX, c.y);
+						ILBuilder::build_debug(compiler->scope(), UINT16_MAX, (std::uint16_t)c.y);
 					}
 				} else {
 					if (c.src != nullptr) {
-						ILBuilder::eval_debug(compiler->evaluator(), c.src->debug_id, c.y);
+						ILBuilder::eval_debug(compiler->evaluator(), c.src->debug_id, (std::uint16_t)c.y);
 					}
 					else {
-						ILBuilder::eval_debug(compiler->evaluator(), UINT16_MAX, c.y);
+						ILBuilder::eval_debug(compiler->evaluator(), UINT16_MAX, (std::uint16_t)c.y);
 					}
 				}
 				line = c.y;
@@ -121,7 +121,7 @@ namespace Corrosive {
 							throw_specific_error(*err, "Function does not always return value");
 						}
 						else {
-							throw std::exception("Compiler error, Function does not always return value, error cursor not provided");
+							throw string_exception("Compiler error, Function does not always return value, error cursor not provided");
 						}
 					}
 					else {
@@ -808,7 +808,7 @@ namespace Corrosive {
 		c.move();
 
 		if (Statement::runtime(compile)) {
-			size_t let_holder;
+			std::size_t let_holder;
 			stackid_t local_id = compiler->target()->local_stack_lifetime.append_unknown(let_holder);
 
 			Cursor err = c;
@@ -869,7 +869,7 @@ namespace Corrosive {
 			}
 
 			stackid_t loc_id = compiler->push_local(new_t->size());
-			uint8_t* loc_ptr = compiler->stack_ptr(loc_id);
+			std::uint8_t* loc_ptr = compiler->stack_ptr(loc_id);
 
 			compiler->compiler_stack()->push_item(name.buffer(), new_t, loc_id);
 

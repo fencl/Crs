@@ -43,7 +43,7 @@ namespace Corrosive {
 
 		into = s->single_instance->type.get();
 
-		 Compiler::current()->global_namespace()->name_table[name] = std::make_pair((uint8_t)1, (uint32_t)Compiler::current()->global_namespace()->subtemplates.size());
+		 Compiler::current()->global_namespace()->name_table[name] = std::make_pair((std::uint8_t)1, (std::uint32_t)Compiler::current()->global_namespace()->subtemplates.size());
 		 Compiler::current()->global_namespace()->subtemplates.push_back(std::move(s));
 
 		root->global_namespace->structures.push_back(std::move(node));
@@ -60,14 +60,14 @@ namespace Corrosive {
 	}
 
 
-	size_t allocated_counter = 0;
+	std::size_t allocated_counter = 0;
 
-	void* StandardLibraryCode::malloc(size_t size) {
+	void* StandardLibraryCode::malloc(std::size_t size) {
 		return std::malloc(size);
 		++allocated_counter;
 	}
 
-	void* StandardLibraryCode::realloc(void* ptr, size_t size) {
+	void* StandardLibraryCode::realloc(void* ptr, std::size_t size) {
 		return std::realloc(ptr, size);
 	}
 
@@ -77,13 +77,13 @@ namespace Corrosive {
 	}
 
 	void* StandardLibraryCode::share(dword_t slice) {
-		std::basic_string_view<char> view((char*)slice.p1, (size_t)slice.p2);
+		std::basic_string_view<char> view((char*)slice.p1, (std::size_t)slice.p2);
 		return LoadLibraryA(std::string(view).c_str());
 	}
 
 	void* StandardLibraryCode::function(void* lib, dword_t slice) {
-		std::basic_string_view<char> view((char*)slice.p1, (size_t)slice.p2);
-		return GetProcAddress((HMODULE)lib, std::string(view).c_str());
+		std::basic_string_view<char> view((char*)slice.p1, (std::size_t)slice.p2);
+		return (void*)GetProcAddress((HMODULE)lib, std::string(view).c_str());
 	}
 
 	void StandardLibraryCode::release(void* lib) {
@@ -91,37 +91,37 @@ namespace Corrosive {
 	}
 
 	void StandardLibraryCode::print(dword_t slice) {
-		std::basic_string_view<char> sv((char*)slice.p1, (size_t)slice.p2);
+		std::basic_string_view<char> sv((char*)slice.p1, (std::size_t)slice.p2);
 		std::cout << sv;
 	}
 
 	void BuiltInCode::entry_point(dword_t slice) {
-		std::basic_string_view<char> sv((char*)slice.p1, (size_t)slice.p2);
+		std::basic_string_view<char> sv((char*)slice.p1, (std::size_t)slice.p2);
 		Compiler::current()->entry_point = sv;
 	}
 
 	
 	void StandardLibraryCode::link(ILModule* mod) {
-		mod->try_link("std::print_slice", StandardLibraryCode::print);
-		mod->try_link("std::malloc", StandardLibraryCode::malloc);
-		mod->try_link("std::free", StandardLibraryCode::free);
-		mod->try_link("std::realloc", StandardLibraryCode::realloc);
-		mod->try_link("std::library::share", StandardLibraryCode::share);
-		mod->try_link("std::library::function", StandardLibraryCode::function);
-		mod->try_link("std::library::release", StandardLibraryCode::release);
+		mod->try_link("std::print_slice", (void*)StandardLibraryCode::print);
+		mod->try_link("std::malloc", (void*)StandardLibraryCode::malloc);
+		mod->try_link("std::free", (void*)StandardLibraryCode::free);
+		mod->try_link("std::realloc", (void*)StandardLibraryCode::realloc);
+		mod->try_link("std::library::share", (void*)StandardLibraryCode::share);
+		mod->try_link("std::library::function", (void*)StandardLibraryCode::function);
+		mod->try_link("std::library::release", (void*)StandardLibraryCode::release);
 	}
 
 	void BuiltInCode::ask_for(dword_t slice) {
-		std::basic_string_view<char> data_string((char*)slice.p1, (size_t)slice.p2);
+		std::basic_string_view<char> data_string((char*)slice.p1, (std::size_t)slice.p2);
 
 		if (data_string == "compiler_standard_libraries") {
-			Compiler::current()->register_native_function({ "std","print_slice" }, StandardLibraryCode::print);
-			Compiler::current()->register_native_function({ "std","malloc" }, StandardLibraryCode::malloc);
-			Compiler::current()->register_native_function({ "std","realloc" }, StandardLibraryCode::realloc);
-			Compiler::current()->register_native_function({ "std","free" }, StandardLibraryCode::free);
-			Compiler::current()->register_native_function({ "std","library","share" }, StandardLibraryCode::share);
-			Compiler::current()->register_native_function({ "std","library","function" }, StandardLibraryCode::function);
-			Compiler::current()->register_native_function({ "std","library","release" }, StandardLibraryCode::release);
+			Compiler::current()->register_native_function({ "std","print_slice" }, (void*)StandardLibraryCode::print);
+			Compiler::current()->register_native_function({ "std","malloc" }, (void*)StandardLibraryCode::malloc);
+			Compiler::current()->register_native_function({ "std","realloc" }, (void*)StandardLibraryCode::realloc);
+			Compiler::current()->register_native_function({ "std","free" }, (void*)StandardLibraryCode::free);
+			Compiler::current()->register_native_function({ "std","library","share" }, (void*)StandardLibraryCode::share);
+			Compiler::current()->register_native_function({ "std","library","function" }, (void*)StandardLibraryCode::function);
+			Compiler::current()->register_native_function({ "std","library","release" }, (void*)StandardLibraryCode::release);
 		}
 	}
 
@@ -133,7 +133,7 @@ namespace Corrosive {
 
 	Type* BuiltInCode::build_subtype(Type* t, dword_t slice) {
 		Type::assert(t);
-		std::string_view slice_str((char*)slice.p1, (size_t)slice.p2);
+		std::string_view slice_str((char*)slice.p1, (std::size_t)slice.p2);
 
 		Type* str = Compiler::current()->types()->t_u8->generate_slice();
 
@@ -176,7 +176,7 @@ namespace Corrosive {
 	}
 
 
-	Type* BuiltInCode::build_array(uint32_t size, Type* t) {
+	Type* BuiltInCode::build_array(std::uint32_t size, Type* t) {
 		Type::assert(t);
 		return t->generate_array(size);
 	}
@@ -187,7 +187,7 @@ namespace Corrosive {
 	}
 
 	
-	size_t BuiltInCode::type_size(Type* t) {
+	std::size_t BuiltInCode::type_size(Type* t) {
 		Type::assert(t);
 		return t->size().eval(Compiler::current()->global_module(), compiler_arch);
 	}
@@ -207,7 +207,7 @@ namespace Corrosive {
 				main = finst->func;
 			}
 			else {
-				throw std::exception("Entry point was set but function not found");
+				throw string_exception("Entry point was set but function not found");
 			}
 
 			Compiler::current()->global_module()->entry_point = main;
@@ -280,18 +280,18 @@ namespace Corrosive {
 		primitives[(unsigned char)ILDataType::f64] = t_f64;
 		primitives[(unsigned char)ILDataType::word] = t_size;
 
-		f_build_reference = Compiler::current()->register_native_function({ "compiler","reference_of" }, BuiltInCode::build_reference);
-		f_build_array = Compiler::current()->register_native_function({ "compiler","array_of" }, BuiltInCode::build_array);
-		f_build_subtype = Compiler::current()->register_native_function({ "compiler","subtype_of" }, BuiltInCode::build_subtype);
-		f_build_slice = Compiler::current()->register_native_function({ "compiler","slice_of" }, BuiltInCode::build_slice);
-		f_type_size = Compiler::current()->register_native_function({ "compiler","type_size" }, BuiltInCode::type_size);
-		f_type_size = Compiler::current()->register_native_function({ "compiler","require" }, Source::require_wrapper);
-		f_type_size = Compiler::current()->register_native_function({ "compiler","build" }, BuiltInCode::compile);
-		f_type_size = Compiler::current()->register_native_function({ "compiler","var" }, StructureTemplate::var_wrapper);
-		f_type_size = Compiler::current()->register_native_function({ "compiler","var_alias" }, StructureTemplate::var_alias_wrapper);
-		f_type_size = Compiler::current()->register_native_function({ "compiler","entry" }, BuiltInCode::entry_point);
-		f_type_size = Compiler::current()->register_native_function({ "compiler","link" }, BuiltInCode::ask_for);
-		f_type_size = Compiler::current()->register_native_function({ "compiler","print_type" }, BuiltInCode::print_type);
+		f_build_reference = Compiler::current()->register_native_function({ "compiler","reference_of" }, (void*)BuiltInCode::build_reference);
+		f_build_array = Compiler::current()->register_native_function({ "compiler","array_of" }, (void*)BuiltInCode::build_array);
+		f_build_subtype = Compiler::current()->register_native_function({ "compiler","subtype_of" }, (void*)BuiltInCode::build_subtype);
+		f_build_slice = Compiler::current()->register_native_function({ "compiler","slice_of" }, (void*)BuiltInCode::build_slice);
+		f_type_size = Compiler::current()->register_native_function({ "compiler","type_size" }, (void*)BuiltInCode::type_size);
+		f_type_size = Compiler::current()->register_native_function({ "compiler","require" }, (void*)Source::require_wrapper);
+		f_type_size = Compiler::current()->register_native_function({ "compiler","build" }, (void*)BuiltInCode::compile);
+		f_type_size = Compiler::current()->register_native_function({ "compiler","var" }, (void*)StructureTemplate::var_wrapper);
+		f_type_size = Compiler::current()->register_native_function({ "compiler","var_alias" }, (void*)StructureTemplate::var_alias_wrapper);
+		f_type_size = Compiler::current()->register_native_function({ "compiler","entry" }, (void*)BuiltInCode::entry_point);
+		f_type_size = Compiler::current()->register_native_function({ "compiler","link" }, (void*)BuiltInCode::ask_for);
+		f_type_size = Compiler::current()->register_native_function({ "compiler","print_type" }, (void*)BuiltInCode::print_type);
 
 		std::vector<Type*> args;
 		t_build_script = load_or_register_function_type(ILCallingConvention::bytecode, std::move(args), t_void, ILContext::compile);
@@ -300,14 +300,14 @@ namespace Corrosive {
 
 
 
-	std::pair<size_t, bool> BuiltInTypes::load_or_register_argument_array(std::vector<Type*> arg_array) {
+	std::pair<std::size_t, bool> BuiltInTypes::load_or_register_argument_array(std::vector<Type*> arg_array) {
 		return argument_array_storage.register_or_load(std::move(arg_array));
 	}
 
 	TypeFunction* BuiltInTypes::load_or_register_function_type(ILCallingConvention call_conv, std::vector<Type*> arg_array, Type* return_type, ILContext ctx) {
-		std::pair<size_t, bool> arg_id = load_or_register_argument_array(std::move(arg_array));
+		std::pair<std::size_t, bool> arg_id = load_or_register_argument_array(std::move(arg_array));
 
-		std::tuple<ILCallingConvention, size_t, Type*, ILContext> key = std::make_tuple(call_conv, arg_id.first, return_type, ctx);
+		std::tuple<ILCallingConvention, std::size_t, Type*, ILContext> key = std::make_tuple(call_conv, arg_id.first, return_type, ctx);
 		auto t_find = function_types_storage.find(key);
 		if (t_find != function_types_storage.end()) {
 			return t_find->second.get();
@@ -327,9 +327,9 @@ namespace Corrosive {
 	}
 
 	TypeTemplate* BuiltInTypes::load_or_register_template_type(std::vector<Type*> arg_array) {
-		std::pair<size_t, bool> arg_id = load_or_register_argument_array(std::move(arg_array));
+		std::pair<std::size_t, bool> arg_id = load_or_register_argument_array(std::move(arg_array));
 
-		size_t key = arg_id.first;
+		std::size_t key = arg_id.first;
 
 		auto t_find = template_types_storage.find(key);
 		if (t_find != template_types_storage.end()) {

@@ -15,7 +15,7 @@ namespace Corrosive {
 	template <typename T>
 	class idset {
 	public:
-		inline std::pair<size_t,bool> register_or_load(T val) {
+		inline std::pair<std::size_t,bool> register_or_load(T val) {
 			if (data.size() == 0) data.resize(2);
 			data[0] = std::move(val);
 
@@ -30,7 +30,7 @@ namespace Corrosive {
 			}
 		}
 
-		inline T& get(size_t id) {
+		inline T& get(std::size_t id) {
 			return data[id];
 		}
 
@@ -45,13 +45,13 @@ namespace Corrosive {
 			}
 
 			idset<T>* owner;
-			inline bool operator()(const size_t& a, const size_t& b) const {
+			inline bool operator()(const std::size_t& a, const std::size_t& b) const {
 				return owner->data[a] < owner->data[b];
 			}
 		};
 
 		std::vector<T> data;
-		std::map<size_t, size_t, cmp> lookup;
+		std::map<std::size_t, std::size_t, cmp> lookup;
 	};
 
 	class FunctionInstance;
@@ -64,8 +64,8 @@ namespace Corrosive {
 		static void* 	function(void* lib, dword_t slice);
 		static void 	release(void* lib);
 
-		static void* 	malloc(size_t size);
-		static void* 	realloc(void* ptr, size_t size);
+		static void* 	malloc(std::size_t size);
+		static void* 	realloc(void* ptr, std::size_t size);
 		static void 	free(void* ref);
 
 		static void     link(ILModule* mod);
@@ -76,11 +76,11 @@ namespace Corrosive {
 		static void 	ask_for(dword_t slice);
 		static void 	print_type(Type* t);
 		static void 	compile();
-		static Type* 	build_array(uint32_t size, Type* t);
+		static Type* 	build_array(std::uint32_t size, Type* t);
 		static Type* 	build_reference(Type* t);
 		static Type* 	build_subtype(Type* t, dword_t slice);
 		static Type* 	build_slice(Type* t);
-		static size_t 	type_size(Type* t);
+		static std::size_t 	type_size(Type* t);
 		static void 	entry_point(dword_t slice);
 	};
 
@@ -108,11 +108,11 @@ namespace Corrosive {
 		Type* get_type_from_rvalue(ILDataType rval);
 
 		idset<std::vector<Type*>> argument_array_storage;
-		std::map<std::tuple<ILCallingConvention, size_t,Type*,ILContext>, std::unique_ptr<TypeFunction>> function_types_storage;
-		std::map<size_t, std::unique_ptr<TypeTemplate>> template_types_storage;
+		std::map<std::tuple<ILCallingConvention, std::size_t,Type*,ILContext>, std::unique_ptr<TypeFunction>> function_types_storage;
+		std::map<std::size_t, std::unique_ptr<TypeTemplate>> template_types_storage;
 
 
-		std::pair<size_t, bool> load_or_register_argument_array(std::vector<Type*> arg_array);
+		std::pair<std::size_t, bool> load_or_register_argument_array(std::vector<Type*> arg_array);
 
 		TypeFunction* load_or_register_function_type(ILCallingConvention call_conv, std::vector<Type*> arg_array, Type* return_type, ILContext ctx);
 		TypeTemplate* load_or_register_template_type(std::vector<Type*> arg_array);

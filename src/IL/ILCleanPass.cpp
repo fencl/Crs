@@ -7,7 +7,7 @@
 namespace Corrosive {
 
 
-	void ILStructTable::clean_prepass(ILModule& mod, std::unordered_set<size_t>& used_tables, std::unordered_set<size_t>& used_arrays) {
+	void ILStructTable::clean_prepass(ILModule& mod, std::unordered_set<std::size_t>& used_tables, std::unordered_set<std::size_t>& used_arrays) {
 		for (auto&& elem: elements) {
 			if (elem.type == ILSizeType::table) {
 				auto ins = used_tables.insert(elem.value);
@@ -23,7 +23,7 @@ namespace Corrosive {
 		}
 	}
 
-	void ILArrayTable::clean_prepass(ILModule& mod, std::unordered_set<size_t>& used_tables, std::unordered_set<size_t>& used_arrays) {		
+	void ILArrayTable::clean_prepass(ILModule& mod, std::unordered_set<std::size_t>& used_tables, std::unordered_set<std::size_t>& used_arrays) {		
 		if (element.type == ILSizeType::table) {
 			auto ins = used_tables.insert(element.value);
 			if (ins.second) {
@@ -37,7 +37,7 @@ namespace Corrosive {
 		}
 	}
 
-	void ILStructTable::clean_pass(ILModule& mod, std::unordered_map<size_t, size_t>& map_tables, std::unordered_map<size_t, size_t>& map_arrays){
+	void ILStructTable::clean_pass(ILModule& mod, std::unordered_map<std::size_t, std::size_t>& map_tables, std::unordered_map<std::size_t, std::size_t>& map_arrays){
 		for (auto&& elem: elements) {
 			if (elem.type == ILSizeType::table) {
 				elem.value = (tableid_t)map_tables[elem.value];
@@ -47,7 +47,7 @@ namespace Corrosive {
 		}
 	}
 
-	void ILArrayTable::clean_pass(ILModule& mod, std::unordered_map<size_t, size_t>& map_tables, std::unordered_map<size_t, size_t>& map_arrays){
+	void ILArrayTable::clean_pass(ILModule& mod, std::unordered_map<std::size_t, std::size_t>& map_tables, std::unordered_map<std::size_t, std::size_t>& map_arrays){
 		if (element.type == ILSizeType::table) {
 			element.value = (tableid_t)map_tables[element.value];
 		}else if (element.type == ILSizeType::array) {
@@ -56,13 +56,13 @@ namespace Corrosive {
 	}
 
 	void ILModule::strip_unused_content() {
-		std::unordered_set<size_t> used_functions;
-		std::unordered_set<size_t> used_constants;
-		std::unordered_set<size_t> used_statics;
-		std::unordered_set<size_t> used_vtables;
-		std::unordered_set<size_t> used_decls;
-		std::unordered_set<size_t> used_tables;
-		std::unordered_set<size_t> used_arrays;
+		std::unordered_set<std::size_t> used_functions;
+		std::unordered_set<std::size_t> used_constants;
+		std::unordered_set<std::size_t> used_statics;
+		std::unordered_set<std::size_t> used_vtables;
+		std::unordered_set<std::size_t> used_decls;
+		std::unordered_set<std::size_t> used_tables;
+		std::unordered_set<std::size_t> used_arrays;
 
 
 		std::vector<ILFunction*> remaining_build;
@@ -85,13 +85,13 @@ namespace Corrosive {
 			array_tables[tid].clean_prepass(*this, used_tables, used_arrays);
 		}
 
-		std::unordered_map<size_t, size_t> map_functions;
-		std::unordered_map<size_t, size_t> map_constants;
-		std::unordered_map<size_t, size_t> map_statics;
-		std::unordered_map<size_t, size_t> map_vtables;
-		std::unordered_map<size_t, size_t> map_decls;
-		std::unordered_map<size_t, size_t> map_tables;
-		std::unordered_map<size_t, size_t> map_arrays;
+		std::unordered_map<std::size_t, std::size_t> map_functions;
+		std::unordered_map<std::size_t, std::size_t> map_constants;
+		std::unordered_map<std::size_t, std::size_t> map_statics;
+		std::unordered_map<std::size_t, std::size_t> map_vtables;
+		std::unordered_map<std::size_t, std::size_t> map_decls;
+		std::unordered_map<std::size_t, std::size_t> map_tables;
+		std::unordered_map<std::size_t, std::size_t> map_arrays;
 		external_functions.clear();
 
 		std::vector<std::unique_ptr<ILFunction>> new_functions; 
@@ -116,7 +116,7 @@ namespace Corrosive {
 		static_memory = std::move(new_statics);
 
 
-		std::vector<std::pair<uint32_t,std::unique_ptr<void* []>>> new_vtables;
+		std::vector<std::pair<std::uint32_t,std::unique_ptr<void* []>>> new_vtables;
 		for (auto&& used_vtable : used_vtables) {
 			map_vtables[used_vtable] = new_vtables.size();
 			new_vtables.push_back(std::move(vtable_data[used_vtable]));
@@ -170,8 +170,8 @@ namespace Corrosive {
 
 		for (auto&& f : map_functions) {
 			auto fun = functions[f.second].get();
-			fun->decl_id = (uint32_t)map_decls[fun->decl_id];
-			fun->id = (uint32_t)map_functions[fun->id];
+			fun->decl_id = (std::uint32_t)map_decls[fun->decl_id];
+			fun->id = (std::uint32_t)map_functions[fun->id];
 
 			if (auto bf = dynamic_cast<ILBytecodeFunction*>(fun)) {
 				bf->clean_pass(map_functions, map_constants, map_statics, map_vtables, map_decls, map_tables, map_arrays);
@@ -192,13 +192,13 @@ namespace Corrosive {
 		//rebuild_pointer_table();
 	}
 
-	void ILBytecodeFunction::clean_prepass(std::unordered_set<size_t>& used_functions,
-		std::unordered_set<size_t>& used_constants,
-		std::unordered_set<size_t>& used_statics,
-		std::unordered_set<size_t>& used_vtables,
-		std::unordered_set<size_t>& used_decls,
-		std::unordered_set<size_t>& used_tables,
-		std::unordered_set<size_t>& used_arrays) {
+	void ILBytecodeFunction::clean_prepass(std::unordered_set<std::size_t>& used_functions,
+		std::unordered_set<std::size_t>& used_constants,
+		std::unordered_set<std::size_t>& used_statics,
+		std::unordered_set<std::size_t>& used_vtables,
+		std::unordered_set<std::size_t>& used_decls,
+		std::unordered_set<std::size_t>& used_tables,
+		std::unordered_set<std::size_t>& used_arrays) {
 		
 		
 		local_stack_lifetime.clean_prepass(used_tables, used_arrays);
@@ -216,7 +216,7 @@ namespace Corrosive {
 						ILBlock::read_data<ILDataType>(it);
 					} break;
 					case ILInstruction::call: {
-						used_decls.insert(ILBlock::read_data<uint32_t>(it));
+						used_decls.insert(ILBlock::read_data<std::uint32_t>(it));
 					} break;
 					case ILInstruction::memcpy: {
 						auto s = ILBlock::read_data<ILSize>(it);
@@ -255,7 +255,7 @@ namespace Corrosive {
 						}
 					} break;
 					case ILInstruction::fnptr: {
-						auto r = used_functions.insert(ILBlock::read_data<uint32_t>(it));
+						auto r = used_functions.insert(ILBlock::read_data<std::uint32_t>(it));
 						if (r.second) {
 							if (auto bf = dynamic_cast<ILBytecodeFunction*>(parent->functions[*r.first].get())) {
 								bf->clean_prepass(used_functions, used_constants, used_statics, used_vtables, used_decls, used_tables, used_arrays);
@@ -263,7 +263,7 @@ namespace Corrosive {
 						}
 					} break;
 					case ILInstruction::fncall: {
-						auto r = used_functions.insert(ILBlock::read_data<uint32_t>(it));
+						auto r = used_functions.insert(ILBlock::read_data<std::uint32_t>(it));
 						if (r.second) {
 							if (auto bf = dynamic_cast<ILBytecodeFunction*>(parent->functions[*r.first].get())) {
 								bf->clean_prepass(used_functions, used_constants, used_statics, used_vtables, used_decls, used_tables, used_arrays);
@@ -271,13 +271,13 @@ namespace Corrosive {
 						}
 					} break;
 					case ILInstruction::vtable: {
-						auto vtableid = ILBlock::read_data<uint32_t>(it);
+						auto vtableid = ILBlock::read_data<std::uint32_t>(it);
 						used_vtables.insert(vtableid);
 						auto& table = parent->vtable_data[vtableid];
 						ILBytecodeFunction** table_data = (ILBytecodeFunction**)table.second.get();
-						uint32_t size = table.first;
+						std::uint32_t size = table.first;
 
-						for (uint32_t i = 0; i < size; ++i) {
+						for (std::uint32_t i = 0; i < size; ++i) {
 							ILBytecodeFunction* fun = table_data[i];
 							used_functions.insert(fun->id);
 							fun->clean_prepass(used_functions, used_constants, used_statics, used_vtables, used_decls, used_tables, used_arrays);
@@ -289,7 +289,7 @@ namespace Corrosive {
 					} break;
 					case ILInstruction::clone: {
 						ILBlock::read_data<ILDataType>(it);
-						ILBlock::read_data<uint16_t>(it);
+						ILBlock::read_data<std::uint16_t>(it);
 					} break;
 					case ILInstruction::swap: {
 						ILBlock::read_data<ILDataType>(it);
@@ -298,7 +298,7 @@ namespace Corrosive {
 						ILBlock::read_data<ILDataTypePair>(it);
 					} break;
 					case ILInstruction::insintric: {
-						ILBlock::read_data<uint8_t>(it);
+						ILBlock::read_data<std::uint8_t>(it);
 					} break;
 					case ILInstruction::rmemcmp: {
 						ILBlock::read_data<ILDataType>(it);
@@ -338,11 +338,11 @@ namespace Corrosive {
 
 
 					case ILInstruction::jmp: {
-						ILBlock::read_data<uint32_t>(it);
+						ILBlock::read_data<std::uint32_t>(it);
 					}break;
 					case ILInstruction::offset32: {
 						auto t = ILBlock::read_data<ILSizeType>(it);
-						auto v = ILBlock::read_data<uint32_t>(it);
+						auto v = ILBlock::read_data<std::uint32_t>(it);
 						if (t == ILSizeType::table) {
 							used_tables.insert(v);
 						}
@@ -352,7 +352,7 @@ namespace Corrosive {
 					} break;
 					case ILInstruction::offset16: {
 						auto t = ILBlock::read_data<ILSizeType>(it);
-						auto v = ILBlock::read_data<uint16_t>(it);
+						auto v = ILBlock::read_data<std::uint16_t>(it);
 						if (t == ILSizeType::table) {
 							used_tables.insert(v);
 						}
@@ -362,7 +362,7 @@ namespace Corrosive {
 					} break;
 					case ILInstruction::offset8: {
 						auto t = ILBlock::read_data<ILSizeType>(it);
-						auto v = ILBlock::read_data<uint8_t>(it);
+						auto v = ILBlock::read_data<std::uint8_t>(it);
 						if (t == ILSizeType::table) {
 							used_tables.insert(v);
 						}
@@ -371,25 +371,25 @@ namespace Corrosive {
 						}
 					} break;
 					case ILInstruction::aoffset8: {
-						ILBlock::read_data<uint8_t>(it);
+						ILBlock::read_data<std::uint8_t>(it);
 					} break;
 					case ILInstruction::aoffset16: {
-						ILBlock::read_data<uint16_t>(it);
+						ILBlock::read_data<std::uint16_t>(it);
 					} break;
 					case ILInstruction::aoffset32: {
-						ILBlock::read_data<uint32_t>(it);
+						ILBlock::read_data<std::uint32_t>(it);
 					} break;
 					case ILInstruction::woffset8: {
-						ILBlock::read_data<uint8_t>(it);
+						ILBlock::read_data<std::uint8_t>(it);
 					} break;
 					case ILInstruction::woffset16: {
-						ILBlock::read_data<uint16_t>(it);
+						ILBlock::read_data<std::uint16_t>(it);
 					} break;
 					case ILInstruction::woffset32: {
-						ILBlock::read_data<uint32_t>(it);
+						ILBlock::read_data<std::uint32_t>(it);
 					} break;
 					case ILInstruction::constref: {
-						uint32_t cid = ILBlock::read_data<uint32_t>(it);
+						std::uint32_t cid = ILBlock::read_data<std::uint32_t>(it);
 						used_constants.insert(cid);
 						ILSize& s = parent->constant_memory[cid].first;
 						if (s.type == ILSizeType::table) {
@@ -399,7 +399,7 @@ namespace Corrosive {
 						}
 					} break;
 					case ILInstruction::staticref: {
-						uint32_t cid = ILBlock::read_data<uint32_t>(it);
+						std::uint32_t cid = ILBlock::read_data<std::uint32_t>(it);
 						used_statics.insert(cid);
 						ILSize& s = parent->static_memory[cid].first;
 						if (s.type == ILSizeType::table) {
@@ -412,7 +412,7 @@ namespace Corrosive {
 						ILBlock::read_data<ILDataType>(it);
 						ILBlock::read_data<ILDataType>(it);
 						auto t = ILBlock::read_data<ILSizeType>(it);
-						auto v = ILBlock::read_data<uint32_t>(it);
+						auto v = ILBlock::read_data<std::uint32_t>(it);
 						if (t == ILSizeType::table) {
 							used_tables.insert(v);
 						}
@@ -425,7 +425,7 @@ namespace Corrosive {
 						ILBlock::read_data<ILDataType>(it);
 						ILBlock::read_data<ILDataType>(it);
 						auto t = ILBlock::read_data<ILSizeType>(it);
-						auto v = ILBlock::read_data<uint16_t>(it);
+						auto v = ILBlock::read_data<std::uint16_t>(it);
 						if (t == ILSizeType::table) {
 							used_tables.insert(v);
 						}
@@ -438,7 +438,7 @@ namespace Corrosive {
 						ILBlock::read_data<ILDataType>(it);
 						ILBlock::read_data<ILDataType>(it); 
 						auto t = ILBlock::read_data<ILSizeType>(it);
-						auto v = ILBlock::read_data<uint8_t>(it);
+						auto v = ILBlock::read_data<std::uint8_t>(it);
 						if (t == ILSizeType::table) {
 							used_tables.insert(v);
 						}
@@ -449,112 +449,112 @@ namespace Corrosive {
 
 					case ILInstruction::aroffset: {
 						ILBlock::read_data<ILDataTypePair>(it);
-						ILBlock::read_data<uint8_t>(it);
+						ILBlock::read_data<std::uint8_t>(it);
 					} break;
 
 					case ILInstruction::wroffset: {
 						ILBlock::read_data<ILDataTypePair>(it);
-						ILBlock::read_data<uint8_t>(it);
+						ILBlock::read_data<std::uint8_t>(it);
 					} break;
 
 					case ILInstruction::local8: {
-						ILBlock::read_data<uint8_t>(it);
+						ILBlock::read_data<std::uint8_t>(it);
 					} break;
 
 					case ILInstruction::local16: {
-						ILBlock::read_data<uint16_t>(it);
+						ILBlock::read_data<std::uint16_t>(it);
 					} break;
 
 					case ILInstruction::local32: {
-						ILBlock::read_data<uint32_t>(it);
+						ILBlock::read_data<std::uint32_t>(it);
 					} break;
 
 					case ILInstruction::table8offset8: {
-						used_tables.insert(ILBlock::read_data<uint8_t>(it));
-						ILBlock::read_data<uint8_t>(it);
+						used_tables.insert(ILBlock::read_data<std::uint8_t>(it));
+						ILBlock::read_data<std::uint8_t>(it);
 					} break;
 					case ILInstruction::table8offset16: {
-						used_tables.insert(ILBlock::read_data<uint8_t>(it));
-						ILBlock::read_data<uint16_t>(it);
+						used_tables.insert(ILBlock::read_data<std::uint8_t>(it));
+						ILBlock::read_data<std::uint16_t>(it);
 					} break;
 					case ILInstruction::table8offset32: {
-						used_tables.insert(ILBlock::read_data<uint8_t>(it));
-						ILBlock::read_data<uint32_t>(it);
+						used_tables.insert(ILBlock::read_data<std::uint8_t>(it));
+						ILBlock::read_data<std::uint32_t>(it);
 					} break;
 					case ILInstruction::table16offset8: {
-						used_tables.insert(ILBlock::read_data<uint16_t>(it));
-						ILBlock::read_data<uint8_t>(it);
+						used_tables.insert(ILBlock::read_data<std::uint16_t>(it));
+						ILBlock::read_data<std::uint8_t>(it);
 					} break;
 					case ILInstruction::table16offset16: {
-						used_tables.insert(ILBlock::read_data<uint16_t>(it));
-						ILBlock::read_data<uint16_t>(it);
+						used_tables.insert(ILBlock::read_data<std::uint16_t>(it));
+						ILBlock::read_data<std::uint16_t>(it);
 					} break;
 					case ILInstruction::table16offset32: {
-						used_tables.insert(ILBlock::read_data<uint16_t>(it));
-						ILBlock::read_data<uint32_t>(it);
+						used_tables.insert(ILBlock::read_data<std::uint16_t>(it));
+						ILBlock::read_data<std::uint32_t>(it);
 					} break;
 					case ILInstruction::table32offset8: {
-						used_tables.insert(ILBlock::read_data<uint32_t>(it));
-						ILBlock::read_data<uint8_t>(it);
+						used_tables.insert(ILBlock::read_data<std::uint32_t>(it));
+						ILBlock::read_data<std::uint8_t>(it);
 					} break;
 					case ILInstruction::table32offset16: {
-						used_tables.insert(ILBlock::read_data<uint32_t>(it));
-						ILBlock::read_data<uint16_t>(it);
+						used_tables.insert(ILBlock::read_data<std::uint32_t>(it));
+						ILBlock::read_data<std::uint16_t>(it);
 					} break;
 					case ILInstruction::table32offset32: {
-						used_tables.insert(ILBlock::read_data<uint32_t>(it));
-						ILBlock::read_data<uint32_t>(it);
+						used_tables.insert(ILBlock::read_data<std::uint32_t>(it));
+						ILBlock::read_data<std::uint32_t>(it);
 					} break;
 
 					case ILInstruction::table8roffset8: {
 						ILBlock::read_data<ILDataTypePair>(it);
-						used_tables.insert(ILBlock::read_data<uint8_t>(it));
-						ILBlock::read_data<uint8_t>(it);
+						used_tables.insert(ILBlock::read_data<std::uint8_t>(it));
+						ILBlock::read_data<std::uint8_t>(it);
 					} break;
 					case ILInstruction::table8roffset16: {
 						ILBlock::read_data<ILDataTypePair>(it);
-						used_tables.insert(ILBlock::read_data<uint8_t>(it));
-						ILBlock::read_data<uint16_t>(it);
+						used_tables.insert(ILBlock::read_data<std::uint8_t>(it));
+						ILBlock::read_data<std::uint16_t>(it);
 					} break;
 					case ILInstruction::table8roffset32: {
 						ILBlock::read_data<ILDataTypePair>(it);
-						used_tables.insert(ILBlock::read_data<uint8_t>(it));
-						ILBlock::read_data<uint32_t>(it);
+						used_tables.insert(ILBlock::read_data<std::uint8_t>(it));
+						ILBlock::read_data<std::uint32_t>(it);
 					} break;
 					case ILInstruction::table16roffset8: {
 						ILBlock::read_data<ILDataTypePair>(it);
-						used_tables.insert(ILBlock::read_data<uint16_t>(it));
-						ILBlock::read_data<uint8_t>(it);
+						used_tables.insert(ILBlock::read_data<std::uint16_t>(it));
+						ILBlock::read_data<std::uint8_t>(it);
 					} break;
 					case ILInstruction::table16roffset16: {
 						ILBlock::read_data<ILDataTypePair>(it);
-						used_tables.insert(ILBlock::read_data<uint16_t>(it));
-						ILBlock::read_data<uint16_t>(it);
+						used_tables.insert(ILBlock::read_data<std::uint16_t>(it));
+						ILBlock::read_data<std::uint16_t>(it);
 					} break;
 					case ILInstruction::table16roffset32: {
 						ILBlock::read_data<ILDataTypePair>(it);
-						used_tables.insert(ILBlock::read_data<uint16_t>(it));
-						ILBlock::read_data<uint32_t>(it);
+						used_tables.insert(ILBlock::read_data<std::uint16_t>(it));
+						ILBlock::read_data<std::uint32_t>(it);
 					} break;
 					case ILInstruction::table32roffset8: {
 						ILBlock::read_data<ILDataTypePair>(it);
-						used_tables.insert(ILBlock::read_data<uint32_t>(it));
-						ILBlock::read_data<uint8_t>(it);
+						used_tables.insert(ILBlock::read_data<std::uint32_t>(it));
+						ILBlock::read_data<std::uint8_t>(it);
 					} break;
 					case ILInstruction::table32roffset16: {
 						ILBlock::read_data<ILDataTypePair>(it);
-						used_tables.insert(ILBlock::read_data<uint32_t>(it));
-						ILBlock::read_data<uint16_t>(it);
+						used_tables.insert(ILBlock::read_data<std::uint32_t>(it));
+						ILBlock::read_data<std::uint16_t>(it);
 					} break;
 					case ILInstruction::table32roffset32: {
 						ILBlock::read_data<ILDataTypePair>(it);
-						used_tables.insert(ILBlock::read_data<uint32_t>(it));
-						ILBlock::read_data<uint32_t>(it);
+						used_tables.insert(ILBlock::read_data<std::uint32_t>(it));
+						ILBlock::read_data<std::uint32_t>(it);
 					} break;
 
 					case ILInstruction::debug: {
-						ILBlock::read_data<uint16_t>(it);
-						ILBlock::read_data<uint16_t>(it);
+						ILBlock::read_data<std::uint16_t>(it);
+						ILBlock::read_data<std::uint16_t>(it);
 					} break;
 
 					case ILInstruction::load: {
@@ -574,24 +574,24 @@ namespace Corrosive {
 					} break;
 
 					case ILInstruction::jmpz: {
-						ILBlock::read_data<uint32_t>(it);
-						ILBlock::read_data<uint32_t>(it);
+						ILBlock::read_data<std::uint32_t>(it);
+						ILBlock::read_data<std::uint32_t>(it);
 					} break;
 
-					case ILInstruction::u8: ILBlock::read_data<uint8_t>(it); break;
-					case ILInstruction::i8: ILBlock::read_data<int8_t>(it); break;
-					case ILInstruction::u16: ILBlock::read_data<uint16_t>(it); break;
-					case ILInstruction::i16: ILBlock::read_data<int16_t>(it); break;
-					case ILInstruction::u32: ILBlock::read_data<uint32_t>(it); break;
-					case ILInstruction::i32: ILBlock::read_data<int32_t>(it); break;
-					case ILInstruction::u64: ILBlock::read_data<uint64_t>(it); break;
-					case ILInstruction::i64: ILBlock::read_data<int64_t>(it); break;
+					case ILInstruction::u8: ILBlock::read_data<std::uint8_t>(it); break;
+					case ILInstruction::i8: ILBlock::read_data<std::int8_t>(it); break;
+					case ILInstruction::u16: ILBlock::read_data<std::uint16_t>(it); break;
+					case ILInstruction::i16: ILBlock::read_data<std::int16_t>(it); break;
+					case ILInstruction::u32: ILBlock::read_data<std::uint32_t>(it); break;
+					case ILInstruction::i32: ILBlock::read_data<std::int32_t>(it); break;
+					case ILInstruction::u64: ILBlock::read_data<std::uint64_t>(it); break;
+					case ILInstruction::i64: ILBlock::read_data<std::int64_t>(it); break;
 					case ILInstruction::f32: ILBlock::read_data<float>(it); break;
 					case ILInstruction::f64: ILBlock::read_data<double>(it); break;
 					case ILInstruction::word: ILBlock::read_data<void*>(it); break;
 					case ILInstruction::slice: {
 
-						uint32_t cid = ILBlock::read_data<uint32_t>(it);
+						std::uint32_t cid = ILBlock::read_data<std::uint32_t>(it);
 						used_constants.insert(cid);
 						ILSize& s = parent->constant_memory[cid].first;
 						if (s.type == ILSizeType::table) {
@@ -601,7 +601,7 @@ namespace Corrosive {
 						}
 
 						auto t = ILBlock::read_data<ILSizeType>(it);
-						auto v = ILBlock::read_data<uint32_t>(it);
+						auto v = ILBlock::read_data<std::uint32_t>(it);
 						if (t == ILSizeType::table) {
 							used_tables.insert(v);
 						}
@@ -611,7 +611,7 @@ namespace Corrosive {
 					}break;
 					case ILInstruction::size8: {
 						auto t = ILBlock::read_data<ILSizeType>(it);
-						auto v = ILBlock::read_data<uint8_t>(it);
+						auto v = ILBlock::read_data<std::uint8_t>(it);
 						if (t == ILSizeType::table) {
 							used_tables.insert(v);
 						}
@@ -621,7 +621,7 @@ namespace Corrosive {
 					} break;
 					case ILInstruction::size16: {
 						auto t = ILBlock::read_data<ILSizeType>(it);
-						auto v = ILBlock::read_data<uint16_t>(it);
+						auto v = ILBlock::read_data<std::uint16_t>(it);
 						if (t == ILSizeType::table) {
 							used_tables.insert(v);
 						}
@@ -631,7 +631,7 @@ namespace Corrosive {
 					} break;
 					case ILInstruction::size32: {
 						auto t = ILBlock::read_data<ILSizeType>(it);
-						auto v = ILBlock::read_data<uint32_t>(it);
+						auto v = ILBlock::read_data<std::uint32_t>(it);
 						if (t == ILSizeType::table) {
 							used_tables.insert(v);
 						}
@@ -651,19 +651,19 @@ namespace Corrosive {
 
 
 
-	void ILBytecodeFunction::clean_pass(std::unordered_map<size_t, size_t>& map_functions,
-		std::unordered_map<size_t, size_t>& map_constants,
-		std::unordered_map<size_t, size_t>& map_statics,
-		std::unordered_map<size_t, size_t>& map_vtables,
-		std::unordered_map<size_t, size_t>& map_decls,
-		std::unordered_map<size_t, size_t>& map_tables,
-		std::unordered_map<size_t, size_t>& map_arrays) {
+	void ILBytecodeFunction::clean_pass(std::unordered_map<std::size_t, std::size_t>& map_functions,
+		std::unordered_map<std::size_t, std::size_t>& map_constants,
+		std::unordered_map<std::size_t, std::size_t>& map_statics,
+		std::unordered_map<std::size_t, std::size_t>& map_vtables,
+		std::unordered_map<std::size_t, std::size_t>& map_decls,
+		std::unordered_map<std::size_t, std::size_t>& map_tables,
+		std::unordered_map<std::size_t, std::size_t>& map_arrays) {
 
 
 		local_stack_lifetime.clean_pass(map_tables, map_arrays);
 
-		std::unordered_map<size_t, size_t> map_blocks;
-		size_t nid = 0;
+		std::unordered_map<std::size_t, std::size_t> map_blocks;
+		std::size_t nid = 0;
 		for (auto&& block : blocks) {
 			map_blocks[block->id] = nid++;
 		}
@@ -671,7 +671,7 @@ namespace Corrosive {
 
 
 		for (auto&& block : blocks) {
-			std::vector<uint8_t> original_data = std::move(block->data_pool);
+			std::vector<std::uint8_t> original_data = std::move(block->data_pool);
 			auto it = original_data.begin();
 			
 			while (it != original_data.end()) {
@@ -685,7 +685,7 @@ namespace Corrosive {
 					} break;
 					case ILInstruction::call: {
 						block->write_value(inst);
-						block->write_value((uint32_t)map_decls[ILBlock::read_data<uint32_t>(it)]);
+						block->write_value((std::uint32_t)map_decls[ILBlock::read_data<std::uint32_t>(it)]);
 					} break;
 					case ILInstruction::memcpy: {
 						block->write_value(inst);
@@ -724,7 +724,7 @@ namespace Corrosive {
 						block->write_value(inst);
 						auto s = ILBlock::read_data<ILSize>(it);
 						if (s.type == ILSizeType::table) {
-							s.value = (uint32_t)map_tables[s.value];
+							s.value = (std::uint32_t)map_tables[s.value];
 						}
 						else if (s.type == ILSizeType::array) {
 							s.value = (tableid_t)map_arrays[s.value];
@@ -733,15 +733,15 @@ namespace Corrosive {
 					} break;
 					case ILInstruction::fnptr: {
 						block->write_value(inst);
-						block->write_value((uint32_t)map_functions[ILBlock::read_data<uint32_t>(it)]);
+						block->write_value((std::uint32_t)map_functions[ILBlock::read_data<std::uint32_t>(it)]);
 					} break;
 					case ILInstruction::fncall: {
 						block->write_value(inst);
-						block->write_value((uint32_t)map_functions[ILBlock::read_data<uint32_t>(it)]);
+						block->write_value((std::uint32_t)map_functions[ILBlock::read_data<std::uint32_t>(it)]);
 					} break;
 					case ILInstruction::vtable: {
 						block->write_value(inst);
-						block->write_value((uint32_t)map_vtables[ILBlock::read_data<uint32_t>(it)]);
+						block->write_value((std::uint32_t)map_vtables[ILBlock::read_data<std::uint32_t>(it)]);
 					} break;
 					case ILInstruction::duplicate: {
 						block->write_value(inst);
@@ -750,7 +750,7 @@ namespace Corrosive {
 					case ILInstruction::clone: {
 						block->write_value(inst);
 						block->write_value(ILBlock::read_data<ILDataType>(it));
-						block->write_value(ILBlock::read_data<uint16_t>(it));
+						block->write_value(ILBlock::read_data<std::uint16_t>(it));
 					} break;
 					case ILInstruction::swap: {
 						block->write_value(inst);
@@ -762,7 +762,7 @@ namespace Corrosive {
 					} break;
 					case ILInstruction::insintric: {
 						block->write_value(inst);
-						block->write_value(ILBlock::read_data<uint8_t>(it));
+						block->write_value(ILBlock::read_data<std::uint8_t>(it));
 					} break;
 					case ILInstruction::rmemcmp: {
 						block->write_value(inst);
@@ -808,13 +808,13 @@ namespace Corrosive {
 
 					case ILInstruction::jmp: {
 						block->write_value(inst);
-						block->write_value((uint32_t)map_blocks[ILBlock::read_data<uint32_t>(it)]);
+						block->write_value((std::uint32_t)map_blocks[ILBlock::read_data<std::uint32_t>(it)]);
 					}break;
 
 					case ILInstruction::offset16: {
 						auto t = ILBlock::read_data<ILSizeType>(it);
-						auto v = ILBlock::read_data<uint16_t>(it);
-						uint32_t new_id = v;
+						auto v = ILBlock::read_data<std::uint16_t>(it);
+						std::uint32_t new_id = v;
 						if (t == ILSizeType::table) {
 							new_id = (tableid_t)map_tables[new_id];
 						}
@@ -827,24 +827,24 @@ namespace Corrosive {
 							case ILBitWidth::b8: {
 								block->write_value(ILInstruction::offset8);
 								block->write_value(t);
-								block->write_value((uint8_t)new_id);
+								block->write_value((std::uint8_t)new_id);
 							} break;
 							case ILBitWidth::b16: {
 								block->write_value(ILInstruction::offset16);
 								block->write_value(t);
-								block->write_value((uint16_t)new_id);
+								block->write_value((std::uint16_t)new_id);
 							} break;
 							case ILBitWidth::b32: {
 								block->write_value(ILInstruction::offset32);
 								block->write_value(t);
-								block->write_value((uint32_t)new_id);
+								block->write_value((std::uint32_t)new_id);
 							} break;
 						}
 					} break;
 					case ILInstruction::offset32: {
 						auto t = ILBlock::read_data<ILSizeType>(it);
-						auto v = ILBlock::read_data<uint32_t>(it);
-						uint32_t new_id = v;
+						auto v = ILBlock::read_data<std::uint32_t>(it);
+						std::uint32_t new_id = v;
 						if (t == ILSizeType::table) {
 							new_id = (tableid_t)map_tables[new_id];
 						}
@@ -857,24 +857,24 @@ namespace Corrosive {
 							case ILBitWidth::b8: {
 								block->write_value(ILInstruction::offset8);
 								block->write_value(t);
-								block->write_value((uint8_t)new_id);
+								block->write_value((std::uint8_t)new_id);
 							} break;
 							case ILBitWidth::b16: {
 								block->write_value(ILInstruction::offset16);
 								block->write_value(t);
-								block->write_value((uint16_t)new_id);
+								block->write_value((std::uint16_t)new_id);
 							} break;
 							case ILBitWidth::b32: {
 								block->write_value(ILInstruction::offset32);
 								block->write_value(t);
-								block->write_value((uint32_t)new_id);
+								block->write_value((std::uint32_t)new_id);
 							} break;
 						}
 					} break;
 					case ILInstruction::offset8: {
 						auto t = ILBlock::read_data<ILSizeType>(it);
-						auto v = ILBlock::read_data<uint8_t>(it);
-						uint32_t new_id = v;
+						auto v = ILBlock::read_data<std::uint8_t>(it);
+						std::uint32_t new_id = v;
 						if (t == ILSizeType::table) {
 							new_id = (tableid_t)map_tables[new_id];
 						}
@@ -887,60 +887,60 @@ namespace Corrosive {
 							case ILBitWidth::b8: {
 								block->write_value(ILInstruction::offset8);
 								block->write_value(t);
-								block->write_value((uint8_t)new_id);
+								block->write_value((std::uint8_t)new_id);
 							} break;
 							case ILBitWidth::b16: {
 								block->write_value(ILInstruction::offset16);
 								block->write_value(t);
-								block->write_value((uint16_t)new_id);
+								block->write_value((std::uint16_t)new_id);
 							} break;
 							case ILBitWidth::b32: {
 								block->write_value(ILInstruction::offset32);
 								block->write_value(t);
-								block->write_value((uint32_t)new_id);
+								block->write_value((std::uint32_t)new_id);
 							} break;
 						}
 					} break;
 
 					case ILInstruction::aoffset8: {
 						block->write_value(inst);
-						block->write_value(ILBlock::read_data<uint8_t>(it));
+						block->write_value(ILBlock::read_data<std::uint8_t>(it));
 					} break;
 					case ILInstruction::aoffset16: {
 						block->write_value(inst);
-						block->write_value(ILBlock::read_data<uint16_t>(it));
+						block->write_value(ILBlock::read_data<std::uint16_t>(it));
 					} break;
 					case ILInstruction::aoffset32: {
 						block->write_value(inst);
-						block->write_value(ILBlock::read_data<uint32_t>(it));
+						block->write_value(ILBlock::read_data<std::uint32_t>(it));
 					} break;
 					case ILInstruction::woffset8: {
 						block->write_value(inst);
-						block->write_value(ILBlock::read_data<uint8_t>(it));
+						block->write_value(ILBlock::read_data<std::uint8_t>(it));
 					} break;
 					case ILInstruction::woffset16: {
 						block->write_value(inst);
-						block->write_value(ILBlock::read_data<uint16_t>(it));
+						block->write_value(ILBlock::read_data<std::uint16_t>(it));
 					} break;
 					case ILInstruction::woffset32: {
 						block->write_value(inst);
-						block->write_value(ILBlock::read_data<uint32_t>(it));
+						block->write_value(ILBlock::read_data<std::uint32_t>(it));
 					} break;
 					case ILInstruction::constref: {
 						block->write_value(inst);
-						block->write_value((uint32_t)map_constants[ILBlock::read_data<uint32_t>(it)]);
+						block->write_value((std::uint32_t)map_constants[ILBlock::read_data<std::uint32_t>(it)]);
 					} break;
 					case ILInstruction::staticref: {
 						block->write_value(inst);
-						block->write_value((uint32_t)map_statics[ILBlock::read_data<uint32_t>(it)]);
+						block->write_value((std::uint32_t)map_statics[ILBlock::read_data<std::uint32_t>(it)]);
 					} break;
 
 					case ILInstruction::roffset32: {
 						auto tl = ILBlock::read_data<ILDataType>(it);
 						auto tr = ILBlock::read_data<ILDataType>(it);
 						auto t = ILBlock::read_data<ILSizeType>(it);
-						auto v = ILBlock::read_data<uint32_t>(it);
-						uint32_t new_id = v;
+						auto v = ILBlock::read_data<std::uint32_t>(it);
+						std::uint32_t new_id = v;
 						if (t == ILSizeType::table) {
 							new_id = (tableid_t)map_tables[new_id];
 						}
@@ -955,21 +955,21 @@ namespace Corrosive {
 								block->write_value(tl);
 								block->write_value(tr);
 								block->write_value(t);
-								block->write_value((uint8_t)new_id);
+								block->write_value((std::uint8_t)new_id);
 							} break;
 							case ILBitWidth::b16: {
 								block->write_value(ILInstruction::roffset16);
 								block->write_value(tl);
 								block->write_value(tr);
 								block->write_value(t);
-								block->write_value((uint16_t)new_id);
+								block->write_value((std::uint16_t)new_id);
 							} break;
 							case ILBitWidth::b32: {
 								block->write_value(ILInstruction::roffset32);
 								block->write_value(tl);
 								block->write_value(tr);
 								block->write_value(t);
-								block->write_value((uint32_t)new_id);
+								block->write_value((std::uint32_t)new_id);
 							} break;
 						}
 					} break;
@@ -977,8 +977,8 @@ namespace Corrosive {
 						auto tl = ILBlock::read_data<ILDataType>(it);
 						auto tr = ILBlock::read_data<ILDataType>(it);
 						auto t = ILBlock::read_data<ILSizeType>(it);
-						auto v = ILBlock::read_data<uint16_t>(it);
-						uint32_t new_id = v;
+						auto v = ILBlock::read_data<std::uint16_t>(it);
+						std::uint32_t new_id = v;
 						if (t == ILSizeType::table) {
 							new_id = (tableid_t)map_tables[new_id];
 						}
@@ -993,21 +993,21 @@ namespace Corrosive {
 								block->write_value(tl);
 								block->write_value(tr);
 								block->write_value(t);
-								block->write_value((uint8_t)new_id);
+								block->write_value((std::uint8_t)new_id);
 							} break;
 							case ILBitWidth::b16: {
 								block->write_value(ILInstruction::roffset16);
 								block->write_value(tl);
 								block->write_value(tr);
 								block->write_value(t);
-								block->write_value((uint16_t)new_id);
+								block->write_value((std::uint16_t)new_id);
 							} break;
 							case ILBitWidth::b32: {
 								block->write_value(ILInstruction::roffset32);
 								block->write_value(tl);
 								block->write_value(tr);
 								block->write_value(t);
-								block->write_value((uint32_t)new_id);
+								block->write_value((std::uint32_t)new_id);
 							} break;
 						}
 					} break;
@@ -1015,8 +1015,8 @@ namespace Corrosive {
 						auto tl = ILBlock::read_data<ILDataType>(it);
 						auto tr = ILBlock::read_data<ILDataType>(it);
 						auto t = ILBlock::read_data<ILSizeType>(it);
-						auto v = ILBlock::read_data<uint8_t>(it);
-						uint32_t new_id = v;
+						auto v = ILBlock::read_data<std::uint8_t>(it);
+						std::uint32_t new_id = v;
 						if (t == ILSizeType::table) {
 							new_id = (tableid_t)map_tables[new_id];
 						}
@@ -1031,21 +1031,21 @@ namespace Corrosive {
 								block->write_value(tl);
 								block->write_value(tr);
 								block->write_value(t);
-								block->write_value((uint8_t)new_id);
+								block->write_value((std::uint8_t)new_id);
 							} break;
 							case ILBitWidth::b16: {
 								block->write_value(ILInstruction::roffset16);
 								block->write_value(tl);
 								block->write_value(tr);
 								block->write_value(t);
-								block->write_value((uint16_t)new_id);
+								block->write_value((std::uint16_t)new_id);
 							} break;
 							case ILBitWidth::b32: {
 								block->write_value(ILInstruction::roffset32);
 								block->write_value(tl);
 								block->write_value(tr);
 								block->write_value(t);
-								block->write_value((uint32_t)new_id);
+								block->write_value((std::uint32_t)new_id);
 							} break;
 						}
 					} break;
@@ -1053,434 +1053,434 @@ namespace Corrosive {
 					case ILInstruction::aroffset: {
 						block->write_value(inst);
 						block->write_value(ILBlock::read_data<ILDataTypePair>(it));
-						block->write_value(ILBlock::read_data<uint8_t>(it));
+						block->write_value(ILBlock::read_data<std::uint8_t>(it));
 					} break;
 
 					case ILInstruction::wroffset: {
 						block->write_value(inst);
 						block->write_value(ILBlock::read_data<ILDataTypePair>(it));
-						block->write_value(ILBlock::read_data<uint8_t>(it));
+						block->write_value(ILBlock::read_data<std::uint8_t>(it));
 					} break;
 
 					case ILInstruction::local8: {
 						block->write_value(inst);
-						block->write_value(ILBlock::read_data<uint8_t>(it));
+						block->write_value(ILBlock::read_data<std::uint8_t>(it));
 					} break;
 
 					case ILInstruction::local16: {
 						block->write_value(inst);
-						block->write_value(ILBlock::read_data<uint16_t>(it));
+						block->write_value(ILBlock::read_data<std::uint16_t>(it));
 					} break;
 
 					case ILInstruction::local32: {
 						block->write_value(inst);
-						block->write_value(ILBlock::read_data<uint32_t>(it));
+						block->write_value(ILBlock::read_data<std::uint32_t>(it));
 					} break;
 
 					case ILInstruction::table8offset8: {
-						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<uint8_t>(it)];
+						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<std::uint8_t>(it)];
 						switch (bit(table))
 						{
 							case ILBitWidth::b8: {
 								block->write_value(ILInstruction::table8offset8);
-								block->write_value((uint8_t)table);
+								block->write_value((std::uint8_t)table);
 							} break;
 							case ILBitWidth::b16: {
 								block->write_value(ILInstruction::table16offset8);
-								block->write_value((uint16_t)table);
+								block->write_value((std::uint16_t)table);
 							} break;
 							case ILBitWidth::b32: {
 								block->write_value(ILInstruction::table32offset8);
-								block->write_value((uint32_t)table);
+								block->write_value((std::uint32_t)table);
 							} break;
 						}
 
-						block->write_value(ILBlock::read_data<uint8_t>(it));
+						block->write_value(ILBlock::read_data<std::uint8_t>(it));
 					} break;
 					case ILInstruction::table8offset16: {
-						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<uint8_t>(it)];
+						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<std::uint8_t>(it)];
 						switch (bit(table))
 						{
 							case ILBitWidth::b8: {
 								block->write_value(ILInstruction::table8offset16);
-								block->write_value((uint8_t)table);
+								block->write_value((std::uint8_t)table);
 							} break;
 							case ILBitWidth::b16: {
 								block->write_value(ILInstruction::table16offset16);
-								block->write_value((uint16_t)table);
+								block->write_value((std::uint16_t)table);
 							} break;
 							case ILBitWidth::b32: {
 								block->write_value(ILInstruction::table32offset16);
-								block->write_value((uint32_t)table);
+								block->write_value((std::uint32_t)table);
 							} break;
 						}
 
-						block->write_value(ILBlock::read_data<uint16_t>(it));
+						block->write_value(ILBlock::read_data<std::uint16_t>(it));
 					} break;
 					case ILInstruction::table8offset32: {
-						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<uint8_t>(it)];
+						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<std::uint8_t>(it)];
 						switch (bit(table))
 						{
 							case ILBitWidth::b8: {
 								block->write_value(ILInstruction::table8offset32);
-								block->write_value((uint8_t)table);
+								block->write_value((std::uint8_t)table);
 							} break;
 							case ILBitWidth::b16: {
 								block->write_value(ILInstruction::table16offset32);
-								block->write_value((uint16_t)table);
+								block->write_value((std::uint16_t)table);
 							} break;
 							case ILBitWidth::b32: {
 								block->write_value(ILInstruction::table32offset32);
-								block->write_value((uint32_t)table);
+								block->write_value((std::uint32_t)table);
 							} break;
 						}
 
-						block->write_value(ILBlock::read_data<uint32_t>(it));
+						block->write_value(ILBlock::read_data<std::uint32_t>(it));
 					} break;
 					case ILInstruction::table16offset8: {
-						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<uint16_t>(it)];
+						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<std::uint16_t>(it)];
 						switch (bit(table))
 						{
 							case ILBitWidth::b8: {
 								block->write_value(ILInstruction::table8offset8);
-								block->write_value((uint8_t)table);
+								block->write_value((std::uint8_t)table);
 							} break;
 							case ILBitWidth::b16: {
 								block->write_value(ILInstruction::table16offset8);
-								block->write_value((uint16_t)table);
+								block->write_value((std::uint16_t)table);
 							} break;
 							case ILBitWidth::b32: {
 								block->write_value(ILInstruction::table32offset8);
-								block->write_value((uint32_t)table);
+								block->write_value((std::uint32_t)table);
 							} break;
 						}
 
-						block->write_value(ILBlock::read_data<uint8_t>(it));
+						block->write_value(ILBlock::read_data<std::uint8_t>(it));
 					} break;
 					case ILInstruction::table16offset16: {
-						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<uint16_t>(it)];
+						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<std::uint16_t>(it)];
 						switch (bit(table))
 						{
 							case ILBitWidth::b8: {
 								block->write_value(ILInstruction::table8offset16);
-								block->write_value((uint8_t)table);
+								block->write_value((std::uint8_t)table);
 							} break;
 							case ILBitWidth::b16: {
 								block->write_value(ILInstruction::table16offset16);
-								block->write_value((uint16_t)table);
+								block->write_value((std::uint16_t)table);
 							} break;
 							case ILBitWidth::b32: {
 								block->write_value(ILInstruction::table32offset16);
-								block->write_value((uint32_t)table);
+								block->write_value((std::uint32_t)table);
 							} break;
 						}
 
-						block->write_value(ILBlock::read_data<uint16_t>(it));
+						block->write_value(ILBlock::read_data<std::uint16_t>(it));
 					} break;
 					case ILInstruction::table16offset32: {
-						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<uint16_t>(it)];
+						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<std::uint16_t>(it)];
 						switch (bit(table))
 						{
 							case ILBitWidth::b8: {
 								block->write_value(ILInstruction::table8offset32);
-								block->write_value((uint8_t)table);
+								block->write_value((std::uint8_t)table);
 							} break;
 							case ILBitWidth::b16: {
 								block->write_value(ILInstruction::table16offset32);
-								block->write_value((uint16_t)table);
+								block->write_value((std::uint16_t)table);
 							} break;
 							case ILBitWidth::b32: {
 								block->write_value(ILInstruction::table32offset32);
-								block->write_value((uint32_t)table);
+								block->write_value((std::uint32_t)table);
 							} break;
 						}
 
-						block->write_value(ILBlock::read_data<uint32_t>(it));
+						block->write_value(ILBlock::read_data<std::uint32_t>(it));
 					} break;
 					case ILInstruction::table32offset8: {
-						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<uint32_t>(it)];
+						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<std::uint32_t>(it)];
 						switch (bit(table))
 						{
 							case ILBitWidth::b8: {
 								block->write_value(ILInstruction::table8offset8);
-								block->write_value((uint8_t)table);
+								block->write_value((std::uint8_t)table);
 							} break;
 							case ILBitWidth::b16: {
 								block->write_value(ILInstruction::table16offset8);
-								block->write_value((uint16_t)table);
+								block->write_value((std::uint16_t)table);
 							} break;
 							case ILBitWidth::b32: {
 								block->write_value(ILInstruction::table32offset8);
-								block->write_value((uint32_t)table);
+								block->write_value((std::uint32_t)table);
 							} break;
 						}
 
-						block->write_value(ILBlock::read_data<uint8_t>(it));
+						block->write_value(ILBlock::read_data<std::uint8_t>(it));
 					} break;
 					case ILInstruction::table32offset16: {
-						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<uint32_t>(it)];
+						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<std::uint32_t>(it)];
 						switch (bit(table))
 						{
 							case ILBitWidth::b8: {
 								block->write_value(ILInstruction::table8offset16);
-								block->write_value((uint8_t)table);
+								block->write_value((std::uint8_t)table);
 							} break;
 							case ILBitWidth::b16: {
 								block->write_value(ILInstruction::table16offset16);
-								block->write_value((uint16_t)table);
+								block->write_value((std::uint16_t)table);
 							} break;
 							case ILBitWidth::b32: {
 								block->write_value(ILInstruction::table32offset16);
-								block->write_value((uint32_t)table);
+								block->write_value((std::uint32_t)table);
 							} break;
 						}
 
-						block->write_value(ILBlock::read_data<uint16_t>(it));
+						block->write_value(ILBlock::read_data<std::uint16_t>(it));
 					} break;
 					case ILInstruction::table32offset32: {
-						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<uint32_t>(it)];
+						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<std::uint32_t>(it)];
 						switch (bit(table))
 						{
 							case ILBitWidth::b8: {
 								block->write_value(ILInstruction::table8offset32);
-								block->write_value((uint8_t)table);
+								block->write_value((std::uint8_t)table);
 							} break;
 							case ILBitWidth::b16: {
 								block->write_value(ILInstruction::table16offset32);
-								block->write_value((uint16_t)table);
+								block->write_value((std::uint16_t)table);
 							} break;
 							case ILBitWidth::b32: {
 								block->write_value(ILInstruction::table32offset32);
-								block->write_value((uint32_t)table);
+								block->write_value((std::uint32_t)table);
 							} break;
 						}
 
-						block->write_value(ILBlock::read_data<uint32_t>(it));
+						block->write_value(ILBlock::read_data<std::uint32_t>(it));
 					} break;
 
 
 
 					case ILInstruction::table8roffset8: {
 						auto pair = ILBlock::read_data<ILDataTypePair>(it);
-						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<uint8_t>(it)];
+						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<std::uint8_t>(it)];
 						switch (bit(table))
 						{
 							case ILBitWidth::b8: {
 								block->write_value(ILInstruction::table8roffset8);
 								block->write_value(pair);
-								block->write_value((uint8_t)table);
+								block->write_value((std::uint8_t)table);
 							} break;
 							case ILBitWidth::b16: {
 								block->write_value(ILInstruction::table16roffset8);
 								block->write_value(pair);
-								block->write_value((uint16_t)table);
+								block->write_value((std::uint16_t)table);
 							} break;
 							case ILBitWidth::b32: {
 								block->write_value(ILInstruction::table32roffset8);
 								block->write_value(pair);
-								block->write_value((uint32_t)table);
+								block->write_value((std::uint32_t)table);
 							} break;
 						}
 
-						block->write_value(ILBlock::read_data<uint8_t>(it));
+						block->write_value(ILBlock::read_data<std::uint8_t>(it));
 					} break;
 					case ILInstruction::table8roffset16: {
 						auto pair = ILBlock::read_data<ILDataTypePair>(it);
-						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<uint8_t>(it)];
+						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<std::uint8_t>(it)];
 						switch (bit(table))
 						{
 							case ILBitWidth::b8: {
 								block->write_value(ILInstruction::table8roffset16);
 								block->write_value(pair);
-								block->write_value((uint8_t)table);
+								block->write_value((std::uint8_t)table);
 							} break;
 							case ILBitWidth::b16: {
 								block->write_value(ILInstruction::table16roffset16);
 								block->write_value(pair);
-								block->write_value((uint16_t)table);
+								block->write_value((std::uint16_t)table);
 							} break;
 							case ILBitWidth::b32: {
 								block->write_value(ILInstruction::table32roffset16);
 								block->write_value(pair);
-								block->write_value((uint32_t)table);
+								block->write_value((std::uint32_t)table);
 							} break;
 						}
 
-						block->write_value(ILBlock::read_data<uint16_t>(it));
+						block->write_value(ILBlock::read_data<std::uint16_t>(it));
 					} break;
 					case ILInstruction::table8roffset32: {
 						auto pair = ILBlock::read_data<ILDataTypePair>(it);
-						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<uint8_t>(it)];
+						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<std::uint8_t>(it)];
 						switch (bit(table))
 						{
 							case ILBitWidth::b8: {
 								block->write_value(ILInstruction::table8roffset32);
 								block->write_value(pair);
-								block->write_value((uint8_t)table);
+								block->write_value((std::uint8_t)table);
 							} break;
 							case ILBitWidth::b16: {
 								block->write_value(ILInstruction::table16roffset32);
 								block->write_value(pair);
-								block->write_value((uint16_t)table);
+								block->write_value((std::uint16_t)table);
 							} break;
 							case ILBitWidth::b32: {
 								block->write_value(ILInstruction::table32roffset32);
 								block->write_value(pair);
-								block->write_value((uint32_t)table);
+								block->write_value((std::uint32_t)table);
 							} break;
 						}
 
-						block->write_value(ILBlock::read_data<uint32_t>(it));
+						block->write_value(ILBlock::read_data<std::uint32_t>(it));
 					} break;
 					case ILInstruction::table16roffset8: {
 						auto pair = ILBlock::read_data<ILDataTypePair>(it);
-						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<uint16_t>(it)];
+						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<std::uint16_t>(it)];
 						switch (bit(table))
 						{
 							case ILBitWidth::b8: {
 								block->write_value(ILInstruction::table8roffset8);
 								block->write_value(pair);
-								block->write_value((uint8_t)table);
+								block->write_value((std::uint8_t)table);
 							} break;
 							case ILBitWidth::b16: {
 								block->write_value(ILInstruction::table16roffset8);
 								block->write_value(pair);
-								block->write_value((uint16_t)table);
+								block->write_value((std::uint16_t)table);
 							} break;
 							case ILBitWidth::b32: {
 								block->write_value(ILInstruction::table32roffset8);
 								block->write_value(pair);
-								block->write_value((uint32_t)table);
+								block->write_value((std::uint32_t)table);
 							} break;
 						}
 
-						block->write_value(ILBlock::read_data<uint8_t>(it));
+						block->write_value(ILBlock::read_data<std::uint8_t>(it));
 					} break;
 					case ILInstruction::table16roffset16: {
 						auto pair = ILBlock::read_data<ILDataTypePair>(it);
-						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<uint16_t>(it)];
+						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<std::uint16_t>(it)];
 						switch (bit(table))
 						{
 							case ILBitWidth::b8: {
 								block->write_value(ILInstruction::table8roffset16);
 								block->write_value(pair);
-								block->write_value((uint8_t)table);
+								block->write_value((std::uint8_t)table);
 							} break;
 							case ILBitWidth::b16: {
 								block->write_value(ILInstruction::table16roffset16);
 								block->write_value(pair);
-								block->write_value((uint16_t)table);
+								block->write_value((std::uint16_t)table);
 							} break;
 							case ILBitWidth::b32: {
 								block->write_value(ILInstruction::table32roffset16);
 								block->write_value(pair);
-								block->write_value((uint32_t)table);
+								block->write_value((std::uint32_t)table);
 							} break;
 						}
 
-						block->write_value(ILBlock::read_data<uint16_t>(it));
+						block->write_value(ILBlock::read_data<std::uint16_t>(it));
 					} break;
 					case ILInstruction::table16roffset32: {
 						auto pair = ILBlock::read_data<ILDataTypePair>(it);
-						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<uint16_t>(it)];
+						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<std::uint16_t>(it)];
 						switch (bit(table))
 						{
 							case ILBitWidth::b8: {
 								block->write_value(ILInstruction::table8roffset32);
 								block->write_value(pair);
-								block->write_value((uint8_t)table);
+								block->write_value((std::uint8_t)table);
 							} break;
 							case ILBitWidth::b16: {
 								block->write_value(ILInstruction::table16roffset32);
 								block->write_value(pair);
-								block->write_value((uint16_t)table);
+								block->write_value((std::uint16_t)table);
 							} break;
 							case ILBitWidth::b32: {
 								block->write_value(ILInstruction::table32roffset32);
 								block->write_value(pair);
-								block->write_value((uint32_t)table);
+								block->write_value((std::uint32_t)table);
 							} break;
 						}
 
-						block->write_value(ILBlock::read_data<uint32_t>(it));
+						block->write_value(ILBlock::read_data<std::uint32_t>(it));
 					} break;
 					case ILInstruction::table32roffset8: {
 						auto pair = ILBlock::read_data<ILDataTypePair>(it);
-						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<uint32_t>(it)];
+						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<std::uint32_t>(it)];
 						switch (bit(table))
 						{
 							case ILBitWidth::b8: {
 								block->write_value(ILInstruction::table8roffset8);
 								block->write_value(pair);
-								block->write_value((uint8_t)table);
+								block->write_value((std::uint8_t)table);
 							} break;
 							case ILBitWidth::b16: {
 								block->write_value(ILInstruction::table16roffset8);
 								block->write_value(pair);
-								block->write_value((uint16_t)table);
+								block->write_value((std::uint16_t)table);
 							} break;
 							case ILBitWidth::b32: {
 								block->write_value(ILInstruction::table32roffset8);
 								block->write_value(pair);
-								block->write_value((uint32_t)table);
+								block->write_value((std::uint32_t)table);
 							} break;
 						}
 
-						block->write_value(ILBlock::read_data<uint8_t>(it));
+						block->write_value(ILBlock::read_data<std::uint8_t>(it));
 					} break;
 					case ILInstruction::table32roffset16: {
 						auto pair = ILBlock::read_data<ILDataTypePair>(it);
-						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<uint32_t>(it)];
+						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<std::uint32_t>(it)];
 						switch (bit(table))
 						{
 							case ILBitWidth::b8: {
 								block->write_value(ILInstruction::table8roffset16);
 								block->write_value(pair);
-								block->write_value((uint8_t)table);
+								block->write_value((std::uint8_t)table);
 							} break;
 							case ILBitWidth::b16: {
 								block->write_value(ILInstruction::table16roffset16);
 								block->write_value(pair);
-								block->write_value((uint16_t)table);
+								block->write_value((std::uint16_t)table);
 							} break;
 							case ILBitWidth::b32: {
 								block->write_value(ILInstruction::table32roffset16);
 								block->write_value(pair);
-								block->write_value((uint32_t)table);
+								block->write_value((std::uint32_t)table);
 							} break;
 						}
 
-						block->write_value(ILBlock::read_data<uint16_t>(it));
+						block->write_value(ILBlock::read_data<std::uint16_t>(it));
 					} break;
 					case ILInstruction::table32roffset32: {
 						auto pair = ILBlock::read_data<ILDataTypePair>(it);
-						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<uint32_t>(it)];
+						tableid_t table = (tableid_t)map_tables[ILBlock::read_data<std::uint32_t>(it)];
 						switch (bit(table))
 						{
 							case ILBitWidth::b8: {
 								block->write_value(ILInstruction::table8roffset32);
 								block->write_value(pair);
-								block->write_value((uint8_t)table);
+								block->write_value((std::uint8_t)table);
 							} break;
 							case ILBitWidth::b16: {
 								block->write_value(ILInstruction::table16roffset32);
 								block->write_value(pair);
-								block->write_value((uint16_t)table);
+								block->write_value((std::uint16_t)table);
 							} break;
 							case ILBitWidth::b32: {
 								block->write_value(ILInstruction::table32roffset32);
 								block->write_value(pair);
-								block->write_value((uint32_t)table);
+								block->write_value((std::uint32_t)table);
 							} break;
 						}
 
-						block->write_value(ILBlock::read_data<uint32_t>(it));
+						block->write_value(ILBlock::read_data<std::uint32_t>(it));
 					} break;
 
 					case ILInstruction::debug: {
 						block->write_value(inst);
-						block->write_value(ILBlock::read_data<uint16_t>(it));
-						block->write_value(ILBlock::read_data<uint16_t>(it));
+						block->write_value(ILBlock::read_data<std::uint16_t>(it));
+						block->write_value(ILBlock::read_data<std::uint16_t>(it));
 					} break;
 
 					case ILInstruction::load: {
@@ -1505,29 +1505,29 @@ namespace Corrosive {
 
 					case ILInstruction::jmpz: {
 						block->write_value(inst);
-						block->write_value((uint32_t)map_blocks[ILBlock::read_data<uint32_t>(it)]);
-						block->write_value((uint32_t)map_blocks[ILBlock::read_data<uint32_t>(it)]);
+						block->write_value((std::uint32_t)map_blocks[ILBlock::read_data<std::uint32_t>(it)]);
+						block->write_value((std::uint32_t)map_blocks[ILBlock::read_data<std::uint32_t>(it)]);
 					} break;
 
-					case ILInstruction::u8:   block->write_value(inst); block->write_value(ILBlock::read_data<uint8_t>(it)); break;
-					case ILInstruction::i8:   block->write_value(inst); block->write_value(ILBlock::read_data<int8_t>(it)); break;
-					case ILInstruction::u16:  block->write_value(inst); block->write_value(ILBlock::read_data<uint16_t>(it)); break;
-					case ILInstruction::i16:  block->write_value(inst); block->write_value(ILBlock::read_data<int16_t>(it)); break;
-					case ILInstruction::u32:  block->write_value(inst); block->write_value(ILBlock::read_data<uint32_t>(it)); break;
-					case ILInstruction::i32:  block->write_value(inst); block->write_value(ILBlock::read_data<int32_t>(it)); break;
-					case ILInstruction::u64:  block->write_value(inst); block->write_value(ILBlock::read_data<uint64_t>(it)); break;
-					case ILInstruction::i64:  block->write_value(inst); block->write_value(ILBlock::read_data<int64_t>(it)); break;
+					case ILInstruction::u8:   block->write_value(inst); block->write_value(ILBlock::read_data<std::uint8_t>(it)); break;
+					case ILInstruction::i8:   block->write_value(inst); block->write_value(ILBlock::read_data<std::int8_t>(it)); break;
+					case ILInstruction::u16:  block->write_value(inst); block->write_value(ILBlock::read_data<std::uint16_t>(it)); break;
+					case ILInstruction::i16:  block->write_value(inst); block->write_value(ILBlock::read_data<std::int16_t>(it)); break;
+					case ILInstruction::u32:  block->write_value(inst); block->write_value(ILBlock::read_data<std::uint32_t>(it)); break;
+					case ILInstruction::i32:  block->write_value(inst); block->write_value(ILBlock::read_data<std::int32_t>(it)); break;
+					case ILInstruction::u64:  block->write_value(inst); block->write_value(ILBlock::read_data<std::uint64_t>(it)); break;
+					case ILInstruction::i64:  block->write_value(inst); block->write_value(ILBlock::read_data<std::int64_t>(it)); break;
 					case ILInstruction::f32:  block->write_value(inst); block->write_value(ILBlock::read_data<float>(it)); break;
 					case ILInstruction::f64:  block->write_value(inst); block->write_value(ILBlock::read_data<double>(it)); break;
 					case ILInstruction::word: block->write_value(inst); block->write_value(ILBlock::read_data<void*>(it)); break;
 					case ILInstruction::slice: {
 						block->write_value(inst);
-						block->write_value((uint32_t) map_constants[ILBlock::read_data<uint32_t>(it)]);
+						block->write_value((std::uint32_t) map_constants[ILBlock::read_data<std::uint32_t>(it)]);
 						
 						auto t = ILBlock::read_data<ILSizeType>(it);
-						auto v = ILBlock::read_data<uint32_t>(it);
+						auto v = ILBlock::read_data<std::uint32_t>(it);
 
-						uint32_t new_id = v;
+						std::uint32_t new_id = v;
 						if (t == ILSizeType::table) {
 							new_id = (tableid_t)map_tables[new_id];
 						}
@@ -1542,8 +1542,8 @@ namespace Corrosive {
 
 					case ILInstruction::size16: {
 						auto t = ILBlock::read_data<ILSizeType>(it);
-						auto v = ILBlock::read_data<uint16_t>(it);
-						uint32_t new_id = v;
+						auto v = ILBlock::read_data<std::uint16_t>(it);
+						std::uint32_t new_id = v;
 						if (t == ILSizeType::table) {
 							new_id = (tableid_t)map_tables[new_id];
 						}
@@ -1556,25 +1556,25 @@ namespace Corrosive {
 							case ILBitWidth::b8: {
 								block->write_value(ILInstruction::size8);
 								block->write_value(t);
-								block->write_value((uint8_t)new_id);
+								block->write_value((std::uint8_t)new_id);
 							} break;
 							case ILBitWidth::b16: {
 								block->write_value(ILInstruction::size16);
 								block->write_value(t);
-								block->write_value((uint16_t)new_id);
+								block->write_value((std::uint16_t)new_id);
 							} break;
 							case ILBitWidth::b32: {
 								block->write_value(ILInstruction::size32);
 								block->write_value(t);
-								block->write_value((uint32_t)new_id);
+								block->write_value((std::uint32_t)new_id);
 							} break;
 						}
 
 					} break;
 					case ILInstruction::size32: {
 						auto t = ILBlock::read_data<ILSizeType>(it);
-						auto v = ILBlock::read_data<uint32_t>(it);
-						uint32_t new_id = v;
+						auto v = ILBlock::read_data<std::uint32_t>(it);
+						std::uint32_t new_id = v;
 						if (t == ILSizeType::table) {
 							new_id = (tableid_t)map_tables[new_id];
 						}
@@ -1587,25 +1587,25 @@ namespace Corrosive {
 							case ILBitWidth::b8: {
 								block->write_value(ILInstruction::size8);
 								block->write_value(t);
-								block->write_value((uint8_t)new_id);
+								block->write_value((std::uint8_t)new_id);
 							} break;
 							case ILBitWidth::b16: {
 								block->write_value(ILInstruction::size16);
 								block->write_value(t);
-								block->write_value((uint16_t)new_id);
+								block->write_value((std::uint16_t)new_id);
 							} break;
 							case ILBitWidth::b32: {
 								block->write_value(ILInstruction::size32);
 								block->write_value(t);
-								block->write_value((uint32_t)new_id);
+								block->write_value((std::uint32_t)new_id);
 							} break;
 						}
 
 					} break;
 					case ILInstruction::size8: {
 						auto t = ILBlock::read_data<ILSizeType>(it);
-						auto v = ILBlock::read_data<uint8_t>(it);
-						uint32_t new_id = v;
+						auto v = ILBlock::read_data<std::uint8_t>(it);
+						std::uint32_t new_id = v;
 						if (t == ILSizeType::table) {
 							new_id = (tableid_t)map_tables[new_id];
 						}
@@ -1618,17 +1618,17 @@ namespace Corrosive {
 							case ILBitWidth::b8: {
 								block->write_value(ILInstruction::size8);
 								block->write_value(t);
-								block->write_value((uint8_t)new_id);
+								block->write_value((std::uint8_t)new_id);
 							} break;
 							case ILBitWidth::b16: {
 								block->write_value(ILInstruction::size16);
 								block->write_value(t);
-								block->write_value((uint16_t)new_id);
+								block->write_value((std::uint16_t)new_id);
 							} break;
 							case ILBitWidth::b32: {
 								block->write_value(ILInstruction::size32);
 								block->write_value(t);
-								block->write_value((uint32_t)new_id);
+								block->write_value((std::uint32_t)new_id);
 							} break;
 						}
 
@@ -1662,8 +1662,8 @@ namespace Corrosive {
 	}
 
 
-	void ILLifetime::clean_prepass(std::unordered_set<size_t>& used_tables,
-		std::unordered_set<size_t>& used_arrays) {
+	void ILLifetime::clean_prepass(std::unordered_set<std::size_t>& used_tables,
+		std::unordered_set<std::size_t>& used_arrays) {
 
 		unsigned char* ptr = lifetime.data();
 		unsigned char* end = ptr + lifetime.size();
@@ -1672,7 +1672,7 @@ namespace Corrosive {
 			{
 				case ILLifetimeEvent::append: {
 					ILSizeType ptr_t = *(ILSizeType*)(ptr++);
-					uint32_t ptr_val = (((uint32_t) * (ptr++)) << 24) | (((uint32_t) * (ptr++)) << 16) | (((uint32_t) * (ptr++)) << 8) | (((uint32_t) * (ptr++)));
+					std::uint32_t ptr_val = (((std::uint32_t) * (ptr++)) << 24) | (((std::uint32_t) * (ptr++)) << 16) | (((std::uint32_t) * (ptr++)) << 8) | (((std::uint32_t) * (ptr++)));
 
 					if (ptr_t == ILSizeType::table) {
 						used_tables.insert(ptr_val);
@@ -1688,8 +1688,8 @@ namespace Corrosive {
 	}
 
 
-	void ILLifetime::clean_pass(std::unordered_map<size_t, size_t>& map_tables,
-		std::unordered_map<size_t, size_t>& map_arrays) {
+	void ILLifetime::clean_pass(std::unordered_map<std::size_t, std::size_t>& map_tables,
+		std::unordered_map<std::size_t, std::size_t>& map_arrays) {
 
 		unsigned char* ptr = lifetime.data();
 		unsigned char* end = ptr + lifetime.size();
@@ -1699,20 +1699,20 @@ namespace Corrosive {
 				case ILLifetimeEvent::append: {
 					ILSizeType ptr_t = *(ILSizeType*)(ptr++);
 
-					uint32_t ptr_val = (((uint32_t) * (ptr)) << 24) | (((uint32_t) * (ptr+1)) << 16) | (((uint32_t) * (ptr+2)) << 8) | (((uint32_t) * (ptr+3)));
+					std::uint32_t ptr_val = (((std::uint32_t) * (ptr)) << 24) | (((std::uint32_t) * (ptr+1)) << 16) | (((std::uint32_t) * (ptr+2)) << 8) | (((std::uint32_t) * (ptr+3)));
 
 					if (ptr_t == ILSizeType::table) {
-						ptr_val = (uint32_t)map_tables[ptr_val];
+						ptr_val = (std::uint32_t)map_tables[ptr_val];
 
 					}
 					else if (ptr_t == ILSizeType::array) {
-						ptr_val = (uint32_t)map_arrays[ptr_val];
+						ptr_val = (std::uint32_t)map_arrays[ptr_val];
 					}
 
-					*ptr++ = (uint8_t)((ptr_val >> 24) & 0xFF);
-					*ptr++ = (uint8_t)((ptr_val >> 16) & 0xFF);
-					*ptr++ = (uint8_t)((ptr_val >> 8) & 0xFF);
-					*ptr++ = (uint8_t)((ptr_val) & 0xFF);
+					*ptr++ = (std::uint8_t)((ptr_val >> 24) & 0xFF);
+					*ptr++ = (std::uint8_t)((ptr_val >> 16) & 0xFF);
+					*ptr++ = (std::uint8_t)((ptr_val >> 8) & 0xFF);
+					*ptr++ = (std::uint8_t)((ptr_val) & 0xFF);
 				}break;
 
 				default:break;
@@ -1741,10 +1741,10 @@ namespace Corrosive {
 				break;
 
 			case ILSizeType::word: {
-				ptr += value*sizeof(size_t);
+				ptr += value*sizeof(std::size_t);
 			} break;
 			case ILSizeType::ptr: {
-				for (uint32_t i=0;i<value;++i) { 
+				for (std::uint32_t i=0;i<value;++i) { 
 					void* target = *(void**)ptr;
 
 					pointer_offsets.insert(target);
@@ -1753,32 +1753,32 @@ namespace Corrosive {
 				}
 			} break;
 			case ILSizeType::slice: {
-				for (uint32_t i=0;i<value;++i) {
+				for (std::uint32_t i=0;i<value;++i) {
 					void* target = *(void**)ptr;
 
 					pointer_offsets.insert(target);
 
 					ptr += sizeof(void*);
-					ptr+=sizeof(size_t);
+					ptr+=sizeof(std::size_t);
 				}
 			}break;
 			case ILSizeType::table: {
-				size_t s = eval(mod, compiler_arch);
+				std::size_t s = eval(mod, compiler_arch);
 				auto& table = mod->structure_tables[value];
 				table.calculate(mod, compiler_arch);
-				for (size_t e = 0; e<table.elements.size(); ++e) {
+				for (std::size_t e = 0; e<table.elements.size(); ++e) {
 					unsigned char* elem_off = ptr + table.calculated_offsets[e];
 					table.elements[e].clean_prepass(mod, pointer_offsets, elem_off);
 				}
 				ptr+=s;
 			}
 			case ILSizeType::array: {
-				size_t s = eval(mod, compiler_arch);
+				std::size_t s = eval(mod, compiler_arch);
 				auto& table = mod->array_tables[value];
-				size_t es = table.element.eval(mod, compiler_arch);
+				std::size_t es = table.element.eval(mod, compiler_arch);
 				table.calculate(mod, compiler_arch);
 				unsigned char* offset = ptr;
-				for (uint32_t i=0; i<table.count; ++i) {
+				for (std::uint32_t i=0; i<table.count; ++i) {
 					table.element.clean_prepass(mod, pointer_offsets, offset);
 					offset += es;
 				}

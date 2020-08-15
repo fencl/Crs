@@ -312,7 +312,7 @@ namespace Corrosive {
 
 				for (auto l = generic_ctx.generic_layout.rbegin(); l != generic_ctx.generic_layout.rend(); l++) {
 					Type* t = std::get<1>(*l);
-					size_t c_size = t->size().eval(compiler->global_module(), compiler_arch);
+					std::size_t c_size = t->size().eval(compiler->global_module(), compiler_arch);
 					t->copy_to_generic_storage(old_offset, new_offset);
 					old_offset += c_size;
 					new_offset += c_size;
@@ -355,7 +355,7 @@ namespace Corrosive {
 					throw_specific_error(c, "Name already exists in the structure");
 				}
 
-				new_inst->name_table[m->name_string] = std::make_pair((uint8_t)2, (uint32_t)new_inst->subfunctions.size());
+				new_inst->name_table[m->name_string] = std::make_pair((std::uint8_t)2, (std::uint32_t)new_inst->subfunctions.size());
 				new_inst->subfunctions.push_back(std::move(ft));
 			}
 
@@ -370,7 +370,7 @@ namespace Corrosive {
 					throw_specific_error(c, "Name already exists in the structure");
 				}
 
-				new_inst->name_table[t->name_string] = std::make_pair((uint8_t)1, (uint32_t)new_inst->subtemplates.size());
+				new_inst->name_table[t->name_string] = std::make_pair((std::uint8_t)1, (std::uint32_t)new_inst->subtemplates.size());
 				new_inst->subtemplates.push_back(std::move(decl));
 			}
 
@@ -385,7 +385,7 @@ namespace Corrosive {
 					throw_specific_error(c, "Name already exists in the structure");
 				}
 
-				new_inst->name_table[s->name_string] = std::make_pair((uint8_t)4, (uint32_t)new_inst->substatics.size());
+				new_inst->name_table[s->name_string] = std::make_pair((std::uint8_t)4, (std::uint32_t)new_inst->substatics.size());
 				new_inst->substatics.push_back(std::move(decl));
 			}
 
@@ -623,9 +623,9 @@ namespace Corrosive {
 					}
 				}
 
-				new_inst->member_table[m->name_string] = std::make_pair((uint16_t)new_inst->member_vars.size(), MemberTableEntryType::var);
+				new_inst->member_table[m->name_string] = std::make_pair((std::uint16_t)new_inst->member_vars.size(), MemberTableEntryType::var);
 				if (composite) {
-					new_inst->member_composites.push_back((uint16_t)new_inst->member_vars.size());
+					new_inst->member_composites.push_back((std::uint16_t)new_inst->member_vars.size());
 				}
 				new_inst->member_vars.push_back(std::make_pair(m_t, 0));
 			}
@@ -657,22 +657,22 @@ namespace Corrosive {
 
 	void StructureTemplate::var_wrapper(dword_t dw, Type* type) {
 		Compiler* compiler = Compiler::current();
-		uint8_t* data = compiler->constant_manager()->register_generic_storage((uint8_t*)dw.p1, (size_t)dw.p2, compiler->types()->t_u8);
-		std::basic_string_view<char> name((char*)data, (size_t)dw.p2);
+		std::uint8_t* data = compiler->constant_manager()->register_generic_storage((std::uint8_t*)dw.p1, (std::size_t)dw.p2, compiler->types()->t_u8);
+		std::basic_string_view<char> name((char*)data, (std::size_t)dw.p2);
 		StructureInstance* sinst = (StructureInstance*)compiler->workspace();
 
-		sinst->member_table[name] = std::make_pair((uint16_t)sinst->member_vars.size(), MemberTableEntryType::var);
+		sinst->member_table[name] = std::make_pair((std::uint16_t)sinst->member_vars.size(), MemberTableEntryType::var);
 		sinst->member_vars.push_back(std::make_pair(type, 0));
 	}
 
 	void StructureTemplate::var_alias_wrapper(dword_t dw, Type* type) {
 		Compiler* compiler = Compiler::current();
-		uint8_t* data = compiler->constant_manager()->register_generic_storage((uint8_t*)dw.p1, (size_t)dw.p2, compiler->types()->t_u8);
-		std::basic_string_view<char> name((char*)data, (size_t)dw.p2);
+		std::uint8_t* data = compiler->constant_manager()->register_generic_storage((std::uint8_t*)dw.p1, (std::size_t)dw.p2, compiler->types()->t_u8);
+		std::basic_string_view<char> name((char*)data, (std::size_t)dw.p2);
 		StructureInstance* sinst = (StructureInstance*)compiler->workspace();
 
-		sinst->member_table[name] = std::make_pair((uint16_t)sinst->member_vars.size(), MemberTableEntryType::var); 
-		sinst->member_composites.push_back((uint16_t)sinst->member_vars.size());
+		sinst->member_table[name] = std::make_pair((std::uint16_t)sinst->member_vars.size(), MemberTableEntryType::var); 
+		sinst->member_composites.push_back((std::uint16_t)sinst->member_vars.size());
 		sinst->member_vars.push_back(std::make_pair(type, 0));
 	}
 
@@ -707,7 +707,7 @@ namespace Corrosive {
 				unsigned char* new_offset = new_key_inst.get();
 
 				for (auto l = generic_ctx.generic_layout.rbegin(); l != generic_ctx.generic_layout.rend(); l++) {
-					size_t c_size = std::get<1>(*l)->size().eval(Compiler::current()->global_module(), compiler_arch);
+					std::size_t c_size = std::get<1>(*l)->size().eval(Compiler::current()->global_module(), compiler_arch);
 
 					std::get<1>(*l)->copy_to_generic_storage(old_offset, new_offset);
 					old_offset += c_size;
@@ -831,7 +831,7 @@ namespace Corrosive {
 				}
 
 
-				new_inst->member_table[m->name_string] = (uint16_t)decls.size();
+				new_inst->member_table[m->name_string] = (std::uint16_t)decls.size();
 				decls.push_back(std::make_pair(ret_type, std::move(args)));
 			}
 
@@ -876,7 +876,7 @@ namespace Corrosive {
 				unsigned char* new_offset = new_key_inst.get();
 
 				for (auto l = generic_ctx.generic_layout.rbegin(); l != generic_ctx.generic_layout.rend(); l++) {
-					size_t c_size = std::get<1>(*l)->size().eval(Compiler::current()->global_module(), compiler_arch);
+					std::size_t c_size = std::get<1>(*l)->size().eval(Compiler::current()->global_module(), compiler_arch);
 					std::get<1>(*l)->copy_to_generic_storage(old_offset, new_offset);
 					old_offset += c_size;
 					new_offset += c_size;
@@ -1041,7 +1041,7 @@ namespace Corrosive {
 					}
 
 					
-					for (size_t i = 0; i < arguments.size(); i++) {
+					for (std::size_t i = 0; i < arguments.size(); i++) {
 						auto& a = arguments[i];
 
 						a->compile();
@@ -1054,7 +1054,7 @@ namespace Corrosive {
 
 
 
-					uint16_t argid = (uint16_t)(arguments.size() - (ret_rval_stack ? 0 : 1));
+					std::uint16_t argid = (std::uint16_t)(arguments.size() - (ret_rval_stack ? 0 : 1));
 					for (auto a = arguments.rbegin(); a != arguments.rend(); a++) {
 						ILBuilder::build_local(compiler->scope(), argid);
 						Expression::copy_from_rvalue(*a, CompileType::compile);
@@ -1121,7 +1121,7 @@ namespace Corrosive {
 		}
 	}
 
-	uint32_t upper_power_of_two(uint32_t v)
+	std::uint32_t upper_power_of_two(std::uint32_t v)
 	{
 		v--;
 		v |= v >> 1;
@@ -1260,8 +1260,8 @@ namespace Corrosive {
 			structure_type = StructureInstanceType::normal_structure;
 			compile_state = 2;
 
-			for (size_t i = 0; i < member_composites.size(); i++) {
-				size_t comp = member_composites[i];
+			for (std::size_t i = 0; i < member_composites.size(); i++) {
+				std::size_t comp = member_composites[i];
 				auto& m = member_vars[comp];
 				Type* t = m.first;
 
@@ -1273,19 +1273,19 @@ namespace Corrosive {
 					TypeStructureInstance* ts = (TypeStructureInstance*)t;
 					ts->compile();
 					for (auto&& v : ts->owner->member_table) {
-						member_table.insert(std::make_pair(v.first, std::make_pair<uint16_t, MemberTableEntryType>((uint16_t)comp, MemberTableEntryType::alias)));
+						member_table.insert(std::make_pair(v.first, std::make_pair<std::uint16_t, MemberTableEntryType>((std::uint16_t)comp, MemberTableEntryType::alias)));
 					}
 				}
 				else if (t->type() == TypeInstanceType::type_slice) {
 					TypeSlice* ts = (TypeSlice*)t;
 					ts->compile();
 					pass_array_operator = true;
-					pass_array_id = (uint16_t)comp;
+					pass_array_id = (std::uint16_t)comp;
 				}
 			}
 
 
-			for (uint32_t i = 0; i < subfunctions.size(); ++i) {
+			for (std::uint32_t i = 0; i < subfunctions.size(); ++i) {
 				auto gf = subfunctions[i].get();
 				if (!(gf->ast_node->has_body() && ((AstFunctionNode*)gf->ast_node)->is_generic)) {
 					gf->compile();
@@ -1293,7 +1293,7 @@ namespace Corrosive {
 					gf->generate(nullptr, fi);
 
 					if (fi->arguments.size() > 0 && fi->arguments[0] == type.get()->generate_reference()) {
-						member_table.insert(std::make_pair(fi->ast_node->name_string, std::make_pair<uint16_t, MemberTableEntryType>((uint16_t)i, MemberTableEntryType::func)));
+						member_table.insert(std::make_pair(fi->ast_node->name_string, std::make_pair<std::uint16_t, MemberTableEntryType>((std::uint16_t)i, MemberTableEntryType::func)));
 					}
 				}
 			}
@@ -1330,13 +1330,13 @@ namespace Corrosive {
 	}
 
 
-	void TraitInstance::generate_vtable(StructureInstance* forinst, uint32_t& optid) {
+	void TraitInstance::generate_vtable(StructureInstance* forinst, std::uint32_t& optid) {
 		forinst->compile();
 
 		std::unique_ptr<void* []> vtable = std::make_unique<void* []>(member_declarations.size());
 
 		auto& f_table = forinst->traitfunctions[this];
-		size_t id = 0;
+		std::size_t id = 0;
 		for (auto&& m_func : member_declarations) {
 			FunctionInstance* finst = f_table[id].get();
 			finst->compile();
@@ -1345,7 +1345,7 @@ namespace Corrosive {
 		}
 
 		void** vt = vtable.get();
-		uint32_t vtid = Compiler::current()->global_module()->register_vtable((uint32_t)member_declarations.size(), std::move(vtable));
+		std::uint32_t vtid = Compiler::current()->global_module()->register_vtable((std::uint32_t)member_declarations.size(), std::move(vtable));
 		vtable_instances[forinst] = vtid;
 		optid = vtid;
 	}

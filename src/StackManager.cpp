@@ -30,7 +30,7 @@ namespace Corrosive {
 	}
 
 	void StackManager::push_item(std::string_view name, Type* t, stackid_t id) {
-		size_t previous = SIZE_MAX;
+		std::size_t previous = SIZE_MAX;
 
 		auto prev = stack_namespace.back().find(name);
 		if (prev != stack_namespace.back().end()) {

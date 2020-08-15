@@ -22,12 +22,12 @@ namespace Corrosive {
 		
 		Source* src = nullptr;
 		std::string_view buffer() const;
-		size_t offset = 0;
-		size_t length = 0;
-		size_t y = 0;
-		size_t x = 0;
+		std::size_t offset = 0;
+		std::size_t length = 0;
+		std::size_t y = 0;
+		std::size_t x = 0;
 		RecognizedToken tok;
-		size_t line();
+		std::size_t line();
 		void move_matching();
 	};
 

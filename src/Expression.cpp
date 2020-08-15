@@ -5,6 +5,7 @@
 #include "Declaration.hpp"
 #include "BuiltIn.hpp"
 #include <iostream>
+#include <cstring>
 #include "StackManager.hpp"
 
 namespace Corrosive {
@@ -95,7 +96,7 @@ namespace Corrosive {
 		if (!(result_type = Expression::arithmetic_result(left.type, right.type))) {
 			if ((l == 1 || l == 2) && (left.type == right.type)) {
 
-				int8_t eval_value = 0;
+				std::int8_t eval_value = 0;
 
 				if (cpt == CompileType::compile) {
 					if (left.lvalue || left.type->rvalue_stacked()) {
@@ -112,7 +113,7 @@ namespace Corrosive {
 					else {
 						ILBuilder::eval_rmemcmp(compiler->evaluator(), left.type->rvalue());
 					}
-					eval_value = compiler->evaluator()->pop_register_value<int8_t>();
+					eval_value = compiler->evaluator()->pop_register_value<std::int8_t>();
 				}
 
 				if (cpt == CompileType::compile) {
@@ -493,9 +494,9 @@ namespace Corrosive {
 			c.move();
 
 			if (cpt == CompileType::eval) {
-				uint8_t v = compiler->evaluator()->read_register_value<uint8_t>();
+				std::uint8_t v = compiler->evaluator()->read_register_value<std::uint8_t>();
 
-				compiler->evaluator()->pop_register_value<uint8_t>();
+				compiler->evaluator()->pop_register_value<std::uint8_t>();
 				CompileValue right;
 				err = c;
 				Expression::parse_operators(c,right, cpt, request);
@@ -505,7 +506,7 @@ namespace Corrosive {
 				
 
 
-				uint8_t rv = compiler->evaluator()->pop_register_value<uint8_t>();
+				std::uint8_t rv = compiler->evaluator()->pop_register_value<std::uint8_t>();
 				ILBuilder::eval_const_i8(compiler->evaluator(), v & rv);
 			}
 			else {
@@ -575,16 +576,16 @@ namespace Corrosive {
 			c.move();
 
 			if (cpt == CompileType::eval) {
-				uint8_t v = compiler->evaluator()->read_register_value<uint8_t>();
+				std::uint8_t v = compiler->evaluator()->read_register_value<std::uint8_t>();
 
-				compiler->evaluator()->pop_register_value<uint8_t>();
+				compiler->evaluator()->pop_register_value<std::uint8_t>();
 				CompileValue right;
 				Expression::parse_and(c, right, cpt, request);
 				Operand::deref(right, cpt);
 				Operand::cast(err, right, compiler->types()->t_bool, cpt, true);
 				Expression::rvalue(right, cpt);
 
-				uint8_t rv = compiler->evaluator()->pop_register_value<uint8_t>();
+				std::uint8_t rv = compiler->evaluator()->pop_register_value<std::uint8_t>();
 				ILBuilder::eval_const_i8(compiler->evaluator(), v | rv);
 			}
 			else {

@@ -42,10 +42,10 @@ namespace Corrosive {
 				a->compile();
 			}
 
-			size_t ret_ref_offset = (return_type->rvalue_stacked() ? 1 : 0);
+			std::size_t ret_ref_offset = (return_type->rvalue_stacked() ? 1 : 0);
 
 			std::vector<ILDataType> decl_args(args.size() + ret_ref_offset);
-			for (size_t i = ret_ref_offset; i < args.size() + ret_ref_offset; ++i) {
+			for (std::size_t i = ret_ref_offset; i < args.size() + ret_ref_offset; ++i) {
 				decl_args[i] = args[i - ret_ref_offset]->rvalue();
 			}
 

@@ -10,7 +10,7 @@ namespace Corrosive {
 	struct StackItem {
 		Type* type;
 		std::string_view name;
-		size_t previous;
+		std::size_t previous;
 		stackid_t id;
 	};
 
@@ -31,9 +31,9 @@ namespace Corrosive {
 
 	private:
 
-		std::vector<std::unordered_map<std::string_view, size_t>> stack_namespace;
+		std::vector<std::unordered_map<std::string_view, std::size_t>> stack_namespace;
 		std::vector<std::vector<StackItem>> stack;
-		std::vector<std::vector<size_t>> stack_state;
+		std::vector<std::vector<std::size_t>> stack_state;
 	};
 
 }

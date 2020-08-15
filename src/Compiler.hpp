@@ -33,7 +33,7 @@ namespace Corrosive {
 		StackManager* temp_stack() { return &temporary_stack_manager; }
 		Namespace* global_namespace() { return target_global_namespace.get(); }
 		ILModule* global_module() { return target_module.get(); }
-		ConstantManager* constant_manager() { return &constant_stack_manager; }
+		ConstantManager* constant_manager() { return constant_stack_manager.get(); }
 		Source* source() { return source_stack.back(); }
 		std::vector<TypeFunction*>& defer_scope() { return defers.back().back(); }
 		std::vector<std::vector<TypeFunction*>>& defer_function() { return defers.back(); }
@@ -72,11 +72,12 @@ namespace Corrosive {
 		std::unique_ptr<BuiltInTypes> default_types = std::make_unique<BuiltInTypes>();
 		std::unique_ptr<Namespace> target_global_namespace = std::make_unique<Namespace>();
 		std::unique_ptr<ILEvaluator> compiler_evaluator = std::make_unique<ILEvaluator>();
+		std::unique_ptr<ConstantManager> constant_stack_manager = std::make_unique<ConstantManager>();
+
 
 		StackManager runtime_stack_manager;
 		StackManager compiler_stack_manager;
 		StackManager temporary_stack_manager;
-		ConstantManager constant_stack_manager;
 
 		FunctionInstance* register_native_function(std::initializer_list<const char*> path, void* ptr);
 
@@ -87,13 +88,13 @@ namespace Corrosive {
 		static std::unique_ptr<Compiler> create();
 
 
-		static const inline size_t stack_size = 1024 * 4;
+		static const inline std::size_t stack_size = 1024 * 4;
 		unsigned char memory_stack[stack_size];
 
-		std::vector<size_t> local_stack_size;
+		std::vector<std::size_t> local_stack_size;
 		std::vector<unsigned char*> local_stack_base;
 		std::vector<std::vector<unsigned char*>> local_stack_offsets;
-		std::vector<std::vector<std::pair<size_t,size_t>>> local_push_sizes;
+		std::vector<std::vector<std::pair<std::size_t,std::size_t>>> local_push_sizes;
 
 		stackid_t		mask_local(unsigned char* ptr);
 		void			pop_mask_local();
@@ -101,7 +102,7 @@ namespace Corrosive {
 		void			pop_local(ILSize size);
 		void			stack_push_block();
 		void            stack_pop_block();
-		void			stack_push(size_t align = 1);
+		void			stack_push(std::size_t align = 1);
 		void			stack_pop();
 		unsigned char*	stack_ptr(stackid_t id);
 		void			eval_local(stackid_t id);

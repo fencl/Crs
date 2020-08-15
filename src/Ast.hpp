@@ -6,7 +6,7 @@
 #include <string_view>
 
 namespace Corrosive {
-	using AstCursor = size_t;
+	using AstCursor = std::size_t;
 	Cursor load_cursor(AstCursor c, Source* src);
 
 	class AstNode {

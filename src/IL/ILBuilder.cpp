@@ -4,14 +4,14 @@
 #include <functional>
 
 namespace Corrosive {
-	void ILBuilder::build_const_i8(ILBlock* block, int8_t   value) { block->write_instruction(ILInstruction::i8);     block->write_value(value); }
-	void ILBuilder::build_const_i16(ILBlock* block, int16_t  value) { block->write_instruction(ILInstruction::i16);    block->write_value(value); }
-	void ILBuilder::build_const_i32(ILBlock* block, int32_t  value) { block->write_instruction(ILInstruction::i32);    block->write_value(value); }
-	void ILBuilder::build_const_i64(ILBlock* block, int64_t  value) { block->write_instruction(ILInstruction::i64);    block->write_value(value); }
-	void ILBuilder::build_const_u8(ILBlock* block, uint8_t  value) { block->write_instruction(ILInstruction::u8);   block->write_value(value); }
-	void ILBuilder::build_const_u16(ILBlock* block, uint16_t value) { block->write_instruction(ILInstruction::u16);    block->write_value(value); }
-	void ILBuilder::build_const_u32(ILBlock* block, uint32_t value) { block->write_instruction(ILInstruction::u32);    block->write_value(value); }
-	void ILBuilder::build_const_u64(ILBlock* block, uint64_t value) { block->write_instruction(ILInstruction::u64);    block->write_value(value); }
+	void ILBuilder::build_const_i8(ILBlock* block, std::int8_t   value) { block->write_instruction(ILInstruction::i8);     block->write_value(value); }
+	void ILBuilder::build_const_i16(ILBlock* block, std::int16_t  value) { block->write_instruction(ILInstruction::i16);    block->write_value(value); }
+	void ILBuilder::build_const_i32(ILBlock* block, std::int32_t  value) { block->write_instruction(ILInstruction::i32);    block->write_value(value); }
+	void ILBuilder::build_const_i64(ILBlock* block, std::int64_t  value) { block->write_instruction(ILInstruction::i64);    block->write_value(value); }
+	void ILBuilder::build_const_u8(ILBlock* block, std::uint8_t  value) { block->write_instruction(ILInstruction::u8);   block->write_value(value); }
+	void ILBuilder::build_const_u16(ILBlock* block, std::uint16_t value) { block->write_instruction(ILInstruction::u16);    block->write_value(value); }
+	void ILBuilder::build_const_u32(ILBlock* block, std::uint32_t value) { block->write_instruction(ILInstruction::u32);    block->write_value(value); }
+	void ILBuilder::build_const_u64(ILBlock* block, std::uint64_t value) { block->write_instruction(ILInstruction::u64);    block->write_value(value); }
 	void ILBuilder::build_const_f32(ILBlock* block, float    value) { block->write_instruction(ILInstruction::f32);    block->write_value(value); }
 	void ILBuilder::build_const_f64(ILBlock* block, double   value) { block->write_instruction(ILInstruction::f64);    block->write_value(value); }
 	void ILBuilder::build_const_word(ILBlock* block, void* value) { block->write_instruction(ILInstruction::word); 	  block->write_value(value); }
@@ -19,13 +19,13 @@ namespace Corrosive {
 	
 	void ILBuilder::build_const_size(ILBlock* block, ILSize value) {
 		if (value.value <= UINT8_MAX) {
-			uint8_t offset8 = value.value;
+			std::uint8_t offset8 = value.value;
 			block->write_instruction(ILInstruction::size8);
 			block->write_value(value.type);
 			block->write_value(offset8);
 		}
 		else if (value.value <= UINT16_MAX) {
-			uint16_t offset16 = value.value;
+			std::uint16_t offset16 = value.value;
 			block->write_instruction(ILInstruction::size16);
 			block->write_value(value.type);
 			block->write_value(offset16);
@@ -36,12 +36,12 @@ namespace Corrosive {
 			block->write_value(value.value);
 		}
 		else {
-			throw std::exception("Compiler error: please fix aoffset type");
+			throw string_exception("Compiler error: please fix aoffset type");
 		}
 	}
 	
 
-	void ILBuilder::build_const_slice(ILBlock* block, uint32_t constid, ILSize size) {
+	void ILBuilder::build_const_slice(ILBlock* block, std::uint32_t constid, ILSize size) {
 		block->write_instruction(ILInstruction::slice);
 		block->write_value(constid);
 		block->write_value(size.type);
@@ -100,7 +100,7 @@ namespace Corrosive {
 	}
 	
 
-	void ILBuilder::build_fnptr_id(ILBlock* block, uint32_t id) {
+	void ILBuilder::build_fnptr_id(ILBlock* block, std::uint32_t id) {
 		block->write_instruction(ILInstruction::fnptr);
 		block->write_value(id);
 	}
@@ -110,17 +110,17 @@ namespace Corrosive {
 		block->write_value((fun->id));
 	}
 
-	void ILBuilder::build_constref(ILBlock* block, uint32_t constid) {
+	void ILBuilder::build_constref(ILBlock* block, std::uint32_t constid) {
 		block->write_instruction(ILInstruction::constref);
 		block->write_value(constid);
 	}
 	
-	void ILBuilder::build_staticref(ILBlock* block, uint32_t constid) {
+	void ILBuilder::build_staticref(ILBlock* block, std::uint32_t constid) {
 		block->write_instruction(ILInstruction::staticref);
 		block->write_value(constid);
 	}
 
-	void ILBuilder::build_call(ILBlock* block, uint32_t decl) {
+	void ILBuilder::build_call(ILBlock* block, std::uint32_t decl) {
 		block->write_instruction(ILInstruction::call);
 		block->write_value(decl);
 
@@ -133,7 +133,7 @@ namespace Corrosive {
 
 	}
 
-	void ILBuilder::build_debug(ILBlock* block, uint16_t file, uint16_t line) {
+	void ILBuilder::build_debug(ILBlock* block, std::uint16_t file, std::uint16_t line) {
 		block->write_instruction(ILInstruction::debug);
 		block->write_value(file);
 		block->write_value(line);
@@ -162,7 +162,7 @@ namespace Corrosive {
 	void ILBuilder::build_roffset(ILBlock* block, ILDataType from, ILDataType to, ILSize offset) {
 		if (offset.value > 0) {
 			if (offset.value <= UINT8_MAX) {
-				uint8_t offset8 = offset.value;
+				std::uint8_t offset8 = offset.value;
 				block->write_instruction(ILInstruction::roffset8);
 				auto off = ILDataTypePair(from, to);
 				block->write_value(off);
@@ -170,7 +170,7 @@ namespace Corrosive {
 				block->write_value(offset8);
 			}
 			else if (offset.value <= UINT16_MAX) {
-				uint16_t offset16 = offset.value;
+				std::uint16_t offset16 = offset.value;
 				block->write_instruction(ILInstruction::roffset16);
 				auto off = ILDataTypePair(from, to);
 				block->write_value(off);
@@ -185,7 +185,7 @@ namespace Corrosive {
 				block->write_value(offset.value);
 			}
 			else {
-				throw std::exception("Compiler error: please fix aoffset type");
+				throw string_exception("Compiler error: please fix aoffset type");
 			}
 		}
 		else {
@@ -250,12 +250,12 @@ namespace Corrosive {
 
 	void ILBuilder::build_local(ILBlock* block, stackid_t id) {
 		if (id <= UINT8_MAX) {
-			uint8_t id8 = id;
+			std::uint8_t id8 = id;
 			block->write_instruction(ILInstruction::local8);
 			block->write_value(id8);
 		}
 		else if (id <= UINT16_MAX) {
-			uint16_t id16 = id;
+			std::uint16_t id16 = id;
 			block->write_instruction(ILInstruction::local16);
 			block->write_value(id16);
 		}
@@ -264,11 +264,11 @@ namespace Corrosive {
 			block->write_value(id);
 		}
 		else {
-			throw std::exception("compiler error: please fix local type");
+			throw string_exception("compiler error: please fix local type");
 		}
 	}
 
-	void ILBuilder::build_vtable(ILBlock* block, uint32_t id) {
+	void ILBuilder::build_vtable(ILBlock* block, std::uint32_t id) {
 		block->write_instruction(ILInstruction::vtable);
 		block->write_value(id);
 	}
@@ -276,16 +276,16 @@ namespace Corrosive {
 	void ILBuilder::build_tableoffset(ILBlock* block, tableid_t tableid, tableelement_t itemid) {
 		if (itemid > 0) {
 			if (tableid <= UINT8_MAX) {
-				uint8_t tableid8 = tableid;
+				std::uint8_t tableid8 = tableid;
 
 				if (itemid <= UINT8_MAX) {
-					uint8_t itemid8 = itemid;
+					std::uint8_t itemid8 = itemid;
 					block->write_instruction(ILInstruction::table8offset8);
 					block->write_value(tableid8);
 					block->write_value(itemid8);
 				}
 				else if (itemid <= UINT16_MAX) {
-					uint16_t itemid16 = itemid;
+					std::uint16_t itemid16 = itemid;
 					block->write_instruction(ILInstruction::table8offset16);
 					block->write_value(tableid8);
 					block->write_value(itemid16);
@@ -296,20 +296,20 @@ namespace Corrosive {
 					block->write_value(itemid);
 				}
 				else {
-					throw std::exception("Compiler error: please fix table item id types");
+					throw string_exception("Compiler error: please fix table item id types");
 				}
 			}
 			else if (tableid <= UINT16_MAX) {
-				uint16_t tableid16 = tableid;
+				std::uint16_t tableid16 = tableid;
 
 				if (itemid <= UINT8_MAX) {
-					uint8_t itemid8 = itemid;
+					std::uint8_t itemid8 = itemid;
 					block->write_instruction(ILInstruction::table16offset8);
 					block->write_value(tableid16);
 					block->write_value(itemid8);
 				}
 				else if (itemid <= UINT16_MAX) {
-					uint16_t itemid16 = itemid;
+					std::uint16_t itemid16 = itemid;
 					block->write_instruction(ILInstruction::table16offset16);
 					block->write_value(tableid16);
 					block->write_value(itemid16);
@@ -320,19 +320,19 @@ namespace Corrosive {
 					block->write_value(itemid);
 				}
 				else {
-					throw std::exception("Compiler error: please fix table item id types");
+					throw string_exception("Compiler error: please fix table item id types");
 				}
 			}
 			else if (tableid <= UINT32_MAX) {
 
 				if (itemid <= UINT8_MAX) {
-					uint8_t itemid8 = itemid;
+					std::uint8_t itemid8 = itemid;
 					block->write_instruction(ILInstruction::table32offset8);
 					block->write_value(tableid);
 					block->write_value(itemid8);
 				}
 				else if (itemid <= UINT16_MAX) {
-					uint16_t itemid16 = itemid;
+					std::uint16_t itemid16 = itemid;
 					block->write_instruction(ILInstruction::table32offset16);
 					block->write_value(tableid);
 					block->write_value(itemid16);
@@ -343,11 +343,11 @@ namespace Corrosive {
 					block->write_value(itemid);
 				}
 				else {
-					throw std::exception("Compiler error: please fix table item id types");
+					throw string_exception("Compiler error: please fix table item id types");
 				}
 			}
 			else {
-				throw std::exception("Compiler error: please fix tableoffset types");
+				throw string_exception("Compiler error: please fix tableoffset types");
 			}
 		}
 	}
@@ -356,10 +356,10 @@ namespace Corrosive {
 
 		if (itemid > 0) {
 			if (tableid <= UINT8_MAX) {
-				uint8_t tableid8 = tableid;
+				std::uint8_t tableid8 = tableid;
 
 				if (itemid <= UINT8_MAX) {
-					uint8_t itemid8 = itemid;
+					std::uint8_t itemid8 = itemid;
 					block->write_instruction(ILInstruction::table8roffset8);
 					auto off = ILDataTypePair(src, dst);
 					block->write_value(off);
@@ -367,7 +367,7 @@ namespace Corrosive {
 					block->write_value(itemid8);
 				}
 				else if (itemid <= UINT16_MAX) {
-					uint16_t itemid16 = itemid;
+					std::uint16_t itemid16 = itemid;
 					block->write_instruction(ILInstruction::table8roffset16);
 					auto off = ILDataTypePair(src, dst);
 					block->write_value(off);
@@ -382,14 +382,14 @@ namespace Corrosive {
 					block->write_value(itemid);
 				}
 				else {
-					throw std::exception("Compiler error: please fix table item id types");
+					throw string_exception("Compiler error: please fix table item id types");
 				}
 			}
 			else if (tableid <= UINT16_MAX) {
-				uint16_t tableid16 = tableid;
+				std::uint16_t tableid16 = tableid;
 
 				if (itemid <= UINT8_MAX) {
-					uint8_t itemid8 = itemid;
+					std::uint8_t itemid8 = itemid;
 					block->write_instruction(ILInstruction::table16roffset8);
 					auto off = ILDataTypePair(src, dst);
 					block->write_value(off);
@@ -397,7 +397,7 @@ namespace Corrosive {
 					block->write_value(itemid8);
 				}
 				else if (itemid <= UINT16_MAX) {
-					uint16_t itemid16 = itemid;
+					std::uint16_t itemid16 = itemid;
 					block->write_instruction(ILInstruction::table16roffset16);
 					auto off = ILDataTypePair(src, dst);
 					block->write_value(off);
@@ -412,13 +412,13 @@ namespace Corrosive {
 					block->write_value(itemid);
 				}
 				else {
-					throw std::exception("Compiler error: please fix table item id types");
+					throw string_exception("Compiler error: please fix table item id types");
 				}
 			}
 			else if (tableid <= UINT32_MAX) {
 
 				if (itemid <= UINT8_MAX) {
-					uint8_t itemid8 = itemid;
+					std::uint8_t itemid8 = itemid;
 					block->write_instruction(ILInstruction::table32roffset8);
 					auto off = ILDataTypePair(src, dst);
 					block->write_value(off);
@@ -426,7 +426,7 @@ namespace Corrosive {
 					block->write_value(itemid8);
 				}
 				else if (itemid <= UINT16_MAX) {
-					uint16_t itemid16 = itemid;
+					std::uint16_t itemid16 = itemid;
 					block->write_instruction(ILInstruction::table32roffset16);
 					auto off = ILDataTypePair(src, dst);
 					block->write_value(off);
@@ -441,11 +441,11 @@ namespace Corrosive {
 					block->write_value(itemid);
 				}
 				else {
-					throw std::exception("Compiler error: please fix table item id types");
+					throw string_exception("Compiler error: please fix table item id types");
 				}
 			}
 			else {
-				throw std::exception("Compiler error: please fix tableoffset types");
+				throw string_exception("Compiler error: please fix tableoffset types");
 			}
 		}
 	}
@@ -461,7 +461,7 @@ namespace Corrosive {
 		block->write_const_type(type);
 	}
 
-	void ILBuilder::build_clone(ILBlock* block, ILDataType type, uint16_t times) {
+	void ILBuilder::build_clone(ILBlock* block, ILDataType type, std::uint16_t times) {
 		if (times == 2) {
 			build_duplicate(block, type);
 		}
@@ -497,13 +497,13 @@ namespace Corrosive {
 	void ILBuilder::build_offset(ILBlock* block, ILSize offset) {
 		if (offset.value > 0) {
 			if (offset.value <= UINT8_MAX) {
-				uint8_t offset8 = offset.value;
+				std::uint8_t offset8 = offset.value;
 				block->write_instruction(ILInstruction::offset8);
 				block->write_value(offset.type);
 				block->write_value(offset8);
 			}
 			else if (offset.value <= UINT16_MAX) {
-				uint16_t offset16 = offset.value;
+				std::uint16_t offset16 = offset.value;
 				block->write_instruction(ILInstruction::offset16);
 				block->write_value(offset.type);
 				block->write_value(offset16);
@@ -514,21 +514,21 @@ namespace Corrosive {
 				block->write_value(offset.value);
 			}
 			else {
-				throw std::exception("Compiler error: please fix aoffset type");
+				throw string_exception("Compiler error: please fix aoffset type");
 			}
 		}
 	}
 
-	void ILBuilder::build_aoffset(ILBlock* block, uint32_t offset) {
+	void ILBuilder::build_aoffset(ILBlock* block, std::uint32_t offset) {
 		if (offset == 0) { return; }
 
 		if (offset<=UINT8_MAX) {
-			uint8_t offset8 = offset;
+			std::uint8_t offset8 = offset;
 			block->write_instruction(ILInstruction::aoffset8);
 			block->write_value(offset8);
 		}
 		else if (offset <= UINT16_MAX) {
-			uint16_t offset16 = offset;
+			std::uint16_t offset16 = offset;
 			block->write_instruction(ILInstruction::aoffset16);
 			block->write_value(offset16);
 		}
@@ -537,20 +537,20 @@ namespace Corrosive {
 			block->write_value(offset);
 		}
 		else {
-			throw std::exception("Compiler error: please fix aoffset type");
+			throw string_exception("Compiler error: please fix aoffset type");
 		}
 	}
 
-	void ILBuilder::build_woffset(ILBlock* block, uint32_t offset) {
+	void ILBuilder::build_woffset(ILBlock* block, std::uint32_t offset) {
 		if (offset == 0) { return; }
 
 		if (offset <= UINT8_MAX) {
-			uint8_t offset8 = offset;
+			std::uint8_t offset8 = offset;
 			block->write_instruction(ILInstruction::woffset8);
 			block->write_value(offset8);
 		}
 		else if (offset <= UINT16_MAX) {
-			uint16_t offset16 = offset;
+			std::uint16_t offset16 = offset;
 			block->write_instruction(ILInstruction::woffset16);
 			block->write_value(offset16);
 		}
@@ -559,14 +559,14 @@ namespace Corrosive {
 			block->write_value(offset);
 		}
 		else {
-			throw std::exception("Compiler error: please fix aoffset type");
+			throw string_exception("Compiler error: please fix aoffset type");
 		}
 	}
 
-	void ILBuilder::build_aroffset(ILBlock* block, ILDataType from, ILDataType to, uint32_t offset) {
+	void ILBuilder::build_aroffset(ILBlock* block, ILDataType from, ILDataType to, std::uint32_t offset) {
 		if (offset>0 || from != to) {
 			if (offset > UINT8_MAX) {
-				throw std::exception("Compiler error: aroffset > 255 should not be possible");
+				throw string_exception("Compiler error: aroffset > 255 should not be possible");
 			}
 			block->write_instruction(ILInstruction::aroffset);
 			auto off = ILDataTypePair(from, to);
@@ -575,10 +575,10 @@ namespace Corrosive {
 		}
 	}
 
-	void ILBuilder::build_wroffset(ILBlock* block, ILDataType from, ILDataType to, uint32_t offset) {
+	void ILBuilder::build_wroffset(ILBlock* block, ILDataType from, ILDataType to, std::uint32_t offset) {
 		if (offset > 0) {
 			if (offset > UINT8_MAX) {
-				throw std::exception("Compiler error: wroffset > 255 should not be possible");
+				throw string_exception("Compiler error: wroffset > 255 should not be possible");
 			}
 
 			block->write_instruction(ILInstruction::wroffset); 

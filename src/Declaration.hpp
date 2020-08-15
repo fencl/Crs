@@ -35,7 +35,7 @@ namespace Corrosive {
 	class GenericContext {
 	public:
 		GenericInstance* generator = nullptr;
-		size_t generate_heap_size = 0;
+		std::size_t generate_heap_size = 0;
 		std::vector<std::tuple<Cursor, Type*>> generic_layout;
 		static bool valid_generic_argument(Type*);
 	};
@@ -47,7 +47,7 @@ namespace Corrosive {
 		void insert_key_on_stack();
 	};
 
-	enum class FindNameResultType : size_t {
+	enum class FindNameResultType : std::size_t {
 		None = 0,
 		Namespace = 1,
 		Structure = 2,
@@ -66,7 +66,7 @@ namespace Corrosive {
 		StaticInstance* get_static() { return type() == FindNameResultType::Static ? std::get<5>(value) : nullptr; }
 
 		FindNameResult() : value(nullptr) {}
-		FindNameResult(nullptr_t v) :value(v) {}
+		FindNameResult(std::nullptr_t v) :value(v) {}
 		FindNameResult(Namespace* v) :value(v) {}
 		FindNameResult(StructureTemplate* v) :value(v) {}
 		FindNameResult(FunctionTemplate* v) :value(v) {}
@@ -74,7 +74,7 @@ namespace Corrosive {
 		FindNameResult(StaticInstance* v) :value(v) {}
 
 	private:
-		std::variant<nullptr_t, Namespace*, StructureTemplate*, FunctionTemplate*, TraitTemplate*, StaticInstance*> value;
+		std::variant<std::nullptr_t, Namespace*, StructureTemplate*, FunctionTemplate*, TraitTemplate*, StaticInstance*> value;
 	};
 
 
@@ -85,7 +85,7 @@ namespace Corrosive {
 
 		//Cursor name;
 		Namespace* parent = nullptr;
-		std::map<std::string_view, std::pair<uint8_t, uint32_t>> name_table;
+		std::map<std::string_view, std::pair<std::uint8_t, std::uint32_t>> name_table;
 
 		std::vector<std::unique_ptr<Namespace>> subnamespaces;
 		std::vector<std::unique_ptr<StructureTemplate>> subtemplates;
@@ -100,7 +100,7 @@ namespace Corrosive {
 		primitive_structure, compact_structure, normal_structure
 	};
 
-	enum class MemberTableEntryType : uint8_t {
+	enum class MemberTableEntryType : std::uint8_t {
 		var, alias, func
 	};
 
@@ -113,7 +113,7 @@ namespace Corrosive {
 		std::vector<tableelement_t>													 member_composites;
 		std::map<TraitInstance*, std::vector<std::unique_ptr<FunctionInstance>>> traitfunctions;
 
-		uint16_t		pass_array_id = 0;
+		std::uint16_t		pass_array_id = 0;
 		bool			pass_array_operator = false;
 
 		StructureInstanceType structure_type = StructureInstanceType::normal_structure;
@@ -159,11 +159,11 @@ namespace Corrosive {
 	class TraitTemplate;
 	class TraitInstance {
 	public:
-		std::map<std::string_view, uint16_t>	member_table;
-		std::map<StructureInstance*, uint32_t>	vtable_instances;
+		std::map<std::string_view, std::uint16_t>	member_table;
+		std::map<StructureInstance*, std::uint32_t>	vtable_instances;
 		std::vector<TypeFunction*>				member_declarations;
 
-		void generate_vtable(StructureInstance* forinst, uint32_t& optid);
+		void generate_vtable(StructureInstance* forinst, std::uint32_t& optid);
 
 		Namespace*		parent;
 		GenericInstance	generic_inst;
@@ -247,7 +247,7 @@ namespace Corrosive {
 		Type* type;
 		GenericInstance* generator = nullptr;
 		ILContext		context;
-		uint32_t sid;
+		std::uint32_t sid;
 
 		void compile();
 	};

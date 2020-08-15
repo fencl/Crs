@@ -5,7 +5,6 @@
 #include "Type.hpp"
 
 namespace Corrosive {
-
 	void throw_eof_error(Cursor& c, std::string_view during);
 	void throw_specific_error(Cursor& c, std::string_view text);
 	void throw_not_a_name_error(Cursor& c);

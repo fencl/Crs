@@ -23,13 +23,13 @@ namespace Corrosive {
 		return l.offset <= r.offset + r.length && r.offset <= l.offset+l.length;
 	}
 
-	size_t Cursor::line() {
+	std::size_t Cursor::line() {
 		if (src == nullptr) return 0;
 
 		return src->get_line(*this);
 	}
 
-	size_t Source::get_line(Cursor c) {
+	std::size_t Source::get_line(Cursor c) {
 		if (c.src != this) {
 			return 0;
 		}
@@ -45,12 +45,12 @@ namespace Corrosive {
 			debug_id = Compiler::current()->evaluator()->register_debug_source(name);
 		}
 
-		size_t l = 0;
-		size_t off = 0;
+		std::size_t l = 0;
+		std::size_t off = 0;
 		std::string_view src = data();
 		bool next = true;
 		while (next) {
-			size_t pos = src.find("\n", off);
+			std::size_t pos = src.find("\n", off);
 			if (pos == src.npos) {
 				pos = src.length()-1;
 				next = false;
@@ -89,11 +89,11 @@ namespace Corrosive {
 			in.close();
 		}
 		else {
-			throw std::exception("File not found");
+			throw string_exception("File not found");
 		}
 
 		name = file;
-		const size_t last_slash_idx = name.find_last_of("\\/");
+		const std::size_t last_slash_idx = name.find_last_of("\\/");
 		if (std::string::npos != last_slash_idx)
 		{
 			name.erase(0, last_slash_idx + 1);
@@ -137,7 +137,7 @@ namespace Corrosive {
 		((Corrosive::Source*)src)->read_after(*this, *this);
 	}
 
-	void Source::read(Cursor& out, size_t offset, size_t x, size_t y) {
+	void Source::read(Cursor& out, std::size_t offset, std::size_t x, std::size_t y) {
 		while (true) {
 			while (offset < buffer.size() && isspace(buffer[offset]))
 			{
@@ -189,8 +189,8 @@ namespace Corrosive {
 		{
 			if (isalpha(buffer[offset]) || buffer[offset] == '_')
 			{
-				size_t start = offset;
-				size_t start_x = x;
+				std::size_t start = offset;
+				std::size_t start_x = x;
 
 				while (isalnum(buffer[offset]) || buffer[offset] == '_')
 				{
@@ -214,8 +214,8 @@ namespace Corrosive {
 				bool islong = false;
 				bool isusg = false;
 
-				size_t start = offset;
-				size_t start_x = x;
+				std::size_t start = offset;
+				std::size_t start_x = x;
 
 				while (isdigit(buffer[offset]) || buffer[offset] == '.')
 				{
@@ -272,8 +272,8 @@ namespace Corrosive {
 
 				return;
 			} else if (buffer[offset] == '"') {
-				size_t start = offset;
-				size_t start_x = x;
+				std::size_t start = offset;
+				std::size_t start_x = x;
 
 				bool escaped = false;
 				while (true) {
@@ -314,8 +314,8 @@ namespace Corrosive {
 			}
 			else
 			{
-				size_t start = offset;
-				size_t start_x = x;
+				std::size_t start = offset;
+				std::size_t start_x = x;
 
 				char c = buffer[offset++];
 				char nc = '\0';
@@ -549,7 +549,7 @@ namespace Corrosive {
 
 	void Source::require_wrapper(dword_t slice)
 	{
-		std::basic_string_view<char> data_string((char*)slice.p1, (size_t)slice.p2);
+		std::basic_string_view<char> data_string((char*)slice.p1, (std::size_t)slice.p2);
 		Source::require(data_string, Compiler::current()->source());
 	}
 

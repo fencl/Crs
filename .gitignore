@@ -1,7 +1,4 @@
 bin/
-vs/
 test/
-llvm/
-clang/
 .vscode/
-commit.bat
+build/

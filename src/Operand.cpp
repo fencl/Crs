@@ -6,6 +6,7 @@
 #include "ConstantManager.hpp"
 #include <iostream>
 #include <charconv>
+#include <cstring>
 
 namespace Corrosive {
 
@@ -35,7 +36,7 @@ namespace Corrosive {
 				throw_cannot_cast_error(err, template_type, template_cast);
 			}
 			else {
-				for (size_t i = 0; i < st->owner->generic_ctx.generic_layout.size(); i++) {
+				for (std::size_t i = 0; i < st->owner->generic_ctx.generic_layout.size(); i++) {
 					if (std::get<1>(st->owner->generic_ctx.generic_layout[i]) != compiler->types()->argument_array_storage.get(tt->argument_array_id)[i]) {
 						throw_cannot_cast_error(err, template_type, template_cast);
 					}
@@ -50,7 +51,7 @@ namespace Corrosive {
 				throw_cannot_cast_error(err, template_type, template_cast);
 			}
 			else {
-				for (size_t i = 0; i < st->owner->generic_ctx.generic_layout.size(); i++) {
+				for (std::size_t i = 0; i < st->owner->generic_ctx.generic_layout.size(); i++) {
 					if (std::get<1>(st->owner->generic_ctx.generic_layout[i]) != compiler->types()->argument_array_storage.get(tt->argument_array_id)[i]) {
 						throw_cannot_cast_error(err, template_type, template_cast);
 					}
@@ -77,7 +78,7 @@ namespace Corrosive {
 				throw_runtime_exception(eval, "Template cannot be casted to this generic type");
 			}
 			else {
-				for (size_t i = 0; i < st->owner->generic_ctx.generic_layout.size(); i++) {
+				for (std::size_t i = 0; i < st->owner->generic_ctx.generic_layout.size(); i++) {
 					if (std::get<1>(st->owner->generic_ctx.generic_layout[i]) != compiler->types()->argument_array_storage.get(tt->argument_array_id)[i]) {
 						throw_runtime_exception(eval, "Template cannot be casted to this generic type");
 					}
@@ -92,7 +93,7 @@ namespace Corrosive {
 				throw_runtime_exception(eval, "Template cannot be casted to this generic type");
 			}
 			else {
-				for (size_t i = 0; i < st->owner->generic_ctx.generic_layout.size(); i++) {
+				for (std::size_t i = 0; i < st->owner->generic_ctx.generic_layout.size(); i++) {
 					if (std::get<1>(st->owner->generic_ctx.generic_layout[i]) != compiler->types()->argument_array_storage.get(tt->argument_array_id)[i]) {
 						throw_runtime_exception(eval, "Template cannot be casted to this generic type");
 					}
@@ -160,7 +161,7 @@ namespace Corrosive {
 
 			tt->compile();
 
-			uint32_t vtableid = 0;
+			std::uint32_t vtableid = 0;
 			auto vtbl = tt->owner->vtable_instances.find(ts->owner);
 			if (vtbl == tt->owner->vtable_instances.end()) {
 				tt->owner->generate_vtable(ts->owner, vtableid);
@@ -247,8 +248,8 @@ namespace Corrosive {
 			else {
 				stackid_t local_id = compiler->push_local(to->size());
 				compiler->compiler_stack()->push_item("$tmp", to, local_id);
-				size_t slice_size = (size_t)compiler->evaluator()->read_register_value<dword_t>().p2;
-				size_t array_size = to->size().eval(compiler->global_module(), compiler_arch);
+				std::size_t slice_size = (std::size_t)compiler->evaluator()->read_register_value<dword_t>().p2;
+				std::size_t array_size = to->size().eval(compiler->global_module(), compiler_arch);
 				if (slice_size != array_size) {
 					throw_specific_error(err, "The array has different size than casted slice");
 				}
@@ -643,7 +644,7 @@ namespace Corrosive {
 			if (request->type() == TypeInstanceType::type_slice || request->type() == TypeInstanceType::type_array) {
 				auto scope = ScopeState().context(ILContext::compile);
 				Type* target;
-				uint32_t req_count = 0;
+				std::uint32_t req_count = 0;
 				if (request->type() == TypeInstanceType::type_slice) {
 					target = ((TypeSlice*)request)->owner;
 				} else {
@@ -652,9 +653,9 @@ namespace Corrosive {
 				}
 
 				ILSize target_size = target->size();
-				size_t target_size_value = target_size.eval(compiler->global_module(), compiler_arch);
+				std::size_t target_size_value = target_size.eval(compiler->global_module(), compiler_arch);
 				std::string storage;
-				size_t count = 0;
+				std::uint32_t count = 0;
 				Cursor err = c;
 				c.move();
 				if (c.tok != RecognizedToken::CloseBrace) {
@@ -681,11 +682,11 @@ namespace Corrosive {
 						} else {
 							if (cv.type->rvalue_stacked()) {
 								unsigned char* src = compiler->evaluator()->pop_register_value<unsigned char*>();
-								memcpy((unsigned char*)&storage.data()[storage.size()-target_size_value], src, target_size_value);
+								std::memcpy((unsigned char*)&storage.data()[storage.size()-target_size_value], src, target_size_value);
 							} else {
 								ilsize_t srcstorage;
 								compiler->evaluator()->pop_register_value_indirect(compiler->evaluator()->compile_time_register_size(cv.type->rvalue()), &srcstorage);
-								memcpy((unsigned char*)&storage.data()[storage.size()-target_size_value], (unsigned char*)&srcstorage,target_size_value);
+								std::memcpy((unsigned char*)&storage.data()[storage.size()-target_size_value], (unsigned char*)&srcstorage,target_size_value);
 							}
 						}
 
@@ -793,7 +794,7 @@ namespace Corrosive {
 				c.move();
 			}
 			else {
-				uint8_t* source = compiler->stack_ptr(sitm.id);
+				std::uint8_t* source = compiler->stack_ptr(sitm.id);
 				sitm.type->constantize(c,nullptr, source);
 
 				res.type = sitm.type; res.lvalue = false;
@@ -1342,7 +1343,7 @@ namespace Corrosive {
 	
 	unsigned long long svtoi(std::string_view sv) {
 		unsigned long long r = 0;
-		for (size_t i = 0; i < sv.length(); i++) {
+		for (std::size_t i = 0; i < sv.length(); i++) {
 			r *= 10;
 			r += (unsigned char)(sv[i] - '0');
 		}
@@ -1351,9 +1352,12 @@ namespace Corrosive {
 	
 	double svtod(std::string_view sv)
 	{
-		double dbl;
-		auto result = std::from_chars(sv.data(), sv.data() + sv.size(), dbl);
-		return dbl;
+		char buffer[256] = {'\0'};
+		std::memcpy(buffer, sv.data(),sv.size());
+
+		//double dbl;
+		//auto result = std::from_chars((const char*)sv.data(), (const char*)(sv.data() + sv.size()), dbl);
+		return atof(buffer);
 	}
 
 
@@ -1372,16 +1376,16 @@ namespace Corrosive {
 
 		if (cpt == CompileType::compile) {
 			if (usg)
-				ILBuilder::build_const_u32(compiler->scope(), (uint32_t)d);
+				ILBuilder::build_const_u32(compiler->scope(), (std::uint32_t)d);
 			else
-				ILBuilder::build_const_i32(compiler->scope(), (int32_t)d);
+				ILBuilder::build_const_i32(compiler->scope(), (std::int32_t)d);
 		}
 		else if (cpt == CompileType::eval) {
 			if (usg) {
-				ILBuilder::eval_const_u32(compiler->evaluator(), (uint32_t)d);
+				ILBuilder::eval_const_u32(compiler->evaluator(), (std::uint32_t)d);
 			}
 			else {
-				ILBuilder::eval_const_i32(compiler->evaluator(), (int32_t)d);
+				ILBuilder::eval_const_i32(compiler->evaluator(), (std::int32_t)d);
 			}
 
 		}
@@ -1511,7 +1515,7 @@ namespace Corrosive {
 
 
 		std::vector<std::tuple<Cursor, Type*>>::reverse_iterator act_layout;
-		size_t act_layout_size = 0;
+		std::size_t act_layout_size = 0;
 
 		//if (generating->generic_ctx.generator != nullptr) {
 		//	generating->generic_ctx.generator->insert_key_on_stack(compiler->evaluator());
@@ -1523,7 +1527,7 @@ namespace Corrosive {
 		unsigned char* key_base = compiler->local_stack_base.back();
 
 
-		for (size_t arg_i = act_layout_size - 1; arg_i >= 0 && arg_i < act_layout_size; arg_i--) {
+		for (std::size_t arg_i = act_layout_size - 1; arg_i >= 0 && arg_i < act_layout_size; arg_i--) {
 
 			Type* type = std::get<1>(*act_layout);
 			type->compile();
@@ -1561,7 +1565,7 @@ namespace Corrosive {
 
 		std::vector<std::tuple<Cursor, Type*>>::reverse_iterator act_layout;
 		std::vector<std::tuple<Cursor, Type*>>::reverse_iterator act_layout_it;
-		size_t gen_types = 0;
+		std::size_t gen_types = 0;
 
 		if (gen_type->type() == TypeInstanceType::type_structure_template) {
 			act_layout = ((TypeStructureTemplate*)gen_type)->owner->generic_ctx.generic_layout.rbegin();
@@ -1579,7 +1583,7 @@ namespace Corrosive {
 
 
 		act_layout_it = act_layout;
-		for (size_t arg_i = gen_types - 1; arg_i >= 0 && arg_i < gen_types; arg_i--) {
+		for (std::size_t arg_i = gen_types - 1; arg_i >= 0 && arg_i < gen_types; arg_i--) {
 
 			Type* type = std::get<1>((*act_layout_it));
 
@@ -1611,7 +1615,7 @@ namespace Corrosive {
 	}
 
 	Type* Operand::template_stack[1024];
-	uint16_t Operand::template_sp = 0;
+	std::uint16_t Operand::template_sp = 0;
 
 
 	void Operand::read_arguments(Cursor& c, unsigned int& argi, TypeFunction* ft, CompileType cpt) {
@@ -1965,7 +1969,7 @@ namespace Corrosive {
 			if (cpt == CompileType::eval) {
 				Type* t = compiler->evaluator()->pop_register_value<Type*>();
 				Type::assert(t_err, t);
-				uint32_t val = compiler->evaluator()->pop_register_value<uint32_t>();
+				std::uint32_t val = compiler->evaluator()->pop_register_value<std::uint32_t>();
 				TypeArray* nt = t->generate_array(val);
 				ILBuilder::eval_const_word(compiler->evaluator(), nt);
 			}
@@ -2210,15 +2214,15 @@ namespace Corrosive {
 						case ILSizeType::table:
 							ILBuilder::build_tableoffset(compiler->scope(), elem_size.value, elem_id); break;
 						case ILSizeType::abs8: 
-							ILBuilder::build_aoffset(compiler->scope(), (uint32_t)elem_size.value); break;
+							ILBuilder::build_aoffset(compiler->scope(), (std::uint32_t)elem_size.value); break;
 						case ILSizeType::abs16: 
-							ILBuilder::build_aoffset(compiler->scope(), (uint32_t)(elem_size.value*2)); break;
+							ILBuilder::build_aoffset(compiler->scope(), (std::uint32_t)(elem_size.value*2)); break;
 						case ILSizeType::abs32: 
-							ILBuilder::build_aoffset(compiler->scope(), (uint32_t)(elem_size.value*4)); break;
+							ILBuilder::build_aoffset(compiler->scope(), (std::uint32_t)(elem_size.value*4)); break;
 						case ILSizeType::abs64: 
-							ILBuilder::build_aoffset(compiler->scope(), (uint32_t)(elem_size.value*8)); break;
+							ILBuilder::build_aoffset(compiler->scope(), (std::uint32_t)(elem_size.value*8)); break;
 						case ILSizeType::ptr:
-							ILBuilder::build_woffset(compiler->scope(), (uint32_t)elem_size.value); break;
+							ILBuilder::build_woffset(compiler->scope(), (std::uint32_t)elem_size.value); break;
 						default:
 							break;
 					}
@@ -2234,15 +2238,15 @@ namespace Corrosive {
 						case ILSizeType::table:
 							ILBuilder::eval_tableoffset(compiler->evaluator(), elem_size.value, elem_id); break;
 						case ILSizeType::abs8: 
-							ILBuilder::eval_aoffset(compiler->evaluator(), (uint32_t)elem_size.value); break;
+							ILBuilder::eval_aoffset(compiler->evaluator(), (std::uint32_t)elem_size.value); break;
 						case ILSizeType::abs16: 
-							ILBuilder::eval_aoffset(compiler->evaluator(), (uint32_t)(elem_size.value*2)); break;
+							ILBuilder::eval_aoffset(compiler->evaluator(), (std::uint32_t)(elem_size.value*2)); break;
 						case ILSizeType::abs32: 
-							ILBuilder::eval_aoffset(compiler->evaluator(), (uint32_t)(elem_size.value*4)); break;
+							ILBuilder::eval_aoffset(compiler->evaluator(), (std::uint32_t)(elem_size.value*4)); break;
 						case ILSizeType::abs64: 
-							ILBuilder::eval_aoffset(compiler->evaluator(), (uint32_t)(elem_size.value*8)); break;
+							ILBuilder::eval_aoffset(compiler->evaluator(), (std::uint32_t)(elem_size.value*8)); break;
 						case ILSizeType::ptr:
-							ILBuilder::eval_woffset(compiler->evaluator(), (uint32_t)elem_size.value); break;
+							ILBuilder::eval_woffset(compiler->evaluator(), (std::uint32_t)elem_size.value); break;
 						default:
 							break;
 					}	
@@ -2260,15 +2264,15 @@ namespace Corrosive {
 						case ILSizeType::table:
 							ILBuilder::build_tableroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), elem_size.value, elem_id); break;
 						case ILSizeType::abs8: 
-							ILBuilder::build_aroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), (uint32_t)elem_size.value); break;
+							ILBuilder::build_aroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)elem_size.value); break;
 						case ILSizeType::abs16: 
-							ILBuilder::build_aroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), (uint32_t)(elem_size.value*2)); break;
+							ILBuilder::build_aroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)(elem_size.value*2)); break;
 						case ILSizeType::abs32: 
-							ILBuilder::build_aroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), (uint32_t)(elem_size.value*4)); break;
+							ILBuilder::build_aroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)(elem_size.value*4)); break;
 						case ILSizeType::abs64: 
-							ILBuilder::build_aroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), (uint32_t)(elem_size.value*8)); break;
+							ILBuilder::build_aroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)(elem_size.value*8)); break;
 						case ILSizeType::ptr:
-							ILBuilder::build_wroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), (uint32_t)elem_size.value); break;
+							ILBuilder::build_wroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)elem_size.value); break;
 						default:
 							break;
 					}
@@ -2284,15 +2288,15 @@ namespace Corrosive {
 						case ILSizeType::table:
 							ILBuilder::eval_tableroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), elem_size.value, elem_id); break;
 						case ILSizeType::abs8: 
-							ILBuilder::eval_aroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (uint32_t)elem_size.value); break;
+							ILBuilder::eval_aroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)elem_size.value); break;
 						case ILSizeType::abs16: 
-							ILBuilder::eval_aroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (uint32_t)(elem_size.value*2)); break;
+							ILBuilder::eval_aroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)(elem_size.value*2)); break;
 						case ILSizeType::abs32: 
-							ILBuilder::eval_aroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (uint32_t)(elem_size.value*4)); break;
+							ILBuilder::eval_aroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)(elem_size.value*4)); break;
 						case ILSizeType::abs64: 
-							ILBuilder::eval_aroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (uint32_t)(elem_size.value*8)); break;
+							ILBuilder::eval_aroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)(elem_size.value*8)); break;
 						case ILSizeType::ptr:
-							ILBuilder::eval_wroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (uint32_t)elem_size.value); break;
+							ILBuilder::eval_wroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)elem_size.value); break;
 						default:
 							break;
 					}
@@ -2436,7 +2440,7 @@ namespace Corrosive {
 				throw_specific_error(c, "Trait function not found");
 
 			}
-			uint32_t off = (uint32_t)off_f->second;
+			std::uint32_t off = (std::uint32_t)off_f->second;
 			auto& mf = ti->member_declarations[off];
 
 			if (mf->ptr_context != ILContext::both && compiler->scope_context() != mf->ptr_context) {
@@ -2449,13 +2453,13 @@ namespace Corrosive {
 			if (c.tok == RecognizedToken::OpenParenthesis) {
 				if (cpt == CompileType::compile) {
 					ILBuilder::build_split_dword(compiler->scope());
-					ILBuilder::build_woffset(compiler->scope(), (uint32_t)off);
+					ILBuilder::build_woffset(compiler->scope(), (std::uint32_t)off);
 					ILBuilder::build_load(compiler->scope(), ILDataType::word);
 					ILBuilder::build_callstart(compiler->scope());
 				}
 				else {
 					ILBuilder::eval_split_dword(compiler->evaluator());
-					ILBuilder::eval_woffset(compiler->evaluator(), (uint32_t)off);
+					ILBuilder::eval_woffset(compiler->evaluator(), (std::uint32_t)off);
 					ILBuilder::eval_load(compiler->evaluator(), ILDataType::word);
 					ILBuilder::eval_callstart(compiler->evaluator());
 				}
@@ -2522,12 +2526,12 @@ namespace Corrosive {
 			else {
 				if (cpt == CompileType::compile) {
 					ILBuilder::build_high_word(compiler->scope());
-					ILBuilder::build_woffset(compiler->scope(), (uint32_t)off);
+					ILBuilder::build_woffset(compiler->scope(), (std::uint32_t)off);
 					ILBuilder::build_load(compiler->scope(), ILDataType::word);
 				}
 				else {
 					ILBuilder::eval_high_word(compiler->evaluator());
-					ILBuilder::eval_woffset(compiler->evaluator(), (uint32_t)off);
+					ILBuilder::eval_woffset(compiler->evaluator(), (std::uint32_t)off);
 					ILBuilder::eval_load(compiler->evaluator(), ILDataType::word);
 				}
 
@@ -2630,10 +2634,10 @@ namespace Corrosive {
 		slice->compile();
 
 		if (cpt == CompileType::compile) {
-			ILBuilder::build_const_slice(compiler->scope(), lit.second, ILSize(ILSizeType::abs8,lit.first.length()));
+			ILBuilder::build_const_slice(compiler->scope(), lit.second, ILSize(ILSizeType::abs8,(std::uint32_t)lit.first.length()));
 		}
 		else {
-			ILBuilder::eval_const_slice(compiler->evaluator(), lit.second, ILSize(ILSizeType::abs8,lit.first.length()));
+			ILBuilder::eval_const_slice(compiler->evaluator(), lit.second, ILSize(ILSizeType::abs8, (std::uint32_t)lit.first.length()));
 		}
 
 		c.move();

@@ -11,8 +11,8 @@ namespace Corrosive {
 	class AstRootNode;
 
 	struct SourceRange {
-		size_t offset;
-		size_t length;
+		std::size_t offset;
+		std::size_t length;
 	};
 
 	bool operator < (const SourceRange& l, const SourceRange& r);
@@ -20,11 +20,11 @@ namespace Corrosive {
 
 	class Source {
 	public:
-		uint16_t debug_id = UINT16_MAX;
+		std::uint16_t debug_id = UINT16_MAX;
 		void register_debug();
-		std::map<SourceRange, size_t> lines;
+		std::map<SourceRange, std::size_t> lines;
 
-		size_t get_line(Cursor c);
+		std::size_t get_line(Cursor c);
 
 		std::string name;
 		std::filesystem::path path;
@@ -32,7 +32,7 @@ namespace Corrosive {
 		std::string_view const data();
 		void load(const char* file);
 		void load_data(const char* data, const char* name);
-		void read(Cursor& out, size_t offset, size_t x, size_t y);
+		void read(Cursor& out, std::size_t offset, std::size_t x, std::size_t y);
 		void read_after(Cursor& out, const Cursor& c);
 		Cursor read_first();
 
@@ -44,7 +44,7 @@ namespace Corrosive {
 		static void require_wrapper(dword_t slice);
 	private:
 		std::string buffer;
-		std::unordered_map<size_t, Cursor> token_pair;
+		std::unordered_map<std::size_t, Cursor> token_pair;
 	};
 
 }

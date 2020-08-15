@@ -20,7 +20,7 @@ namespace Corrosive {
 		static void build_template(ILEvaluator* eval);
 
 		static Type* template_stack[1024];
-		static uint16_t template_sp;
+		static std::uint16_t template_sp;
 
 		static void deref(CompileValue& val, CompileType cpt);
 		static void function_call(CompileValue& ret, Cursor& c, CompileType cpt, unsigned int argi, bool targets_defer);

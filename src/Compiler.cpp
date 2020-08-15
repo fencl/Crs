@@ -10,7 +10,7 @@ namespace Corrosive {
 		target_module->insintric_function[(unsigned char)ILInsintric::type_dynamic_cast] = &Operand::type_template_cast;
 		target_module->insintric_function_name[(unsigned char)ILInsintric::type_dynamic_cast] = "dynamic_cast";
 		compiler_evaluator->parent = target_module.get();
-		constant_stack_manager.compiler = this;
+		constant_stack_manager->compiler = this;
 		default_types->setup();
 		outer_namespace_stack.push_back(target_global_namespace.get());
 		initialized = true;
@@ -72,7 +72,7 @@ namespace Corrosive {
 		auto& lsb = local_stack_base.back();
 		auto& ls = local_stack_offsets.back();
 
-		size_t sz = size.eval(target_module.get(), compiler_arch);
+		std::size_t sz = size.eval(target_module.get(), compiler_arch);
 
 		ls.push_back(lsb + lss);
 		lss += sz;
@@ -82,26 +82,26 @@ namespace Corrosive {
 
 	void Compiler::pop_local(ILSize size) {
 		auto& lss = local_stack_size.back();
-		size_t sz = size.eval(target_module.get(), compiler_arch);
+		std::size_t sz = size.eval(target_module.get(), compiler_arch);
 		lss -= sz;
 		local_stack_offsets.pop_back();
 	}
 
 
-	void Compiler::stack_push(size_t align) {
+	void Compiler::stack_push(std::size_t align) {
 		if (local_stack_base.size() == 0) {
-			size_t new_base = (size_t)(memory_stack);
+			std::size_t new_base = (std::size_t)(memory_stack);
 			new_base = align_up(new_base, align);
 			local_stack_base.push_back((unsigned char*)new_base);
 		}
 		else {
-			size_t new_base = (size_t)(local_stack_base.back() + local_stack_size.back());
+			std::size_t new_base = (std::size_t)(local_stack_base.back() + local_stack_size.back());
 			new_base = align_up(new_base, align);
 			local_stack_base.push_back((unsigned char*)new_base);
 		}
 
 		local_stack_size.push_back(0);
-		local_push_sizes.push_back(std::vector<std::pair<size_t,size_t>>());
+		local_push_sizes.push_back(std::vector<std::pair<std::size_t,std::size_t>>());
 		local_stack_offsets.push_back(std::move(decltype(local_stack_offsets)::value_type()));
 		stack_push_block();
 	}

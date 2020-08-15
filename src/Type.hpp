@@ -29,14 +29,14 @@ namespace Corrosive {
 	class TypeReference;
 	class TypeSlice;
 
-	const uint64_t type_magic_mask = 0xffffffffffffff00u;
-	const uint64_t type_magic = 9223372036854775807u & type_magic_mask;
+	const std::uint64_t type_magic_mask = 0xffffffffffffff00u;
+	const std::uint64_t type_magic = 9223372036854775807u & type_magic_mask;
 
 	class Type {
 	public:
 		static void assert(Cursor&c, Type* t);
 		static void assert(Type* t);
-		virtual uint64_t magic();
+		virtual std::uint64_t magic();
 
 		inline virtual ~Type() {}
 		virtual ILDataType rvalue();
@@ -46,7 +46,7 @@ namespace Corrosive {
 
 		virtual void compile();
 
-		virtual int8_t compare_for_generic_storage(unsigned char* me, unsigned char* to);
+		virtual std::int8_t compare_for_generic_storage(unsigned char* me, unsigned char* to);
 		virtual void copy_to_generic_storage(unsigned char* me, unsigned char* to);
 
 		virtual void constantize(Cursor& err, unsigned char* target, unsigned char* source);
@@ -56,18 +56,18 @@ namespace Corrosive {
 
 		virtual void print(std::ostream& os);
 
-		TypeArray* generate_array(uint32_t count);
+		TypeArray* generate_array(std::uint32_t count);
 		TypeReference* generate_reference();
 		TypeSlice* generate_slice();
 
-		std::map<uint64_t, std::unique_ptr<TypeArray>> arrays;
+		std::map<std::uint64_t, std::unique_ptr<TypeArray>> arrays;
 		std::unique_ptr<TypeReference> reference = nullptr;
 		std::unique_ptr<TypeSlice> slice = nullptr;
 	};
 
 	class TypeStructureInstance : public Type {
 	public:
-		virtual uint64_t magic();
+		virtual std::uint64_t magic();
 
 		StructureInstance* owner;
 
@@ -89,7 +89,7 @@ namespace Corrosive {
 
 	class TypeStructureTemplate : public Type {
 	public:
-		virtual uint64_t magic();
+		virtual std::uint64_t magic();
 		inline virtual TypeInstanceType type() { return TypeInstanceType::type_structure_template; }
 
 		StructureTemplate* owner;
@@ -101,7 +101,7 @@ namespace Corrosive {
 
 	class TypeFunctionTemplate : public Type {
 	public:
-		virtual uint64_t magic();
+		virtual std::uint64_t magic();
 		inline virtual TypeInstanceType type() { return TypeInstanceType::type_function_template; }
 
 		FunctionTemplate* owner;
@@ -113,7 +113,7 @@ namespace Corrosive {
 
 	class TypeTraitInstance : public Type {
 	public:
-		virtual uint64_t magic();
+		virtual std::uint64_t magic();
 		TraitInstance* owner;
 
 		virtual ILDataType rvalue();
@@ -129,7 +129,7 @@ namespace Corrosive {
 
 	class TypeTraitTemplate : public Type {
 	public:
-		virtual uint64_t magic();
+		virtual std::uint64_t magic();
 		inline virtual TypeInstanceType type() { return TypeInstanceType::type_trait_template; }
 
 		TraitTemplate* owner;
@@ -142,7 +142,7 @@ namespace Corrosive {
 
 	class TypeArray : public Type {
 	public:
-		virtual uint64_t magic();
+		virtual std::uint64_t magic();
 		inline virtual TypeInstanceType type() { return TypeInstanceType::type_array; }
 
 		virtual ILDataType rvalue();
@@ -152,7 +152,7 @@ namespace Corrosive {
 		Type* owner;
 		//tableid_t table;
 		ILSize size_value;
-		uint32_t count;
+		std::uint32_t count;
 
 		virtual ILContext context();
 		virtual void compile();
@@ -163,7 +163,7 @@ namespace Corrosive {
 	
 	class TypeReference : public Type {
 	public:
-		virtual uint64_t magic();
+		virtual std::uint64_t magic();
 		inline virtual TypeInstanceType type() { return TypeInstanceType::type_reference; }
 
 		virtual ILDataType rvalue();
@@ -177,11 +177,11 @@ namespace Corrosive {
 
 	class TypeSlice : public Type {
 	public:
-		virtual uint64_t magic();
+		virtual std::uint64_t magic();
 		inline virtual TypeInstanceType type() { return TypeInstanceType::type_slice; }
 		Type* owner;
 
-		virtual int8_t compare_for_generic_storage(unsigned char* me, unsigned char* to);
+		virtual std::int8_t compare_for_generic_storage(unsigned char* me, unsigned char* to);
 		virtual void copy_to_generic_storage(unsigned char* me, unsigned char* to);
 
 		virtual void constantize(Cursor& err, unsigned char* target, unsigned char* source);
@@ -197,16 +197,16 @@ namespace Corrosive {
 
 	class TypeFunction : public Type {
 	public:
-		virtual uint64_t magic();
+		virtual std::uint64_t magic();
 		inline virtual TypeInstanceType type() { return TypeInstanceType::type_function; }
 
 		virtual ILDataType rvalue();
 
 		ILContext ptr_context;
 
-		size_t argument_array_id;
+		std::size_t argument_array_id;
 		Type* return_type;
-		uint32_t il_function_decl;
+		std::uint32_t il_function_decl;
 		ILCallingConvention call_conv;
 
 		virtual ILContext context();
@@ -218,11 +218,11 @@ namespace Corrosive {
 
 	class TypeTemplate : public Type {
 	public:
-		virtual uint64_t magic();
+		virtual std::uint64_t magic();
 		inline virtual TypeInstanceType type() { return TypeInstanceType::type_template; }
 		virtual ILDataType rvalue();
 		BuiltInTypes* owner;
-		size_t argument_array_id;
+		std::size_t argument_array_id;
 		virtual ILSize size();
 		virtual void print(std::ostream& os);		
 	};

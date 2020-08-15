@@ -17,7 +17,7 @@ namespace Corrosive {
 			cr.y = f->second;
 			cr.x = cr.offset - f->first.offset;
 		} else {
-			throw std::exception("Compiler error: cursor location was not found!");
+			throw string_exception("Compiler error: cursor location was not found!");
 		}
 
 		cr.move();
@@ -557,7 +557,7 @@ namespace Corrosive {
 				throw_specific_error(c, "Name already exists in the namespace");
 			}
 
-			into->name_table[n->name_string] = std::make_pair<uint8_t,uint32_t>(0, (uint32_t)into->subnamespaces.size());
+			into->name_table[n->name_string] = std::make_pair<std::uint8_t,std::uint32_t>(0, (std::uint32_t)into->subnamespaces.size());
 			n->populate(nspc.get());
 			into->subnamespaces.push_back(std::move(nspc));
 
@@ -573,7 +573,7 @@ namespace Corrosive {
 				Cursor c = load_cursor(n->name, n->get_source());
 				throw_specific_error(c, "Name already exists in the namespace");
 			}
-			into->name_table[n->name_string] = std::make_pair<uint8_t, uint32_t>(1, (uint32_t)into->subtemplates.size());
+			into->name_table[n->name_string] = std::make_pair<std::uint8_t, std::uint32_t>(1, (std::uint32_t)into->subtemplates.size());
 			into->subtemplates.push_back(std::move(structure));
 		}
 
@@ -590,7 +590,7 @@ namespace Corrosive {
 				Cursor c = load_cursor(n->name, n->get_source());
 				throw_specific_error(c, "Name already exists in the namespace");
 			}
-			into->name_table[n->name_string] = std::make_pair<uint8_t, uint32_t>(2, (uint32_t)into->subfunctions.size());
+			into->name_table[n->name_string] = std::make_pair<std::uint8_t, std::uint32_t>(2, (std::uint32_t)into->subfunctions.size());
 			into->subfunctions.push_back(std::move(function));
 		}
 
@@ -603,7 +603,7 @@ namespace Corrosive {
 				Cursor c = load_cursor(n->name, n->get_source());
 				throw_specific_error(c, "Name already exists in the namespace");
 			}
-			into->name_table[n->name_string] = std::make_pair<uint8_t, uint32_t>(3, (uint32_t)into->subtraits.size());
+			into->name_table[n->name_string] = std::make_pair<std::uint8_t, std::uint32_t>(3, (std::uint32_t)into->subtraits.size());
 			into->subtraits.push_back(std::move(trait));
 		}
 
@@ -616,7 +616,7 @@ namespace Corrosive {
 				Cursor c = load_cursor(n->name, n->get_source());
 				throw_specific_error(c, "Name already exists in the namespace");
 			}
-			into->name_table[n->name_string] = std::make_pair<uint8_t, uint32_t>(4, (uint32_t)into->substatics.size());
+			into->name_table[n->name_string] = std::make_pair<std::uint8_t, std::uint32_t>(4, (std::uint32_t)into->substatics.size());
 			into->substatics.push_back(std::move(substatic));
 		}
 	}
