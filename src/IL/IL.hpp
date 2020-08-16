@@ -337,6 +337,11 @@ namespace Corrosive {
 	};
 
 	struct dword_t {
+		dword_t() = default;
+		dword_t(const dword_t&) = default;
+		dword_t(size_t s):p1(nullptr),p2((void*)s) {}
+		dword_t(size_t s1,size_t s2) : p1((void*)s1),  p2((void*)s2) {}
+		dword_t(void* s1,void* s2) : p1(s1),  p2(s2) {}
 		void* p1;
 		void* p2;
 	};
@@ -502,62 +507,80 @@ namespace Corrosive {
 
 
 		template<typename T> inline T read_register_value() {
-			switch (sizeof(T)) {
-				case 1:
-					return *(T*)(register_stack_pointer_1b - 1);
-				case 2:
-					return *(T*)(register_stack_pointer_2b - 1);
-				case 3:
-				case 4:
-					return *(T*)(register_stack_pointer_4b - 1);
-				case 5:
-				case 6:
-				case 7:
-				case 8:
-					return *(T*)(register_stack_pointer_8b - 1);
-				default:
-					return *(T*)(register_stack_pointer_8b - 2);
+			if (!wrap || wrap(sandbox) == 0) {
+				switch (sizeof(T)) {
+					case 1:
+						return *(T*)(register_stack_pointer_1b - 1);
+					case 2:
+						return *(T*)(register_stack_pointer_2b - 1);
+					case 3:
+					case 4:
+						return *(T*)(register_stack_pointer_4b - 1);
+					case 5:
+					case 6:
+					case 7:
+					case 8:
+						return *(T*)(register_stack_pointer_8b - 1);
+					default:
+						return *(T*)(register_stack_pointer_8b - 2);
+				}
 			}
+			else {
+				throw_runtime_handler_exception(this);
+			}
+			
+			return (T)0;
 		}
 
 		template<typename T> inline T pop_register_value() {
-			switch (sizeof(T)) {
-				case 1:
-					return *(T*)(--register_stack_pointer_1b);
-				case 2:
-					return *(T*)(--register_stack_pointer_2b);
-				case 3:
-				case 4:
-					return *(T*)(--register_stack_pointer_4b);
-				case 5:
-				case 6:
-				case 7:
-				case 8:
-					return *(T*)(--register_stack_pointer_8b);
-				default:
-					--register_stack_pointer_8b;
-					return *(T*)(--register_stack_pointer_8b);
+			if (!wrap || wrap(sandbox) == 0) {
+				switch (sizeof(T)) {
+					case 1:
+						return *(T*)(--register_stack_pointer_1b);
+					case 2:
+						return *(T*)(--register_stack_pointer_2b);
+					case 3:
+					case 4:
+						return *(T*)(--register_stack_pointer_4b);
+					case 5:
+					case 6:
+					case 7:
+					case 8:
+						return *(T*)(--register_stack_pointer_8b);
+					default:
+						--register_stack_pointer_8b;
+						return *(T*)(--register_stack_pointer_8b);
+				}
 			}
+			else {
+				throw_runtime_handler_exception(this);
+			}
+			
+			return (T)0;
 		}
 
 		template<typename T> inline void write_register_value(T v) {
-			
-			switch (sizeof(T)) {
-				case 0: return;
-				case 1:
-					*(T*)(register_stack_pointer_1b++) = v; break;
-				case 2:
-					*(T*)(register_stack_pointer_2b++) = v; break;
-				case 3:
-				case 4:
-					*(T*)(register_stack_pointer_4b++) = v; break;
-				case 5:
-				case 6:
-				case 7:
-				case 8:
-					*(T*)(register_stack_pointer_8b++) = v; break;
-				default:
-					*(T*)(register_stack_pointer_8b++) = v; register_stack_pointer_8b++; break;
+			if (!wrap || wrap(sandbox) == 0) {
+				switch (sizeof(T)) {
+					case 0: return;
+					case 1:
+						*(T*)(register_stack_pointer_1b++) = v; break;
+					case 2:
+						*(T*)(register_stack_pointer_2b++) = v; break;
+					case 3:
+					case 4:
+						*(T*)(register_stack_pointer_4b++) = v; break;
+					case 5:
+					case 6:
+					case 7:
+					case 8:
+						*(T*)(register_stack_pointer_8b++) = v; break;
+					default:
+						*(T*)(register_stack_pointer_8b++) = v; register_stack_pointer_8b++; break;
+				}
+			}
+			else {
+				throw_runtime_handler_exception(this);
 			}
 		}
 	};

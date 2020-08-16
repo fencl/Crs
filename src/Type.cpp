@@ -9,8 +9,9 @@
 
 namespace Corrosive {
 	std::int8_t Type::compare_for_generic_storage(unsigned char* me, unsigned char* to) {
+		size_t s = size().eval(Compiler::current()->global_module(), compiler_arch);
 		if (!wrap || wrap(sandbox) == 0) {
-			auto v = memcmp(me, to, size().eval(Compiler::current()->global_module(), compiler_arch));
+			auto v = memcmp(me, to, s);
 			if (v < 0) return -1;
 			else if (v > 0) return 1;
 			else return 0;
@@ -23,8 +24,9 @@ namespace Corrosive {
 	}
 
 	void Type::copy_to_generic_storage(unsigned char* me, unsigned char* to) {
+		size_t s = size().eval(Compiler::current()->global_module(), compiler_arch);
 		if (!wrap || wrap(sandbox) == 0) {
-			std::memcpy(to, me, size().eval(Compiler::current()->global_module(), compiler_arch));
+			std::memcpy(to, me, s);
 		}
 		else {
 			throw_runtime_handler_exception(Compiler::current()->evaluator());
@@ -55,13 +57,18 @@ namespace Corrosive {
 		dword_t* me_dw = (dword_t*)me;
 		dword_t* to_dw = (dword_t*)to;
 
+		std::size_t mp1,mp2;
+
 		if (!wrap || wrap(sandbox) == 0) {
-			to_dw->p1 = Compiler::current()->constant_manager()->register_generic_storage((std::uint8_t*)me_dw->p1, (std::size_t)me_dw->p2, owner);
-			to_dw->p2 = me_dw->p2;
+			mp1 = (std::size_t)me_dw->p1;
+			mp2 = (std::size_t)me_dw->p2;
 		}
 		else {
 			throw_runtime_handler_exception(Compiler::current()->evaluator());
 		}
+
+		to_dw->p1 = Compiler::current()->constant_manager()->register_generic_storage((std::uint8_t*)mp1, mp2, owner);
+		to_dw->p2 = (void*)mp2;
 	}
 
 
@@ -127,54 +134,61 @@ namespace Corrosive {
 	void TypeSlice::constantize(Cursor& err, unsigned char* target, unsigned char* source) {
 		std::string data;
 
-		if (!wrap || wrap(sandbox) == 0) {
-			Compiler* compiler = Compiler::current();
-			dword_t me = *(dword_t*)source;
-			std::size_t storage_size = (std::size_t)me.p2;
-			data = std::string(storage_size,'\0');
+		Compiler* compiler = Compiler::current();
+		dword_t me;
+		std::size_t storage_size;
+		std::size_t me_ptr;
 
-			std::uint8_t* ptr_src = (std::uint8_t*)me.p1;
-			std::uint8_t* ptr_dst = (std::uint8_t*)data.data();
-			std::size_t elem_size = owner->size().eval(compiler->global_module(), compiler_arch);
-			std::uint32_t count = (std::uint32_t)(((std::size_t)me.p2)/elem_size);
-			for (std::uint32_t i=0;i<count; ++i) {
-				owner->constantize(err, ptr_dst, ptr_src);
-				ptr_src += elem_size;
-				ptr_dst += elem_size;
-			}
+		if (!wrap || wrap(sandbox) == 0) {	
+			me = *(dword_t*)source;
+			storage_size = (std::size_t)me.p2;
+			me_ptr = (std::size_t)me.p1;
+		} else {
+			throw_runtime_handler_exception(Compiler::current()->evaluator());
+		}
 
-			ILSize s;
-			if (owner->size().type == ILSizeType::table || owner->size().type == ILSizeType::array) {
-				s.type = ILSizeType::array;
-				s.value = compiler->global_module()->register_array_table(owner->size(),count);
-			}else if (owner->size().type == ILSizeType::_0) {
-				s.type = ILSizeType::_0;
-			}else{
-				s = owner->size();
-				s.value *= count;
-			}
+		data = std::string(storage_size,'\0');
+		std::uint8_t* ptr_src = (std::uint8_t*)me_ptr;
+		std::uint8_t* ptr_dst = (std::uint8_t*)data.data();
+		std::size_t elem_size = owner->size().eval(compiler->global_module(), compiler_arch);
+		std::uint32_t count = (std::uint32_t)(((std::size_t)storage_size)/elem_size);
 
-			auto val = compiler->constant_manager()->register_constant(std::move(data), s);
+		for (std::uint32_t i=0;i<count; ++i) {
+			owner->constantize(err, ptr_dst, ptr_src);
+			ptr_src += elem_size;
+			ptr_dst += elem_size;
+		}
 
-			if (target) {
+		ILSize s;
+		if (owner->size().type == ILSizeType::table || owner->size().type == ILSizeType::array) {
+			s.type = ILSizeType::array;
+			s.value = compiler->global_module()->register_array_table(owner->size(),count);
+		}else if (owner->size().type == ILSizeType::_0) {
+			s.type = ILSizeType::_0;
+		}else{
+			s = owner->size();
+			s.value *= count;
+		}
+
+		auto val = compiler->constant_manager()->register_constant(std::move(data), s);
+		if (target) {
+			if (!wrap || wrap(sandbox) == 0) {	
 				dword_t* tg = (dword_t*)target;
 				tg->p1 = (void*)val.first.data();
 				tg->p2 = (void*)val.first.size();
+			} else {
+				throw_runtime_handler_exception(Compiler::current()->evaluator());
 			}
-			else {
-				ILBuilder::build_const_slice(compiler->scope(), val.second, s);
-			}
-			
 		}
 		else {
-			throw_runtime_handler_exception(Compiler::current()->evaluator());
+			ILBuilder::build_const_slice(compiler->scope(), val.second, s);
 		}
 	}
 	
 	void TypeArray::constantize(Cursor& err, unsigned char* target, unsigned char* source) {
 		std::string data;
 
-		if (!wrap || wrap(sandbox) == 0) {
+		
 			Compiler* compiler = Compiler::current();
 			std::size_t me_size = size().eval(compiler->global_module(), compiler_arch);
 			data = std::string(me_size,'\0');
@@ -189,11 +203,14 @@ namespace Corrosive {
 			}
 
 			if (target) {
-				memcpy(target, data.data(), data.size()); // no need to register as constant
+				if (!wrap || wrap(sandbox) == 0) {
+					memcpy(target, data.data(), data.size()); // no need to register as constant}
+				} else {
+					throw_runtime_handler_exception(Compiler::current()->evaluator());
+				}
 			}
 			else {
 				auto val = compiler->constant_manager()->register_constant(std::move(data), size());
-
 				stackid_t local_id = compiler->target()->local_stack_lifetime.append(size());
 				compiler->temp_stack()->push_item("$tmp", this, local_id);
 				ILBuilder::build_constref(compiler->scope(), val.second);
@@ -201,10 +218,7 @@ namespace Corrosive {
 				ILBuilder::build_memcpy(compiler->scope(), size());
 				ILBuilder::build_local(compiler->scope(), local_id);
 			}
-		}
-		else {
-			throw_runtime_handler_exception(Compiler::current()->evaluator());
-		}
+		
 	}
 
 

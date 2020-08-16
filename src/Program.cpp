@@ -15,6 +15,7 @@
 #include "Compiler.hpp"
 #include "Ast.hpp"
 #include <fstream>
+#include <csetjmp>
 
 namespace Corrosive {
 	const ILArchitecture compiler_arch = (sizeof(void*) == 8) ? ILArchitecture::bit64 : ILArchitecture::bit32;
@@ -48,7 +49,7 @@ namespace Corrosive {
 
 			std::cout << "========= TEST =========\n";
 
-			std::chrono::steady_clock::time_point saveload_start = std::chrono::steady_clock::now();
+			/*std::chrono::steady_clock::time_point saveload_start = std::chrono::steady_clock::now();
 			{
 				std::ofstream file("output.bin",std::ios::binary);
 				ILOutputStream stream(&file);
@@ -61,7 +62,7 @@ namespace Corrosive {
 				compiled_module->load(stream);
 				StandardLibraryCode::link(compiled_module.get());
 			}
-			std::chrono::steady_clock::time_point saveload_end = std::chrono::steady_clock::now();
+			std::chrono::steady_clock::time_point saveload_end = std::chrono::steady_clock::now();*/
 
 
 			std::chrono::steady_clock::time_point runtime_start = std::chrono::steady_clock::now();
@@ -71,7 +72,7 @@ namespace Corrosive {
 
 			std::cout << "========= ==== =========\n";
 			std::cout << "\ncompile time: " << std::chrono::duration_cast<std::chrono::milliseconds>(compile_end - compile_begin).count() << "[ms]\n";
-			std::cout << "\nsave and load time: " << std::chrono::duration_cast<std::chrono::milliseconds>(saveload_end - saveload_start).count() << "[ms]\n";
+			//std::cout << "\nsave and load time: " << std::chrono::duration_cast<std::chrono::milliseconds>(saveload_end - saveload_start).count() << "[ms]\n";
 			std::cout << "runtime: " << std::chrono::duration_cast<std::chrono::milliseconds>(runtime_end - runtime_start).count() << "[ms]\n" << std::endl;
 			
 		}

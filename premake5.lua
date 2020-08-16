@@ -8,6 +8,7 @@ project "crs"
 	language "C++"
 	cppdialect "C++17"
 	targetdir "bin/%{cfg.buildcfg}"
+	exceptionhandling ("on")
 
 	files { "src/*.cpp", "src/IL/*.cpp" }
 	
