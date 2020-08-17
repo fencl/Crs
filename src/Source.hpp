@@ -40,7 +40,7 @@ namespace Corrosive {
 		void move_matching(Cursor& c) const;
 		std::unique_ptr<AstRootNode> root_node;
 
-		static void require(std::filesystem::path file, Source* base=nullptr);
+		static errvoid require(std::filesystem::path file, Source* base=nullptr);
 		static void require_wrapper(dword_t slice);
 	private:
 		std::string buffer;

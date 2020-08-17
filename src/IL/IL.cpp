@@ -57,32 +57,38 @@ namespace Corrosive {
 		return alignment == 0 ? value : ((value % alignment == 0) ? value : value + (alignment - (value % alignment)));
 	}
 
-	void throw_runtime_exception(const ILEvaluator* eval, std::string_view message) {
+	errvoid throw_runtime_exception(const ILEvaluator* eval, std::string_view message) {
 		std::stringstream cerr;
 		throw_runtime_exception_header(eval, cerr);
 
 
 		cerr << message;
 		throw_runtime_exception_footer(eval, cerr);
-		throw string_exception(std::move(cerr.str()));
+		//throw string_exception(std::move(cerr.str()));
+		std::cerr << cerr.str();
+		return pass();
 	}
 
-	void throw_segfault_exception(const ILEvaluator* eval, int signal) {
+	errvoid throw_segfault_exception(const ILEvaluator* eval, int signal) {
 		std::stringstream cerr;
 		throw_runtime_exception_header(eval, cerr);
 
 		cerr << "Attempt to access protected memory range (Segmentation fault [" << signal << "])";
 		throw_runtime_exception_footer(eval, cerr);
-		throw string_exception(std::move(cerr.str()));
+		//throw string_exception(std::move(cerr.str()));
+		std::cerr << cerr.str();
+		return pass();
 	}
 
-	void throw_interrupt_exception(const ILEvaluator* eval, int signal) {
+	errvoid throw_interrupt_exception(const ILEvaluator* eval, int signal) {
 		std::stringstream cerr;
 		throw_runtime_exception_header(eval, cerr);
 
 		cerr << "Interrupt exception (Interrupt [" << signal << "])";
 		throw_runtime_exception_footer(eval, cerr);
-		throw string_exception(std::move(cerr.str()));
+		//throw string_exception(std::move(cerr.str()));
+		std::cerr << cerr.str();
+		return pass();
 	}
 
 
@@ -309,7 +315,7 @@ namespace Corrosive {
 		current.push_back(this);
 		auto eval = std::make_unique<ILEvaluator>();
 		eval->parent = this;
-		ILBuilder::eval_fncall(eval.get(), func);
+		if (!ILBuilder::eval_fncall(eval.get(), func)) {} //TODO
 
 		auto lr1b = (std::size_t)(eval->register_stack_pointer_1b - eval->register_stack_1b);
 		if (lr1b > 0) { std::cout << "leaked 1 byte registers: " << lr1b << "\n"; }
@@ -1284,11 +1290,6 @@ namespace Corrosive {
 			}
 		}
 
-		//std::vector<std::uint8_t> const_static_data;
-		//std::multimap<void*, std::size_t> pointer_offsets;
-
-		//ILOutputStream os(&const_static_data);
-
 		file.s(constant_memory.size());
 		for (auto&& con_mem: constant_memory) {
 			file.u8((std::uint8_t)con_mem.first.type);
@@ -1301,7 +1302,6 @@ namespace Corrosive {
 		for (auto&& static_mem: static_memory) {
 			file.u8((std::uint8_t)static_mem.first.type);
 			file.u32((std::uint8_t)static_mem.first.value);
-			static_mem.first.save(this, file, static_mem.second.get());
 		}
 	}
 
@@ -1404,7 +1404,6 @@ namespace Corrosive {
 			s.value = file.u32();
 			std::size_t es = s.eval(this, compiler_arch);
 			auto mem = std::make_unique<unsigned char[]>(es);
-			s.load(this, file, mem.get());
 			static_memory[sid] = std::make_pair(s, std::move(mem));
 		}
 
@@ -1422,7 +1421,7 @@ namespace Corrosive {
 	void ILOutputStream::i8(std::int8_t v) {
 		u8(*(std::uint8_t*)&v);
 	}
-	void ILOutputStream::u16(std::uint16_t v){
+	void ILOutputStream::u16(std::uint16_t v) {
 		if (target.index() == 0) {
 			std::get<0>(target)->put((std::uint8_t)((v)&0x00ff))
 			.put((std::uint8_t)((v>>8)&0x00ff));
@@ -1431,10 +1430,10 @@ namespace Corrosive {
 			std::get<1>(target)->push_back((std::uint8_t)((v>>8)&0x00ff));
 		}
 	}
-	void ILOutputStream::i16(std::int16_t v){
+	void ILOutputStream::i16(std::int16_t v) {
 		u16(*(std::uint16_t*)&v);
 	}
-	void ILOutputStream::u32(std::uint32_t v){
+	void ILOutputStream::u32(std::uint32_t v) {
 		if (target.index() == 0) {
 			std::get<0>(target)->put((std::uint8_t)((v)&0x000000ff))
 			.put((std::uint8_t)((v>>8)&0x000000ff))

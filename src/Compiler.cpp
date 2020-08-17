@@ -2,7 +2,7 @@
 #include "Operand.hpp"
 
 namespace Corrosive {
-	void Compiler::setup() {
+	errvoid Compiler::setup() {
 		target_module->insintric_function[(unsigned char)ILInsintric::push_template] = &Operand::push_template;
 		target_module->insintric_function_name[(unsigned char)ILInsintric::push_template] = "push_template";
 		target_module->insintric_function[(unsigned char)ILInsintric::build_template] = &Operand::build_template;
@@ -11,13 +11,14 @@ namespace Corrosive {
 		target_module->insintric_function_name[(unsigned char)ILInsintric::type_dynamic_cast] = "dynamic_cast";
 		compiler_evaluator->parent = target_module.get();
 		constant_stack_manager->compiler = this;
-		default_types->setup();
+		if (!default_types->setup()) return pass();
 		outer_namespace_stack.push_back(target_global_namespace.get());
 		initialized = true;
+		return errvoid();
 	}
 
 
-	FunctionInstance* Compiler::register_native_function(std::initializer_list<const char*> path, void* ptr) {
+	errvoid Compiler::register_native_function(FunctionInstance*& r, std::initializer_list<const char*> path, void* ptr) {
 
 		Namespace* nspc = global_namespace();
 		FunctionTemplate* func = nullptr;
@@ -34,19 +35,21 @@ namespace Corrosive {
 				func = res.get_function();
 			}
 			else {
-				return nullptr;
+				r = nullptr;
+				return errvoid();
 			}
 		}
 
 		FunctionInstance* finst;
-		func->generate(nullptr, finst);
-		finst->compile();
+		if (!func->generate(nullptr, finst)) return pass();
+		if (!finst->compile()) return pass();
 		((ILNativeFunction*)finst->func)->ptr = ptr;
-		return finst;
+		r= finst;
+		return errvoid();
 	}
 
 	thread_local std::vector<Compiler*> Compiler::c;
-	void Compiler::push_compiler(Compiler* compiler) { c.push_back(compiler); if (!compiler->initialized) { compiler->setup(); } }
+	void Compiler::push_compiler(Compiler* compiler) { c.push_back(compiler); }
 	void Compiler::pop_compiler() { c.pop_back(); }
 	Compiler* Compiler::current() { return c.back(); }
 	std::unique_ptr<Compiler> Compiler::create() {
@@ -136,7 +139,7 @@ namespace Corrosive {
 	}
 
 	std::unique_ptr<ILModule> Compiler::finalize() {
-		//target_module->strip_unused_content();
+		target_module->strip_unused_content();
 		release_jit_code();
 		if (ILEvaluator::sandboxed()) build_sandbox();
 		return std::move(target_module);

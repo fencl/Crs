@@ -80,18 +80,18 @@ namespace Corrosive {
 
 	class Namespace {
 	public:
-		virtual ~Namespace();
-		AstRegularNode* ast_node;
+		virtual ~Namespace() {}
 
-		//Cursor name;
-		Namespace* parent = nullptr;
+		AstRegularNode* ast_node;
+		Namespace* 	    parent = nullptr;
+
 		std::map<std::string_view, std::pair<std::uint8_t, std::uint32_t>> name_table;
 
-		std::vector<std::unique_ptr<Namespace>> subnamespaces;
+		std::vector<std::unique_ptr<Namespace>>         subnamespaces;
 		std::vector<std::unique_ptr<StructureTemplate>> subtemplates;
-		std::vector<std::unique_ptr<FunctionTemplate>> subfunctions;
-		std::vector<std::unique_ptr<TraitTemplate>> subtraits;
-		std::vector<std::unique_ptr<StaticInstance>> substatics;
+		std::vector<std::unique_ptr<FunctionTemplate>>  subfunctions;
+		std::vector<std::unique_ptr<TraitTemplate>>     subtraits;
+		std::vector<std::unique_ptr<StaticInstance>>    substatics;
 
 		FindNameResult find_name(std::string_view name);
 	};
@@ -108,24 +108,23 @@ namespace Corrosive {
 	public:
 		std::unique_ptr<TypeStructureInstance> type;
 
-		std::map<std::string_view, std::pair<tableelement_t, MemberTableEntryType>>	 member_table;
-		std::vector<std::pair<Type*, tableelement_t>>								 member_vars;
-		std::vector<tableelement_t>													 member_composites;
-		std::map<TraitInstance*, std::vector<std::unique_ptr<FunctionInstance>>> traitfunctions;
-
-		std::uint16_t		pass_array_id = 0;
-		bool			pass_array_operator = false;
-
 		StructureInstanceType structure_type = StructureInstanceType::normal_structure;
 
-		ILDataType		rvalue = ILDataType::word;
-		ILSize			size;
-		bool			wrapper = false;
-		ILContext		context;
+		ILDataType      rvalue = ILDataType::word;
+		ILSize          size;
+		bool            wrapper = false;
+		ILContext       context;
 		GenericInstance generic_inst;
 
-		void compile();
+		std::uint16_t pass_array_id = 0;
+		bool          pass_array_operator = false;
 
+		std::map<std::string_view, std::pair<tableelement_t, MemberTableEntryType>>	member_table;
+		std::vector<std::pair<Type*, tableelement_t>>                               member_vars;
+		std::vector<tableelement_t>                                                 member_composites;
+		std::map<TraitInstance*, std::vector<std::unique_ptr<FunctionInstance>>>    traitfunctions;
+
+		errvoid compile();
 		unsigned char compile_state = 0;
 	};
 
@@ -138,13 +137,15 @@ namespace Corrosive {
 
 		std::unique_ptr<TypeStructureTemplate> type;
 
-		void generate(unsigned char* argdata, StructureInstance*& out);
-		void compile();
+		errvoid generate(unsigned char* argdata, StructureInstance*& out);
+		errvoid compile();
 
 		unsigned char compile_state = 0;
 
 		static void var_wrapper(dword_t dw, Type* type);
 		static void var_alias_wrapper(dword_t dw, Type* type);
+
+
 	private:
 		struct GenericTemplateCompare {
 			StructureTemplate* parent;
@@ -163,7 +164,7 @@ namespace Corrosive {
 		std::map<StructureInstance*, std::uint32_t>	vtable_instances;
 		std::vector<TypeFunction*>				member_declarations;
 
-		void generate_vtable(StructureInstance* forinst, std::uint32_t& optid);
+		errvoid generate_vtable(StructureInstance* forinst, std::uint32_t& optid);
 
 		Namespace*		parent;
 		GenericInstance	generic_inst;
@@ -181,8 +182,8 @@ namespace Corrosive {
 
 		std::unique_ptr<TypeTraitTemplate> type;
 
-		void generate(unsigned char* argdata, TraitInstance*& out);
-		void compile();
+		errvoid generate(unsigned char* argdata, TraitInstance*& out);
+		errvoid compile();
 
 		unsigned char compile_state = 0;
 
@@ -211,7 +212,7 @@ namespace Corrosive {
 
 		AstFunctionDeclarationNode* ast_node;
 
-		void compile();
+		errvoid compile();
 
 		unsigned int compile_state = 0;
 	};
@@ -224,8 +225,8 @@ namespace Corrosive {
 
 		std::unique_ptr<TypeFunctionTemplate> type;
 
-		void generate(unsigned char* argdata, FunctionInstance*& out);
-		void compile();
+		errvoid generate(unsigned char* argdata, FunctionInstance*& out);
+		errvoid compile();
 
 		unsigned char compile_state = 0;
 	private:
@@ -249,7 +250,7 @@ namespace Corrosive {
 		ILContext		context;
 		std::uint32_t sid;
 
-		void compile();
+		errvoid compile();
 	};
 }
 

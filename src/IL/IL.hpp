@@ -19,10 +19,53 @@ namespace Corrosive {
 	struct string_exception : public std::exception
 	{
 		std::string s;
-		inline string_exception(std::string msg) { s = std::move(msg); }
-		inline ~string_exception() throw () {}
-		const char* what() const throw() { return s.c_str(); }
+		inline string_exception(const std::string& msg) { s = std::move(msg); }
+		inline ~string_exception() noexcept {}
+		const char* what() const noexcept { return s.c_str(); }
 	};
+
+	struct err_undef_tag{};
+
+	class err_handler {
+		public:
+			err_handler() = default;
+			err_handler(const err_handler& h) = default;
+			err_handler(err_undef_tag&& h) : state(0) {};
+			err_handler(bool b) : state(b?1:2) {  }
+			err_handler(err_handler&& h) : state(h.state) { h.state = 0; }
+			~err_handler() {
+				switch(state) {
+					case 0: break;
+					default: 
+						std::cout << "Error: exception not handled properly"; exit(1); break;
+				}
+			}
+
+			bool operator = (const bool& r) {
+				state = r?1:2;
+				return r;
+			}
+
+			operator bool() {
+				switch(state) {
+					case 0: return true;
+					case 1: state = 0; return true;
+					case 2: state = 0; return false;
+					default: return false;
+				}
+			}
+		private:
+			std::uint8_t state = 1;
+	};
+
+	inline bool operator!(err_handler& h) { return !((bool)h); }
+
+	using errvoid = err_handler;
+
+	
+	inline errvoid pass(){
+		return false;
+	}
 
 	using stackid_t = std::uint32_t;
 	using tableid_t = std::uint32_t;
@@ -376,8 +419,8 @@ namespace Corrosive {
 	void invalidate_sandbox();
 
 	extern void* sandbox;
-	extern int (*wrap)(void*) noexcept;
-	extern void (*longjmp_func)(void*, int) noexcept;
+	extern int (*wrap)(void*);
+	extern void (*longjmp_func)(void*, int);
 	
 
 	struct ILLifetime {
@@ -463,8 +506,16 @@ namespace Corrosive {
 
 	extern const ILArchitecture compiler_arch;
 
+	
+	errvoid throw_runtime_exception(const ILEvaluator* eval, std::string_view message);
+	errvoid throw_segfault_exception(const ILEvaluator* eval, int signal);
+	errvoid throw_interrupt_exception(const ILEvaluator* eval, int signal);
+	errvoid throw_runtime_handler_exception(const ILEvaluator* eval);
+
 	class ILEvaluator {
 	public:
+		static void ex_throw();
+
 		ILModule* parent = nullptr;
 
 		static const inline std::size_t stack_size = 1024 * 4;
@@ -500,63 +551,73 @@ namespace Corrosive {
 		static void sandbox_end();
 		static bool sandboxed();
 
-		void	write_register_value_indirect(std::size_t size, void* value);
-		void	pop_register_value_indirect(std::size_t size, void* into);
+		errvoid	write_register_value_indirect(std::size_t size, void* value);
+		errvoid	pop_register_value_indirect(std::size_t size, void* into);
 		void*	read_last_register_value_indirect(ILDataType rs);
 		std::size_t	compile_time_register_size(ILDataType t);
 
 
-		template<typename T> inline T read_register_value() {
+		template<typename T> inline errvoid read_register_value(T& r) {
 			if (!wrap || wrap(sandbox) == 0) {
 				switch (sizeof(T)) {
 					case 1:
-						return *(T*)(register_stack_pointer_1b - 1);
+						if (register_stack_pointer_1b <= register_stack_1b) return pass();
+						r = *(T*)(register_stack_pointer_1b - 1); return errvoid();
 					case 2:
-						return *(T*)(register_stack_pointer_2b - 1);
+						if (register_stack_pointer_2b <= register_stack_2b) return pass();
+						r = *(T*)(register_stack_pointer_2b - 1); return errvoid();
 					case 3:
 					case 4:
-						return *(T*)(register_stack_pointer_4b - 1);
+						if (register_stack_pointer_4b <= register_stack_4b) return pass();
+						r = *(T*)(register_stack_pointer_4b - 1); return errvoid();
 					case 5:
 					case 6:
 					case 7:
 					case 8:
-						return *(T*)(register_stack_pointer_8b - 1);
+						if (register_stack_pointer_8b <= register_stack_8b) return pass();
+						r = *(T*)(register_stack_pointer_8b - 1); return errvoid();
 					default:
-						return *(T*)(register_stack_pointer_8b - 2);
+						if (register_stack_pointer_8b <= register_stack_8b+1) return pass();
+						r = *(T*)(register_stack_pointer_8b - 2); return errvoid();
 				}
 			}
 			else {
-				throw_runtime_handler_exception(this);
+				return throw_runtime_handler_exception(this);
 			}
 			
-			return (T)0;
+			return errvoid();
 		}
 
-		template<typename T> inline T pop_register_value() {
+		template<typename T> inline errvoid pop_register_value(T& r) {
 			if (!wrap || wrap(sandbox) == 0) {
 				switch (sizeof(T)) {
 					case 1:
-						return *(T*)(--register_stack_pointer_1b);
+						if (register_stack_pointer_1b <= register_stack_1b) return pass();
+						r = *(T*)(--register_stack_pointer_1b); return errvoid();
 					case 2:
-						return *(T*)(--register_stack_pointer_2b);
+						if (register_stack_pointer_2b <= register_stack_2b) return pass();
+						r = *(T*)(--register_stack_pointer_2b); return errvoid();
 					case 3:
 					case 4:
-						return *(T*)(--register_stack_pointer_4b);
+						if (register_stack_pointer_4b <= register_stack_4b) return pass();
+						r = *(T*)(--register_stack_pointer_4b); return errvoid();
 					case 5:
 					case 6:
 					case 7:
 					case 8:
-						return *(T*)(--register_stack_pointer_8b);
+						if (register_stack_pointer_8b <= register_stack_8b) return pass();
+						r = *(T*)(--register_stack_pointer_8b); return errvoid();
 					default:
+						if (register_stack_pointer_8b <= register_stack_8b + 1) return pass();
 						--register_stack_pointer_8b;
-						return *(T*)(--register_stack_pointer_8b);
+						r = *(T*)(--register_stack_pointer_8b); return errvoid();
 				}
 			}
 			else {
-				throw_runtime_handler_exception(this);
+				return throw_runtime_handler_exception(this);
 			}
 			
-			return (T)0;
+			return errvoid();
 		}
 
 		template<typename T> inline void write_register_value(T v) {
@@ -587,10 +648,6 @@ namespace Corrosive {
 
 	void release_jit_code();
 
-	void throw_runtime_exception(const ILEvaluator* eval, std::string_view message);
-	void throw_segfault_exception(const ILEvaluator* eval, int signal);
-	void throw_interrupt_exception(const ILEvaluator* eval, int signal);
-	void throw_runtime_handler_exception(const ILEvaluator* eval);
 
 	enum class ILPointerType {
 		function, vtable, constant, staticstorage
@@ -626,7 +683,7 @@ namespace Corrosive {
 
 		void strip_unused_content();
 
-		void (*insintric_function[256])(ILEvaluator*);
+		errvoid (*insintric_function[256])(ILEvaluator*);
 		std::string insintric_function_name[256];
 
 		void dump_function_decl(std::uint32_t id);
@@ -642,168 +699,168 @@ namespace Corrosive {
 		};
 	};
 
-	void abi_dynamic_call(ILEvaluator* eval, ILCallingConvention conv, void* ptr, std::tuple<ILCallingConvention, ILDataType, std::vector<ILDataType>>& decl);
+	errvoid abi_dynamic_call(ILEvaluator* eval, ILCallingConvention conv, void* ptr, std::tuple<ILCallingConvention, ILDataType, std::vector<ILDataType>>& decl);
 
 	class ILBuilder {
 	public:
 
-		static void eval_const_i8(ILEvaluator* eval_ctx, std::int8_t   value);
-		static void eval_const_i16(ILEvaluator* eval_ctx, std::int16_t  value);
-		static void eval_const_i32(ILEvaluator* eval_ctx, std::int32_t  value);
-		static void eval_const_i64(ILEvaluator* eval_ctx, std::int64_t  value);
-		static void eval_const_u8(ILEvaluator* eval_ctx, std::uint8_t  value);
-		static void eval_const_u16(ILEvaluator* eval_ctx, std::uint16_t value);
-		static void eval_const_u32(ILEvaluator* eval_ctx, std::uint32_t value);
-		static void eval_const_u64(ILEvaluator* eval_ctx, std::uint64_t value);
-		static void eval_const_f32(ILEvaluator* eval_ctx, float    value);
-		static void eval_const_f64(ILEvaluator* eval_ctx, double   value);
-		static void eval_const_word(ILEvaluator* eval_ctx, void* value);
-		static void eval_const_dword(ILEvaluator* eval_ctx, dword_t value);
-		static void eval_const_size(ILEvaluator* eval_ctx, std::size_t   value);
-		static void eval_const_slice(ILEvaluator* eval_ctx, std::uint32_t constid, ILSize size);
+		static errvoid eval_const_i8(ILEvaluator* eval_ctx, std::int8_t   value);
+		static errvoid eval_const_i16(ILEvaluator* eval_ctx, std::int16_t  value);
+		static errvoid eval_const_i32(ILEvaluator* eval_ctx, std::int32_t  value);
+		static errvoid eval_const_i64(ILEvaluator* eval_ctx, std::int64_t  value);
+		static errvoid eval_const_u8(ILEvaluator* eval_ctx, std::uint8_t  value);
+		static errvoid eval_const_u16(ILEvaluator* eval_ctx, std::uint16_t value);
+		static errvoid eval_const_u32(ILEvaluator* eval_ctx, std::uint32_t value);
+		static errvoid eval_const_u64(ILEvaluator* eval_ctx, std::uint64_t value);
+		static errvoid eval_const_f32(ILEvaluator* eval_ctx, float    value);
+		static errvoid eval_const_f64(ILEvaluator* eval_ctx, double   value);
+		static errvoid eval_const_word(ILEvaluator* eval_ctx, void* value);
+		static errvoid eval_const_dword(ILEvaluator* eval_ctx, dword_t value);
+		static errvoid eval_const_size(ILEvaluator* eval_ctx, std::size_t   value);
+		static errvoid eval_const_slice(ILEvaluator* eval_ctx, std::uint32_t constid, ILSize size);
 
-		static void build_const_i8(ILBlock* block, std::int8_t   value);
-		static void build_const_i16(ILBlock* block, std::int16_t  value);
-		static void build_const_i32(ILBlock* block, std::int32_t  value);
-		static void build_const_i64(ILBlock* block, std::int64_t  value);
-		static void build_const_u8(ILBlock* block, std::uint8_t  value);
-		static void build_const_u16(ILBlock* block, std::uint16_t value);
-		static void build_const_u32(ILBlock* block, std::uint32_t value);
-		static void build_const_u64(ILBlock* block, std::uint64_t value);
-		static void build_const_f32(ILBlock* block, float    value);
-		static void build_const_f64(ILBlock* block, double   value);
-		static void build_const_word(ILBlock* block, void* value);
-		static void build_const_dword(ILBlock* block, dword_t value);
-		static void build_const_size(ILBlock* block, ILSize value);
-		static void build_const_slice(ILBlock* block, std::uint32_t constid, ILSize size);
+		static errvoid build_const_i8(ILBlock* block, std::int8_t   value);
+		static errvoid build_const_i16(ILBlock* block, std::int16_t  value);
+		static errvoid build_const_i32(ILBlock* block, std::int32_t  value);
+		static errvoid build_const_i64(ILBlock* block, std::int64_t  value);
+		static errvoid build_const_u8(ILBlock* block, std::uint8_t  value);
+		static errvoid build_const_u16(ILBlock* block, std::uint16_t value);
+		static errvoid build_const_u32(ILBlock* block, std::uint32_t value);
+		static errvoid build_const_u64(ILBlock* block, std::uint64_t value);
+		static errvoid build_const_f32(ILBlock* block, float    value);
+		static errvoid build_const_f64(ILBlock* block, double   value);
+		static errvoid build_const_word(ILBlock* block, void* value);
+		static errvoid build_const_dword(ILBlock* block, dword_t value);
+		static errvoid build_const_size(ILBlock* block, ILSize value);
+		static errvoid build_const_slice(ILBlock* block, std::uint32_t constid, ILSize size);
 
-		static void eval_combine_dword(ILEvaluator* eval_ctx);
-		static void eval_high_word(ILEvaluator* eval_ctx);
-		static void eval_split_dword(ILEvaluator* eval_ctx);
-		static void eval_tableoffset(ILEvaluator* eval_ctx, tableid_t tableid, tableelement_t itemid);
-		static void eval_tableroffset(ILEvaluator* eval_ctx, ILDataType src, ILDataType dst, tableid_t tableid, tableelement_t itemid);
-		static void eval_constref(ILEvaluator* eval_ctx, std::uint32_t constid);
-		static void eval_staticref(ILEvaluator* eval_ctx, std::uint32_t constid);
-		static void eval_debug(ILEvaluator* eval_ctx, std::uint16_t file, std::uint16_t line);
-		static void eval_load(ILEvaluator* eval_ctx, ILDataType type);
-		static void eval_store(ILEvaluator* eval_ctx, ILDataType type);
-		static void eval_store_rev(ILEvaluator* eval_ctx, ILDataType type);
-		static void eval_negative(ILEvaluator* eval_ctx, ILDataType type);
-		static void eval_vtable(ILEvaluator* eval_ctx, std::uint32_t id);
-		static void eval_memcpy(ILEvaluator* eval_ctx, std::size_t size);
-		static void eval_memcpy_rev(ILEvaluator* eval_ctx, std::size_t size);
-		static void eval_memcmp(ILEvaluator* eval_ctx, std::size_t size);
-		static void eval_memcmp_rev(ILEvaluator* eval_ctx, std::size_t size);
-		static void eval_null(ILEvaluator* eval_ctx);
-		static void eval_negate(ILEvaluator* eval_ctx);
-		static void eval_rmemcmp(ILEvaluator* eval_ctx, ILDataType type);
-		static void eval_rmemcmp_rev(ILEvaluator* eval_ctx, ILDataType type);
-		static void eval_isnotzero(ILEvaluator* eval_ctx, ILDataType type);
-		static void eval_rtoffset(ILEvaluator* eval_ctx);
-		static void eval_rtoffset_rev(ILEvaluator* eval_ctx);
-		static void eval_offset(ILEvaluator* eval_ctx, ILSize offset);
-		static void eval_aoffset(ILEvaluator* eval_ctx, std::uint32_t offset);
-		static void eval_woffset(ILEvaluator* eval_ctx, std::uint32_t offset);
-		static void eval_aroffset(ILEvaluator* eval_ctx, ILDataType from, ILDataType to, std::uint32_t offset);
-		static void eval_wroffset(ILEvaluator* eval_ctx, ILDataType from, ILDataType to, std::uint32_t offset);
-		static void eval_roffset(ILEvaluator* eval_ctx, ILDataType src, ILDataType dst, std::size_t offset);
-		static void eval_add(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
-		static void eval_and(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
-		static void eval_or(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
-		static void eval_xor(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
-		static void eval_eq(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
-		static void eval_ne(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
-		static void eval_gt(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
-		static void eval_lt(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
-		static void eval_ge(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
-		static void eval_le(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
-		static void eval_sub(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
-		static void eval_div(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
-		static void eval_rem(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
-		static void eval_mul(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
-		static void eval_cast(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
-		static void eval_bitcast(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
-		static void eval_forget(ILEvaluator* eval_ctx, ILDataType type);
-		static void eval_fnptr(ILEvaluator* eval_ctx, ILFunction* fun);
-		static void eval_fncall(ILEvaluator* eval_ctx, ILFunction* fun);
-		static void eval_insintric(ILEvaluator* eval_ctx, ILInsintric fun);
-		static void eval_discard(ILEvaluator* eval_ctx, ILDataType type);
-		static void eval_yield(ILEvaluator* eval_ctx, ILDataType type);
-		static void eval_accept(ILEvaluator* eval_ctx, ILDataType type);
-		static void eval_callstart(ILEvaluator* eval_ctx);
-		static void eval_call(ILEvaluator* eval_ctx, std::uint32_t decl);
-		static void eval_duplicate(ILEvaluator* eval_ctx, ILDataType type);
-		static void eval_clone(ILEvaluator* eval_ctx, ILDataType type, std::uint16_t times);
-		static void eval_swap(ILEvaluator* eval_ctx, ILDataType type);
-		static void eval_swap2(ILEvaluator* eval_ctx, ILDataType type1, ILDataType type2);
+		static errvoid eval_combine_dword(ILEvaluator* eval_ctx);
+		static errvoid eval_high_word(ILEvaluator* eval_ctx);
+		static errvoid eval_split_dword(ILEvaluator* eval_ctx);
+		static errvoid eval_tableoffset(ILEvaluator* eval_ctx, tableid_t tableid, tableelement_t itemid);
+		static errvoid eval_tableroffset(ILEvaluator* eval_ctx, ILDataType src, ILDataType dst, tableid_t tableid, tableelement_t itemid);
+		static errvoid eval_constref(ILEvaluator* eval_ctx, std::uint32_t constid);
+		static errvoid eval_staticref(ILEvaluator* eval_ctx, std::uint32_t constid);
+		static errvoid eval_debug(ILEvaluator* eval_ctx, std::uint16_t file, std::uint16_t line);
+		static errvoid eval_load(ILEvaluator* eval_ctx, ILDataType type);
+		static errvoid eval_store(ILEvaluator* eval_ctx, ILDataType type);
+		static errvoid eval_store_rev(ILEvaluator* eval_ctx, ILDataType type);
+		static errvoid eval_negative(ILEvaluator* eval_ctx, ILDataType type);
+		static errvoid eval_vtable(ILEvaluator* eval_ctx, std::uint32_t id);
+		static errvoid eval_memcpy(ILEvaluator* eval_ctx, std::size_t size);
+		static errvoid eval_memcpy_rev(ILEvaluator* eval_ctx, std::size_t size);
+		static errvoid eval_memcmp(ILEvaluator* eval_ctx, std::size_t size);
+		static errvoid eval_memcmp_rev(ILEvaluator* eval_ctx, std::size_t size);
+		static errvoid eval_null(ILEvaluator* eval_ctx);
+		static errvoid eval_negate(ILEvaluator* eval_ctx);
+		static errvoid eval_rmemcmp(ILEvaluator* eval_ctx, ILDataType type);
+		static errvoid eval_rmemcmp_rev(ILEvaluator* eval_ctx, ILDataType type);
+		static errvoid eval_isnotzero(ILEvaluator* eval_ctx, ILDataType type);
+		static errvoid eval_rtoffset(ILEvaluator* eval_ctx);
+		static errvoid eval_rtoffset_rev(ILEvaluator* eval_ctx);
+		static errvoid eval_offset(ILEvaluator* eval_ctx, ILSize offset);
+		static errvoid eval_aoffset(ILEvaluator* eval_ctx, std::uint32_t offset);
+		static errvoid eval_woffset(ILEvaluator* eval_ctx, std::uint32_t offset);
+		static errvoid eval_aroffset(ILEvaluator* eval_ctx, ILDataType from, ILDataType to, std::uint32_t offset);
+		static errvoid eval_wroffset(ILEvaluator* eval_ctx, ILDataType from, ILDataType to, std::uint32_t offset);
+		static errvoid eval_roffset(ILEvaluator* eval_ctx, ILDataType src, ILDataType dst, std::size_t offset);
+		static errvoid eval_add(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
+		static errvoid eval_and(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
+		static errvoid eval_or(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
+		static errvoid eval_xor(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
+		static errvoid eval_eq(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
+		static errvoid eval_ne(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
+		static errvoid eval_gt(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
+		static errvoid eval_lt(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
+		static errvoid eval_ge(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
+		static errvoid eval_le(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
+		static errvoid eval_sub(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
+		static errvoid eval_div(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
+		static errvoid eval_rem(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
+		static errvoid eval_mul(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
+		static errvoid eval_cast(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
+		static errvoid eval_bitcast(ILEvaluator* eval_ctx, ILDataType tl, ILDataType tr);
+		static errvoid eval_forget(ILEvaluator* eval_ctx, ILDataType type);
+		static errvoid eval_fnptr(ILEvaluator* eval_ctx, ILFunction* fun);
+		static errvoid eval_fncall(ILEvaluator* eval_ctx, ILFunction* fun);
+		static errvoid eval_insintric(ILEvaluator* eval_ctx, ILInsintric fun);
+		static errvoid eval_discard(ILEvaluator* eval_ctx, ILDataType type);
+		static errvoid eval_yield(ILEvaluator* eval_ctx, ILDataType type);
+		static errvoid eval_accept(ILEvaluator* eval_ctx, ILDataType type);
+		static errvoid eval_callstart(ILEvaluator* eval_ctx);
+		static errvoid eval_call(ILEvaluator* eval_ctx, std::uint32_t decl);
+		static errvoid eval_duplicate(ILEvaluator* eval_ctx, ILDataType type);
+		static errvoid eval_clone(ILEvaluator* eval_ctx, ILDataType type, std::uint16_t times);
+		static errvoid eval_swap(ILEvaluator* eval_ctx, ILDataType type);
+		static errvoid eval_swap2(ILEvaluator* eval_ctx, ILDataType type1, ILDataType type2);
 
 		static ILDataType arith_result(ILDataType l, ILDataType r);
 
 
-		static void build_combine_dword(ILBlock* block);
-		static void build_high_word(ILBlock* block);
-		static void build_split_dword(ILBlock* block);
-		static void build_duplicate(ILBlock* block, ILDataType type);
-		static void build_clone(ILBlock* block, ILDataType type, std::uint16_t times);
-		static void build_swap(ILBlock* block, ILDataType type);
-		static void build_swap2(ILBlock* block, ILDataType type1, ILDataType type2);
-		static void build_tableroffset(ILBlock* block, ILDataType src, ILDataType dst, tableid_t tableid, tableelement_t itemid);
-		static void build_tableoffset(ILBlock* block, tableid_t tableid, tableelement_t itemid);
-		static void build_constref(ILBlock* block, std::uint32_t constid);
-		static void build_staticref(ILBlock* block, std::uint32_t constid);
-		static void build_debug(ILBlock* block, std::uint16_t file, std::uint16_t line);
-		static void build_load(ILBlock* block, ILDataType type);
-		static void build_store(ILBlock* block, ILDataType type);
-		static void build_store_rev(ILBlock* block, ILDataType type);
-		static void build_negative(ILBlock* block, ILDataType type);
-		static void build_memcpy(ILBlock* block, ILSize size);
-		static void build_memcpy_rev(ILBlock* block, ILSize size);
-		static void build_memcmp(ILBlock* block, ILSize size);
-		static void build_memcmp_rev(ILBlock* block, ILSize size);
-		static void build_offset(ILBlock* block, ILSize offest);
-		static void build_aoffset(ILBlock* block, std::uint32_t offest);
-		static void build_woffset(ILBlock* block, std::uint32_t offest);
-		static void build_aroffset(ILBlock* block, ILDataType from, ILDataType to, std::uint32_t offest);
-		static void build_wroffset(ILBlock* block, ILDataType from, ILDataType to, std::uint32_t offest);
-		static void build_roffset(ILBlock* block, ILDataType src, ILDataType dst, ILSize offset);
-		static void build_rtoffset(ILBlock* block);
-		static void build_rtoffset_rev(ILBlock* block);
-		static void build_rmemcmp(ILBlock* block, ILDataType type);
-		static void build_rmemcmp2(ILBlock* block, ILDataType type);
-		static void build_null(ILBlock* block);
-		static void build_negate(ILBlock* block);
-		static void build_isnotzero(ILBlock* block, ILDataType type);
-		static void build_local(ILBlock* block, stackid_t id);
-		static void build_vtable(ILBlock* block, std::uint32_t id);
-		static void build_add(ILBlock* block, ILDataType tl, ILDataType tr);
-		static void build_and(ILBlock* block, ILDataType tl, ILDataType tr);
-		static void build_or(ILBlock* block, ILDataType tl, ILDataType tr);
-		static void build_xor(ILBlock* block, ILDataType tl, ILDataType tr);
-		static void build_eq(ILBlock* block, ILDataType tl, ILDataType tr);
-		static void build_ne(ILBlock* block, ILDataType tl, ILDataType tr);
-		static void build_gt(ILBlock* block, ILDataType tl, ILDataType tr);
-		static void build_lt(ILBlock* block, ILDataType tl, ILDataType tr);
-		static void build_ge(ILBlock* block, ILDataType tl, ILDataType tr);
-		static void build_le(ILBlock* block, ILDataType tl, ILDataType tr);
-		static void build_sub(ILBlock* block, ILDataType tl, ILDataType tr);
-		static void build_div(ILBlock* block, ILDataType tl, ILDataType tr);
-		static void build_rem(ILBlock* block, ILDataType tl, ILDataType tr);
-		static void build_mul(ILBlock* block, ILDataType tl, ILDataType tr);
-		static void build_cast(ILBlock* block, ILDataType tl, ILDataType tr);
-		static void build_bitcast(ILBlock* block, ILDataType tl, ILDataType tr);
-		static void build_accept(ILBlock* block, ILDataType type);
-		static void build_discard(ILBlock* block, ILDataType type);
-		static void build_yield(ILBlock* block, ILDataType type);
-		static void build_forget(ILBlock* block, ILDataType type);
-		static void build_ret(ILBlock* block, ILDataType type);
-		static void build_fnptr(ILBlock* block, ILFunction* fun);
-		static void build_fnptr_id(ILBlock* block, std::uint32_t id);
-		static void build_fncall(ILBlock* eval_ctx, ILFunction* fun);
-		static void build_call(ILBlock* block, std::uint32_t decl);
-		static void build_callstart(ILBlock* block);
-		static void build_jmp(ILBlock* block, ILBlock* address);
-		static void build_jmpz(ILBlock* block, ILBlock* ifz, ILBlock* ifnz);
-		static void build_insintric(ILBlock* block, ILInsintric fun);
+		static errvoid build_combine_dword(ILBlock* block);
+		static errvoid build_high_word(ILBlock* block);
+		static errvoid build_split_dword(ILBlock* block);
+		static errvoid build_duplicate(ILBlock* block, ILDataType type);
+		static errvoid build_clone(ILBlock* block, ILDataType type, std::uint16_t times);
+		static errvoid build_swap(ILBlock* block, ILDataType type);
+		static errvoid build_swap2(ILBlock* block, ILDataType type1, ILDataType type2);
+		static errvoid build_tableroffset(ILBlock* block, ILDataType src, ILDataType dst, tableid_t tableid, tableelement_t itemid);
+		static errvoid build_tableoffset(ILBlock* block, tableid_t tableid, tableelement_t itemid);
+		static errvoid build_constref(ILBlock* block, std::uint32_t constid);
+		static errvoid build_staticref(ILBlock* block, std::uint32_t constid);
+		static errvoid build_debug(ILBlock* block, std::uint16_t file, std::uint16_t line);
+		static errvoid build_load(ILBlock* block, ILDataType type);
+		static errvoid build_store(ILBlock* block, ILDataType type);
+		static errvoid build_store_rev(ILBlock* block, ILDataType type);
+		static errvoid build_negative(ILBlock* block, ILDataType type);
+		static errvoid build_memcpy(ILBlock* block, ILSize size);
+		static errvoid build_memcpy_rev(ILBlock* block, ILSize size);
+		static errvoid build_memcmp(ILBlock* block, ILSize size);
+		static errvoid build_memcmp_rev(ILBlock* block, ILSize size);
+		static errvoid build_offset(ILBlock* block, ILSize offest);
+		static errvoid build_aoffset(ILBlock* block, std::uint32_t offest);
+		static errvoid build_woffset(ILBlock* block, std::uint32_t offest);
+		static errvoid build_aroffset(ILBlock* block, ILDataType from, ILDataType to, std::uint32_t offest);
+		static errvoid build_wroffset(ILBlock* block, ILDataType from, ILDataType to, std::uint32_t offest);
+		static errvoid build_roffset(ILBlock* block, ILDataType src, ILDataType dst, ILSize offset);
+		static errvoid build_rtoffset(ILBlock* block);
+		static errvoid build_rtoffset_rev(ILBlock* block);
+		static errvoid build_rmemcmp(ILBlock* block, ILDataType type);
+		static errvoid build_rmemcmp2(ILBlock* block, ILDataType type);
+		static errvoid build_null(ILBlock* block);
+		static errvoid build_negate(ILBlock* block);
+		static errvoid build_isnotzero(ILBlock* block, ILDataType type);
+		static errvoid build_local(ILBlock* block, stackid_t id);
+		static errvoid build_vtable(ILBlock* block, std::uint32_t id);
+		static errvoid build_add(ILBlock* block, ILDataType tl, ILDataType tr);
+		static errvoid build_and(ILBlock* block, ILDataType tl, ILDataType tr);
+		static errvoid build_or(ILBlock* block, ILDataType tl, ILDataType tr);
+		static errvoid build_xor(ILBlock* block, ILDataType tl, ILDataType tr);
+		static errvoid build_eq(ILBlock* block, ILDataType tl, ILDataType tr);
+		static errvoid build_ne(ILBlock* block, ILDataType tl, ILDataType tr);
+		static errvoid build_gt(ILBlock* block, ILDataType tl, ILDataType tr);
+		static errvoid build_lt(ILBlock* block, ILDataType tl, ILDataType tr);
+		static errvoid build_ge(ILBlock* block, ILDataType tl, ILDataType tr);
+		static errvoid build_le(ILBlock* block, ILDataType tl, ILDataType tr);
+		static errvoid build_sub(ILBlock* block, ILDataType tl, ILDataType tr);
+		static errvoid build_div(ILBlock* block, ILDataType tl, ILDataType tr);
+		static errvoid build_rem(ILBlock* block, ILDataType tl, ILDataType tr);
+		static errvoid build_mul(ILBlock* block, ILDataType tl, ILDataType tr);
+		static errvoid build_cast(ILBlock* block, ILDataType tl, ILDataType tr);
+		static errvoid build_bitcast(ILBlock* block, ILDataType tl, ILDataType tr);
+		static errvoid build_accept(ILBlock* block, ILDataType type);
+		static errvoid build_discard(ILBlock* block, ILDataType type);
+		static errvoid build_yield(ILBlock* block, ILDataType type);
+		static errvoid build_forget(ILBlock* block, ILDataType type);
+		static errvoid build_ret(ILBlock* block, ILDataType type);
+		static errvoid build_fnptr(ILBlock* block, ILFunction* fun);
+		static errvoid build_fnptr_id(ILBlock* block, std::uint32_t id);
+		static errvoid build_fncall(ILBlock* eval_ctx, ILFunction* fun);
+		static errvoid build_call(ILBlock* block, std::uint32_t decl);
+		static errvoid build_callstart(ILBlock* block);
+		static errvoid build_jmp(ILBlock* block, ILBlock* address);
+		static errvoid build_jmpz(ILBlock* block, ILBlock* ifz, ILBlock* ifnz);
+		static errvoid build_insintric(ILBlock* block, ILInsintric fun);
 	};
 }
 

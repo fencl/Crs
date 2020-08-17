@@ -66,7 +66,7 @@ namespace Corrosive {
 		}
 	}
 
-	std::uint8_t* ConstantManager::register_generic_storage(std::uint8_t* ptr, std::size_t size, Type* of) {
+	errvoid ConstantManager::register_generic_storage(std::uint8_t*& r, std::uint8_t* ptr, std::size_t size, Type* of) {
 		std::basic_string_view<std::uint8_t> view(ptr, size);
 		auto res = generic_storage_map.insert(std::make_pair(view, 0));
 		if (res.second) {
@@ -80,7 +80,7 @@ namespace Corrosive {
 			std::size_t mem_size = of->size().eval(Compiler::current()->global_module(), compiler_arch);
 
 			for (std::size_t i = 0; i < size / mem_size; i++) {
-				of->copy_to_generic_storage(off_src, off_dst);
+				if (!of->copy_to_generic_storage(off_src, off_dst)) return pass();
 				off_src += mem_size;
 				off_dst += mem_size;
 			}
@@ -89,11 +89,13 @@ namespace Corrosive {
 			(std::basic_string_view<std::uint8_t>&)res.first->first = std::basic_string_view<std::uint8_t>(arr.get(), size); 
 
 			generic_storage.push_back(std::move(arr));
-			return dst;
+			r = dst;
 		}
 		else {
-			return generic_storage[res.first->second].get();
+			r = generic_storage[res.first->second].get();
 		}
+
+		return errvoid();
 	}
 
 }

@@ -506,7 +506,7 @@ namespace Corrosive {
 		return func;
 	}
 
-	void Source::require(std::filesystem::path file, Source* src) 
+	errvoid Source::require(std::filesystem::path file, Source* src) 
 	{
 		Compiler* compiler = Compiler::current();
 		std::filesystem::path abs;
@@ -540,17 +540,19 @@ namespace Corrosive {
 				Cursor c = load_cursor(r, ptr);
 
 				BlockTermination termination;
-				Statement::parse(c, termination, ForceCompile::single);
+				if (!Statement::parse(c, termination, ForceCompile::single)) return pass();
 			}
 
 			compiler->source_stack.pop_back();
 		}
+
+		return errvoid();
 	}
 
 	void Source::require_wrapper(dword_t slice)
 	{
 		std::basic_string_view<char> data_string((char*)slice.p1, (std::size_t)slice.p2);
-		Source::require(data_string, Compiler::current()->source());
+		if (!Source::require(data_string, Compiler::current()->source())) { ILEvaluator::ex_throw(); return; }
 	}
 
 }

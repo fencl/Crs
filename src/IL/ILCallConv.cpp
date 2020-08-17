@@ -86,33 +86,40 @@ namespace Corrosive {
 	std::size_t return_storage_1;
 	std::size_t return_storage_2;
 
-	void push_32bit_temp_stack(ILEvaluator* eval, std::tuple<ILCallingConvention, ILDataType, std::vector<ILDataType>>& decl,void* pointer) {
+	errvoid push_32bit_temp_stack(ILEvaluator* eval, std::tuple<ILCallingConvention, ILDataType, std::vector<ILDataType>>& decl,void* pointer) {
 		std::size_t off = 0;
 		for (std::size_t i = std::get<2>(decl).size(); i > 0; --i) {
 			switch (std::get<2>(decl)[i - 1])
 			{
 				case ILDataType::i8:
-				case ILDataType::u8:
-					b4_stack[off++] = eval->pop_register_value<std::uint8_t>(); 
-					break;
+				case ILDataType::u8: {
+					std::uint8_t v;
+					if (!eval->pop_register_value<std::uint8_t>(v)) return pass();
+					b4_stack[off++] = v;
+				} break;
 
 				case ILDataType::i16:
-				case ILDataType::u16:
-					b4_stack[off++] = eval->pop_register_value<std::uint16_t>(); 
-					break;
+				case ILDataType::u16: {
+					std::uint16_t v;
+					if (!eval->pop_register_value<std::uint16_t>(v)) return pass();
+					b4_stack[off++] = v;
+				} break;
 
 				case ILDataType::i32:
 				case ILDataType::u32:
 				case ILDataType::f32:
-				case ILDataType::word:
-					b4_stack[off++] = eval->pop_register_value<std::uint32_t>(); 
-					break;
+				case ILDataType::word: {
+					std::uint32_t v;
+					if (!eval->pop_register_value<std::uint32_t>(v)) return pass();
+					b4_stack[off++] = v;
+				} break;
 
 				case ILDataType::f64:
 				case ILDataType::i64:
 				case ILDataType::dword: 
 				case ILDataType::u64: {
-					std::uint64_t v = eval->pop_register_value<std::uint64_t>();
+					std::uint64_t v;
+					if (!eval->pop_register_value<std::uint64_t>(v)) return pass();;
 					b4_stack[off++] = (std::uint32_t)(v >> 32);
 					b4_stack[off++] = (std::uint32_t)(v);
 					break;
@@ -123,6 +130,7 @@ namespace Corrosive {
 			}
 		}
 		b4_stack[off++] = (std::uint32_t)pointer;
+		return errvoid();
 	}
 
 	struct state
@@ -138,8 +146,8 @@ namespace Corrosive {
 
 	state sandbox_state;
 	void* sandbox = &sandbox_state;
-	int (*wrap)(void*) noexcept = nullptr;
-	void (*longjmp_func)(void*, int) noexcept = nullptr;
+	int (*wrap)(void*) = nullptr;
+	void (*longjmp_func)(void*, int) = nullptr;
 
 	unsigned char setjmp_data[] ={ 0x8B, 0x44, 0x24, 0x04, 0x89, 0x18, 0x89, 0x70, 0x04, 0x89, 0x78, 0x08, 0x89, 0x68, 0x0C, 0x8D, 0x4C, 0x24, 0x04, 0x89, 0x48, 0x10, 0x64, 0x8B, 0x0D, 0x00, 0x00, 0x00, 0x00, 0x89, 0x48, 0x14, 0x8B, 0x0C, 0x24, 0x89, 0x48, 0x18, 0x31, 0xC0, 0xC3 };
 	/*
@@ -180,13 +188,13 @@ namespace Corrosive {
 		if (!wrap) {
 			void* mem = exec_alloc(sizeof(setjmp_data));
 			std::memcpy(mem, setjmp_data, sizeof(setjmp_data));
-			wrap = (int(*)(void*)noexcept) mem;
+			wrap = (int(*)(void*)) mem;
 		}
 
 		if (!longjmp_func) {
 			void* mem = exec_alloc(sizeof(longjmp_data));
 			std::memcpy(mem, longjmp_data, sizeof(longjmp_data));
-			longjmp_func = (void(*)(void*,int)noexcept) mem;
+			longjmp_func = (void(*)(void*,int)) mem;
 		}
 	}
 
@@ -292,10 +300,10 @@ namespace Corrosive {
 	}
 	
 
-	void call_x86_cdecl(ILEvaluator* eval,void* pointer, std::tuple<ILCallingConvention,ILDataType, std::vector<ILDataType>>& decl) {
+	errvoid call_x86_cdecl(ILEvaluator* eval,void* pointer, std::tuple<ILCallingConvention,ILDataType, std::vector<ILDataType>>& decl) {
 
 		void* asm_call_wrapper = build_win_x86_cdecl_stdcall_call_wrapper(ILCallingConvention::native,std::make_tuple(std::get<1>(decl), (std::uint32_t)std::get<2>(decl).size(), std::get<2>(decl).data()));
-		push_32bit_temp_stack(eval, decl, pointer);
+		if (!push_32bit_temp_stack(eval, decl, pointer)) return pass();
 
 		switch (std::get<1>(decl)) {
 			case ILDataType::i8:
@@ -320,13 +328,14 @@ namespace Corrosive {
 			case ILDataType::none:
 				((void(*)())asm_call_wrapper)(); break;
 		}
-		
+
+		return errvoid();
 	}
 
-	void call_x86_stdcall(ILEvaluator* eval, void* pointer, std::tuple<ILCallingConvention,ILDataType, std::vector<ILDataType>>& decl) {
+	errvoid call_x86_stdcall(ILEvaluator* eval, void* pointer, std::tuple<ILCallingConvention,ILDataType, std::vector<ILDataType>>& decl) {
 
 		void* asm_call_wrapper = build_win_x86_cdecl_stdcall_call_wrapper(ILCallingConvention::stdcall, std::make_tuple(std::get<1>(decl), (std::uint32_t)std::get<2>(decl).size(), std::get<2>(decl).data()));
-		push_32bit_temp_stack(eval, decl,pointer);
+		if (!push_32bit_temp_stack(eval, decl,pointer)) return pass();
 
 		switch (std::get<1>(decl)) {
 			case ILDataType::i8:
@@ -351,6 +360,8 @@ namespace Corrosive {
 			case ILDataType::none:
 				((void(*)())asm_call_wrapper)(); break;
 		}
+
+		return errvoid();
 	}
 #endif
 #endif
@@ -363,28 +374,41 @@ namespace Corrosive {
 	std::uint64_t* b8_stack_ptr = b8_stack;
 	std::size_t return_storage_1;
 
-	void push_64bit_temp_stack(ILEvaluator* eval, std::tuple<ILCallingConvention, ILDataType, std::vector<ILDataType>>& decl, void* pointer) {
+	errvoid push_64bit_temp_stack(ILEvaluator* eval, std::tuple<ILCallingConvention, ILDataType, std::vector<ILDataType>>& decl, void* pointer) {
 		std::size_t off = 0;
 		for (std::size_t i = std::get<2>(decl).size(); i > 0; --i) {
 			switch (std::get<2>(decl)[i - 1])
 			{
 				case ILDataType::i8:
-				case ILDataType::u8:
-					b8_stack[off++] = eval->pop_register_value<std::uint8_t>(); break;
+				case ILDataType::u8: {
+					std::uint8_t v;
+					if (!eval->pop_register_value<std::uint8_t>(v)) return pass();
+					b8_stack[off++] = v;
+				} break;
 				case ILDataType::i16:
-				case ILDataType::u16:
-					b8_stack[off++] = eval->pop_register_value<std::uint16_t>(); break;
+				case ILDataType::u16: {
+					std::uint16_t v;
+					if (!eval->pop_register_value<std::uint16_t>(v)) return pass(); 
+					b8_stack[off++] = v;
+				} break;
 				case ILDataType::i32:
 				case ILDataType::u32:
-				case ILDataType::f32:
-					b8_stack[off++] = eval->pop_register_value<std::uint32_t>(); break;
+				case ILDataType::f32: {
+					std::uint32_t v;
+					if (!eval->pop_register_value<std::uint32_t>(v)) return pass();
+					b8_stack[off++] = v;
+				} break;
 				case ILDataType::word:
 				case ILDataType::f64:
 				case ILDataType::i64:
-				case ILDataType::u64:
-					b8_stack[off++] = eval->pop_register_value<std::uint64_t>(); break;
+				case ILDataType::u64: {
+					std::uint64_t v;
+					if (!eval->pop_register_value<std::uint64_t>(v)) return pass();
+					b8_stack[off++] = v;
+				} break;
 				case ILDataType::dword: {
-					auto dw = eval->pop_register_value<dword_t>(); 
+					dword_t dw;
+					if (!eval->pop_register_value<dword_t>(dw)) return pass(); 
 					b8_stack[off++] = (std::uint64_t)dw.p1;
 					b8_stack[off++] = (std::uint64_t)dw.p2;
 				} break;
@@ -395,6 +419,7 @@ namespace Corrosive {
 		}
 
 		b8_stack[off++] = (std::uint64_t)pointer;
+		return errvoid();
 	}
 
 
@@ -431,8 +456,8 @@ namespace Corrosive {
 
 	state sandbox_state;
 	void* sandbox = &sandbox_state;
-	int (*wrap)(void*) noexcept = nullptr;
-	void (*longjmp_func)(void*, int) noexcept = nullptr;
+	int (*wrap)(void*) = nullptr;
+	void (*longjmp_func)(void*, int) = nullptr;
 
 	unsigned char setjmp_data[] = {
 		0x48, 0x89, 0x11,
@@ -510,13 +535,13 @@ namespace Corrosive {
 		if (!wrap) {
 			void* mem = exec_alloc(sizeof(setjmp_data));
 			std::memcpy(mem, setjmp_data, sizeof(setjmp_data));
-			wrap = (int(*)(void*)noexcept) mem;
+			wrap = (int(*)(void*)) mem;
 		}
 
 		if (!longjmp_func) {
 			void* mem = exec_alloc(sizeof(longjmp_data));
 			std::memcpy(mem, longjmp_data, sizeof(longjmp_data));
-			longjmp_func = (void(*)(void*,int)noexcept) mem;
+			longjmp_func = (void(*)(void*,int)) mem;
 		}
 	}
 
@@ -723,11 +748,11 @@ namespace Corrosive {
 
 
 
-	void call_x64_call(ILEvaluator* eval, void* pointer, std::tuple<ILCallingConvention, ILDataType, std::vector<ILDataType>>& decl) {
+	errvoid call_x64_call(ILEvaluator* eval, void* pointer, std::tuple<ILCallingConvention, ILDataType, std::vector<ILDataType>>& decl) {
 
 		auto asm_call_wrapper = build_win_x64_call_wrapper(std::make_tuple(std::get<1>(decl), (std::uint32_t)std::get<2>(decl).size(), std::get<2>(decl).data()));
 
-		push_64bit_temp_stack(eval, decl, pointer);
+		if (!push_64bit_temp_stack(eval, decl, pointer)) return pass();
 		
 		switch (std::get<1>(decl)) {
 			case ILDataType::i8:
@@ -752,31 +777,38 @@ namespace Corrosive {
 			case ILDataType::none:
 				((void(*)())asm_call_wrapper)(); break;
 		}
+
+		return errvoid();
 	}
 
 #endif
 
 #endif
 
-	void abi_dynamic_call(ILEvaluator* eval, ILCallingConvention conv, void* ptr, std::tuple<ILCallingConvention, ILDataType, std::vector<ILDataType>>& decl) {
+	errvoid abi_dynamic_call(ILEvaluator* eval, ILCallingConvention conv, void* ptr, std::tuple<ILCallingConvention, ILDataType, std::vector<ILDataType>>& decl) {
 		switch (conv)
 		{
 #ifdef X86
 			case Corrosive::ILCallingConvention::native:
-				call_x86_cdecl(eval,ptr, decl); break;
+				if (!call_x86_cdecl(eval,ptr, decl)) return pass();
+				break;
 			case Corrosive::ILCallingConvention::stdcall:
-				call_x86_stdcall(eval, ptr, decl); break;
+				if (!call_x86_stdcall(eval, ptr, decl)) return pass();
+				break;
 #endif
 
 #ifdef X64
 			case Corrosive::ILCallingConvention::stdcall:
 			case Corrosive::ILCallingConvention::native:
-				call_x64_call(eval, ptr, decl); break;
+				if (!call_x64_call(eval, ptr, decl)) return pass(); 
+				break;
 #endif
 				break;
 			default:
 				break;
 		}
+		
+		return errvoid();
 	}
 
 	void invalidate_sandbox() {

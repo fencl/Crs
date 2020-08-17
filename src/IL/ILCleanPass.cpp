@@ -200,6 +200,7 @@ namespace Corrosive {
 		std::unordered_set<std::size_t>& used_tables,
 		std::unordered_set<std::size_t>& used_arrays) {
 		
+		used_decls.insert(decl_id);
 		
 		local_stack_lifetime.clean_prepass(used_tables, used_arrays);
 

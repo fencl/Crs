@@ -8,38 +8,39 @@
 
 namespace Corrosive {
 
-	void Type::compile() {
+	errvoid Type::compile() {
+		return errvoid();
 	}
 
-	void TypeStructureInstance::compile() {
-		owner->compile();
+	errvoid TypeStructureInstance::compile() {
+		return owner->compile();
 	}
 
-	void TypeStructureTemplate::compile() {
-		owner->compile();
+	errvoid TypeStructureTemplate::compile() {
+		return owner->compile();
 	}
 	
-	void TypeFunctionTemplate::compile() {
-		owner->compile();
+	errvoid TypeFunctionTemplate::compile() {
+		return owner->compile();
 	}
 
-	void TypeTraitTemplate::compile() {
-		owner->compile();
+	errvoid TypeTraitTemplate::compile() {
+		return owner->compile();
 	}
 
-	void TypeArray::compile() {
-		owner->compile();
+	errvoid TypeArray::compile() {
+		return owner->compile();
 	}
 
-	void TypeFunction::compile() {
+	errvoid TypeFunction::compile() {
 		if (il_function_decl == UINT32_MAX) {
 
-			return_type->compile();
+			if (!return_type->compile()) return errvoid();
 
 			auto& args = Compiler::current()->types()->argument_array_storage.get(argument_array_id);
 
 			for (auto&& a : args) {
-				a->compile();
+				if (!a->compile()) return errvoid();
 			}
 
 			std::size_t ret_ref_offset = (return_type->rvalue_stacked() ? 1 : 0);
@@ -59,5 +60,7 @@ namespace Corrosive {
 
 			il_function_decl = Compiler::current()->global_module()->register_function_decl(std::make_tuple(call_conv,ret_t, std::move(decl_args)));
 		}
+
+		return errvoid();
 	}
 }

@@ -21,9 +21,6 @@ namespace Corrosive {
 	const ILArchitecture compiler_arch = (sizeof(void*) == 8) ? ILArchitecture::bit64 : ILArchitecture::bit32;
 
 	bool crs(std::string file) {
-		static_assert(sizeof(void*) == sizeof(std::size_t), "Error, std::size_t and void* must be the same size");
-		static_assert(sizeof(double) == 8, "Error, double must be 64bit"); // TODO lets maybe create wrapper class to ensure correct format
-		static_assert(sizeof(float) == 4, "Error, float must be 32bit");   //      on architectures with different floating point format
 
 		ILEvaluator::sandbox_begin();
 		try {
@@ -33,9 +30,12 @@ namespace Corrosive {
 			{
 				auto compiler = Compiler::create();
 				Compiler::push_compiler(compiler.get());
-				Source::require(file);
+				if (compiler->setup()) {
+					if (Source::require(file)) {
+						compiled_module = compiler->finalize();
+					}
+				}
 				Compiler::pop_compiler();
-				compiled_module = compiler->finalize();
 			}
 			std::chrono::steady_clock::time_point compile_end = std::chrono::steady_clock::now();
 	
@@ -47,39 +47,41 @@ namespace Corrosive {
 			}*/
 
 
-			std::cout << "========= TEST =========\n";
 
-			/*std::chrono::steady_clock::time_point saveload_start = std::chrono::steady_clock::now();
-			{
-				std::ofstream file("output.bin",std::ios::binary);
-				ILOutputStream stream(&file);
-				compiled_module->save(stream);
+			if (compiled_module) {
+				std::cout << "========= TEST =========\n";
+				std::chrono::steady_clock::time_point saveload_start = std::chrono::steady_clock::now();
+				{
+					std::ofstream file("output.bin", std::ios::binary);
+					ILOutputStream stream(&file);
+					compiled_module->save(stream);
+				}
+
+				{
+					std::ifstream file("output.bin", std::ios::binary);
+					ILInputStream stream(file);
+					compiled_module->load(stream);
+					StandardLibraryCode::link(compiled_module.get());
+				}
+				std::chrono::steady_clock::time_point saveload_end = std::chrono::steady_clock::now();
+
+
+				std::chrono::steady_clock::time_point runtime_start = std::chrono::steady_clock::now();
+				compiled_module->run(compiled_module->entry_point);
+				std::chrono::steady_clock::time_point runtime_end = std::chrono::steady_clock::now();
+
+
+				std::cout << "========= ==== =========\n\n";
+				std::cout << "save and load time: " << std::chrono::duration_cast<std::chrono::milliseconds>(saveload_end - saveload_start).count() << "[ms]\n";
+				std::cout << "runtime: " << std::chrono::duration_cast<std::chrono::milliseconds>(runtime_end - runtime_start).count() << "[ms]\n" << std::endl;
 			}
 
-			{
-				std::ifstream file("output.bin",std::ios::binary);
-				ILInputStream stream(file);
-				compiled_module->load(stream);
-				StandardLibraryCode::link(compiled_module.get());
-			}
-			std::chrono::steady_clock::time_point saveload_end = std::chrono::steady_clock::now();*/
-
-
-			std::chrono::steady_clock::time_point runtime_start = std::chrono::steady_clock::now();
-			compiled_module->run(compiled_module->entry_point);
-			std::chrono::steady_clock::time_point runtime_end = std::chrono::steady_clock::now();
-
-
-			std::cout << "========= ==== =========\n";
 			std::cout << "\ncompile time: " << std::chrono::duration_cast<std::chrono::milliseconds>(compile_end - compile_begin).count() << "[ms]\n";
-			//std::cout << "\nsave and load time: " << std::chrono::duration_cast<std::chrono::milliseconds>(saveload_end - saveload_start).count() << "[ms]\n";
-			std::cout << "runtime: " << std::chrono::duration_cast<std::chrono::milliseconds>(runtime_end - runtime_start).count() << "[ms]\n" << std::endl;
 			
 		}
-		catch (string_exception& e) {
+		catch (const std::exception& e) {
 			std::cerr << e.what()<<"\n";
 		}
-		
 		ILEvaluator::sandbox_end();
 
 

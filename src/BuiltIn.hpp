@@ -125,7 +125,7 @@ namespace Corrosive {
 		FunctionInstance* f_build_subtype;
 		FunctionInstance* f_type_size;
 
-		void setup();
+		errvoid setup();
 	};
 }
 

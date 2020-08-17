@@ -48,7 +48,7 @@ namespace Corrosive {
 
 		void switch_scope(ILBlock* sblock) { scope_stack.back() = sblock; }
 
-		void setup();
+		errvoid setup();
 
 		void push_compile_loop_state(CompileTimeBlockState& state) { compile_loop_state_stack.back().push_back(&state); }
 		void pop_compile_loop_state() { compile_loop_state_stack.back().pop_back(); }
@@ -79,7 +79,7 @@ namespace Corrosive {
 		StackManager compiler_stack_manager;
 		StackManager temporary_stack_manager;
 
-		FunctionInstance* register_native_function(std::initializer_list<const char*> path, void* ptr);
+		errvoid register_native_function(FunctionInstance*& r,std::initializer_list<const char*> path, void* ptr);
 
 		static thread_local std::vector<Compiler*> c;
 		static void push_compiler(Compiler* c);
