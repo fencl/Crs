@@ -128,12 +128,13 @@ namespace Corrosive {
 
 	
 	Type* BuiltInCode::build_reference(Type* t) {
-		if (!Type::assert(t)) ILEvaluator::ex_throw();
+		if (!Type::assert(t)) {ILEvaluator::ex_throw(); return nullptr;}
 		return t->generate_reference();
 	}
 
 	Type* BuiltInCode::build_subtype(Type* t, dword_t slice) {
-		if (!Type::assert(t)) ILEvaluator::ex_throw();
+		if (!Type::assert(t)) {ILEvaluator::ex_throw();return nullptr;}
+
 		std::string_view slice_str((char*)slice.p1, (std::size_t)slice.p2);
 
 		Type* str = Compiler::current()->types()->t_u8->generate_slice();
@@ -203,8 +204,8 @@ namespace Corrosive {
 
 			if (auto fun = res.get_function()) {
 				FunctionInstance* finst;
-				if (!fun->generate(nullptr, finst)) ILEvaluator::ex_throw();
-				if (!finst->compile()) ILEvaluator::ex_throw();
+				if (!fun->generate(nullptr, finst)){ ILEvaluator::ex_throw(); return;}
+				if (!finst->compile()){ILEvaluator::ex_throw();return;}
 				main = finst->func;
 			}
 			else {
@@ -217,8 +218,8 @@ namespace Corrosive {
 		else {
 			for (auto&& ft : Compiler::current()->exported_functions) {
 				FunctionInstance* finst;
-				if (!ft->generate(nullptr, finst)) ILEvaluator::ex_throw();
-				if (!finst->compile()) ILEvaluator::ex_throw();
+				if (!ft->generate(nullptr, finst)) {ILEvaluator::ex_throw();return;}
+				if (!finst->compile()){ILEvaluator::ex_throw(); return;}
 				Compiler::current()->global_module()->exported_functions.push_back(finst->func);
 			}
 		}
@@ -281,23 +282,23 @@ namespace Corrosive {
 		primitives[(unsigned char)ILDataType::f64] = t_f64;
 		primitives[(unsigned char)ILDataType::word] = t_size;
 
-		if (!Compiler::current()->register_native_function(f_build_reference, { "compiler","reference_of" }, (void*)BuiltInCode::build_reference)) return pass();
-		if (!Compiler::current()->register_native_function(f_build_array, { "compiler","array_of" }, (void*)BuiltInCode::build_array)) return pass();
-		if (!Compiler::current()->register_native_function(f_build_subtype, { "compiler","subtype_of" }, (void*)BuiltInCode::build_subtype)) return pass();
-		if (!Compiler::current()->register_native_function(f_build_slice, { "compiler","slice_of" }, (void*)BuiltInCode::build_slice)) return pass();
-		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","type_size" }, (void*)BuiltInCode::type_size)) return pass();
-		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","require" }, (void*)Source::require_wrapper)) return pass();
-		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","build" }, (void*)BuiltInCode::compile)) return pass();
-		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","var" }, (void*)StructureTemplate::var_wrapper)) return pass();
-		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","var_alias" }, (void*)StructureTemplate::var_alias_wrapper)) return pass();
-		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","entry" }, (void*)BuiltInCode::entry_point)) return pass();
-		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","link" }, (void*)BuiltInCode::ask_for)) return pass();
-		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","print_type" }, (void*)BuiltInCode::print_type)) return pass();
+		if (!Compiler::current()->register_native_function(f_build_reference, { "compiler","reference_of" }, (void*)BuiltInCode::build_reference)) return err::fail;
+		if (!Compiler::current()->register_native_function(f_build_array, { "compiler","array_of" }, (void*)BuiltInCode::build_array)) return err::fail;
+		if (!Compiler::current()->register_native_function(f_build_subtype, { "compiler","subtype_of" }, (void*)BuiltInCode::build_subtype)) return err::fail;
+		if (!Compiler::current()->register_native_function(f_build_slice, { "compiler","slice_of" }, (void*)BuiltInCode::build_slice)) return err::fail;
+		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","type_size" }, (void*)BuiltInCode::type_size)) return err::fail;
+		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","require" }, (void*)Source::require_wrapper)) return err::fail;
+		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","build" }, (void*)BuiltInCode::compile)) return err::fail;
+		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","var" }, (void*)StructureTemplate::var_wrapper)) return err::fail;
+		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","var_alias" }, (void*)StructureTemplate::var_alias_wrapper)) return err::fail;
+		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","entry" }, (void*)BuiltInCode::entry_point)) return err::fail;
+		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","link" }, (void*)BuiltInCode::ask_for)) return err::fail;
+		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","print_type" }, (void*)BuiltInCode::print_type)) return err::fail;
 
 		std::vector<Type*> args;
 		t_build_script = load_or_register_function_type(ILCallingConvention::bytecode, std::move(args), t_void, ILContext::compile);
 
-		return errvoid();
+		return err::ok;
 	}
 
 

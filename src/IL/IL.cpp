@@ -11,6 +11,9 @@ namespace Corrosive {
 
 	thread_local std::vector<ILModule*> ILModule::current;
 
+	errvoid err::ok = (err_undef_true_tag());
+	errvoid err::fail = (err_undef_false_tag());
+
 	void throw_il_wrong_data_flow_error() {
 		throw string_exception("Compiler Error, Wrong data flow inside compiler IL");
 	}
@@ -51,6 +54,7 @@ namespace Corrosive {
 				cerr << "\n | At (?) " << std::get<2>(*t);
 			}
 		}*/
+		cerr << "\n";
 	}
 
 	std::size_t align_up(std::size_t value, std::size_t alignment) {
@@ -66,7 +70,7 @@ namespace Corrosive {
 		throw_runtime_exception_footer(eval, cerr);
 		//throw string_exception(std::move(cerr.str()));
 		std::cerr << cerr.str();
-		return pass();
+		return err::fail;
 	}
 
 	errvoid throw_segfault_exception(const ILEvaluator* eval, int signal) {
@@ -77,7 +81,7 @@ namespace Corrosive {
 		throw_runtime_exception_footer(eval, cerr);
 		//throw string_exception(std::move(cerr.str()));
 		std::cerr << cerr.str();
-		return pass();
+		return err::fail;
 	}
 
 	errvoid throw_interrupt_exception(const ILEvaluator* eval, int signal) {
@@ -88,7 +92,7 @@ namespace Corrosive {
 		throw_runtime_exception_footer(eval, cerr);
 		//throw string_exception(std::move(cerr.str()));
 		std::cerr << cerr.str();
-		return pass();
+		return err::fail;
 	}
 
 
@@ -315,16 +319,16 @@ namespace Corrosive {
 		current.push_back(this);
 		auto eval = std::make_unique<ILEvaluator>();
 		eval->parent = this;
-		if (!ILBuilder::eval_fncall(eval.get(), func)) {} //TODO
-
-		auto lr1b = (std::size_t)(eval->register_stack_pointer_1b - eval->register_stack_1b);
-		if (lr1b > 0) { std::cout << "leaked 1 byte registers: " << lr1b << "\n"; }
-		auto lr2b = (std::size_t)(eval->register_stack_pointer_2b - eval->register_stack_2b);
-		if (lr2b) { std::cout << "leaked 2 byte registers: " << lr2b << "\n"; }
-		auto lr4b = (std::size_t)(eval->register_stack_pointer_4b - eval->register_stack_4b);
-		if (lr4b) { std::cout << "leaked 4 byte registers: " << lr4b << "\n"; }
-		auto lr8b = (std::size_t)(eval->register_stack_pointer_8b - eval->register_stack_8b);
-		if (lr8b) { std::cout << "leaked 8 byte registers: " << lr8b << "\n"; }
+		if (ILBuilder::eval_fncall(eval.get(), func)) {
+			auto lr1b = (std::size_t)(eval->register_stack_pointer_1b - eval->register_stack_1b);
+			if (lr1b > 0) { std::cout << "leaked 1 byte registers: " << lr1b << "\n"; }
+			auto lr2b = (std::size_t)(eval->register_stack_pointer_2b - eval->register_stack_2b);
+			if (lr2b) { std::cout << "leaked 2 byte registers: " << lr2b << "\n"; }
+			auto lr4b = (std::size_t)(eval->register_stack_pointer_4b - eval->register_stack_4b);
+			if (lr4b) { std::cout << "leaked 4 byte registers: " << lr4b << "\n"; }
+			auto lr8b = (std::size_t)(eval->register_stack_pointer_8b - eval->register_stack_8b);
+			if (lr8b) { std::cout << "leaked 8 byte registers: " << lr8b << "\n"; }
+		}
 		current.pop_back();
 	}
 

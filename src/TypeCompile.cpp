@@ -9,7 +9,7 @@
 namespace Corrosive {
 
 	errvoid Type::compile() {
-		return errvoid();
+		return err::ok;
 	}
 
 	errvoid TypeStructureInstance::compile() {
@@ -35,12 +35,12 @@ namespace Corrosive {
 	errvoid TypeFunction::compile() {
 		if (il_function_decl == UINT32_MAX) {
 
-			if (!return_type->compile()) return errvoid();
+			if (!return_type->compile()) return err::ok;
 
 			auto& args = Compiler::current()->types()->argument_array_storage.get(argument_array_id);
 
 			for (auto&& a : args) {
-				if (!a->compile()) return errvoid();
+				if (!a->compile()) return err::ok;
 			}
 
 			std::size_t ret_ref_offset = (return_type->rvalue_stacked() ? 1 : 0);
@@ -61,6 +61,6 @@ namespace Corrosive {
 			il_function_decl = Compiler::current()->global_module()->register_function_decl(std::make_tuple(call_conv,ret_t, std::move(decl_args)));
 		}
 
-		return errvoid();
+		return err::ok;
 	}
 }

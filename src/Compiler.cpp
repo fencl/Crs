@@ -11,10 +11,10 @@ namespace Corrosive {
 		target_module->insintric_function_name[(unsigned char)ILInsintric::type_dynamic_cast] = "dynamic_cast";
 		compiler_evaluator->parent = target_module.get();
 		constant_stack_manager->compiler = this;
-		if (!default_types->setup()) return pass();
+		if (!default_types->setup()) return err::fail;
 		outer_namespace_stack.push_back(target_global_namespace.get());
 		initialized = true;
-		return errvoid();
+		return err::ok;
 	}
 
 
@@ -36,16 +36,16 @@ namespace Corrosive {
 			}
 			else {
 				r = nullptr;
-				return errvoid();
+				return err::ok;
 			}
 		}
 
 		FunctionInstance* finst;
-		if (!func->generate(nullptr, finst)) return pass();
-		if (!finst->compile()) return pass();
+		if (!func->generate(nullptr, finst)) return err::fail;
+		if (!finst->compile()) return err::fail;
 		((ILNativeFunction*)finst->func)->ptr = ptr;
 		r= finst;
-		return errvoid();
+		return err::ok;
 	}
 
 	thread_local std::vector<Compiler*> Compiler::c;

@@ -24,20 +24,27 @@ namespace Corrosive {
 		const char* what() const noexcept { return s.c_str(); }
 	};
 
-	struct err_undef_tag{};
+	struct err_undef_tag {};
+	struct err_undef_true_tag {};
+	struct err_undef_false_tag {};
 
 	class err_handler {
 		public:
 			err_handler() = default;
 			err_handler(const err_handler& h) = default;
-			err_handler(err_undef_tag&& h) : state(0) {};
+			err_handler(err_undef_tag && h) : state(0) {};
+			err_handler(err_undef_true_tag&& h) : state(3) {};
+			err_handler(err_undef_false_tag&& h) : state(4) {};
 			err_handler(bool b) : state(b?1:2) {  }
-			err_handler(err_handler&& h) : state(h.state) { h.state = 0; }
+			err_handler(err_handler&& h) : state(((bool)h)?1:2) { if (h.state <=2) h.state = 0; }
 			~err_handler() {
 				switch(state) {
-					case 0: break;
-					default: 
+					case 1:
+					case 2:
 						std::cout << "Error: exception not handled properly"; exit(1); break;
+
+					default:
+						break;
 				}
 			}
 
@@ -51,6 +58,8 @@ namespace Corrosive {
 					case 0: return true;
 					case 1: state = 0; return true;
 					case 2: state = 0; return false;
+					case 3: return true;
+					case 4: return false;
 					default: return false;
 				}
 			}
@@ -58,9 +67,15 @@ namespace Corrosive {
 			std::uint8_t state = 1;
 	};
 
+	using errvoid = err_handler;
+	
+	struct err {
+		static errvoid ok;
+		static errvoid fail;
+	};
+
 	inline bool operator!(err_handler& h) { return !((bool)h); }
 
-	using errvoid = err_handler;
 
 	
 	inline errvoid pass(){
@@ -561,63 +576,63 @@ namespace Corrosive {
 			if (!wrap || wrap(sandbox) == 0) {
 				switch (sizeof(T)) {
 					case 1:
-						if (register_stack_pointer_1b <= register_stack_1b) return pass();
-						r = *(T*)(register_stack_pointer_1b - 1); return errvoid();
+						if (register_stack_pointer_1b <= register_stack_1b) return err::fail;
+						r = *(T*)(register_stack_pointer_1b - 1); return err::ok;
 					case 2:
-						if (register_stack_pointer_2b <= register_stack_2b) return pass();
-						r = *(T*)(register_stack_pointer_2b - 1); return errvoid();
+						if (register_stack_pointer_2b <= register_stack_2b) return err::fail;
+						r = *(T*)(register_stack_pointer_2b - 1); return err::ok;
 					case 3:
 					case 4:
-						if (register_stack_pointer_4b <= register_stack_4b) return pass();
-						r = *(T*)(register_stack_pointer_4b - 1); return errvoid();
+						if (register_stack_pointer_4b <= register_stack_4b) return err::fail;
+						r = *(T*)(register_stack_pointer_4b - 1); return err::ok;
 					case 5:
 					case 6:
 					case 7:
 					case 8:
-						if (register_stack_pointer_8b <= register_stack_8b) return pass();
-						r = *(T*)(register_stack_pointer_8b - 1); return errvoid();
+						if (register_stack_pointer_8b <= register_stack_8b) return err::fail;
+						r = *(T*)(register_stack_pointer_8b - 1); return err::ok;
 					default:
-						if (register_stack_pointer_8b <= register_stack_8b+1) return pass();
-						r = *(T*)(register_stack_pointer_8b - 2); return errvoid();
+						if (register_stack_pointer_8b <= register_stack_8b+1) return err::fail;
+						r = *(T*)(register_stack_pointer_8b - 2); return err::ok;
 				}
 			}
 			else {
 				return throw_runtime_handler_exception(this);
 			}
 			
-			return errvoid();
+			return err::ok;
 		}
 
 		template<typename T> inline errvoid pop_register_value(T& r) {
 			if (!wrap || wrap(sandbox) == 0) {
 				switch (sizeof(T)) {
 					case 1:
-						if (register_stack_pointer_1b <= register_stack_1b) return pass();
-						r = *(T*)(--register_stack_pointer_1b); return errvoid();
+						if (register_stack_pointer_1b <= register_stack_1b) return err::fail;
+						r = *(T*)(--register_stack_pointer_1b); return err::ok;
 					case 2:
-						if (register_stack_pointer_2b <= register_stack_2b) return pass();
-						r = *(T*)(--register_stack_pointer_2b); return errvoid();
+						if (register_stack_pointer_2b <= register_stack_2b) return err::fail;
+						r = *(T*)(--register_stack_pointer_2b); return err::ok;
 					case 3:
 					case 4:
-						if (register_stack_pointer_4b <= register_stack_4b) return pass();
-						r = *(T*)(--register_stack_pointer_4b); return errvoid();
+						if (register_stack_pointer_4b <= register_stack_4b) return err::fail;
+						r = *(T*)(--register_stack_pointer_4b); return err::ok;
 					case 5:
 					case 6:
 					case 7:
 					case 8:
-						if (register_stack_pointer_8b <= register_stack_8b) return pass();
-						r = *(T*)(--register_stack_pointer_8b); return errvoid();
+						if (register_stack_pointer_8b <= register_stack_8b) return err::fail;
+						r = *(T*)(--register_stack_pointer_8b); return err::ok;
 					default:
-						if (register_stack_pointer_8b <= register_stack_8b + 1) return pass();
+						if (register_stack_pointer_8b <= register_stack_8b + 1) return err::fail;
 						--register_stack_pointer_8b;
-						r = *(T*)(--register_stack_pointer_8b); return errvoid();
+						r = *(T*)(--register_stack_pointer_8b); return err::ok;
 				}
 			}
 			else {
 				return throw_runtime_handler_exception(this);
 			}
 			
-			return errvoid();
+			return err::ok;
 		}
 
 		template<typename T> inline void write_register_value(T v) {

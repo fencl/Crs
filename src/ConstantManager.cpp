@@ -80,7 +80,7 @@ namespace Corrosive {
 			std::size_t mem_size = of->size().eval(Compiler::current()->global_module(), compiler_arch);
 
 			for (std::size_t i = 0; i < size / mem_size; i++) {
-				if (!of->copy_to_generic_storage(off_src, off_dst)) return pass();
+				if (!of->copy_to_generic_storage(off_src, off_dst)) return err::fail;
 				off_src += mem_size;
 				off_dst += mem_size;
 			}
@@ -95,7 +95,7 @@ namespace Corrosive {
 			r = generic_storage[res.first->second].get();
 		}
 
-		return errvoid();
+		return err::ok;
 	}
 
 }

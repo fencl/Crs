@@ -76,7 +76,7 @@ namespace Corrosive {
 		//throw string_exception(std::move(cerr.str()));
 		std::cerr<<cerr.str()<<"\n";
 
-		return pass();
+		return err::fail;
 	}
 
 
@@ -91,7 +91,7 @@ namespace Corrosive {
 		//throw string_exception(std::move(cerr.str()));
 		
 		std::cerr<<cerr.str()<<"\n";
-		return pass();
+		return err::fail;
 	}
 
 
@@ -106,7 +106,7 @@ namespace Corrosive {
 		//throw string_exception(std::move(cerr.str()));
 		
 		std::cerr<<cerr.str()<<"\n";
-		return pass();
+		return err::fail;
 	}
 
 
@@ -117,7 +117,7 @@ namespace Corrosive {
 		//throw string_exception(std::move(cerr.str()));
 		
 		std::cerr<<cerr.str()<<"\n";
-		return pass();
+		return err::fail;
 	}
 	errvoid throw_not_a_name_error(Cursor& c) {
 
@@ -126,7 +126,7 @@ namespace Corrosive {
 		//throw string_exception(std::move(cerr.str()));
 		
 		std::cerr<<cerr.str()<<"\n";
-		return pass();
+		return err::fail;
 	}
 
 	errvoid throw_variable_not_found_error(Cursor& c) {
@@ -136,7 +136,7 @@ namespace Corrosive {
 		//throw string_exception(std::move(cerr.str()));
 
 		std::cerr<<cerr.str()<<"\n";
-		return pass();
+		return err::fail;
 	}
 
 	errvoid throw_wrong_token_error(Cursor& c, std::string_view expected) {
@@ -146,7 +146,7 @@ namespace Corrosive {
 		//throw string_exception(std::move(cerr.str()));
 		
 		std::cerr<<cerr.str()<<"\n";
-		return pass();
+		return err::fail;
 	}
 
 }

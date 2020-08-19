@@ -12,16 +12,16 @@ namespace Corrosive {
 		size_t s = size().eval(Compiler::current()->global_module(), compiler_arch);
 		if (!wrap || wrap(sandbox) == 0) {
 			auto v = memcmp(me, to, s);
-			if (v < 0) { r = -1; return errvoid(); }
-			else if (v > 0) { r = 1; return errvoid(); }
-			else { r = 0; return errvoid(); }
+			if (v < 0) { r = -1; return err::ok; }
+			else if (v > 0) { r = 1; return err::ok; }
+			else { r = 0; return err::ok; }
 		}
 		else {
 			return throw_runtime_handler_exception(Compiler::current()->evaluator());
 		}
 
 		r = 0;
-		return errvoid();
+		return err::ok;
 	}
 
 	errvoid Type::copy_to_generic_storage(unsigned char* me, unsigned char* to) {
@@ -32,7 +32,7 @@ namespace Corrosive {
 		else {
 			return throw_runtime_handler_exception(Compiler::current()->evaluator());
 		}
-		return errvoid();
+		return err::ok;
 	}
 
 	errvoid TypeSlice::compare_for_generic_storage(std::int8_t& r,unsigned char* me, unsigned char* to) {
@@ -41,19 +41,19 @@ namespace Corrosive {
 
 		if (!wrap || wrap(sandbox) == 0) {
 
-			if (me_dw->p2 < to_dw->p2) { r = -1; return errvoid(); }
-			else if (me_dw->p2 > to_dw->p2) { r = 1; return errvoid(); }
+			if (me_dw->p2 < to_dw->p2) { r = -1; return err::ok; }
+			else if (me_dw->p2 > to_dw->p2) { r = 1; return err::ok; }
 			auto v = memcmp(me_dw->p1, to_dw->p1, (std::size_t)me_dw->p2);
-			if (v < 0) { r = -1; return errvoid(); }
-			else if (v > 0) { r = 1; return errvoid(); }
-			else { r = 0; return errvoid(); }
+			if (v < 0) { r = -1; return err::ok; }
+			else if (v > 0) { r = 1; return err::ok; }
+			else { r = 0; return err::ok; }
 		}
 		else {
 			return throw_runtime_handler_exception(Compiler::current()->evaluator());
 		}
 
 		r = 0;
-		return errvoid();
+		return err::ok;
 	}
 
 	errvoid TypeSlice::copy_to_generic_storage(unsigned char* me, unsigned char* to) {
@@ -71,10 +71,10 @@ namespace Corrosive {
 		}
 
 		std::uint8_t* dst;
-		if (!Compiler::current()->constant_manager()->register_generic_storage(dst, (std::uint8_t*)mp1, mp2, owner)) return pass();
+		if (!Compiler::current()->constant_manager()->register_generic_storage(dst, (std::uint8_t*)mp1, mp2, owner)) return err::fail;
 		to_dw->p1 = (void*)dst;
 		to_dw->p2 = (void*)mp2;
-		return errvoid();
+		return err::ok;
 	}
 
 
@@ -112,16 +112,16 @@ namespace Corrosive {
 					switch (rvalue())
 					{
 						case ILDataType::none: break;
-						case ILDataType::u8:  if(!ILBuilder::build_const_u8(compiler->scope(), *(std::uint8_t*)source)) return pass(); break;
-						case ILDataType::u16: if(!ILBuilder::build_const_u16(compiler->scope(), *(std::uint16_t*)source)) return pass(); break;
-						case ILDataType::u32: if(!ILBuilder::build_const_u32(compiler->scope(), *(std::uint32_t*)source)) return pass(); break;
-						case ILDataType::u64: if(!ILBuilder::build_const_u64(compiler->scope(), *(std::uint64_t*)source)) return pass(); break;
-						case ILDataType::i8:  if(!ILBuilder::build_const_i8(compiler->scope(), *(std::int8_t*)source)) return pass(); break;
-						case ILDataType::i16: if(!ILBuilder::build_const_i16(compiler->scope(), *(std::int16_t*)source)) return pass(); break;
-						case ILDataType::i32: if(!ILBuilder::build_const_i32(compiler->scope(), *(std::int32_t*)source)) return pass(); break;
-						case ILDataType::i64: if(!ILBuilder::build_const_i64(compiler->scope(), *(std::int64_t*)source)) return pass(); break;
-						case ILDataType::f32: if (!ILBuilder::build_const_f32(compiler->scope(), *(float*)source)) return pass(); break;
-						case ILDataType::f64: if (!ILBuilder::build_const_f64(compiler->scope(), *(double*)source)) return pass(); break;
+						case ILDataType::u8:  if(!ILBuilder::build_const_u8(compiler->scope(), *(std::uint8_t*)source)) return err::fail; break;
+						case ILDataType::u16: if(!ILBuilder::build_const_u16(compiler->scope(), *(std::uint16_t*)source)) return err::fail; break;
+						case ILDataType::u32: if(!ILBuilder::build_const_u32(compiler->scope(), *(std::uint32_t*)source)) return err::fail; break;
+						case ILDataType::u64: if(!ILBuilder::build_const_u64(compiler->scope(), *(std::uint64_t*)source)) return err::fail; break;
+						case ILDataType::i8:  if(!ILBuilder::build_const_i8(compiler->scope(), *(std::int8_t*)source)) return err::fail; break;
+						case ILDataType::i16: if(!ILBuilder::build_const_i16(compiler->scope(), *(std::int16_t*)source)) return err::fail; break;
+						case ILDataType::i32: if(!ILBuilder::build_const_i32(compiler->scope(), *(std::int32_t*)source)) return err::fail; break;
+						case ILDataType::i64: if(!ILBuilder::build_const_i64(compiler->scope(), *(std::int64_t*)source)) return err::fail; break;
+						case ILDataType::f32: if (!ILBuilder::build_const_f32(compiler->scope(), *(float*)source)) return err::fail; break;
+						case ILDataType::f64: if (!ILBuilder::build_const_f64(compiler->scope(), *(double*)source)) return err::fail; break;
 						case ILDataType::word: return throw_specific_error(err, "Cannot create constant value of this type"); break;
 						case ILDataType::dword: return throw_specific_error(err, "Cannot create constant value of this type"); break;
 						default: break;
@@ -136,7 +136,7 @@ namespace Corrosive {
 			return throw_runtime_handler_exception(Compiler::current()->evaluator());
 		}
 
-		return errvoid();
+		return err::ok;
 	}
 
 	errvoid TypeSlice::constantize(Cursor& err, unsigned char* target, unsigned char* source) {
@@ -162,7 +162,7 @@ namespace Corrosive {
 		std::uint32_t count = (std::uint32_t)(((std::size_t)storage_size)/elem_size);
 
 		for (std::uint32_t i=0;i<count; ++i) {
-			if (!owner->constantize(err, ptr_dst, ptr_src)) return pass();
+			if (!owner->constantize(err, ptr_dst, ptr_src)) return err::fail;
 			ptr_src += elem_size;
 			ptr_dst += elem_size;
 		}
@@ -189,10 +189,10 @@ namespace Corrosive {
 			}
 		}
 		else {
-			if (!ILBuilder::build_const_slice(compiler->scope(), val.second, s)) return pass();
+			if (!ILBuilder::build_const_slice(compiler->scope(), val.second, s)) return err::fail;
 		}
 
-		return errvoid();
+		return err::ok;
 	}
 	
 	errvoid TypeArray::constantize(Cursor& err, unsigned char* target, unsigned char* source) {
@@ -207,7 +207,7 @@ namespace Corrosive {
 		std::uint8_t* ptr_dst = (std::uint8_t*)data.data();
 		std::size_t elem_size = owner->size().eval(compiler->global_module(), compiler_arch);
 		for (std::size_t i=0;i<(me_size)/elem_size; ++i) {
-			if (!owner->constantize(err, ptr_dst, ptr_src)) return pass();
+			if (!owner->constantize(err, ptr_dst, ptr_src)) return err::fail;
 			ptr_src += elem_size;
 			ptr_dst += elem_size;
 		}
@@ -223,12 +223,12 @@ namespace Corrosive {
 			auto val = compiler->constant_manager()->register_constant(std::move(data), size());
 			stackid_t local_id = compiler->target()->local_stack_lifetime.append(size());
 			compiler->temp_stack()->push_item("$tmp", this, local_id);
-			if (!ILBuilder::build_constref(compiler->scope(), val.second)) return pass();
-			if (!ILBuilder::build_local(compiler->scope(), local_id)) return pass();
-			if (!ILBuilder::build_memcpy(compiler->scope(), size())) return pass();
-			if (!ILBuilder::build_local(compiler->scope(), local_id)) return pass();
+			if (!ILBuilder::build_constref(compiler->scope(), val.second)) return err::fail;
+			if (!ILBuilder::build_local(compiler->scope(), local_id)) return err::fail;
+			if (!ILBuilder::build_memcpy(compiler->scope(), size())) return err::fail;
+			if (!ILBuilder::build_local(compiler->scope(), local_id)) return err::fail;
 		}
-		return errvoid();
+		return err::ok;
 	}
 
 
@@ -479,7 +479,7 @@ namespace Corrosive {
 			return throw_specific_error(c, "Value is not a type");
 		}
 
-		return errvoid();
+		return err::ok;
 	}
 
 	errvoid Type::assert(Type* t) {
@@ -491,7 +491,7 @@ namespace Corrosive {
 			return throw_runtime_exception(Compiler::current()->evaluator(), "Value is not a type");
 		}
 
-		return errvoid();
+		return err::ok;
 	}
 	
 	std::uint64_t Type::magic() { return type_magic | 0x01u; }

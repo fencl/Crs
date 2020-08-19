@@ -60,19 +60,19 @@ namespace Corrosive {
 					c.move();
 					Cursor err = c;
 					CompileValue value;
-					if (!Expression::parse(c, value, CompileType::eval)) return pass();
-					if (!Operand::deref(value, CompileType::eval)) return pass();
-					if (!Expression::rvalue(value, CompileType::eval)) return pass();
+					if (!Expression::parse(c, value, CompileType::eval)) return err::fail;
+					if (!Operand::deref(value, CompileType::eval)) return err::fail;
+					if (!Expression::rvalue(value, CompileType::eval)) return err::fail;
 
 					if (value.type != compiler->types()->t_type) {
 						return throw_specific_error(err, "Expected type value");
 					}
 
 					Type* t;
-					if (!compiler->evaluator()->pop_register_value<Type*>(t)) return pass();
+					if (!compiler->evaluator()->pop_register_value<Type*>(t)) return err::fail;
 
-					if (!Type::assert(err,t)) return pass();
-					if(!t->compile()) return pass();
+					if (!Type::assert(err,t)) return err::fail;
+					if(!t->compile()) return err::fail;
 					if (t->context() == ILContext::runtime) {
 						return throw_specific_error(err, "Runtime type cannot be used as generic argument");
 					}
@@ -112,7 +112,7 @@ namespace Corrosive {
 			return throw_specific_error(c, "compile cycle");
 		}
 
-		return errvoid();
+		return err::ok;
 	}
 
 
@@ -146,19 +146,19 @@ namespace Corrosive {
 					c.move();
 					Cursor err = c;
 					CompileValue value;
-					if (!Expression::parse(c, value, CompileType::eval)) return pass();
-					if (!Operand::deref(value, CompileType::eval)) return pass();
-					if (!Expression::rvalue(value, CompileType::eval)) return pass();
+					if (!Expression::parse(c, value, CompileType::eval)) return err::fail;
+					if (!Operand::deref(value, CompileType::eval)) return err::fail;
+					if (!Expression::rvalue(value, CompileType::eval)) return err::fail;
 
 					if (value.type != compiler->types()->t_type) {
 						return throw_specific_error(err, "Expected type value");
 					}
 
 					Type* t;
-					if (!compiler->evaluator()->pop_register_value<Type*>(t)) return pass();
+					if (!compiler->evaluator()->pop_register_value<Type*>(t)) return err::fail;
 
-					if (!Type::assert(err,t)) return pass();
-					if(!t->compile()) return pass();
+					if (!Type::assert(err,t)) return err::fail;
+					if(!t->compile()) return err::fail;
 					if (t->context() == ILContext::runtime) {
 						return throw_specific_error(err, "Runtime type cannot be used as generic argument");
 					}
@@ -199,7 +199,7 @@ namespace Corrosive {
 			return throw_specific_error(c, "compile cycle");
 		}
 
-		return errvoid();
+		return err::ok;
 	}
 
 	errvoid TraitTemplate::compile() {
@@ -233,18 +233,18 @@ namespace Corrosive {
 					c.move();
 					Cursor err = c;
 					CompileValue value;
-					if (!Expression::parse(c, value, CompileType::eval)) return pass();
-					if (!Operand::deref(value, CompileType::eval)) return pass();
-					if (!Expression::rvalue(value, CompileType::eval)) return pass();
+					if (!Expression::parse(c, value, CompileType::eval)) return err::fail;
+					if (!Operand::deref(value, CompileType::eval)) return err::fail;
+					if (!Expression::rvalue(value, CompileType::eval)) return err::fail;
 
 					if (value.type != compiler->types()->t_type) {
 						return throw_specific_error(err, "Expected type value");
 					}
 
 					Type* t;
-					if (!compiler->evaluator()->pop_register_value<Type*>(t)) return pass();
-					if (!Type::assert(err,t)) return pass();
-					if(!t->compile()) return pass();
+					if (!compiler->evaluator()->pop_register_value<Type*>(t)) return err::fail;
+					if (!Type::assert(err,t)) return err::fail;
+					if(!t->compile()) return err::fail;
 					if (t->context() == ILContext::runtime) {
 						return throw_specific_error(err, "Runtime type cannot be used as generic argument");
 					}
@@ -284,7 +284,7 @@ namespace Corrosive {
 			return throw_specific_error(c, "compile cycle");
 		}
 
-		return errvoid();
+		return err::ok;
 	}
 
 
@@ -324,7 +324,7 @@ namespace Corrosive {
 				for (auto l = generic_ctx.generic_layout.rbegin(); l != generic_ctx.generic_layout.rend(); l++) {
 					Type* t = std::get<1>(*l);
 					std::size_t c_size = t->size().eval(compiler->global_module(), compiler_arch);
-					if (!t->copy_to_generic_storage(old_offset, new_offset)) return pass();
+					if (!t->copy_to_generic_storage(old_offset, new_offset)) return err::fail;
 					old_offset += c_size;
 					new_offset += c_size;
 				}
@@ -406,23 +406,23 @@ namespace Corrosive {
 				CompileValue value;
 				Cursor c = load_cursor(m->trait, src);
 				Cursor err = c;
-				if (!Expression::parse(c, value, CompileType::eval)) return pass();
-				if (!Operand::deref(value, CompileType::eval)) return pass();
-				if (!Expression::rvalue(value, CompileType::eval)) return pass();
+				if (!Expression::parse(c, value, CompileType::eval)) return err::fail;
+				if (!Operand::deref(value, CompileType::eval)) return err::fail;
+				if (!Expression::rvalue(value, CompileType::eval)) return err::fail;
 
 				if (value.type != compiler->types()->t_type) {
 					return throw_specific_error(err, "Expected type value");
 				}
 
 				Type* t;
-				if (!compiler->evaluator()->pop_register_value<Type*>(t)) return pass();
-				if (!Type::assert(err, t)) return pass();
+				if (!compiler->evaluator()->pop_register_value<Type*>(t)) return err::fail;
+				if (!Type::assert(err, t)) return err::fail;
 
 				if (t->type() != TypeInstanceType::type_trait) {
 					return throw_specific_error(err, "Expected trait instance type");
 				}
 
-				if(!t->compile()) return pass();
+				if(!t->compile()) return err::fail;
 
 				if (t->context() == ILContext::compile) {
 					if (new_inst->context != ILContext::runtime) {
@@ -507,16 +507,16 @@ namespace Corrosive {
 
 								Cursor err = c;
 								CompileValue res;
-								if (!Expression::parse(c, res, CompileType::eval)) return pass();
-								if (!Operand::deref(value, CompileType::eval)) return pass();
-								if (!Expression::rvalue(res, CompileType::eval)) return pass();
+								if (!Expression::parse(c, res, CompileType::eval)) return err::fail;
+								if (!Operand::deref(value, CompileType::eval)) return err::fail;
+								if (!Expression::rvalue(res, CompileType::eval)) return err::fail;
 								if (res.type != compiler->types()->t_type) {
 									return throw_specific_error(err, "Expected type");
 								}
 								Type* argt;
-								if (!compiler->evaluator()->pop_register_value<Type*>(argt)) return pass();
+								if (!compiler->evaluator()->pop_register_value<Type*>(argt)) return err::fail;
 
-								if (!Type::assert(err,argt)) return pass();
+								if (!Type::assert(err,argt)) return err::fail;
 								if (ft->arguments.size() == 0) {
 									Type* this_type = new_inst->type->generate_reference();
 									if (argt != this_type) {
@@ -559,16 +559,16 @@ namespace Corrosive {
 						if (c.tok != RecognizedToken::OpenBrace) {
 							Cursor err = c;
 							CompileValue res;
-							if (!Expression::parse(c, res, CompileType::eval)) return pass();
-							if (!Operand::deref(value, CompileType::eval)) return pass();
-							if (!Expression::rvalue(res, CompileType::eval)) return pass();
+							if (!Expression::parse(c, res, CompileType::eval)) return err::fail;
+							if (!Operand::deref(value, CompileType::eval)) return err::fail;
+							if (!Expression::rvalue(res, CompileType::eval)) return err::fail;
 
 							if (res.type != compiler->types()->t_type) {
 								return throw_specific_error(err, "Expected type");
 							}
 							Type* rett;
-							if (!compiler->evaluator()->pop_register_value<Type*>(rett)) return pass();
-							if (!Type::assert(err,rett)) return pass();
+							if (!compiler->evaluator()->pop_register_value<Type*>(rett)) return err::fail;
+							if (!Type::assert(err,rett)) return err::fail;
 							Type* req_type = fundecl->return_type;
 							if (rett != req_type) {
 								return throw_specific_error(err, "Return type does not match the type of the original trait function");
@@ -611,17 +611,17 @@ namespace Corrosive {
 
 				Cursor c = load_cursor(m->type, src);
 				Cursor err = c;
-				if (!Expression::parse(c, value, CompileType::eval)) return pass();
-				if (!Operand::deref(value, CompileType::eval)) return pass();
-				if (!Expression::rvalue(value, CompileType::eval)) return pass();
+				if (!Expression::parse(c, value, CompileType::eval)) return err::fail;
+				if (!Operand::deref(value, CompileType::eval)) return err::fail;
+				if (!Expression::rvalue(value, CompileType::eval)) return err::fail;
 				if (value.type != compiler->types()->t_type) {
 					return throw_specific_error(err, "Expected type value");
 				}
 
 				Type* m_t;
-				if (!compiler->evaluator()->pop_register_value<Type*>(m_t)) return pass();
-				if (!Type::assert(err,m_t)) return pass();
-				if(!m_t->compile()) return pass();
+				if (!compiler->evaluator()->pop_register_value<Type*>(m_t)) return err::fail;
+				if (!Type::assert(err,m_t)) return err::fail;
+				if(!m_t->compile()) return err::fail;
 				if (m_t->context() == ILContext::compile) {
 					if (new_inst->context != ILContext::runtime) {
 						new_inst->context = ILContext::compile;
@@ -652,10 +652,10 @@ namespace Corrosive {
 				Cursor c = load_cursor(b, ast_node->get_source());
 				if (c.tok == RecognizedToken::OpenBrace) {
 					BlockTermination termination;
-					if (!Statement::parse(c, termination, ForceCompile::single)) return pass();
+					if (!Statement::parse(c, termination, ForceCompile::single)) return err::fail;
 				} else {
 					CompileValue res;
-					if (!Expression::parse(c, res, CompileType::eval, false)) return pass();
+					if (!Expression::parse(c, res, CompileType::eval, false)) return err::fail;
 					if (c.tok != RecognizedToken::Semicolon) {
 						return throw_wrong_token_error(c,"';'");
 					}
@@ -667,14 +667,14 @@ namespace Corrosive {
 
 		}
 
-		return errvoid();
+		return err::ok;
 	}
 
 
 	void StructureTemplate::var_wrapper(dword_t dw, Type* type) {
 		Compiler* compiler = Compiler::current();
 		std::uint8_t* data;
-		if (!compiler->constant_manager()->register_generic_storage(data,(std::uint8_t*)dw.p1, (std::size_t)dw.p2, compiler->types()->t_u8)) ILEvaluator::ex_throw();
+		if (!compiler->constant_manager()->register_generic_storage(data,(std::uint8_t*)dw.p1, (std::size_t)dw.p2, compiler->types()->t_u8)){ILEvaluator::ex_throw(); return;}
 		std::basic_string_view<char> name((char*)data, (std::size_t)dw.p2);
 		StructureInstance* sinst = (StructureInstance*)compiler->workspace();
 
@@ -685,7 +685,7 @@ namespace Corrosive {
 	void StructureTemplate::var_alias_wrapper(dword_t dw, Type* type) {
 		Compiler* compiler = Compiler::current();
 		std::uint8_t* data;
-		if (!compiler->constant_manager()->register_generic_storage(data,(std::uint8_t*)dw.p1, (std::size_t)dw.p2, compiler->types()->t_u8)) ILEvaluator::ex_throw();
+		if (!compiler->constant_manager()->register_generic_storage(data,(std::uint8_t*)dw.p1, (std::size_t)dw.p2, compiler->types()->t_u8)){ILEvaluator::ex_throw(); return;}
 		std::basic_string_view<char> name((char*)data, (std::size_t)dw.p2);
 		StructureInstance* sinst = (StructureInstance*)compiler->workspace();
 
@@ -769,17 +769,17 @@ namespace Corrosive {
 					while (true) {
 						Cursor err = c;
 						CompileValue val;
-						if (!Expression::parse(c, val, CompileType::eval)) return pass();
-						if (!Operand::deref(val, CompileType::eval)) return pass();
-						if (!Expression::rvalue(val, CompileType::eval)) return pass();
+						if (!Expression::parse(c, val, CompileType::eval)) return err::fail;
+						if (!Operand::deref(val, CompileType::eval)) return err::fail;
+						if (!Expression::rvalue(val, CompileType::eval)) return err::fail;
 
 						if (val.type != compiler->types()->t_type) {
 							return throw_specific_error(err, "Expected type");
 						}
 						Type* t;
-						if (!compiler->evaluator()->pop_register_value<Type*>(t)) return pass();
-						if (!Type::assert(err,t)) return pass();
-						if(!t->compile()) return pass();
+						if (!compiler->evaluator()->pop_register_value<Type*>(t)) return err::fail;
+						if (!Type::assert(err,t)) return err::fail;
+						if(!t->compile()) return err::fail;
 
 						if (t->context() == ILContext::compile) {
 							if (new_inst->context != ILContext::runtime) {
@@ -818,17 +818,17 @@ namespace Corrosive {
 				else {
 					Cursor err = c;
 					CompileValue val;
-					if (!Expression::parse(c, val, CompileType::eval)) return pass();
-					if (!Operand::deref(val, CompileType::eval)) return pass();
-					if (!Expression::rvalue(val, CompileType::eval)) return pass();
+					if (!Expression::parse(c, val, CompileType::eval)) return err::fail;
+					if (!Operand::deref(val, CompileType::eval)) return err::fail;
+					if (!Expression::rvalue(val, CompileType::eval)) return err::fail;
 
 					if (val.type != compiler->types()->t_type) {
 						return throw_specific_error(err, "Expected type");
 					}
 					Type* t;
-					if (!compiler->evaluator()->pop_register_value<Type*>(t)) return pass();
-					if (!Type::assert(err,t)) return pass();
-					if(!t->compile()) return pass();
+					if (!compiler->evaluator()->pop_register_value<Type*>(t)) return err::fail;
+					if (!Type::assert(err,t)) return err::fail;
+					if(!t->compile()) return err::fail;
 
 					if (t->context() == ILContext::compile) {
 						if (new_inst->context != ILContext::runtime) {
@@ -862,7 +862,7 @@ namespace Corrosive {
 
 		}
 
-		return errvoid();
+		return err::ok;
 	}
 
 
@@ -898,7 +898,7 @@ namespace Corrosive {
 
 				for (auto l = generic_ctx.generic_layout.rbegin(); l != generic_ctx.generic_layout.rend(); l++) {
 					std::size_t c_size = std::get<1>(*l)->size().eval(Compiler::current()->global_module(), compiler_arch);
-					if (!std::get<1>(*l)->copy_to_generic_storage(old_offset, new_offset)) return pass();
+					if (!std::get<1>(*l)->copy_to_generic_storage(old_offset, new_offset)) return err::fail;
 					old_offset += c_size;
 					new_offset += c_size;
 				}
@@ -946,14 +946,14 @@ namespace Corrosive {
 					}
 
 					Cursor err = c;
-					if (!Expression::parse(c, cvres, CompileType::eval)) return pass();
-					if (!Operand::deref(cvres, CompileType::eval)) return pass();
-					if (!Expression::rvalue(cvres, CompileType::eval)) return pass();
-					if (!Operand::cast(err, cvres, compiler->types()->t_type, CompileType::eval, true)) return pass();
+					if (!Expression::parse(c, cvres, CompileType::eval)) return err::fail;
+					if (!Operand::deref(cvres, CompileType::eval)) return err::fail;
+					if (!Expression::rvalue(cvres, CompileType::eval)) return err::fail;
+					if (!Operand::cast(err, cvres, compiler->types()->t_type, CompileType::eval, true)) return err::fail;
 
 					Type* t;
-					if (!compiler->evaluator()->pop_register_value<Type*>(t)) return pass();
-					if (!Type::assert(err,t)) return pass();
+					if (!compiler->evaluator()->pop_register_value<Type*>(t)) return err::fail;
+					if (!Type::assert(err,t)) return err::fail;
 
 					if (t->context() == ILContext::compile) {
 						if (new_inst->context != ILContext::runtime) {
@@ -990,15 +990,15 @@ namespace Corrosive {
 
 			if (c.tok != RecognizedToken::OpenBrace && c.tok != RecognizedToken::Semicolon) {
 				Cursor err = c;
-				if (!Expression::parse(c, cvres, CompileType::eval)) return pass();
-				if (!Operand::deref(cvres, CompileType::eval)) return pass();
-				if (!Expression::rvalue(cvres, CompileType::eval)) return pass();
-				if (!Operand::cast(err, cvres, compiler->types()->t_type, CompileType::eval, true)) return pass();
+				if (!Expression::parse(c, cvres, CompileType::eval)) return err::fail;
+				if (!Operand::deref(cvres, CompileType::eval)) return err::fail;
+				if (!Expression::rvalue(cvres, CompileType::eval)) return err::fail;
+				if (!Operand::cast(err, cvres, compiler->types()->t_type, CompileType::eval, true)) return err::fail;
 
 				Type* t;
-				if (!compiler->evaluator()->pop_register_value<Type*>(t)) return pass();
+				if (!compiler->evaluator()->pop_register_value<Type*>(t)) return err::fail;
 
-				if (!Type::assert(err,t)) return pass();
+				if (!Type::assert(err,t)) return err::fail;
 				new_inst->returns = t;
 
 				if (t->context() == ILContext::compile) {
@@ -1033,7 +1033,7 @@ namespace Corrosive {
 
 		}
 
-		return errvoid();
+		return err::ok;
 	}
 
 	errvoid FunctionInstance::compile() {
@@ -1042,7 +1042,7 @@ namespace Corrosive {
 
 			if (ast_node->has_body()) {
 				Compiler* compiler = Compiler::current();
-				if(!type->compile()) return pass();
+				if(!type->compile()) return err::fail;
 				auto func = compiler->global_module()->create_function(context);
 				this->func = func;
 				func->decl_id = type->il_function_decl;
@@ -1053,12 +1053,12 @@ namespace Corrosive {
 					auto scope = ScopeState().function(func, returns).workspace(parent).context(context).compiler_stack().stack();
 					generic_inst.insert_key_on_stack();
 
-					if (!Statement::parse_inner_block_start(b)) return pass();
+					if (!Statement::parse_inner_block_start(b)) return err::fail;
 
 					bool ret_rval_stack = false;
 					stackid_t return_ptr_local_id = 0;
 
-					if(!returns->compile()) return pass();
+					if(!returns->compile()) return err::fail;
 
 					if (returns->rvalue_stacked()) {
 						ret_rval_stack = true;
@@ -1069,7 +1069,7 @@ namespace Corrosive {
 					for (std::size_t i = 0; i < arguments.size(); i++) {
 						auto& a = arguments[i];
 
-						if(!a->compile()) return pass();
+						if(!a->compile()) return err::fail;
 						// context should be already ok or thrown
 
 						stackid_t id = func->local_stack_lifetime.append(a->size());
@@ -1081,15 +1081,15 @@ namespace Corrosive {
 
 					std::uint16_t argid = (std::uint16_t)(arguments.size() - (ret_rval_stack ? 0 : 1));
 					for (auto a = arguments.rbegin(); a != arguments.rend(); a++) {
-						if (!ILBuilder::build_local(compiler->scope(), argid)) return pass();
-						if (!Expression::copy_from_rvalue(*a, CompileType::compile)) return pass();
+						if (!ILBuilder::build_local(compiler->scope(), argid)) return err::fail;
+						if (!Expression::copy_from_rvalue(*a, CompileType::compile)) return err::fail;
 
 						argid--;
 					}
 
 					if (ret_rval_stack) {
-						if (!ILBuilder::build_local(compiler->scope(), return_ptr_local_id)) return pass();
-						if (!ILBuilder::build_store(compiler->scope(), ILDataType::word)) return pass();
+						if (!ILBuilder::build_local(compiler->scope(), return_ptr_local_id)) return err::fail;
+						if (!ILBuilder::build_store(compiler->scope(), ILDataType::word)) return err::fail;
 					}
 
 					// return type context should be already ok or thrown
@@ -1102,7 +1102,7 @@ namespace Corrosive {
 					Cursor cb = load_cursor(((AstFunctionNode*)ast_node)->block, src);
 					BlockTermination term;
 					cb.move();
-					if (!Statement::parse_inner_block(cb, term, true, &name)) return pass();
+					if (!Statement::parse_inner_block(cb, term, true, &name)) return err::fail;
 
 
 					//func->dump();
@@ -1111,7 +1111,7 @@ namespace Corrosive {
 				}
 			}
 			else {
-				if(!type->compile()) return pass();
+				if(!type->compile()) return err::fail;
 				std::string name = std::string(ast_node->name_string);
 				Namespace* nspc = parent;
 				while(nspc && nspc->ast_node) {
@@ -1145,7 +1145,7 @@ namespace Corrosive {
 			return throw_specific_error(c, "Build cycle");
 		}
 
-		return errvoid();
+		return err::ok;
 	}
 
 	std::uint32_t upper_power_of_two(std::uint32_t v)
@@ -1172,7 +1172,7 @@ namespace Corrosive {
 			size = ILSize(ILSizeType::_0, 0);
 
 			for (auto&& m : member_vars) {
-				if(!m.first->compile()) return pass();
+				if(!m.first->compile()) return err::fail;
 
 				ILSize m_s = m.first->size();
 
@@ -1281,7 +1281,7 @@ namespace Corrosive {
 
 
 			for (auto&& m : subfunctions) {
-				if(!m->compile()) return pass();
+				if(!m->compile()) return err::fail;
 			}
 
 			structure_type = StructureInstanceType::normal_structure;
@@ -1298,14 +1298,14 @@ namespace Corrosive {
 
 				if (t->type() == TypeInstanceType::type_structure_instance) {
 					TypeStructureInstance* ts = (TypeStructureInstance*)t;
-					if(!ts->compile()) return pass();
+					if(!ts->compile()) return err::fail;
 					for (auto&& v : ts->owner->member_table) {
 						member_table.insert(std::make_pair(v.first, std::make_pair<std::uint16_t, MemberTableEntryType>((std::uint16_t)comp, MemberTableEntryType::alias)));
 					}
 				}
 				else if (t->type() == TypeInstanceType::type_slice) {
 					TypeSlice* ts = (TypeSlice*)t;
-					if(!ts->compile()) return pass();
+					if(!ts->compile()) return err::fail;
 					pass_array_operator = true;
 					pass_array_id = (std::uint16_t)comp;
 				}
@@ -1315,9 +1315,9 @@ namespace Corrosive {
 			for (std::uint32_t i = 0; i < subfunctions.size(); ++i) {
 				auto gf = subfunctions[i].get();
 				if (!(gf->ast_node->has_body() && ((AstFunctionNode*)gf->ast_node)->is_generic)) {
-					if(!gf->compile()) return pass();
+					if(!gf->compile()) return err::fail;
 					FunctionInstance* fi;
-					if (!gf->generate(nullptr, fi)) return pass();
+					if (!gf->generate(nullptr, fi)) return err::fail;
 
 					if (fi->arguments.size() > 0 && fi->arguments[0] == type.get()->generate_reference()) {
 						member_table.insert(std::make_pair(fi->ast_node->name_string, std::make_pair<std::uint16_t, MemberTableEntryType>((std::uint16_t)i, MemberTableEntryType::func)));
@@ -1336,7 +1336,7 @@ namespace Corrosive {
 			return throw_specific_error(c, "Build cycle");
 		}
 
-		return errvoid();
+		return err::ok;
 	}
 
 	void GenericInstance::insert_key_on_stack() {
@@ -1360,7 +1360,7 @@ namespace Corrosive {
 
 
 	errvoid TraitInstance::generate_vtable(StructureInstance* forinst, std::uint32_t& optid) {
-		if(!forinst->compile()) return pass();
+		if(!forinst->compile()) return err::fail;
 
 		std::unique_ptr<void* []> vtable = std::make_unique<void* []>(member_declarations.size());
 
@@ -1368,7 +1368,7 @@ namespace Corrosive {
 		std::size_t id = 0;
 		for (auto&& m_func : member_declarations) {
 			FunctionInstance* finst = f_table[id].get();
-			if(!finst->compile()) return pass();
+			if(!finst->compile()) return err::fail;
 			vtable[id] = finst->func;
 			++id;
 		}
@@ -1378,7 +1378,7 @@ namespace Corrosive {
 		vtable_instances[forinst] = vtid;
 		optid = vtid;
 
-		return errvoid();
+		return err::ok;
 	}
 
 	errvoid StaticInstance::compile() {
@@ -1396,17 +1396,17 @@ namespace Corrosive {
 			Cursor err = c;
 
 			CompileValue typevalue;
-			if (!Expression::parse(c, typevalue, CompileType::eval)) return pass();
-			if (!Operand::deref(typevalue, CompileType::eval)) return pass();
-			if (!Expression::rvalue(typevalue, CompileType::eval)) return pass();
+			if (!Expression::parse(c, typevalue, CompileType::eval)) return err::fail;
+			if (!Operand::deref(typevalue, CompileType::eval)) return err::fail;
+			if (!Expression::rvalue(typevalue, CompileType::eval)) return err::fail;
 
 			Compiler* compiler = Compiler::current();
 			
 			if (!ast_node->has_value) {
-				if (!Operand::cast(err, typevalue, compiler->types()->t_type, CompileType::eval, true)) return pass();
-				if (!compiler->evaluator()->pop_register_value<Type*>(type)) return pass();
-				if (!Type::assert(err,type)) return pass();
-				if(!type->compile()) return pass();
+				if (!Operand::cast(err, typevalue, compiler->types()->t_type, CompileType::eval, true)) return err::fail;
+				if (!compiler->evaluator()->pop_register_value<Type*>(type)) return err::fail;
+				if (!Type::assert(err,type)) return err::fail;
+				if(!type->compile()) return err::fail;
 
 				if (type->context() == ILContext::compile) {
 					if (context != ILContext::runtime) {
@@ -1430,7 +1430,7 @@ namespace Corrosive {
 			}
 			else {
 				type = typevalue.type;
-				if(!type->compile()) return pass();
+				if(!type->compile()) return err::fail;
 
 				if (type->context() == ILContext::compile) {
 					if (context != ILContext::runtime) {
@@ -1451,12 +1451,12 @@ namespace Corrosive {
 
 				if (typevalue.lvalue || type->rvalue_stacked()) {
 					void* ptr;
-					if (!compiler->evaluator()->pop_register_value<void*>(ptr)) return pass();
+					if (!compiler->evaluator()->pop_register_value<void*>(ptr)) return err::fail;
 					sid = compiler->global_module()->register_static((unsigned char*)ptr, type->size());
 				}
 				else {
 					ilsize_t storage;
-					if (!compiler->evaluator()->pop_register_value_indirect(compiler->evaluator()->compile_time_register_size(type->rvalue()), &storage)) return pass();
+					if (!compiler->evaluator()->pop_register_value_indirect(compiler->evaluator()->compile_time_register_size(type->rvalue()), &storage)) return err::fail;
 					sid = compiler->global_module()->register_static((unsigned char*)&storage, type->size());
 				}
 			}
@@ -1468,6 +1468,6 @@ namespace Corrosive {
 			return throw_specific_error(c, "Build cycle");
 		}
 
-		return errvoid();
+		return err::ok;
 	}
 }

@@ -12,24 +12,24 @@ namespace Corrosive {
 
 	errvoid Operand::deref(CompileValue& val, CompileType cpt) {
 		if (!val.reflock && val.type->type() == TypeInstanceType::type_reference && ((TypeReference*)val.type)->owner != Compiler::current()->types()->t_void) {
-			if (!Expression::rvalue(val, cpt)) return pass();
+			if (!Expression::rvalue(val, cpt)) return err::fail;
 			val.lvalue = true;
 			val.type = ((TypeReference*)val.type)->owner;	
 		}
 
 		val.reflock = false;
 
-		return errvoid();
+		return err::ok;
 	}
 
 	errvoid Operand::type_template_cast_crsr(ILEvaluator* eval, Cursor& err) {
 		Compiler* compiler = Compiler::current();
 		Type* template_cast;
-		if (!eval->pop_register_value<Type*>(template_cast)) return pass();
-		if (!Type::assert(err,template_cast)) return pass();
+		if (!eval->pop_register_value<Type*>(template_cast)) return err::fail;
+		if (!Type::assert(err,template_cast)) return err::fail;
 		Type* template_type; 
-		if (!eval->read_register_value<Type*>(template_type)) return pass();
-		if (!Type::assert(err,template_type)) return pass();
+		if (!eval->read_register_value<Type*>(template_type)) return err::fail;
+		if (!Type::assert(err,template_type)) return err::fail;
 
 		if (template_type->type() == TypeInstanceType::type_structure_template) {
 			TypeStructureTemplate* st = (TypeStructureTemplate*)template_type;
@@ -65,17 +65,17 @@ namespace Corrosive {
 			return throw_cannot_cast_error(err, template_type, template_cast);
 		}
 
-		return errvoid();
+		return err::ok;
 	}
 
 	errvoid Operand::type_template_cast(ILEvaluator* eval) {
 		Compiler* compiler = Compiler::current();
 		Type* template_cast;
-		if (!eval->pop_register_value<Type*>(template_cast)) return pass();
-		if (!Type::assert(template_cast)) return pass();
+		if (!eval->pop_register_value<Type*>(template_cast)) return err::fail;
+		if (!Type::assert(template_cast)) return err::fail;
 		Type* template_type;
-		if (!eval->read_register_value<Type*>(template_type)) return pass();
-		if (!Type::assert(template_type)) return pass();
+		if (!eval->read_register_value<Type*>(template_type)) return err::fail;
+		if (!Type::assert(template_type)) return err::fail;
 
 		if (template_type->type() == TypeInstanceType::type_structure_template) {
 			TypeStructureTemplate* st = (TypeStructureTemplate*)template_type;
@@ -112,7 +112,7 @@ namespace Corrosive {
 		}
 
 		
-		return errvoid();
+		return err::ok;
 	}
 
 	bool Operand::is_numeric_value(Type* t) {
@@ -124,15 +124,15 @@ namespace Corrosive {
 		
 		if (res.type == compiler->types()->t_type && to->type() == TypeInstanceType::type_template) {
 			if (cpt == CompileType::eval) {
-				if (!ILBuilder::eval_const_word(compiler->evaluator(), to)) return pass();
-				if (!Operand::type_template_cast_crsr(compiler->evaluator(), err)) return pass();
+				if (!ILBuilder::eval_const_word(compiler->evaluator(), to)) return err::fail;
+				if (!Operand::type_template_cast_crsr(compiler->evaluator(), err)) return err::fail;
 
 				res.type = to;
 
 			}
 			else {
-				if (!ILBuilder::build_const_word(compiler->scope(), to)) return pass();
-				if (!ILBuilder::build_insintric(compiler->scope(), ILInsintric::type_dynamic_cast)) return pass();
+				if (!ILBuilder::build_const_word(compiler->scope(), to)) return err::fail;
+				if (!ILBuilder::build_insintric(compiler->scope(), ILInsintric::type_dynamic_cast)) return err::fail;
 				res.type = to;
 			}
 		}
@@ -148,7 +148,7 @@ namespace Corrosive {
 				TypeReference* tr = (TypeReference*)res.type;
 				if (tr->owner->type() == TypeInstanceType::type_structure_instance) {
 					ts = (TypeStructureInstance*)tr->owner;
-					if (!Expression::rvalue(res, cpt)) return pass();
+					if (!Expression::rvalue(res, cpt)) return err::fail;
 				}
 				else {
 					return throw_cannot_cast_error(err, res.type, to);
@@ -160,19 +160,19 @@ namespace Corrosive {
 			}
 
 
-			if (!ts->compile()) return pass();
+			if (!ts->compile()) return err::fail;
 
 			auto tti = ts->owner->traitfunctions.find(tt->owner);
 			if (tti == ts->owner->traitfunctions.end()) {
 				return throw_cannot_cast_error(err, res.type, to);
 			}
 
-			if (!tt->compile()) return pass();
+			if (!tt->compile()) return err::fail;
 
 			std::uint32_t vtableid = 0;
 			auto vtbl = tt->owner->vtable_instances.find(ts->owner);
 			if (vtbl == tt->owner->vtable_instances.end()) {
-				if (!tt->owner->generate_vtable(ts->owner, vtableid)) return pass();
+				if (!tt->owner->generate_vtable(ts->owner, vtableid)) return err::fail;
 			}
 			else {
 				vtableid = vtbl->second;
@@ -180,26 +180,26 @@ namespace Corrosive {
 
 			if (cpt == CompileType::eval) {
 
-				if (!ILBuilder::eval_vtable(compiler->evaluator(), vtableid)) return pass();
-				if (!ILBuilder::eval_combine_dword(compiler->evaluator())) return pass();
+				if (!ILBuilder::eval_vtable(compiler->evaluator(), vtableid)) return err::fail;
+				if (!ILBuilder::eval_combine_dword(compiler->evaluator())) return err::fail;
 
 			}
 			else {
 
-				if (!ILBuilder::build_vtable(compiler->scope(), vtableid)) return pass();
-				if (!ILBuilder::build_combine_dword(compiler->scope())) return pass();
+				if (!ILBuilder::build_vtable(compiler->scope(), vtableid)) return err::fail;
+				if (!ILBuilder::build_combine_dword(compiler->scope())) return err::fail;
 
 			}
 			res.lvalue = false;
 			res.type = to;
 		}
 		/*else if (res.type == compiler->types()->t_ptr && to->type() == TypeInstanceType::type_function) {
-			if (!Expression::rvalue(res, cpt)) return pass();
+			if (!Expression::rvalue(res, cpt)) return err::fail;
 			res.lvalue = false;
 			res.type = to;
 		}
 		else if (to == compiler->types()->t_ptr && res.type->type() == TypeInstanceType::type_function) {
-			if (!Expression::rvalue(res, cpt)) return pass();
+			if (!Expression::rvalue(res, cpt)) return err::fail;
 			res.lvalue = false;
 			res.type = to;
 		}
@@ -210,7 +210,7 @@ namespace Corrosive {
 				}
 			}
 
-			if (!Expression::rvalue(res, cpt)) return pass();
+			if (!Expression::rvalue(res, cpt)) return err::fail;
 			res.lvalue = false;
 			res.type = to;
 		}*/
@@ -229,42 +229,42 @@ namespace Corrosive {
 		}
 		else if (res.type->type() == TypeInstanceType::type_array && to->type() == TypeInstanceType::type_slice && ((TypeArray*)res.type)->owner == ((TypeSlice*)to)->owner) {
 			if (cpt == CompileType::compile) {
-				if (!ILBuilder::build_const_size(compiler->scope(), res.type->size())) return pass();
-				if (!ILBuilder::build_combine_dword(compiler->scope())) return pass();
+				if (!ILBuilder::build_const_size(compiler->scope(), res.type->size())) return err::fail;
+				if (!ILBuilder::build_combine_dword(compiler->scope())) return err::fail;
 			}
 			else {
-				if (!ILBuilder::eval_const_size(compiler->evaluator(), res.type->size().eval(compiler->global_module(), compiler_arch))) return pass();
-				if (!ILBuilder::eval_combine_dword(compiler->evaluator())) return pass();
+				if (!ILBuilder::eval_const_size(compiler->evaluator(), res.type->size().eval(compiler->global_module(), compiler_arch))) return err::fail;
+				if (!ILBuilder::eval_combine_dword(compiler->evaluator())) return err::fail;
 			}
 
 			res.type = to;
 			res.lvalue = false;
 		}
 		else if (res.type->type() == TypeInstanceType::type_slice && to->type() == TypeInstanceType::type_array && ((TypeArray*)res.type)->owner == ((TypeSlice*)to)->owner) {
-			if (!to->compile()) return pass();
+			if (!to->compile()) return err::fail;
 			if (cpt == CompileType::compile) {
 				stackid_t local_id = compiler->target()->local_stack_lifetime.append(to->size());
 				compiler->temp_stack()->push_item("$tmp", to, local_id);
 
-				if (!ILBuilder::build_bitcast(compiler->scope(), ILDataType::dword, ILDataType::word)) return pass();
-				if (!ILBuilder::build_local(compiler->scope(), local_id)) return pass();
-				if (!ILBuilder::build_memcpy(compiler->scope(), to->size())) return pass();
-				if (!ILBuilder::build_local(compiler->scope(), local_id)) return pass();
+				if (!ILBuilder::build_bitcast(compiler->scope(), ILDataType::dword, ILDataType::word)) return err::fail;
+				if (!ILBuilder::build_local(compiler->scope(), local_id)) return err::fail;
+				if (!ILBuilder::build_memcpy(compiler->scope(), to->size())) return err::fail;
+				if (!ILBuilder::build_local(compiler->scope(), local_id)) return err::fail;
 			}
 			else {
 				stackid_t local_id = compiler->push_local(to->size());
 				compiler->compiler_stack()->push_item("$tmp", to, local_id);
 				dword_t dw;
-				if (!compiler->evaluator()->read_register_value<dword_t>(dw)) return pass();
+				if (!compiler->evaluator()->read_register_value<dword_t>(dw)) return err::fail;
 				std::size_t slice_size = (std::size_t)dw.p2;
 				std::size_t array_size = to->size().eval(compiler->global_module(), compiler_arch);
 				if (slice_size != array_size) {
 					return throw_specific_error(err, "The array has different size than casted slice");
 				}
 
-				if (!ILBuilder::eval_bitcast(compiler->evaluator(), ILDataType::dword, ILDataType::word)) return pass();
+				if (!ILBuilder::eval_bitcast(compiler->evaluator(), ILDataType::dword, ILDataType::word)) return err::fail;
 				compiler->eval_local(local_id);
-				if (!ILBuilder::eval_memcpy(compiler->evaluator(), array_size)) return pass();
+				if (!ILBuilder::eval_memcpy(compiler->evaluator(), array_size)) return err::fail;
 				compiler->eval_local(local_id);
 			}
 
@@ -272,10 +272,10 @@ namespace Corrosive {
 			res.lvalue = false;
 		}
 		else if (Operand::is_numeric_value(res.type) && to == compiler->types()->t_bool) {
-			if (!Expression::rvalue(res, cpt)) return pass();
+			if (!Expression::rvalue(res, cpt)) return err::fail;
 			if (cpt == CompileType::eval) {
 				if (res.type->rvalue() != to->rvalue()) {
-					if (!ILBuilder::eval_bitcast(compiler->evaluator(), res.type->rvalue(), to->rvalue())) return pass();
+					if (!ILBuilder::eval_bitcast(compiler->evaluator(), res.type->rvalue(), to->rvalue())) return err::fail;
 				}
 				
 
@@ -284,7 +284,7 @@ namespace Corrosive {
 			}
 			else {
 				if (res.type->rvalue() != to->rvalue()) {
-					if (!ILBuilder::build_bitcast(compiler->scope(), res.type->rvalue(), to->rvalue())) return pass();
+					if (!ILBuilder::build_bitcast(compiler->scope(), res.type->rvalue(), to->rvalue())) return err::fail;
 				}
 
 				res.type = to;
@@ -292,10 +292,10 @@ namespace Corrosive {
 			}
 		}
 		else if (Operand::is_numeric_value(res.type) && Operand::is_numeric_value(to)) {
-			if (!Expression::rvalue(res, cpt)) return pass();
+			if (!Expression::rvalue(res, cpt)) return err::fail;
 			if (cpt == CompileType::eval) {
 				if (res.type->rvalue() != to->rvalue()) {
-					if (!ILBuilder::eval_cast(compiler->evaluator(), res.type->rvalue(), to->rvalue())) return pass();
+					if (!ILBuilder::eval_cast(compiler->evaluator(), res.type->rvalue(), to->rvalue())) return err::fail;
 				}
 
 				res.type = to;
@@ -304,7 +304,7 @@ namespace Corrosive {
 			}
 			else {
 				if (res.type->rvalue() != to->rvalue()) {
-					if (!ILBuilder::build_cast(compiler->scope(), res.type->rvalue(), to->rvalue())) return pass();
+					if (!ILBuilder::build_cast(compiler->scope(), res.type->rvalue(), to->rvalue())) return err::fail;
 				}
 
 				res.type = to;
@@ -314,11 +314,11 @@ namespace Corrosive {
 		}
 		else if (res.type != to) {
 			return throw_cannot_cast_error(err, res.type, to);
-			return pass();
+			return err::fail;
 		}
 
 		res.type = to;
-		return errvoid();
+		return err::ok;
 	}
 
 	errvoid Operand::parse(Cursor& c, CompileValue& res, CompileType cpt, bool targets_defer, Type* request) {
@@ -330,21 +330,21 @@ namespace Corrosive {
 		switch (c.tok) {
 			case RecognizedToken::And:
 			case RecognizedToken::DoubleAnd: {
-				if (!Operand::parse_reference(res, c, cpt,targets_defer)) return pass();
-				return errvoid();
+				if (!Operand::parse_reference(res, c, cpt,targets_defer)) return err::fail;
+				return err::ok;
 			}
 			case RecognizedToken::OpenBracket: {
-				if (!Operand::parse_array_type(res, c, cpt,targets_defer)) return pass();
-				return errvoid();
+				if (!Operand::parse_array_type(res, c, cpt,targets_defer)) return err::fail;
+				return err::ok;
 			}
 
 			case RecognizedToken::OpenParenthesis: {
-				if (!Operand::parse_expression(res, c, cpt, request)) return pass();
+				if (!Operand::parse_expression(res, c, cpt, request)) return err::fail;
 			}break;
 
 			case RecognizedToken::OpenBrace: {
-				if (!Operand::parse_const_decl(res, c, cpt, request)) return pass();
-				return errvoid();
+				if (!Operand::parse_const_decl(res, c, cpt, request)) return err::fail;
+				return err::ok;
 			}
 
 			case RecognizedToken::Symbol: {
@@ -361,19 +361,19 @@ namespace Corrosive {
 					{
 						auto state = ScopeState().context(ILContext::compile);
 
-						if (!Expression::parse(c, t_res, CompileType::eval)) return pass();
-						if (!Operand::deref(t_res, cpt)) return pass();
-						if (!Expression::rvalue(t_res, CompileType::eval)) return pass();
+						if (!Expression::parse(c, t_res, CompileType::eval)) return err::fail;
+						if (!Operand::deref(t_res, cpt)) return err::fail;
+						if (!Expression::rvalue(t_res, CompileType::eval)) return err::fail;
 						if (t_res.type != compiler->types()->t_type) {
 							return throw_specific_error(err, "Expected type");
 						}
 					}
 
 					Type* to;
-					if (!compiler->evaluator()->pop_register_value<Type*>(to)) return pass();
+					if (!compiler->evaluator()->pop_register_value<Type*>(to)) return err::fail;
 
-					if (!Type::assert(err, to)) return pass();
-					if (!to->compile()) return pass();
+					if (!Type::assert(err, to)) return err::fail;
+					if (!to->compile()) return err::fail;
 
 					if (to->context()==ILContext::compile && compiler->scope_context() != ILContext::compile) {
 						return throw_specific_error(err,"Type cannot be used outside compile context");
@@ -389,12 +389,12 @@ namespace Corrosive {
 					c.move();
 
 					err = c;
-					if (!Operand::parse(c, res, cpt,targets_defer, to)) return pass();
-					if (!Operand::deref(res, cpt)) return pass();
-					if (!Operand::cast(err, res, to, cpt, false)) return pass();
+					if (!Operand::parse(c, res, cpt,targets_defer, to)) return err::fail;
+					if (!Operand::deref(res, cpt)) return err::fail;
+					if (!Operand::cast(err, res, to, cpt, false)) return err::fail;
 					res.reflock = true;
 
-					return errvoid();
+					return err::ok;
 				} else if (c.buffer() == "bitcast") {
 					c.move();
 					if (c.tok != RecognizedToken::OpenParenthesis) {
@@ -408,18 +408,18 @@ namespace Corrosive {
 					{
 						auto state = ScopeState().context(ILContext::compile);
 
-						if (!Expression::parse(c, t_res, CompileType::eval)) return pass();
-						if (!Operand::deref(t_res, cpt)) return pass();
-						if (!Expression::rvalue(t_res, CompileType::eval)) return pass();
+						if (!Expression::parse(c, t_res, CompileType::eval)) return err::fail;
+						if (!Operand::deref(t_res, cpt)) return err::fail;
+						if (!Expression::rvalue(t_res, CompileType::eval)) return err::fail;
 						if (t_res.type != compiler->types()->t_type) {
 							return throw_specific_error(err, "Expected type");
 						}
 					}
 
 					Type* to;
-					if (!compiler->evaluator()->pop_register_value<Type*>(to)) return pass();
-					if (!Type::assert(err, to)) return pass();
-					if (!to->compile()) return pass();
+					if (!compiler->evaluator()->pop_register_value<Type*>(to)) return err::fail;
+					if (!Type::assert(err, to)) return err::fail;
+					if (!to->compile()) return err::fail;
 
 					if (to->context()==ILContext::compile && compiler->scope_context() != ILContext::compile) {
 						return throw_specific_error(err,"Type cannot be used outside compile context");
@@ -435,83 +435,83 @@ namespace Corrosive {
 					c.move();
 
 					err = c;
-					if (!Operand::parse(c, res, cpt, targets_defer)) return pass();
-					if (!Operand::deref(res, cpt)) return pass();
-					if (!Expression::rvalue(res, cpt)) return pass();
+					if (!Operand::parse(c, res, cpt, targets_defer)) return err::fail;
+					if (!Operand::deref(res, cpt)) return err::fail;
+					if (!Expression::rvalue(res, cpt)) return err::fail;
 
 					if (res.type->rvalue_stacked() || to->rvalue_stacked()) {
 						return throw_specific_error(err, "This type cannot be bitcasted (yet)");
 					}
 
 					if (cpt == CompileType::compile) {
-						if (!ILBuilder::build_bitcast(compiler->scope(), res.type->rvalue(), to->rvalue())) return pass();
+						if (!ILBuilder::build_bitcast(compiler->scope(), res.type->rvalue(), to->rvalue())) return err::fail;
 					}
 					else {
-						if (!ILBuilder::eval_bitcast(compiler->evaluator(), res.type->rvalue(), to->rvalue())) return pass();
+						if (!ILBuilder::eval_bitcast(compiler->evaluator(), res.type->rvalue(), to->rvalue())) return err::fail;
 					}
 
 					res.type = to;
 					res.lvalue = false;
 					res.reflock = true;
-					return errvoid();
+					return err::ok;
 				}
 				else {
-					if (!Operand::parse_symbol(res, c, cpt,targets_defer)) return pass();
+					if (!Operand::parse_symbol(res, c, cpt,targets_defer)) return err::fail;
 				}
 			}break;
 
 			case RecognizedToken::Minus: {
 				Cursor err = c;
 				c.move();
-				if (!Expression::parse(c, res, cpt)) return pass();
-				if (!Operand::deref(res, cpt)) return pass();
-				if (!Expression::rvalue(res, cpt)) return pass();
+				if (!Expression::parse(c, res, cpt)) return err::fail;
+				if (!Operand::deref(res, cpt)) return err::fail;
+				if (!Expression::rvalue(res, cpt)) return err::fail;
 
 				if (!Operand::is_numeric_value(res.type)) {
 					return throw_specific_error(err, "Operation requires number operand");
 				}
 
 				if (cpt == CompileType::compile) {
-					if (!ILBuilder::build_negative(compiler->scope(), res.type->rvalue())) return pass();
+					if (!ILBuilder::build_negative(compiler->scope(), res.type->rvalue())) return err::fail;
 				}
 				else {
-					if (!ILBuilder::eval_negative(compiler->evaluator(), res.type->rvalue())) return pass();
+					if (!ILBuilder::eval_negative(compiler->evaluator(), res.type->rvalue())) return err::fail;
 				}
-			}return errvoid();
+			}return err::ok;
 
 			case RecognizedToken::ExclamationMark: {
 				c.move();
 				Cursor err = c;
-				if(!Expression::parse(c, res, cpt)) return pass();
-				if(!Operand::deref(res, cpt)) return pass();
-				if(!Expression::rvalue(res, cpt)) return pass();
-				if(!Operand::cast(err, res, compiler->types()->t_bool, cpt, true)) return pass();
+				if(!Expression::parse(c, res, cpt)) return err::fail;
+				if(!Operand::deref(res, cpt)) return err::fail;
+				if(!Expression::rvalue(res, cpt)) return err::fail;
+				if(!Operand::cast(err, res, compiler->types()->t_bool, cpt, true)) return err::fail;
 
 				if (cpt == CompileType::compile) {
-					if (!ILBuilder::build_negate(compiler->scope())) return pass();
+					if (!ILBuilder::build_negate(compiler->scope())) return err::fail;
 				}
 				else {
-					if (!ILBuilder::eval_negate(compiler->evaluator())) return pass();
+					if (!ILBuilder::eval_negate(compiler->evaluator())) return err::fail;
 				}
-			}return errvoid();
+			}return err::ok;
 
 			case RecognizedToken::Number:
 			case RecognizedToken::UnsignedNumber: {
-				if (!Operand::parse_number(res, c, cpt)) return pass();
+				if (!Operand::parse_number(res, c, cpt)) return err::fail;
 			}break;
 
 			case RecognizedToken::LongNumber:
 			case RecognizedToken::UnsignedLongNumber: {
-				if (!Operand::parse_long_number(res, c, cpt)) return pass();
+				if (!Operand::parse_long_number(res, c, cpt)) return err::fail;
 			}break;
 
 			case RecognizedToken::FloatNumber:
 			case RecognizedToken::DoubleNumber: {
-				if(!Operand::parse_float_number(res, c, cpt)) return pass();
+				if(!Operand::parse_float_number(res, c, cpt)) return err::fail;
 			}break;
 
 			case RecognizedToken::String: {
-				if (!Operand::parse_string_literal(res, c, cpt)) return pass();
+				if (!Operand::parse_string_literal(res, c, cpt)) return err::fail;
 			}break;
 
 
@@ -524,7 +524,7 @@ namespace Corrosive {
 			switch (c.tok) {
 				case RecognizedToken::Symbol: {
 					if (c.buffer() == "cast") {
-						//if (!Expression::rvalue(ret, cpt)) return pass();
+						//if (!Expression::rvalue(ret, cpt)) return err::fail;
 
 						c.move();
 						if (c.tok != RecognizedToken::OpenParenthesis) {
@@ -539,9 +539,9 @@ namespace Corrosive {
 						CompileValue t_res;
 						{
 							auto state = ScopeState().context(ILContext::compile);
-							if (!Expression::parse(c, t_res, CompileType::eval)) return pass();
-							if (!Operand::deref(t_res, cpt)) return pass();
-							if (!Expression::rvalue(t_res, CompileType::eval)) return pass();
+							if (!Expression::parse(c, t_res, CompileType::eval)) return err::fail;
+							if (!Operand::deref(t_res, cpt)) return err::fail;
+							if (!Expression::rvalue(t_res, CompileType::eval)) return err::fail;
 						}
 
 						if (t_res.type != compiler->types()->t_type) {
@@ -549,10 +549,10 @@ namespace Corrosive {
 						}
 
 						Type* to;
-						if (compiler->evaluator()->pop_register_value<Type*>(to)) return pass();
+						if (compiler->evaluator()->pop_register_value<Type*>(to)) return err::fail;
 
-						if (!Type::assert(err, to)) return pass();
-						if (!to->compile()) return pass();
+						if (!Type::assert(err, to)) return err::fail;
+						if (!to->compile()) return err::fail;
 
 						if (to->context()==ILContext::compile && compiler->scope_context() != ILContext::compile) {
 							return throw_specific_error(err,"Type cannot be used outside compile context");
@@ -568,8 +568,8 @@ namespace Corrosive {
 						c.move();
 
 
-						if (!Operand::deref(res, cpt)) return pass();
-						if (!Operand::cast(err, res, to, cpt, false)) return pass();
+						if (!Operand::deref(res, cpt)) return err::fail;
+						if (!Operand::cast(err, res, to, cpt, false)) return err::fail;
 
 						res.reflock = true;
 					}
@@ -586,18 +586,18 @@ namespace Corrosive {
 						{
 							auto state = ScopeState().context(ILContext::compile);
 
-							if (!Expression::parse(c, t_res, CompileType::eval)) return pass();
-							if (!Operand::deref(t_res, cpt)) return pass();
-							if (!Expression::rvalue(t_res, CompileType::eval)) return pass();
+							if (!Expression::parse(c, t_res, CompileType::eval)) return err::fail;
+							if (!Operand::deref(t_res, cpt)) return err::fail;
+							if (!Expression::rvalue(t_res, CompileType::eval)) return err::fail;
 							if (t_res.type != compiler->types()->t_type) {
 								return throw_specific_error(err, "Expected type");
 							}
 						}
 
 						Type* to;
-						if (!compiler->evaluator()->pop_register_value<Type*>(to)) return pass();
-						if (!Type::assert(err, to)) return pass();
-						if (!to->compile()) return pass();
+						if (!compiler->evaluator()->pop_register_value<Type*>(to)) return err::fail;
+						if (!Type::assert(err, to)) return err::fail;
+						if (!to->compile()) return err::fail;
 
 						if (to->context()==ILContext::compile && compiler->scope_context() != ILContext::compile) {
 							return throw_specific_error(err,"Type cannot be used outside compile context");
@@ -613,18 +613,18 @@ namespace Corrosive {
 						c.move();
 
 						err = c;
-						if (!Operand::deref(res, cpt)) return pass();
-						if (!Expression::rvalue(res, cpt)) return pass();
+						if (!Operand::deref(res, cpt)) return err::fail;
+						if (!Expression::rvalue(res, cpt)) return err::fail;
 
 						if (res.type->rvalue_stacked() || to->rvalue_stacked()) {
 							return throw_specific_error(err, "This type cannot be bitcasted (yet)");
 						}
 
 						if (cpt == CompileType::compile) {
-							if (!ILBuilder::build_bitcast(compiler->scope(), res.type->rvalue(), to->rvalue())) return pass();
+							if (!ILBuilder::build_bitcast(compiler->scope(), res.type->rvalue(), to->rvalue())) return err::fail;
 						}
 						else {
-							if (!ILBuilder::eval_bitcast(compiler->evaluator(), res.type->rvalue(), to->rvalue())) return pass();
+							if (!ILBuilder::eval_bitcast(compiler->evaluator(), res.type->rvalue(), to->rvalue())) return err::fail;
 						}
 
 						res.type = to;
@@ -634,16 +634,16 @@ namespace Corrosive {
 					else goto break_while;
 				}break;
 				case RecognizedToken::OpenParenthesis: {
-					if (!parse_call_operator(res, c, cpt, targets_defer)) return pass();
+					if (!parse_call_operator(res, c, cpt, targets_defer)) return err::fail;
 				}break;
 				case RecognizedToken::OpenBracket: {
-					if (!parse_array_operator(res, c, cpt)) return pass();
+					if (!parse_array_operator(res, c, cpt)) return err::fail;
 				}break;
 				case RecognizedToken::Dot: {
-					if (!parse_dot_operator(res, c, cpt, targets_defer)) return pass();
+					if (!parse_dot_operator(res, c, cpt, targets_defer)) return err::fail;
 				}break;
 				case RecognizedToken::DoubleColon: {
-					if (!parse_double_colon_operator(res, c, cpt, targets_defer)) return pass();
+					if (!parse_double_colon_operator(res, c, cpt, targets_defer)) return err::fail;
 				}break;
 				default: goto break_while;
 			}
@@ -653,7 +653,7 @@ namespace Corrosive {
 			break;
 		}
 
-		return errvoid();
+		return err::ok;
 	}
 
 	errvoid Operand::parse_const_decl(CompileValue& ret, Cursor& c, CompileType cpt, Type* request) {
@@ -683,10 +683,10 @@ namespace Corrosive {
 					while (true) {
 						Cursor err = c;
 						CompileValue cv;
-						if (!Expression::parse(c, cv, CompileType::eval, true, target)) return pass();
-						if (!Operand::deref(cv, CompileType::eval)) return pass();
-						if (!Operand::cast(err, cv, target, CompileType::eval, true)) return pass();
-						if (!Expression::rvalue(cv, CompileType::eval)) return pass();
+						if (!Expression::parse(c, cv, CompileType::eval, true, target)) return err::fail;
+						if (!Operand::deref(cv, CompileType::eval)) return err::fail;
+						if (!Operand::cast(err, cv, target, CompileType::eval, true)) return err::fail;
+						if (!Expression::rvalue(cv, CompileType::eval)) return err::fail;
 
 								
 						storage.resize(storage.size() + target_size_value);
@@ -694,21 +694,21 @@ namespace Corrosive {
 						if (cpt == CompileType::compile) {
 							if (cv.type->rvalue_stacked()) {
 								unsigned char* src;
-								if (!compiler->evaluator()->pop_register_value<unsigned char*>(src)) return pass();
-								if (!cv.type->constantize(err, (unsigned char*)&storage.data()[storage.size()-target_size_value], src)) return pass();
+								if (!compiler->evaluator()->pop_register_value<unsigned char*>(src)) return err::fail;
+								if (!cv.type->constantize(err, (unsigned char*)&storage.data()[storage.size()-target_size_value], src)) return err::fail;
 							} else {
 								ilsize_t srcstorage;
-								if (!compiler->evaluator()->pop_register_value_indirect(compiler->evaluator()->compile_time_register_size(cv.type->rvalue()), &srcstorage)) return pass();
-								if (!cv.type->constantize(err, (unsigned char*)&storage.data()[storage.size()-target_size_value], (unsigned char*)&srcstorage)) return pass();
+								if (!compiler->evaluator()->pop_register_value_indirect(compiler->evaluator()->compile_time_register_size(cv.type->rvalue()), &srcstorage)) return err::fail;
+								if (!cv.type->constantize(err, (unsigned char*)&storage.data()[storage.size()-target_size_value], (unsigned char*)&srcstorage)) return err::fail;
 							}
 						} else {
 							if (cv.type->rvalue_stacked()) {
 								unsigned char* src;
-								if (!compiler->evaluator()->pop_register_value<unsigned char*>(src)) return pass();
+								if (!compiler->evaluator()->pop_register_value<unsigned char*>(src)) return err::fail;
 								std::memcpy((unsigned char*)&storage.data()[storage.size()-target_size_value], src, target_size_value); // TODO wrap
 							} else {
 								ilsize_t srcstorage;
-								if (!compiler->evaluator()->pop_register_value_indirect(compiler->evaluator()->compile_time_register_size(cv.type->rvalue()), &srcstorage)) return pass();
+								if (!compiler->evaluator()->pop_register_value_indirect(compiler->evaluator()->compile_time_register_size(cv.type->rvalue()), &srcstorage)) return err::fail;
 								std::memcpy((unsigned char*)&storage.data()[storage.size()-target_size_value], (unsigned char*)&srcstorage,target_size_value); // TODO wrap
 							}
 						}
@@ -748,9 +748,9 @@ namespace Corrosive {
 				if (cpt == CompileType::compile) {
 					auto cid = compiler->constant_manager()->register_constant(std::move(storage), s);
 					if (request->type() == TypeInstanceType::type_slice) {
-						if (!ILBuilder::build_const_slice(compiler->scope(), cid.second, s)) return pass();
+						if (!ILBuilder::build_const_slice(compiler->scope(), cid.second, s)) return err::fail;
 					} else {
-						if (!ILBuilder::build_constref(compiler->scope(), cid.second)) return pass();
+						if (!ILBuilder::build_constref(compiler->scope(), cid.second)) return err::fail;
 					}
 				} else {
 					stackid_t local_id = compiler->push_local(s);
@@ -762,9 +762,9 @@ namespace Corrosive {
 						dword_t v;
 						v.p1 = dst;
 						v.p2 = (void*)(target_size_value*count);
-						if (!ILBuilder::eval_const_dword(compiler->evaluator(),v)) return pass();
+						if (!ILBuilder::eval_const_dword(compiler->evaluator(),v)) return err::fail;
 					} else {
-						if (!ILBuilder::eval_const_word(compiler->evaluator(), dst)) return pass();
+						if (!ILBuilder::eval_const_word(compiler->evaluator(), dst)) return err::fail;
 					}
 				}
 
@@ -776,7 +776,7 @@ namespace Corrosive {
 			}
 		}
 
-		return errvoid();
+		return err::ok;
 	}
 
 	errvoid Operand::parse_const_type_function(Cursor& c, CompileValue& res) {
@@ -789,19 +789,19 @@ namespace Corrosive {
 		if (compiler->compiler_stack()->find(c.buffer(), sitm)) {
 			if (sitm.type == compiler->types()->t_type) {
 				compiler->eval_local(sitm.id);
-				if (!ILBuilder::eval_load(compiler->evaluator(), ILDataType::word)) return pass();
+				if (!ILBuilder::eval_load(compiler->evaluator(), ILDataType::word)) return err::fail;
 				Type* rec_type;
-				if (!compiler->evaluator()->pop_register_value<Type*>(rec_type)) return pass();
-				if (!Type::assert(err, rec_type)) return pass();
+				if (!compiler->evaluator()->pop_register_value<Type*>(rec_type)) return err::fail;
+				if (!Type::assert(err, rec_type)) return err::fail;
 
 
 				if (rec_type->type() == TypeInstanceType::type_structure_instance) {
 					c.move();
 					if (c.tok != RecognizedToken::DoubleColon) {
-						if (!ILBuilder::build_const_word(compiler->scope(), rec_type)) return pass();
+						if (!ILBuilder::build_const_word(compiler->scope(), rec_type)) return err::fail;
 						res.type = compiler->types()->t_type;
 						res.lvalue = false;
-						return errvoid();
+						return err::ok;
 					}
 					c.move();
 
@@ -821,11 +821,11 @@ namespace Corrosive {
 			}
 			else {
 				std::uint8_t* source = compiler->stack_ptr(sitm.id);
-				if (!sitm.type->constantize(c, nullptr, source)) return pass();
+				if (!sitm.type->constantize(c, nullptr, source)) return err::fail;
 
 				res.type = sitm.type; res.lvalue = false;
 				c.move();
-				return errvoid();
+				return err::ok;
 			}
 		}
 		else {
@@ -858,14 +858,14 @@ namespace Corrosive {
 			StructureInstance* inst;
 			if (struct_inst->ast_node->is_generic) {
 				if (c.tok != RecognizedToken::OpenParenthesis) {
-					if (!ILBuilder::build_const_word(compiler->scope(), struct_inst->type.get())) return pass();
+					if (!ILBuilder::build_const_word(compiler->scope(), struct_inst->type.get())) return err::fail;
 					res.type = compiler->types()->t_type;
 					res.lvalue = false;
-					return errvoid();
+					return err::ok;
 				}
 				c.move();
 
-				if (!Operand::parse_generate_template(c, struct_inst, inst)) return pass();
+				if (!Operand::parse_generate_template(c, struct_inst, inst)) return err::fail;
 			}
 			else {
 				struct_inst->generate(nullptr, inst);
@@ -874,10 +874,10 @@ namespace Corrosive {
 
 
 			if (c.tok != RecognizedToken::DoubleColon) {
-				if (!ILBuilder::build_const_word(compiler->scope(), inst->type.get())) return pass();
+				if (!ILBuilder::build_const_word(compiler->scope(), inst->type.get())) return err::fail;
 				res.type = compiler->types()->t_type;
 				res.lvalue = false;
-				return errvoid();
+				return err::ok;
 			}
 			c.move();
 
@@ -888,64 +888,64 @@ namespace Corrosive {
 
 		if (found.type() == FindNameResultType::Function) {
 			auto func_inst = found.get_function();
-			if (!func_inst->compile()) return pass();
+			if (!func_inst->compile()) return err::fail;
 
 			if (!(func_inst->ast_node->has_body() && ((AstFunctionNode*)func_inst->ast_node)->is_generic)) {
 				FunctionInstance* inst;
-				if (!func_inst->generate(nullptr, inst)) return pass();
-				if (!inst->compile()) return pass();
+				if (!func_inst->generate(nullptr, inst)) return err::fail;
+				if (!inst->compile()) return err::fail;
 
 
-				if (!ILBuilder::build_fnptr(compiler->scope(), inst->func)) return pass();
+				if (!ILBuilder::build_fnptr(compiler->scope(), inst->func)) return err::fail;
 				res.type = inst->type;
 				res.lvalue = false;
 
-				return errvoid();
+				return err::ok;
 			}
 			else {
 				FunctionInstance* inst;
 				if (c.tok != RecognizedToken::OpenParenthesis) {
-					if (!ILBuilder::build_const_word(compiler->scope(), func_inst->type.get())) return pass();
+					if (!ILBuilder::build_const_word(compiler->scope(), func_inst->type.get())) return err::fail;
 					res.type = compiler->types()->t_type;
 					res.lvalue = false;
-					return errvoid();
+					return err::ok;
 				}
 				c.move();
 
-				if (!Operand::parse_generate_template(c, func_inst, inst)) return pass();
-				if (!inst->compile()) return pass();
+				if (!Operand::parse_generate_template(c, func_inst, inst)) return err::fail;
+				if (!inst->compile()) return err::fail;
 
-				if (!ILBuilder::build_fnptr(compiler->scope(), inst->func)) return pass();
+				if (!ILBuilder::build_fnptr(compiler->scope(), inst->func)) return err::fail;
 				res.type = inst->type;
 				res.lvalue = false;
-				return errvoid();
+				return err::ok;
 			}
 
 		}
 		else if (found.type() == FindNameResultType::Static) {
 			auto static_inst = found.get_static();
-			if (!static_inst->compile()) return pass();
+			if (!static_inst->compile()) return err::fail;
 
-			if (!ILBuilder::build_staticref(compiler->scope(), static_inst->sid)) return pass();
+			if (!ILBuilder::build_staticref(compiler->scope(), static_inst->sid)) return err::fail;
 			res.type = static_inst->type;
 			res.lvalue = true;
 		}
 		else {
 			return throw_specific_error(err, "Only function or static variable may be brought in the runtime context");
 		}
-		return errvoid();
+		return err::ok;
 	}
 
 
 
 	errvoid Operand::parse_expression(CompileValue& ret, Cursor& c, CompileType cpt, Type* request) {
 		c.move();
-		if (!Expression::parse(c, ret, cpt, true, request)) return pass();
+		if (!Expression::parse(c, ret, cpt, true, request)) return err::fail;
 		if (c.tok != RecognizedToken::CloseParenthesis) {
 			return throw_wrong_token_error(c, "')'");
 		}
 		c.move();
-		return errvoid();
+		return err::ok;
 	}
 
 
@@ -959,10 +959,10 @@ namespace Corrosive {
 			ret.lvalue = false;
 			ret.type = compiler->types()->t_bool;
 			if (cpt == CompileType::compile) {
-				if (!ILBuilder::build_const_i8(compiler->scope(), true)) return pass();
+				if (!ILBuilder::build_const_i8(compiler->scope(), true)) return err::fail;
 			}
 			else if (cpt == CompileType::eval) {
-				if (!ILBuilder::eval_const_i8(compiler->evaluator(), true)) return pass();
+				if (!ILBuilder::eval_const_i8(compiler->evaluator(), true)) return err::fail;
 			}
 		}
 		else if (buf == "false") {
@@ -970,10 +970,10 @@ namespace Corrosive {
 			ret.lvalue = false;
 			ret.type = compiler->types()->t_bool;
 			if (cpt == CompileType::compile) {
-				if (!ILBuilder::build_const_i8(compiler->scope(), false)) return pass();
+				if (!ILBuilder::build_const_i8(compiler->scope(), false)) return err::fail;
 			}
 			else if (cpt == CompileType::eval) {
-				if (!ILBuilder::eval_const_i8(compiler->evaluator(), false)) return pass();
+				if (!ILBuilder::eval_const_i8(compiler->evaluator(), false)) return err::fail;
 			}
 		}
 		else if (buf == "self") {
@@ -993,10 +993,10 @@ namespace Corrosive {
 				}
 
 				if (cpt == CompileType::compile) {
-					if (!ILBuilder::build_const_word(compiler->scope(), s->type.get())) return pass();
+					if (!ILBuilder::build_const_word(compiler->scope(), s->type.get())) return err::fail;
 				}
 				else if (cpt == CompileType::eval) {
-					if (!ILBuilder::eval_const_word(compiler->evaluator(), s->type.get())) return pass();
+					if (!ILBuilder::eval_const_word(compiler->evaluator(), s->type.get())) return err::fail;
 				}
 			}
 
@@ -1008,10 +1008,10 @@ namespace Corrosive {
 			ret.type = compiler->types()->t_ptr;
 
 			if (cpt == CompileType::compile) {
-				if (!ILBuilder::build_null(compiler->scope())) return pass();
+				if (!ILBuilder::build_null(compiler->scope())) return err::fail;
 			}
 			else if (cpt == CompileType::eval) {
-				if (!ILBuilder::eval_null(compiler->evaluator())) return pass();
+				if (!ILBuilder::eval_null(compiler->evaluator())) return err::fail;
 			}
 		}
 		else if (buf == "typesize") {
@@ -1020,24 +1020,24 @@ namespace Corrosive {
 
 			CompileValue type_val;
 			Cursor err = c;
-			if (!Operand::parse(c, type_val, CompileType::eval, targets_defer)) return pass();
-			if (!Expression::rvalue(type_val, CompileType::eval)) return pass();
+			if (!Operand::parse(c, type_val, CompileType::eval, targets_defer)) return err::fail;
+			if (!Expression::rvalue(type_val, CompileType::eval)) return err::fail;
 
 			if (type_val.type != compiler->types()->t_type) {
 				return throw_specific_error(err, "Expected type");
 			}
 
 			Type* tp;
-			if (!compiler->evaluator()->pop_register_value<Type*>(tp)) return pass();
+			if (!compiler->evaluator()->pop_register_value<Type*>(tp)) return err::fail;
 
-			if (!Type::assert(err, tp)) return pass();
-			if (!tp->compile()) return pass();
+			if (!Type::assert(err, tp)) return err::fail;
+			if (!tp->compile()) return err::fail;
 
 			if (cpt == CompileType::compile) {
-				if (!ILBuilder::build_const_size(compiler->scope(), tp->size())) return pass();
+				if (!ILBuilder::build_const_size(compiler->scope(), tp->size())) return err::fail;
 			}
 			else {
-				if (!ILBuilder::eval_const_size(compiler->evaluator(), tp->size().eval(compiler->global_module(), compiler_arch))) return pass();
+				if (!ILBuilder::eval_const_size(compiler->evaluator(), tp->size().eval(compiler->global_module(), compiler_arch))) return err::fail;
 			}
 
 			ret.lvalue = false;
@@ -1057,17 +1057,17 @@ namespace Corrosive {
 					while (true) {
 						Cursor err = c;
 						CompileValue arg;
-						if (!Expression::parse(c, arg, CompileType::eval)) return pass();
-						if (!Operand::deref(arg, cpt)) return pass();
-						if (!Expression::rvalue(arg, CompileType::eval)) return pass();
+						if (!Expression::parse(c, arg, CompileType::eval)) return err::fail;
+						if (!Operand::deref(arg, cpt)) return err::fail;
+						if (!Expression::rvalue(arg, CompileType::eval)) return err::fail;
 
 						if (arg.type != compiler->types()->t_type) {
 							return throw_specific_error(err, "Expected type");
 						}
 
 						Type* type;
-						if (!compiler->evaluator()->pop_register_value<Type*>(type)) return pass();
-						if (!Type::assert(err, type)) return pass();
+						if (!compiler->evaluator()->pop_register_value<Type*>(type)) return err::fail;
+						if (!Type::assert(err, type)) return err::fail;
 						arg_types.push_back(type);
 
 						if (c.tok == RecognizedToken::Comma) {
@@ -1139,9 +1139,9 @@ namespace Corrosive {
 				while (true) {
 					Cursor err = c;
 					CompileValue arg;
-					if (!Expression::parse(c, arg, CompileType::eval)) return pass();
-					if (!Operand::deref(arg, cpt)) return pass();
-					if (!Expression::rvalue(arg, CompileType::eval)) return pass();
+					if (!Expression::parse(c, arg, CompileType::eval)) return err::fail;
+					if (!Operand::deref(arg, cpt)) return err::fail;
+					if (!Expression::rvalue(arg, CompileType::eval)) return err::fail;
 
 					if (arg.type != compiler->types()->t_type) {
 						return throw_specific_error(err, "Expected type");
@@ -1149,8 +1149,8 @@ namespace Corrosive {
 					}
 
 					Type* type;
-					if (!compiler->evaluator()->pop_register_value<Type*>(type)) return pass();
-					if (!Type::assert(err, type)) return pass();
+					if (!compiler->evaluator()->pop_register_value<Type*>(type)) return err::fail;
+					if (!Type::assert(err, type)) return err::fail;
 					arg_types.push_back(type);
 
 					if (c.tok == RecognizedToken::Comma) {
@@ -1170,16 +1170,16 @@ namespace Corrosive {
 			if (c.tok == RecognizedToken::Symbol || c.tok == RecognizedToken::And || c.tok == RecognizedToken::DoubleAnd) {
 				Cursor err = c;
 				CompileValue rt;
-				if (!Expression::parse(c, rt, CompileType::eval)) return pass();
-				if (!Operand::deref(rt, cpt)) return pass();
-				if (!Expression::rvalue(rt, CompileType::eval)) return pass();
+				if (!Expression::parse(c, rt, CompileType::eval)) return err::fail;
+				if (!Operand::deref(rt, cpt)) return err::fail;
+				if (!Expression::rvalue(rt, CompileType::eval)) return err::fail;
 
 				if (rt.type != compiler->types()->t_type) {
 					return throw_specific_error(err, "Expected type");
 
 				}
-				if (!compiler->evaluator()->pop_register_value<Type*>(ret_type)) return pass();
-				if (!Type::assert(err, ret_type)) return pass();
+				if (!compiler->evaluator()->pop_register_value<Type*>(ret_type)) return err::fail;
+				if (!Type::assert(err, ret_type)) return err::fail;
 			}
 
 			Type* ftype = compiler->types()->load_or_register_function_type(call_conv, std::move(arg_types), ret_type, t_context);
@@ -1193,7 +1193,7 @@ namespace Corrosive {
 			StackItem sitm;
 
 			if (cpt == CompileType::compile && compiler->stack()->find(c.buffer(), sitm)) {
-				if (!ILBuilder::build_local(compiler->scope(), sitm.id)) return pass();
+				if (!ILBuilder::build_local(compiler->scope(), sitm.id)) return err::fail;
 				ret.type = sitm.type;
 				ret.lvalue = true;
 				c.move();
@@ -1207,7 +1207,7 @@ namespace Corrosive {
 			else if (cpt == CompileType::compile) {
 				
 				Cursor err = c;
-				if (!Operand::parse_const_type_function(c, ret)) return pass();
+				if (!Operand::parse_const_type_function(c, ret)) return err::fail;
 			}
 			else {
 
@@ -1237,34 +1237,34 @@ namespace Corrosive {
 
 
 				if (auto struct_inst = res.get_structure()) {
-					if (!struct_inst->compile()) return pass();
+					if (!struct_inst->compile()) return err::fail;
 
 					if (struct_inst->ast_node->is_generic) {
 						if (cpt == CompileType::eval) {
 
-							if (!ILBuilder::eval_const_word(compiler->evaluator(), struct_inst->type.get())) return pass();
+							if (!ILBuilder::eval_const_word(compiler->evaluator(), struct_inst->type.get())) return err::fail;
 						}
 						else if (cpt == CompileType::compile) {
 							if (compiler->scope_context() != ILContext::compile) {
 								return throw_specific_error(err, "Use of a type in runtime context");
 							}
 
-							if (!ILBuilder::build_const_word(compiler->scope(), struct_inst->type.get())) return pass();
+							if (!ILBuilder::build_const_word(compiler->scope(), struct_inst->type.get())) return err::fail;
 						}
 					}
 					else {
 						StructureInstance* inst;
-						if (!struct_inst->generate(nullptr, inst)) return pass();
+						if (!struct_inst->generate(nullptr, inst)) return err::fail;
 
 						if (cpt == CompileType::eval) {
-							if (!ILBuilder::eval_const_word(compiler->evaluator(), inst->type.get())) return pass();
+							if (!ILBuilder::eval_const_word(compiler->evaluator(), inst->type.get())) return err::fail;
 						}
 						else if (cpt == CompileType::compile) {
 							if (compiler->scope_context() != ILContext::compile) {
 								return throw_specific_error(err, "Use of a type in runtime context");
 							}
 
-							if (!ILBuilder::build_const_word(compiler->scope(), inst->type.get())) return pass();
+							if (!ILBuilder::build_const_word(compiler->scope(), inst->type.get())) return err::fail;
 						}
 					}
 
@@ -1273,18 +1273,18 @@ namespace Corrosive {
 				}
 				else if (auto func_inst = res.get_function()) {
 
-					if (!func_inst->compile()) return pass();
+					if (!func_inst->compile()) return err::fail;
 
 					if (!(func_inst->ast_node->has_body() && ((AstFunctionNode*)func_inst->ast_node)->is_generic)) {
 						FunctionInstance* inst;
-						if (!func_inst->generate(nullptr, inst)) return pass();
-						if (!inst->compile()) return pass();
+						if (!func_inst->generate(nullptr, inst)) return err::fail;
+						if (!inst->compile()) return err::fail;
 
 						if (cpt == CompileType::eval) {
-							if (!ILBuilder::eval_fnptr(compiler->evaluator(), inst->func)) return pass();
+							if (!ILBuilder::eval_fnptr(compiler->evaluator(), inst->func)) return err::fail;
 						}
 						else if (cpt == CompileType::compile) {
-							if (!ILBuilder::build_fnptr(compiler->scope(), inst->func)) return pass();
+							if (!ILBuilder::build_fnptr(compiler->scope(), inst->func)) return err::fail;
 						}
 
 						ret.lvalue = false;
@@ -1292,7 +1292,7 @@ namespace Corrosive {
 					}
 					else {
 						if (cpt == CompileType::eval) {
-							if (!ILBuilder::eval_const_word(compiler->evaluator(), func_inst->type.get())) return pass();
+							if (!ILBuilder::eval_const_word(compiler->evaluator(), func_inst->type.get())) return err::fail;
 						}
 						else if (cpt == CompileType::compile) {
 							if (compiler->scope_context() != ILContext::compile) {
@@ -1300,7 +1300,7 @@ namespace Corrosive {
 
 							}
 
-							if (!ILBuilder::build_const_word(compiler->scope(), func_inst->type.get())) return pass();
+							if (!ILBuilder::build_const_word(compiler->scope(), func_inst->type.get())) return err::fail;
 						}
 
 						ret.lvalue = false;
@@ -1308,11 +1308,11 @@ namespace Corrosive {
 					}
 				}
 				else if (auto trait_inst = res.get_trait()) {
-					if (!trait_inst->compile()) return pass();
+					if (!trait_inst->compile()) return err::fail;
 
 					if (trait_inst->ast_node->is_generic) {
 						if (cpt == CompileType::eval) {
-							if (!ILBuilder::eval_const_word(compiler->evaluator(), trait_inst->type.get())) return pass();
+							if (!ILBuilder::eval_const_word(compiler->evaluator(), trait_inst->type.get())) return err::fail;
 						}
 						else if (cpt == CompileType::compile) {
 							if (compiler->scope_context() != ILContext::compile) {
@@ -1320,22 +1320,22 @@ namespace Corrosive {
 
 							}
 
-							if (!ILBuilder::build_const_word(compiler->scope(), trait_inst->type.get())) return pass();
+							if (!ILBuilder::build_const_word(compiler->scope(), trait_inst->type.get())) return err::fail;
 						}
 					}
 					else {
 						TraitInstance* inst;
-						if (!trait_inst->generate(nullptr, inst)) return pass();
+						if (!trait_inst->generate(nullptr, inst)) return err::fail;
 
 						if (cpt == CompileType::eval) {
-							if (!ILBuilder::eval_const_word(compiler->evaluator(), inst->type.get())) return pass();
+							if (!ILBuilder::eval_const_word(compiler->evaluator(), inst->type.get())) return err::fail;
 						}
 						else if (cpt == CompileType::compile) {
 							if (compiler->scope_context() != ILContext::compile) {
 								return throw_specific_error(err, "Use of a type in runtime context");
 
 							}
-							if (!ILBuilder::build_const_word(compiler->scope(), inst->type.get())) return pass();
+							if (!ILBuilder::build_const_word(compiler->scope(), inst->type.get())) return err::fail;
 						}
 					}
 
@@ -1345,17 +1345,17 @@ namespace Corrosive {
 					ret.type = compiler->types()->t_type;
 				}
 				else if (auto static_inst = res.get_static()) {
-					if (!static_inst->compile()) return pass();
+					if (!static_inst->compile()) return err::fail;
 
 					if (static_inst->context != ILContext::both && static_inst->context != compiler->scope_context()) {
 						return throw_specific_error(nm_err, "Static declaration is not targeted for this context");
 					}
 
 					if (cpt == CompileType::compile) {
-						if (!ILBuilder::build_staticref(compiler->scope(), static_inst->sid)) return pass();
+						if (!ILBuilder::build_staticref(compiler->scope(), static_inst->sid)) return err::fail;
 					}
 					else {
-						if (!ILBuilder::eval_staticref(compiler->evaluator(), static_inst->sid)) return pass();
+						if (!ILBuilder::eval_staticref(compiler->evaluator(), static_inst->sid)) return err::fail;
 					}
 					ret.lvalue = true;
 					ret.type = static_inst->type;
@@ -1368,7 +1368,7 @@ namespace Corrosive {
 
 		}
 
-		return errvoid();
+		return err::ok;
 
 	}
 
@@ -1409,25 +1409,25 @@ namespace Corrosive {
 
 		if (cpt == CompileType::compile) {
 			if (usg) {
-				if (!ILBuilder::build_const_u32(compiler->scope(), (std::uint32_t)d)) return pass();
+				if (!ILBuilder::build_const_u32(compiler->scope(), (std::uint32_t)d)) return err::fail;
 			}
 			else {
-				if (!ILBuilder::build_const_i32(compiler->scope(), (std::int32_t)d)) return pass();
+				if (!ILBuilder::build_const_i32(compiler->scope(), (std::int32_t)d)) return err::fail;
 			}
 		}
 		else if (cpt == CompileType::eval) {
 			if (usg) {
-				if (!ILBuilder::eval_const_u32(compiler->evaluator(), (std::uint32_t)d)) return pass();
+				if (!ILBuilder::eval_const_u32(compiler->evaluator(), (std::uint32_t)d)) return err::fail;
 			}
 			else {
-				if (!ILBuilder::eval_const_i32(compiler->evaluator(), (std::int32_t)d)) return pass();
+				if (!ILBuilder::eval_const_i32(compiler->evaluator(), (std::int32_t)d)) return err::fail;
 			}
 
 		}
 
 		ret.type = usg ? compiler->types()->t_u32 : compiler->types()->t_i32;
 		ret.lvalue = false;
-		return errvoid();
+		return err::ok;
 	}
 
 
@@ -1449,25 +1449,25 @@ namespace Corrosive {
 
 		if (cpt == CompileType::compile) {
 			if (usg) {
-				if (!ILBuilder::build_const_u64(compiler->scope(), d)) return pass();
+				if (!ILBuilder::build_const_u64(compiler->scope(), d)) return err::fail;
 			}
 			else {
-				if (!ILBuilder::build_const_i64(compiler->scope(), d)) return pass();
+				if (!ILBuilder::build_const_i64(compiler->scope(), d)) return err::fail;
 			}
 		}
 		else if (cpt == CompileType::eval) {
 			if (usg) {
-				if (!ILBuilder::eval_const_u64(compiler->evaluator(), d)) return pass();
+				if (!ILBuilder::eval_const_u64(compiler->evaluator(), d)) return err::fail;
 			}
 			else {
-				if (!ILBuilder::eval_const_i64(compiler->evaluator(), d)) return pass();
+				if (!ILBuilder::eval_const_i64(compiler->evaluator(), d)) return err::fail;
 			}
 
 		}
 
 		ret.type = usg ? compiler->types()->t_u64 : compiler->types()->t_i64;
 		ret.lvalue = false;
-		return errvoid();
+		return err::ok;
 	}
 
 
@@ -1489,25 +1489,25 @@ namespace Corrosive {
 
 		if (cpt == CompileType::compile) {
 			if (dbl) {
-				if (!ILBuilder::build_const_f64(compiler->scope(), d)) return pass();
+				if (!ILBuilder::build_const_f64(compiler->scope(), d)) return err::fail;
 			}
 			else {
-				if (!ILBuilder::build_const_f32(compiler->scope(), (float)d)) return pass();
+				if (!ILBuilder::build_const_f32(compiler->scope(), (float)d)) return err::fail;
 			}
 		}
 		else if (cpt == CompileType::eval) {
 			if (dbl) {
-				if (!ILBuilder::eval_const_f64(compiler->evaluator(), d)) return pass();
+				if (!ILBuilder::eval_const_f64(compiler->evaluator(), d)) return err::fail;
 			}
 			else {
-				if (!ILBuilder::eval_const_f32(compiler->evaluator(), (float)d)) return pass();
+				if (!ILBuilder::eval_const_f32(compiler->evaluator(), (float)d)) return err::fail;
 			}
 
 		}
 
 		ret.type = dbl ? compiler->types()->t_f64 : compiler->types()->t_f32;
 		ret.lvalue = false;
-		return errvoid();
+		return err::ok;
 	}
 
 
@@ -1525,10 +1525,10 @@ namespace Corrosive {
 				Type* target = std::get<1>(*layout);
 				CompileValue res;
 				Cursor err = c;
-				if (!Expression::parse(c, res, CompileType::eval, true, target)) return pass();
-				if (!Operand::deref(res, CompileType::eval)) return pass();
-				if (!Operand::cast(err, res, target, CompileType::eval, false)) return pass();
-				if (!Expression::rvalue(res, CompileType::eval)) return pass();
+				if (!Expression::parse(c, res, CompileType::eval, true, target)) return err::fail;
+				if (!Operand::deref(res, CompileType::eval)) return err::fail;
+				if (!Operand::cast(err, res, target, CompileType::eval, false)) return err::fail;
+				if (!Expression::rvalue(res, CompileType::eval)) return err::fail;
 
 				layout++;
 
@@ -1572,39 +1572,39 @@ namespace Corrosive {
 		for (std::size_t arg_i = act_layout_size - 1; arg_i >= 0 && arg_i < act_layout_size; arg_i--) {
 
 			Type* type = std::get<1>(*act_layout);
-			if (!type->compile()) return pass();
+			if (!type->compile()) return err::fail;
 
 			stackid_t local_id = compiler->push_local(type->size());
 			compiler->compiler_stack()->push_item(std::get<0>(*act_layout).buffer(), type, local_id);
 
 			compiler->eval_local(local_id);
-			if (!Expression::copy_from_rvalue(type, CompileType::eval)) return pass();
+			if (!Expression::copy_from_rvalue(type, CompileType::eval)) return err::fail;
 
 			act_layout++;
 		}
 
-		if (!generating->generate(key_base, out)) return pass();
+		if (!generating->generate(key_base, out)) return err::fail;
 
 		StackItem sitm;
 		while (compiler->compiler_stack()->pop_item(sitm)) {}
-		return errvoid();
+		return err::ok;
 
 	}
 
 	errvoid Operand::push_template(ILEvaluator* eval) {
 		Type* t;
-		if (!eval->pop_register_value<Type*>(t)) return pass();
-		if (!Type::assert(t)) return pass();
+		if (!eval->pop_register_value<Type*>(t)) return err::fail;
+		if (!Type::assert(t)) return err::fail;
 		template_stack[template_sp] = t;
 		template_sp++;
-		return errvoid();
+		return err::ok;
 
 	}
 
 	errvoid Operand::build_template(ILEvaluator* eval) {
 		Compiler* compiler = Compiler::current();
 		Type* gen_type = template_stack[template_sp - 1];
-		if (!gen_type->compile()) return pass();
+		if (!gen_type->compile()) return err::fail;
 
 		auto state = ScopeState().compiler_stack();
 
@@ -1638,7 +1638,7 @@ namespace Corrosive {
 
 
 			eval->write_register_value(data_place);
-			if (!Expression::copy_from_rvalue(type, CompileType::eval)) return pass();
+			if (!Expression::copy_from_rvalue(type, CompileType::eval)) return err::fail;
 
 			act_layout_it++;
 		}
@@ -1657,7 +1657,7 @@ namespace Corrosive {
 
 		StackItem sitm;
 		while (compiler->compiler_stack()->pop_item(sitm)) {}
-		return errvoid();
+		return err::ok;
 	}
 
 	Type* Operand::template_stack[1024];
@@ -1674,10 +1674,10 @@ namespace Corrosive {
 				Type* target = compiler->types()->argument_array_storage.get(ft->argument_array_id)[argi];
 				CompileValue arg;
 				Cursor err = c;
-				if (!Expression::parse(c, arg, cpt, true, target)) return pass();
-				if (!Operand::deref(arg, cpt)) return pass();
-				if (!Operand::cast(err, arg, target, cpt, true)) return pass();
-				if (!Expression::rvalue(arg, cpt)) return pass();
+				if (!Expression::parse(c, arg, cpt, true, target)) return err::fail;
+				if (!Operand::deref(arg, cpt)) return err::fail;
+				if (!Operand::cast(err, arg, target, cpt, true)) return err::fail;
+				if (!Expression::rvalue(arg, cpt)) return err::fail;
 				argi++;
 
 				if (c.tok == RecognizedToken::Comma) {
@@ -1692,19 +1692,19 @@ namespace Corrosive {
 			}
 		}
 
-		return errvoid();
+		return err::ok;
 	}
 
 	errvoid Operand::parse_call_operator(CompileValue& ret, Cursor& c, CompileType cpt, bool targets_defer) {
 		Compiler* compiler = Compiler::current();
 		if (ret.type == compiler->types()->t_type || ret.type->type() == TypeInstanceType::type_template) {
 			Cursor nm_err = c;
-			if (!Expression::rvalue(ret, cpt)) return pass();
+			if (!Expression::rvalue(ret, cpt)) return err::fail;
 
 			if (cpt != CompileType::compile) {
 				Type* dt;
-				if (!compiler->evaluator()->pop_register_value<Type*>(dt)) return pass();
-				if (!Type::assert(nm_err, dt)) return pass();
+				if (!compiler->evaluator()->pop_register_value<Type*>(dt)) return err::fail;
+				if (!Type::assert(nm_err, dt)) return err::fail;
 
 				if (dt->type() != TypeInstanceType::type_structure_template && dt->type() != TypeInstanceType::type_trait_template && dt->type() != TypeInstanceType::type_function_template) {
 					return throw_specific_error(c, "this type is not a generic type");
@@ -1714,8 +1714,8 @@ namespace Corrosive {
 
 				if (dt->type() == TypeInstanceType::type_structure_template) {
 					StructureInstance* inst;
-					if (!Operand::parse_generate_template(c, ((TypeStructureTemplate*)dt)->owner, inst)) return pass();
-					if (!ILBuilder::eval_const_word(compiler->evaluator(), inst->type.get())) return pass();
+					if (!Operand::parse_generate_template(c, ((TypeStructureTemplate*)dt)->owner, inst)) return err::fail;
+					if (!ILBuilder::eval_const_word(compiler->evaluator(), inst->type.get())) return err::fail;
 
 					ret.lvalue = false;
 					ret.type = compiler->types()->t_type;
@@ -1723,18 +1723,18 @@ namespace Corrosive {
 				}
 				else if (dt->type() == TypeInstanceType::type_trait_template) {
 					TraitInstance* inst;
-					if (!Operand::parse_generate_template(c, ((TypeTraitTemplate*)dt)->owner, inst)) return pass();
-					if (!ILBuilder::eval_const_word(compiler->evaluator(), inst->type.get())) return pass();
+					if (!Operand::parse_generate_template(c, ((TypeTraitTemplate*)dt)->owner, inst)) return err::fail;
+					if (!ILBuilder::eval_const_word(compiler->evaluator(), inst->type.get())) return err::fail;
 
 					ret.lvalue = false;
 					ret.type = compiler->types()->t_type;
 				}
 				else if (dt->type() == TypeInstanceType::type_function_template) {
 					FunctionInstance* inst;
-					if (!Operand::parse_generate_template(c, ((TypeFunctionTemplate*)dt)->owner, inst)) return pass();
-					if (!inst->compile()) return pass();
+					if (!Operand::parse_generate_template(c, ((TypeFunctionTemplate*)dt)->owner, inst)) return err::fail;
+					if (!inst->compile()) return err::fail;
 
-					if (!ILBuilder::eval_fnptr(compiler->evaluator(), inst->func)) return pass();
+					if (!ILBuilder::eval_fnptr(compiler->evaluator(), inst->func)) return err::fail;
 
 					ret.lvalue = false;
 					ret.type = inst->type;
@@ -1744,18 +1744,18 @@ namespace Corrosive {
 
 			}
 			else if (ret.type->type() == TypeInstanceType::type_template) {
-				if (!Expression::rvalue(ret, cpt)) return pass();
+				if (!Expression::rvalue(ret, cpt)) return err::fail;
 
 				if (cpt == CompileType::compile) {
-					if (!ILBuilder::build_const_word(compiler->scope(), ret.type)) return pass();
+					if (!ILBuilder::build_const_word(compiler->scope(), ret.type)) return err::fail;
 
-					if (!ILBuilder::build_insintric(compiler->scope(), ILInsintric::type_dynamic_cast)) return pass();
-					if (!ILBuilder::build_insintric(compiler->scope(), ILInsintric::push_template)) return pass();
+					if (!ILBuilder::build_insintric(compiler->scope(), ILInsintric::type_dynamic_cast)) return err::fail;
+					if (!ILBuilder::build_insintric(compiler->scope(), ILInsintric::push_template)) return err::fail;
 				}
 				else {
-					if (!ILBuilder::eval_const_word(compiler->evaluator(), ret.type)) return pass();
-					if (!ILBuilder::eval_insintric(compiler->evaluator(), ILInsintric::type_dynamic_cast)) return pass();
-					if (!ILBuilder::eval_insintric(compiler->evaluator(), ILInsintric::push_template)) return pass();
+					if (!ILBuilder::eval_const_word(compiler->evaluator(), ret.type)) return err::fail;
+					if (!ILBuilder::eval_insintric(compiler->evaluator(), ILInsintric::type_dynamic_cast)) return err::fail;
+					if (!ILBuilder::eval_insintric(compiler->evaluator(), ILInsintric::push_template)) return err::fail;
 				}
 
 				TypeTemplate* tt = (TypeTemplate*)ret.type;
@@ -1772,10 +1772,10 @@ namespace Corrosive {
 						Type* target = *layout;
 						CompileValue res;
 						Cursor err = c;
-						if (!Expression::parse(c, res, cpt,true, target)) return pass();
-						if (!Operand::deref(res, cpt)) return pass();
-						if (!Expression::rvalue(res, cpt)) return pass();
-						if (!Operand::cast(err, res, target, cpt, true)) return pass();
+						if (!Expression::parse(c, res, cpt,true, target)) return err::fail;
+						if (!Operand::deref(res, cpt)) return err::fail;
+						if (!Expression::rvalue(res, cpt)) return err::fail;
+						if (!Operand::cast(err, res, target, cpt, true)) return err::fail;
 
 						results.push_back(res);
 						layout++;
@@ -1795,10 +1795,10 @@ namespace Corrosive {
 				c.move();
 
 				if (cpt == CompileType::compile) {
-					if (!ILBuilder::build_insintric(compiler->scope(), ILInsintric::build_template)) return pass();
+					if (!ILBuilder::build_insintric(compiler->scope(), ILInsintric::build_template)) return err::fail;
 				}
 				else {
-					if (!ILBuilder::eval_insintric(compiler->evaluator(), ILInsintric::build_template)) return pass();
+					if (!ILBuilder::eval_insintric(compiler->evaluator(), ILInsintric::build_template)) return err::fail;
 				}
 			}
 			else {
@@ -1807,12 +1807,12 @@ namespace Corrosive {
 
 		}
 		else if (ret.type->type() == TypeInstanceType::type_function) {
-			if (!Operand::function_call(ret, c, cpt, 0,targets_defer)) return pass();
+			if (!Operand::function_call(ret, c, cpt, 0,targets_defer)) return err::fail;
 		}
 		else {
 			return throw_specific_error(c, "not implemented yet");
 		}
-		return errvoid();
+		return err::ok;
 
 
 	}
@@ -1830,15 +1830,15 @@ namespace Corrosive {
 		}
 
 		Cursor err = c;
-		if (!Operand::parse(c, ret, cpt, targets_defer)) return pass();
+		if (!Operand::parse(c, ret, cpt, targets_defer)) return err::fail;
 
 		if (ret.type == compiler->types()->t_type) {
-			if (!Expression::rvalue(ret, cpt)) return pass();
+			if (!Expression::rvalue(ret, cpt)) return err::fail;
 
 			if (cpt == CompileType::eval) {
 				Type* t;
-				if (!compiler->evaluator()->pop_register_value<Type*>(t)) return pass();
-				if (!Type::assert(err, t)) return pass();
+				if (!compiler->evaluator()->pop_register_value<Type*>(t)) return err::fail;
+				if (!Type::assert(err, t)) return err::fail;
 				for (unsigned int i = 0; i < type_ref_count; i++)
 					t = t->generate_reference();
 
@@ -1846,7 +1846,7 @@ namespace Corrosive {
 			}
 			else if (cpt == CompileType::compile) {
 				for (unsigned int i = 0; i < type_ref_count; i++) {
-					if (!ILBuilder::build_fncall(compiler->scope(), compiler->types()->f_build_reference->func)) return pass();
+					if (!ILBuilder::build_fncall(compiler->scope(), compiler->types()->f_build_reference->func)) return err::fail;
 				}
 			}
 
@@ -1859,7 +1859,7 @@ namespace Corrosive {
 		else {
 			return throw_specific_error(err, "operator expected to recieve type or reference");
 		}
-		return errvoid();
+		return err::ok;
 	}
 
 	errvoid Operand::parse_array_operator(CompileValue& ret, Cursor& c, CompileType cpt) {
@@ -1872,10 +1872,10 @@ namespace Corrosive {
 
 				if (ret.lvalue) {
 					if (cpt == CompileType::compile) {
-						if (!ILBuilder::build_load(compiler->scope(), ret.type->rvalue())) return pass();
+						if (!ILBuilder::build_load(compiler->scope(), ret.type->rvalue())) return err::fail;
 					}
 					else if (cpt == CompileType::eval) {
-						if (!ILBuilder::eval_load(compiler->evaluator(), ret.type->rvalue())) return pass();
+						if (!ILBuilder::eval_load(compiler->evaluator(), ret.type->rvalue())) return err::fail;
 					}
 				}
 
@@ -1885,14 +1885,14 @@ namespace Corrosive {
 			}
 
 			TypeStructureInstance* ti = (TypeStructureInstance*)ret.type;
-			if (!ti->compile()) return pass();
+			if (!ti->compile()) return err::fail;
 			StructureInstance* si = ti->owner;
 
 			if (!si->pass_array_operator) {
 				return throw_specific_error(c, "Offset can be applied only on slices or passed to slice by alias");
 			}
 
-			if (!Operand::structure_element_offset(ret, si->pass_array_id, cpt)) return pass();
+			if (!Operand::structure_element_offset(ret, si->pass_array_id, cpt)) return err::fail;
 		}
 
 		if (ret.type->type() == TypeInstanceType::type_reference){
@@ -1901,10 +1901,10 @@ namespace Corrosive {
 			if (tr->owner->type() == TypeInstanceType::type_slice || tr->owner->type() == TypeInstanceType::type_array) {
 				if (ret.lvalue) {
 					if (cpt == CompileType::compile) {
-						if (!ILBuilder::build_load(compiler->scope(), ret.type->rvalue())) return pass();
+						if (!ILBuilder::build_load(compiler->scope(), ret.type->rvalue())) return err::fail;
 					}
 					else if (cpt == CompileType::eval) {
-						if (!ILBuilder::eval_load(compiler->evaluator(), ret.type->rvalue())) return pass();
+						if (!ILBuilder::eval_load(compiler->evaluator(), ret.type->rvalue())) return err::fail;
 					}
 				}
 
@@ -1923,31 +1923,31 @@ namespace Corrosive {
 
 		if (ret.type->type() == TypeInstanceType::type_slice) {
 			if (cpt == CompileType::compile) {
-				if (!ILBuilder::build_load(compiler->scope(), ILDataType::word)) return pass();
+				if (!ILBuilder::build_load(compiler->scope(), ILDataType::word)) return err::fail;
 			}
 			else {
-				if (!ILBuilder::eval_load(compiler->evaluator(), ILDataType::word)) return pass();
+				if (!ILBuilder::eval_load(compiler->evaluator(), ILDataType::word)) return err::fail;
 			}
 		}
 
 		Cursor err = c;
 		CompileValue index;
-		if (!Expression::parse(c, index, cpt)) return pass();
-		if (!Operand::deref(index, cpt)) return pass();
-		if (!Expression::rvalue(index, cpt)) return pass();
-		if (!Operand::cast(err, index, compiler->types()->t_size, cpt, true)) return pass();
+		if (!Expression::parse(c, index, cpt)) return err::fail;
+		if (!Operand::deref(index, cpt)) return err::fail;
+		if (!Expression::rvalue(index, cpt)) return err::fail;
+		if (!Operand::cast(err, index, compiler->types()->t_size, cpt, true)) return err::fail;
 
 
 
 		if (cpt == CompileType::compile) {
-			if (!ILBuilder::build_const_size(compiler->scope(), base_slice->size())) return pass();
-			if (!ILBuilder::build_mul(compiler->scope(), ILDataType::word, ILDataType::word)) return pass();
-			if (!ILBuilder::build_rtoffset(compiler->scope())) return pass();
+			if (!ILBuilder::build_const_size(compiler->scope(), base_slice->size())) return err::fail;
+			if (!ILBuilder::build_mul(compiler->scope(), ILDataType::word, ILDataType::word)) return err::fail;
+			if (!ILBuilder::build_rtoffset(compiler->scope())) return err::fail;
 		}
 		else {
-			if (!ILBuilder::eval_const_size(compiler->evaluator(), base_slice->size().eval(compiler->global_module(), compiler_arch))) return pass();
-			if (!ILBuilder::eval_mul(compiler->evaluator(), ILDataType::word, ILDataType::word)) return pass();
-			if (!ILBuilder::eval_rtoffset(compiler->evaluator())) return pass();
+			if (!ILBuilder::eval_const_size(compiler->evaluator(), base_slice->size().eval(compiler->global_module(), compiler_arch))) return err::fail;
+			if (!ILBuilder::eval_mul(compiler->evaluator(), ILDataType::word, ILDataType::word)) return err::fail;
+			if (!ILBuilder::eval_rtoffset(compiler->evaluator())) return err::fail;
 		}
 
 		if (c.tok != RecognizedToken::CloseBracket) {
@@ -1958,7 +1958,7 @@ namespace Corrosive {
 
 		ret.lvalue = true;
 		ret.type = base_slice;
-		return errvoid();
+		return err::ok;
 
 
 	}
@@ -1974,8 +1974,8 @@ namespace Corrosive {
 
 			Cursor t_err = c;
 
-			if (!Operand::parse(c, res, cpt, targets_defer)) return pass();
-			if (!Expression::rvalue(res, cpt)) return pass();
+			if (!Operand::parse(c, res, cpt, targets_defer)) return err::fail;
+			if (!Expression::rvalue(res, cpt)) return err::fail;
 
 			if (res.type != compiler->types()->t_type) {
 				return throw_specific_error(t_err, "Expected type");
@@ -1984,20 +1984,20 @@ namespace Corrosive {
 
 			if (cpt == CompileType::eval) {
 				Type* t;
-				if (!compiler->evaluator()->pop_register_value<Type*>(t)) return pass();
-				if (!Type::assert(t_err, t)) return pass();
+				if (!compiler->evaluator()->pop_register_value<Type*>(t)) return err::fail;
+				if (!Type::assert(t_err, t)) return err::fail;
 				Type* nt = t->generate_slice();
-				if (!ILBuilder::eval_const_word(compiler->evaluator(), nt)) return pass();
+				if (!ILBuilder::eval_const_word(compiler->evaluator(), nt)) return err::fail;
 			}
 			else {
-				if (!ILBuilder::build_fncall(compiler->scope(), compiler->types()->f_build_slice->func)) return pass();
+				if (!ILBuilder::build_fncall(compiler->scope(), compiler->types()->f_build_slice->func)) return err::fail;
 			}
 		}
 		else {
-			if (!Expression::parse(c, res, cpt)) return pass();
-			if (!Operand::deref(res, cpt)) return pass();
-			if (!Expression::rvalue(res, cpt)) return pass();
-			if (!Operand::cast(err, res, compiler->types()->t_u32, cpt, true)) return pass();
+			if (!Expression::parse(c, res, cpt)) return err::fail;
+			if (!Operand::deref(res, cpt)) return err::fail;
+			if (!Expression::rvalue(res, cpt)) return err::fail;
+			if (!Operand::cast(err, res, compiler->types()->t_u32, cpt, true)) return err::fail;
 
 
 			if (c.tok != RecognizedToken::CloseBracket) {
@@ -2008,8 +2008,8 @@ namespace Corrosive {
 
 			Cursor t_err = c;
 
-			if (!Operand::parse(c, res, cpt, targets_defer)) return pass();
-			if (!Expression::rvalue(res, cpt)) return pass();
+			if (!Operand::parse(c, res, cpt, targets_defer)) return err::fail;
+			if (!Expression::rvalue(res, cpt)) return err::fail;
 
 			if (res.type != compiler->types()->t_type) {
 				return throw_specific_error(t_err, "Expected type");
@@ -2017,21 +2017,21 @@ namespace Corrosive {
 
 			if (cpt == CompileType::eval) {
 				Type* t;
-				if (!compiler->evaluator()->pop_register_value<Type*>(t)) return pass();
-				if (!Type::assert(t_err, t)) return pass();
+				if (!compiler->evaluator()->pop_register_value<Type*>(t)) return err::fail;
+				if (!Type::assert(t_err, t)) return err::fail;
 				std::uint32_t val;
-				if (!compiler->evaluator()->pop_register_value<std::uint32_t>(val)) return pass();
+				if (!compiler->evaluator()->pop_register_value<std::uint32_t>(val)) return err::fail;
 				TypeArray* nt = t->generate_array(val);
-				if (!ILBuilder::eval_const_word(compiler->evaluator(), nt)) return pass();
+				if (!ILBuilder::eval_const_word(compiler->evaluator(), nt)) return err::fail;
 			}
 			else {
-				if (!ILBuilder::build_fncall(compiler->scope(), compiler->types()->f_build_array->func)) return pass();
+				if (!ILBuilder::build_fncall(compiler->scope(), compiler->types()->f_build_array->func)) return err::fail;
 			}
 		}
 
 		ret.type = compiler->types()->t_type;
 		ret.lvalue = false;
-		return errvoid();
+		return err::ok;
 
 	}
 
@@ -2053,9 +2053,9 @@ namespace Corrosive {
 		c.move();
 
 		if (cpt == CompileType::eval) {
-			if (!Expression::rvalue(ret, cpt)) return pass();
+			if (!Expression::rvalue(ret, cpt)) return err::fail;
 			TypeStructureInstance* ti;
-			if (!compiler->evaluator()->pop_register_value<TypeStructureInstance*>(ti)) return pass();
+			if (!compiler->evaluator()->pop_register_value<TypeStructureInstance*>(ti)) return err::fail;
 			if (ti->type() != TypeInstanceType::type_structure_instance) {
 				return throw_specific_error(c, "Type is not structure instance");
 			}
@@ -2077,19 +2077,19 @@ namespace Corrosive {
 							tplt->generic_ctx.generator->insert_key_on_stack(compiler->evaluator());*/
 
 
-						if (!tplt->compile()) return pass();
+						if (!tplt->compile()) return err::fail;
 
 						ret.lvalue = false;
 						ret.type = compiler->types()->t_type;
 
 						if (tplt->ast_node->is_generic) {
-							if (!ILBuilder::eval_const_word(compiler->evaluator(), tplt->type.get())) return pass();
+							if (!ILBuilder::eval_const_word(compiler->evaluator(), tplt->type.get())) return err::fail;
 						}
 						else {
 							StructureInstance* inst = nullptr;
 
 							tplt->generate(compiler->local_stack_base.back(), inst);
-							if (!ILBuilder::eval_const_word(compiler->evaluator(), inst->type.get())) return pass();
+							if (!ILBuilder::eval_const_word(compiler->evaluator(), inst->type.get())) return err::fail;
 						}
 
 
@@ -2103,23 +2103,23 @@ namespace Corrosive {
 						}
 
 						FunctionInstance* finst;
-						if (!struct_inst->subfunctions[f->second.second]->generate(nullptr, finst)) return pass();
-						if (!finst->compile()) return pass();
+						if (!struct_inst->subfunctions[f->second.second]->generate(nullptr, finst)) return err::fail;
+						if (!finst->compile()) return err::fail;
 
-						if (!ILBuilder::eval_fnptr(compiler->evaluator(), finst->func)) return pass();
+						if (!ILBuilder::eval_fnptr(compiler->evaluator(), finst->func)) return err::fail;
 
 						ret.type = finst->type;
 						ret.lvalue = false;
-						if (!Operand::function_call(ret, c, cpt, 0, targets_defer)) return pass();
+						if (!Operand::function_call(ret, c, cpt, 0, targets_defer)) return err::fail;
 					}break;
 
 					case 4: {
 						c.move();
 						StaticInstance* sinst = struct_inst->substatics[f->second.second].get();
-						if (!sinst->compile()) return pass();
+						if (!sinst->compile()) return err::fail;
 						ret.lvalue = true;
 						ret.type = sinst->type;
-						if (!ILBuilder::eval_staticref(compiler->evaluator(), sinst->sid)) return pass();
+						if (!ILBuilder::eval_staticref(compiler->evaluator(), sinst->sid)) return err::fail;
 					} break;
 
 					default:
@@ -2133,12 +2133,12 @@ namespace Corrosive {
 				return throw_specific_error(c, "Structure instance does not contain a structure with this name");
 			}
 		}
-		return errvoid();
+		return err::ok;
 	}
 
 	errvoid Operand::function_call(CompileValue& ret, Cursor& c, CompileType cpt, unsigned int argi, bool targets_defer) {
 		Compiler* compiler = Compiler::current();
-		if (!Expression::rvalue(ret, cpt)) return pass();
+		if (!Expression::rvalue(ret, cpt)) return err::fail;
 
 		TypeFunction* ft = (TypeFunction*)ret.type;
 
@@ -2151,34 +2151,34 @@ namespace Corrosive {
 		CompileValue retval;
 		retval.type = ft->return_type;
 		retval.lvalue = true;
-		if (!ft->return_type->compile()) return pass();
+		if (!ft->return_type->compile()) return err::fail;
 
 		if (cpt == CompileType::compile) {
 
 			stackid_t local_return_id = 0;
 
 
-			if (!ILBuilder::build_callstart(compiler->scope())) return pass();
+			if (!ILBuilder::build_callstart(compiler->scope())) return err::fail;
 			if (ft->return_type->rvalue_stacked()) {
 				local_return_id = compiler->target()->local_stack_lifetime.append(retval.type->size());
 				compiler->temp_stack()->push_item("$tmp", retval.type, local_return_id);
 
-				if (!ILBuilder::build_local(compiler->scope(), local_return_id)) return pass();
+				if (!ILBuilder::build_local(compiler->scope(), local_return_id)) return err::fail;
 			}
 
-			if (!Operand::read_arguments(c, argi, ft, cpt)) return pass();
+			if (!Operand::read_arguments(c, argi, ft, cpt)) return err::fail;
 
 			if (argi != compiler->types()->argument_array_storage.get(ft->argument_array_id).size()) {
 				return throw_specific_error(c, "Wrong number of arguments");
 			}
 			c.move();
-			if (!ft->compile()) return pass();
+			if (!ft->compile()) return err::fail;
 
 			if (!targets_defer || c.tok != RecognizedToken::Semicolon) {
-				if (!ILBuilder::build_call(compiler->scope(), ft->il_function_decl)) return pass();
+				if (!ILBuilder::build_call(compiler->scope(), ft->il_function_decl)) return err::fail;
 
 				if (ft->return_type->rvalue_stacked()) {
-					if (!ILBuilder::build_local(compiler->scope(), local_return_id)) return pass();
+					if (!ILBuilder::build_local(compiler->scope(), local_return_id)) return err::fail;
 				}
 
 
@@ -2197,7 +2197,7 @@ namespace Corrosive {
 
 			stackid_t local_stack_item;
 
-			if (!ILBuilder::eval_callstart(compiler->evaluator())) return pass();
+			if (!ILBuilder::eval_callstart(compiler->evaluator())) return err::fail;
 
 			if (ft->return_type->rvalue_stacked()) {
 				local_stack_item = compiler->push_local(retval.type->size());
@@ -2207,7 +2207,7 @@ namespace Corrosive {
 				compiler->eval_local(local_stack_item);
 			}
 
-			if (!Operand::read_arguments(c, argi, ft, cpt)) return pass();
+			if (!Operand::read_arguments(c, argi, ft, cpt)) return err::fail;
 
 			if (argi != compiler->types()->argument_array_storage.get(ft->argument_array_id).size()) {
 				return throw_specific_error(c, "Wrong number of arguments");
@@ -2215,11 +2215,11 @@ namespace Corrosive {
 			}
 
 			c.move();
-			if (!ft->compile()) return pass();
+			if (!ft->compile()) return err::fail;
 
 			if (!targets_defer || c.tok != RecognizedToken::Semicolon) {
 
-				if (!ILBuilder::eval_call(compiler->evaluator(), ft->il_function_decl)) return pass();
+				if (!ILBuilder::eval_call(compiler->evaluator(), ft->il_function_decl)) return err::fail;
 
 				if (ft->return_type->rvalue_stacked()) {
 					compiler->eval_local(local_stack_item);
@@ -2235,13 +2235,13 @@ namespace Corrosive {
 				ret.lvalue = true;
 			}
 		}
-		return errvoid();
+		return err::ok;
 	}
 
 	errvoid Operand::structure_element_offset(CompileValue& ret, tableelement_t id, CompileType cpt) {
 		Compiler* compiler = Compiler::current();
 		TypeStructureInstance* ti = (TypeStructureInstance*)ret.type;
-		if (!ti->compile()) return pass();
+		if (!ti->compile()) return err::fail;
 
 		tableelement_t elem_id = 0;
 		Type* mem_type = nullptr;
@@ -2267,22 +2267,22 @@ namespace Corrosive {
 					switch (elem_size.type)
 					{
 						case ILSizeType::table:
-							if (!ILBuilder::build_tableoffset(compiler->scope(), elem_size.value, elem_id)) return pass(); break;
+							if (!ILBuilder::build_tableoffset(compiler->scope(), elem_size.value, elem_id)) return err::fail; break;
 						case ILSizeType::abs8: 
-							if (!ILBuilder::build_aoffset(compiler->scope(), (std::uint32_t)elem_size.value)) return pass(); break;
+							if (!ILBuilder::build_aoffset(compiler->scope(), (std::uint32_t)elem_size.value)) return err::fail; break;
 						case ILSizeType::abs16: 
-							if (!ILBuilder::build_aoffset(compiler->scope(), (std::uint32_t)(elem_size.value*2))) return pass(); break;
+							if (!ILBuilder::build_aoffset(compiler->scope(), (std::uint32_t)(elem_size.value*2))) return err::fail; break;
 						case ILSizeType::abs32: 
-							if (!ILBuilder::build_aoffset(compiler->scope(), (std::uint32_t)(elem_size.value*4))) return pass(); break;
+							if (!ILBuilder::build_aoffset(compiler->scope(), (std::uint32_t)(elem_size.value*4))) return err::fail; break;
 						case ILSizeType::abs64: 
-							if (!ILBuilder::build_aoffset(compiler->scope(), (std::uint32_t)(elem_size.value*8))) return pass(); break;
+							if (!ILBuilder::build_aoffset(compiler->scope(), (std::uint32_t)(elem_size.value*8))) return err::fail; break;
 						case ILSizeType::ptr:
-							if (!ILBuilder::build_woffset(compiler->scope(), (std::uint32_t)elem_size.value)) return pass(); break;
+							if (!ILBuilder::build_woffset(compiler->scope(), (std::uint32_t)elem_size.value)) return err::fail; break;
 						default:
 							break;
 					}
 					if (!ret.lvalue && !mem_type->rvalue_stacked()) {
-						if (!ILBuilder::build_load(compiler->scope(), mem_type->rvalue())) return pass();
+						if (!ILBuilder::build_load(compiler->scope(), mem_type->rvalue())) return err::fail;
 					}
 				}
 			}
@@ -2291,22 +2291,22 @@ namespace Corrosive {
 					switch (elem_size.type)
 					{
 						case ILSizeType::table:
-							if (!ILBuilder::eval_tableoffset(compiler->evaluator(), elem_size.value, elem_id)) return pass(); break;
+							if (!ILBuilder::eval_tableoffset(compiler->evaluator(), elem_size.value, elem_id)) return err::fail; break;
 						case ILSizeType::abs8: 
-							if (!ILBuilder::eval_aoffset(compiler->evaluator(), (std::uint32_t)elem_size.value)) return pass(); break;
+							if (!ILBuilder::eval_aoffset(compiler->evaluator(), (std::uint32_t)elem_size.value)) return err::fail; break;
 						case ILSizeType::abs16: 
-							if (!ILBuilder::eval_aoffset(compiler->evaluator(), (std::uint32_t)(elem_size.value*2))) return pass(); break;
+							if (!ILBuilder::eval_aoffset(compiler->evaluator(), (std::uint32_t)(elem_size.value*2))) return err::fail; break;
 						case ILSizeType::abs32: 
-							if (!ILBuilder::eval_aoffset(compiler->evaluator(), (std::uint32_t)(elem_size.value*4))) return pass(); break;
+							if (!ILBuilder::eval_aoffset(compiler->evaluator(), (std::uint32_t)(elem_size.value*4))) return err::fail; break;
 						case ILSizeType::abs64: 
-							if (!ILBuilder::eval_aoffset(compiler->evaluator(), (std::uint32_t)(elem_size.value*8))) return pass(); break;
+							if (!ILBuilder::eval_aoffset(compiler->evaluator(), (std::uint32_t)(elem_size.value*8))) return err::fail; break;
 						case ILSizeType::ptr:
-							if (!ILBuilder::eval_woffset(compiler->evaluator(), (std::uint32_t)elem_size.value)) return pass(); break;
+							if (!ILBuilder::eval_woffset(compiler->evaluator(), (std::uint32_t)elem_size.value)) return err::fail; break;
 						default:
 							break;
 					}	
 					if (!ret.lvalue && !mem_type->rvalue_stacked()) {
-						if (!ILBuilder::eval_load(compiler->evaluator(), mem_type->rvalue())) return pass();
+						if (!ILBuilder::eval_load(compiler->evaluator(), mem_type->rvalue())) return err::fail;
 					}
 				}	
 			}
@@ -2317,17 +2317,17 @@ namespace Corrosive {
 					switch (elem_size.type)
 					{
 						case ILSizeType::table:
-							if (!ILBuilder::build_tableroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), elem_size.value, elem_id)) return pass(); break;
+							if (!ILBuilder::build_tableroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), elem_size.value, elem_id)) return err::fail; break;
 						case ILSizeType::abs8: 
-							if (!ILBuilder::build_aroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)elem_size.value)) return pass(); break;
+							if (!ILBuilder::build_aroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)elem_size.value)) return err::fail; break;
 						case ILSizeType::abs16: 
-							if (!ILBuilder::build_aroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)(elem_size.value*2))) return pass(); break;
+							if (!ILBuilder::build_aroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)(elem_size.value*2))) return err::fail; break;
 						case ILSizeType::abs32: 
-							if (!ILBuilder::build_aroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)(elem_size.value*4))) return pass(); break;
+							if (!ILBuilder::build_aroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)(elem_size.value*4))) return err::fail; break;
 						case ILSizeType::abs64: 
-							if (!ILBuilder::build_aroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)(elem_size.value*8))) return pass(); break;
+							if (!ILBuilder::build_aroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)(elem_size.value*8))) return err::fail; break;
 						case ILSizeType::ptr:
-							if (!ILBuilder::build_wroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)elem_size.value)) return pass(); break;
+							if (!ILBuilder::build_wroffset(compiler->scope(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)elem_size.value)) return err::fail; break;
 						default:
 							break;
 					}
@@ -2341,17 +2341,17 @@ namespace Corrosive {
 					switch (elem_size.type)
 					{
 						case ILSizeType::table:
-							if (!ILBuilder::eval_tableroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), elem_size.value, elem_id)) return pass(); break;
+							if (!ILBuilder::eval_tableroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), elem_size.value, elem_id)) return err::fail; break;
 						case ILSizeType::abs8: 
-							if (!ILBuilder::eval_aroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)elem_size.value)) return pass(); break;
+							if (!ILBuilder::eval_aroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)elem_size.value)) return err::fail; break;
 						case ILSizeType::abs16: 
-							if (!ILBuilder::eval_aroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)(elem_size.value*2))) return pass(); break;
+							if (!ILBuilder::eval_aroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)(elem_size.value*2))) return err::fail; break;
 						case ILSizeType::abs32: 
-							if (!ILBuilder::eval_aroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)(elem_size.value*4))) return pass(); break;
+							if (!ILBuilder::eval_aroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)(elem_size.value*4))) return err::fail; break;
 						case ILSizeType::abs64: 
-							if (!ILBuilder::eval_aroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)(elem_size.value*8))) return pass(); break;
+							if (!ILBuilder::eval_aroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)(elem_size.value*8))) return err::fail; break;
 						case ILSizeType::ptr:
-							if (!ILBuilder::eval_wroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)elem_size.value)) return pass(); break;
+							if (!ILBuilder::eval_wroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)elem_size.value)) return err::fail; break;
 						default:
 							break;
 					}
@@ -2363,7 +2363,7 @@ namespace Corrosive {
 
 		// ret.lvalue stays the same
 		ret.type = mem_type;
-		return errvoid();
+		return err::ok;
 	}
 
 
@@ -2371,7 +2371,7 @@ namespace Corrosive {
 		Compiler* compiler = Compiler::current();
 		c.move();
 
-		if (!Operand::deref(ret, cpt)) return pass();
+		if (!Operand::deref(ret, cpt)) return err::fail;
 
 		if (ret.type->type() == TypeInstanceType::type_slice) {
 			TypeSlice* ts = (TypeSlice*)ret.type;
@@ -2380,31 +2380,31 @@ namespace Corrosive {
 			if (buf == "count") {
 				if (cpt == CompileType::compile) {
 					if (ret.lvalue || ret.type->rvalue_stacked()) {
-						if (!ILBuilder::build_woffset(compiler->scope(), 1)) return pass();
-						if (!ILBuilder::build_load(compiler->scope(), ILDataType::word)) return pass();
+						if (!ILBuilder::build_woffset(compiler->scope(), 1)) return err::fail;
+						if (!ILBuilder::build_load(compiler->scope(), ILDataType::word)) return err::fail;
 					}
 					else {
-						if (!ILBuilder::build_high_word(compiler->scope())) return pass();
+						if (!ILBuilder::build_high_word(compiler->scope())) return err::fail;
 					}
 				}
 				else {
 					if (ret.lvalue || ret.type->rvalue_stacked()) {
-						if (!ILBuilder::eval_woffset(compiler->evaluator(), 1)) return pass();
-						if (!ILBuilder::eval_load(compiler->evaluator(), ILDataType::word)) return pass();
+						if (!ILBuilder::eval_woffset(compiler->evaluator(), 1)) return err::fail;
+						if (!ILBuilder::eval_load(compiler->evaluator(), ILDataType::word)) return err::fail;
 					}
 					else {
-						if (!ILBuilder::eval_high_word(compiler->evaluator())) return pass();
+						if (!ILBuilder::eval_high_word(compiler->evaluator())) return err::fail;
 					}
 				}
 
 				if ((ts->owner->size().type != ILSizeType::table && ts->owner->size().type != ILSizeType::array) || ts->owner->size().value > 1) {
 					if (cpt == CompileType::compile) {
-						if (!ILBuilder::build_const_size(compiler->scope(), ts->owner->size())) return pass();
-						if (!ILBuilder::build_div(compiler->scope(), ILDataType::word, ILDataType::word)) return pass();
+						if (!ILBuilder::build_const_size(compiler->scope(), ts->owner->size())) return err::fail;
+						if (!ILBuilder::build_div(compiler->scope(), ILDataType::word, ILDataType::word)) return err::fail;
 					}
 					else {
-						if (!ILBuilder::eval_const_size(compiler->evaluator(), ts->owner->size().eval(compiler->global_module(), compiler_arch))) return pass();
-						if (!ILBuilder::eval_div(compiler->evaluator(), ILDataType::word, ILDataType::word)) return pass();
+						if (!ILBuilder::eval_const_size(compiler->evaluator(), ts->owner->size().eval(compiler->global_module(), compiler_arch))) return err::fail;
+						if (!ILBuilder::eval_div(compiler->evaluator(), ILDataType::word, ILDataType::word)) return err::fail;
 					}
 				}
 
@@ -2419,28 +2419,28 @@ namespace Corrosive {
 				if (cpt == CompileType::compile) {
 
 					if (ret.lvalue) {
-						if (!ILBuilder::build_woffset(compiler->scope(), 1)) return pass();
+						if (!ILBuilder::build_woffset(compiler->scope(), 1)) return err::fail;
 					}
 					else if (ret.type->rvalue_stacked()) {
-						if (!ILBuilder::build_woffset(compiler->scope(), 1)) return pass();
-						if (!ILBuilder::build_load(compiler->scope(), ILDataType::word)) return pass();
+						if (!ILBuilder::build_woffset(compiler->scope(), 1)) return err::fail;
+						if (!ILBuilder::build_load(compiler->scope(), ILDataType::word)) return err::fail;
 					}
 					else {
 
-						if (!ILBuilder::build_high_word(compiler->scope())) return pass();
+						if (!ILBuilder::build_high_word(compiler->scope())) return err::fail;
 					}
 				}
 				else {
 
 					if (ret.lvalue) {
-						if (!ILBuilder::eval_woffset(compiler->evaluator(), 1)) return pass();
+						if (!ILBuilder::eval_woffset(compiler->evaluator(), 1)) return err::fail;
 					}
 					else if (ret.type->rvalue_stacked()) {
-						if (!ILBuilder::eval_woffset(compiler->evaluator(), 1)) return pass();
-						if (!ILBuilder::eval_load(compiler->evaluator(), ILDataType::word)) return pass();
+						if (!ILBuilder::eval_woffset(compiler->evaluator(), 1)) return err::fail;
+						if (!ILBuilder::eval_load(compiler->evaluator(), ILDataType::word)) return err::fail;
 					}
 					else {
-						if (!ILBuilder::eval_high_word(compiler->evaluator())) return pass();
+						if (!ILBuilder::eval_high_word(compiler->evaluator())) return err::fail;
 					}
 				}
 
@@ -2456,10 +2456,10 @@ namespace Corrosive {
 
 					}
 					else if (ret.type->rvalue_stacked()) {
-						if (!ILBuilder::build_load(compiler->scope(), ILDataType::word)) return pass();
+						if (!ILBuilder::build_load(compiler->scope(), ILDataType::word)) return err::fail;
 					}
 					else {
-						if (!ILBuilder::build_bitcast(compiler->scope(), ret.type->rvalue(), ILDataType::word)) return pass();
+						if (!ILBuilder::build_bitcast(compiler->scope(), ret.type->rvalue(), ILDataType::word)) return err::fail;
 					}
 				}
 				else {
@@ -2467,11 +2467,11 @@ namespace Corrosive {
 
 					}
 					else if (ret.type->rvalue_stacked()) {
-						if (!ILBuilder::eval_load(compiler->evaluator(), ILDataType::word)) return pass();
+						if (!ILBuilder::eval_load(compiler->evaluator(), ILDataType::word)) return err::fail;
 					}
 					else {
 
-						if (!ILBuilder::eval_bitcast(compiler->evaluator(), ret.type->rvalue(), ILDataType::word)) return pass();
+						if (!ILBuilder::eval_bitcast(compiler->evaluator(), ret.type->rvalue(), ILDataType::word)) return err::fail;
 					}
 				}
 
@@ -2503,21 +2503,21 @@ namespace Corrosive {
 				return throw_specific_error(c, "Cannot access trait function with different context");
 			}
 
-			if (!Expression::rvalue(ret, cpt)) return pass();
+			if (!Expression::rvalue(ret, cpt)) return err::fail;
 
 			c.move();
 			if (c.tok == RecognizedToken::OpenParenthesis) {
 				if (cpt == CompileType::compile) {
-					if (!ILBuilder::build_split_dword(compiler->scope())) return pass();
-					if (!ILBuilder::build_woffset(compiler->scope(), (std::uint32_t)off)) return pass();
-					if (!ILBuilder::build_load(compiler->scope(), ILDataType::word)) return pass();
-					if (!ILBuilder::build_callstart(compiler->scope())) return pass();
+					if (!ILBuilder::build_split_dword(compiler->scope())) return err::fail;
+					if (!ILBuilder::build_woffset(compiler->scope(), (std::uint32_t)off)) return err::fail;
+					if (!ILBuilder::build_load(compiler->scope(), ILDataType::word)) return err::fail;
+					if (!ILBuilder::build_callstart(compiler->scope())) return err::fail;
 				}
 				else {
-					if (!ILBuilder::eval_split_dword(compiler->evaluator())) return pass();
-					if (!ILBuilder::eval_woffset(compiler->evaluator(), (std::uint32_t)off)) return pass();
-					if (!ILBuilder::eval_load(compiler->evaluator(), ILDataType::word)) return pass();
-					if (!ILBuilder::eval_callstart(compiler->evaluator())) return pass();
+					if (!ILBuilder::eval_split_dword(compiler->evaluator())) return err::fail;
+					if (!ILBuilder::eval_woffset(compiler->evaluator(), (std::uint32_t)off)) return err::fail;
+					if (!ILBuilder::eval_load(compiler->evaluator(), ILDataType::word)) return err::fail;
+					if (!ILBuilder::eval_callstart(compiler->evaluator())) return err::fail;
 				}
 
 				stackid_t local_return_id = 0;
@@ -2526,7 +2526,7 @@ namespace Corrosive {
 					if (mf->return_type->rvalue_stacked()) {
 						local_return_id = compiler->target()->local_stack_lifetime.append(mf->return_type->size());
 						compiler->temp_stack()->push_item("$tmp", mf->return_type, local_return_id);
-						if (!ILBuilder::build_local(compiler->scope(), local_return_id)) return pass();
+						if (!ILBuilder::build_local(compiler->scope(), local_return_id)) return err::fail;
 					}
 				}
 				else {
@@ -2539,18 +2539,18 @@ namespace Corrosive {
 
 				c.move();
 				unsigned int argi = 1;
-				if (!Operand::read_arguments(c, argi, mf, cpt)) return pass();
+				if (!Operand::read_arguments(c, argi, mf, cpt)) return err::fail;
 
-				if (!mf->compile()) return pass();
+				if (!mf->compile()) return err::fail;
 
 				c.move();
 
 				if (!targets_defer || c.tok!=RecognizedToken::Semicolon) {
 					if (cpt == CompileType::compile) {
-						if (!ILBuilder::build_call(compiler->scope(), mf->il_function_decl)) return pass();
+						if (!ILBuilder::build_call(compiler->scope(), mf->il_function_decl)) return err::fail;
 
 						if (mf->return_type->rvalue_stacked()) {
-							if (!ILBuilder::build_local(compiler->scope(), local_return_id)) return pass();
+							if (!ILBuilder::build_local(compiler->scope(), local_return_id)) return err::fail;
 						}
 					}
 					else {
@@ -2581,14 +2581,14 @@ namespace Corrosive {
 			}
 			else {
 				if (cpt == CompileType::compile) {
-					if (!ILBuilder::build_high_word(compiler->scope())) return pass();
-					if (!ILBuilder::build_woffset(compiler->scope(), (std::uint32_t)off)) return pass();
-					if (!ILBuilder::build_load(compiler->scope(), ILDataType::word)) return pass();
+					if (!ILBuilder::build_high_word(compiler->scope())) return err::fail;
+					if (!ILBuilder::build_woffset(compiler->scope(), (std::uint32_t)off)) return err::fail;
+					if (!ILBuilder::build_load(compiler->scope(), ILDataType::word)) return err::fail;
 				}
 				else {
-					if (!ILBuilder::eval_high_word(compiler->evaluator())) return pass();
-					if (!ILBuilder::eval_woffset(compiler->evaluator(), (std::uint32_t)off)) return pass();
-					if (!ILBuilder::eval_load(compiler->evaluator(), ILDataType::word)) return pass();
+					if (!ILBuilder::eval_high_word(compiler->evaluator())) return err::fail;
+					if (!ILBuilder::eval_woffset(compiler->evaluator(), (std::uint32_t)off)) return err::fail;
+					if (!ILBuilder::eval_load(compiler->evaluator(), ILDataType::word)) return err::fail;
 				}
 
 				ret.lvalue = false;
@@ -2603,14 +2603,14 @@ namespace Corrosive {
 			bool continue_deeper = true;
 
 			while (continue_deeper) {
-				if (!Operand::deref(ret, cpt)) return pass();
+				if (!Operand::deref(ret, cpt)) return err::fail;
 				if (ret.type->type() != TypeInstanceType::type_structure_instance) {
 					return throw_specific_error(err, "Operator cannot be used on this type");
 				}
 
 
 				TypeStructureInstance* ti = (TypeStructureInstance*)ret.type;
-				if (!ti->compile()) return pass();
+				if (!ti->compile()) return err::fail;
 				StructureInstance* si = ti->owner;
 
 				auto table_element = si->member_table.find(err.buffer());
@@ -2619,11 +2619,11 @@ namespace Corrosive {
 					{
 						case MemberTableEntryType::alias:
 							continue_deeper = true;
-							if (!Operand::structure_element_offset(ret, table_element->second.first, cpt)) return pass();
+							if (!Operand::structure_element_offset(ret, table_element->second.first, cpt)) return err::fail;
 							break;
 						case MemberTableEntryType::var:
 							continue_deeper = false;
-							if (!Operand::structure_element_offset(ret, table_element->second.first, cpt)) return pass();
+							if (!Operand::structure_element_offset(ret, table_element->second.first, cpt)) return err::fail;
 							break;
 						case MemberTableEntryType::func:
 
@@ -2633,14 +2633,14 @@ namespace Corrosive {
 									stackid_t local_id = compiler->target()->local_stack_lifetime.append(ret.type->size());
 									compiler->temp_stack()->push_item("$tmp", ret.type, local_id);
 									
-									if (!ILBuilder::build_store(compiler->scope(), ret.type->rvalue())) return pass();
-									if (!ILBuilder::build_local(compiler->scope(), local_id)) return pass();
+									if (!ILBuilder::build_store(compiler->scope(), ret.type->rvalue())) return err::fail;
+									if (!ILBuilder::build_local(compiler->scope(), local_id)) return err::fail;
 									ret.lvalue = true;
 								}
 								else {
 									stackid_t local_id = compiler->push_local(ret.type->size());
 									compiler->compiler_stack()->push_item("$tmp", ret.type, local_id);
-									if (!ILBuilder::eval_store(compiler->evaluator(), ret.type->rvalue())) return pass();
+									if (!ILBuilder::eval_store(compiler->evaluator(), ret.type->rvalue())) return err::fail;
 									compiler->eval_local(local_id);
 									ret.lvalue = true;
 								}
@@ -2655,20 +2655,20 @@ namespace Corrosive {
 							}
 
 							FunctionInstance* finst;
-							if (!si->subfunctions[table_element->second.first]->generate(nullptr, finst)) return pass();
-							if (!finst->compile()) return pass();
+							if (!si->subfunctions[table_element->second.first]->generate(nullptr, finst)) return err::fail;
+							if (!finst->compile()) return err::fail;
 
 							if (cpt == CompileType::compile) {
-								if (!ILBuilder::build_fnptr(compiler->scope(), finst->func)) return pass();
+								if (!ILBuilder::build_fnptr(compiler->scope(), finst->func)) return err::fail;
 							}
 							else {
-								if (!ILBuilder::eval_fnptr(compiler->evaluator(), finst->func)) return pass();
+								if (!ILBuilder::eval_fnptr(compiler->evaluator(), finst->func)) return err::fail;
 							}
 
 							ret.type = finst->type;
 							ret.lvalue = false;
-							if (!Operand::function_call(ret, c, cpt, 1, targets_defer)) return pass();
-							return errvoid();
+							if (!Operand::function_call(ret, c, cpt, 1, targets_defer)) return err::fail;
+							return err::ok;
 					}
 				}
 				else {
@@ -2677,7 +2677,7 @@ namespace Corrosive {
 			}
 
 		}
-		return errvoid();
+		return err::ok;
 
 
 	}
@@ -2688,18 +2688,18 @@ namespace Corrosive {
 		auto lit = compiler->constant_manager()->register_string_literal(c);
 
 		Type* slice = compiler->types()->t_u8->generate_slice();
-		if (!slice->compile()) return pass();
+		if (!slice->compile()) return err::fail;
 
 		if (cpt == CompileType::compile) {
-			if (!ILBuilder::build_const_slice(compiler->scope(), lit.second, ILSize(ILSizeType::abs8,(std::uint32_t)lit.first.length()))) return pass();
+			if (!ILBuilder::build_const_slice(compiler->scope(), lit.second, ILSize(ILSizeType::abs8,(std::uint32_t)lit.first.length()))) return err::fail;
 		}
 		else {
-			if (!ILBuilder::eval_const_slice(compiler->evaluator(), lit.second, ILSize(ILSizeType::abs8, (std::uint32_t)lit.first.length()))) return pass();
+			if (!ILBuilder::eval_const_slice(compiler->evaluator(), lit.second, ILSize(ILSizeType::abs8, (std::uint32_t)lit.first.length()))) return err::fail;
 		}
 
 		c.move();
 		ret.type = slice;
 		ret.lvalue = false;
-		return errvoid();
+		return err::ok;
 	}
 }

@@ -540,13 +540,13 @@ namespace Corrosive {
 				Cursor c = load_cursor(r, ptr);
 
 				BlockTermination termination;
-				if (!Statement::parse(c, termination, ForceCompile::single)) return pass();
+				if (!Statement::parse(c, termination, ForceCompile::single)) return err::fail;
 			}
 
 			compiler->source_stack.pop_back();
 		}
 
-		return errvoid();
+		return err::ok;
 	}
 
 	void Source::require_wrapper(dword_t slice)

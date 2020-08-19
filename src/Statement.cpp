@@ -20,7 +20,7 @@ namespace Corrosive {
 		compiler->compile_defers.push_back(std::vector<TypeFunction*>());
 		compiler->compiler_stack()->push_block();
 		compiler->stack_push_block();
-		return errvoid();
+		return err::ok;
 	}
 
 	errvoid Statement::parse_inner_block(Cursor& c, BlockTermination& termination, bool exit_returns, Cursor* err, ForceCompile force_compile) {
@@ -40,17 +40,17 @@ namespace Corrosive {
 			if (c.y != line) {
 				if (Statement::runtime(force_compile)) {
 					if (c.src != nullptr) {
-						if (!ILBuilder::build_debug(compiler->scope(), c.src->debug_id, (std::uint16_t)c.y)) return pass();
+						if (!ILBuilder::build_debug(compiler->scope(), c.src->debug_id, (std::uint16_t)c.y)) return err::fail;
 					}
 					else {
-						if (!ILBuilder::build_debug(compiler->scope(), UINT16_MAX, (std::uint16_t)c.y)) return pass();
+						if (!ILBuilder::build_debug(compiler->scope(), UINT16_MAX, (std::uint16_t)c.y)) return err::fail;
 					}
 				} else {
 					if (c.src != nullptr) {
-						if (!ILBuilder::eval_debug(compiler->evaluator(), c.src->debug_id, (std::uint16_t)c.y)) return pass();
+						if (!ILBuilder::eval_debug(compiler->evaluator(), c.src->debug_id, (std::uint16_t)c.y)) return err::fail;
 					}
 					else {
-						if (!ILBuilder::eval_debug(compiler->evaluator(), UINT16_MAX, (std::uint16_t)c.y)) return pass();
+						if (!ILBuilder::eval_debug(compiler->evaluator(), UINT16_MAX, (std::uint16_t)c.y)) return err::fail;
 					}
 				}
 				line = c.y;
@@ -67,7 +67,7 @@ namespace Corrosive {
 					break;
 			}
 
-			if (!Statement::parse(c, termination, new_fc)) return pass();
+			if (!Statement::parse(c, termination, new_fc)) return err::fail;
 
 			if (termination != BlockTermination::continued && c.tok != RecognizedToken::CloseBrace) {
 				return throw_specific_error(c, "Instruction after the current branch has been terminated");
@@ -103,18 +103,18 @@ namespace Corrosive {
 			if (termination == BlockTermination::continued) {
 
 				for (auto d = compiler->defer_scope().rbegin(); d != compiler->defer_scope().rend(); d++) {
-					if (!ILBuilder::build_call(prev_scope, (*d)->il_function_decl)) return pass();
+					if (!ILBuilder::build_call(prev_scope, (*d)->il_function_decl)) return err::fail;
 					if ((*d)->return_type->rvalue_stacked()) {
-						if (!ILBuilder::build_forget(prev_scope, ILDataType::word)) return pass();
+						if (!ILBuilder::build_forget(prev_scope, ILDataType::word)) return err::fail;
 					}
 					else {
-						if (!ILBuilder::build_forget(prev_scope, (*d)->return_type->rvalue())) return pass();
+						if (!ILBuilder::build_forget(prev_scope, (*d)->return_type->rvalue())) return err::fail;
 					}
 				}
 
 
 				if (!exit_returns) {
-					if (!ILBuilder::build_jmp(prev_scope, compiler->scope())) return pass();
+					if (!ILBuilder::build_jmp(prev_scope, compiler->scope())) return err::fail;
 				}
 				else {
 					if (compiler->return_type() != compiler->types()->t_void) {
@@ -126,7 +126,7 @@ namespace Corrosive {
 						}
 					}
 					else {
-						if (!ILBuilder::build_ret(prev_scope, ILDataType::none)) return pass();
+						if (!ILBuilder::build_ret(prev_scope, ILDataType::none)) return err::fail;
 					}
 				}
 			}
@@ -137,19 +137,19 @@ namespace Corrosive {
 		}
 
 		for (auto d = compiler->compile_defer_scope().rbegin(); d != compiler->compile_defer_scope().rend(); d++) {
-			if (!ILBuilder::eval_call(compiler->evaluator(), (*d)->il_function_decl)) return pass();
+			if (!ILBuilder::eval_call(compiler->evaluator(), (*d)->il_function_decl)) return err::fail;
 			if ((*d)->return_type->rvalue_stacked()) {
-				if (!ILBuilder::eval_forget(compiler->evaluator(), ILDataType::word)) return pass();
+				if (!ILBuilder::eval_forget(compiler->evaluator(), ILDataType::word)) return err::fail;
 			}
 			else {
-				if (!ILBuilder::eval_forget(compiler->evaluator(), (*d)->return_type->rvalue())) return pass();
+				if (!ILBuilder::eval_forget(compiler->evaluator(), (*d)->return_type->rvalue())) return err::fail;
 			}
 		}
 		
 		compiler->compile_defers.pop_back();
 		compiler->stack_pop_block();
 		compiler->compiler_stack()->pop_block();
-		return errvoid();
+		return err::ok;
 	}
 
 	errvoid Statement::parse(Cursor& c, BlockTermination& termination, ForceCompile force_compile) {
@@ -185,27 +185,27 @@ namespace Corrosive {
 					}
 
 					termination = BlockTermination::terminated;
-					if (!Statement::parse_return(c)) return pass();
-					return errvoid(); 
+					if (!Statement::parse_return(c)) return err::fail;
+					return err::ok; 
 				}else if (buf == "make") {
-					if (!Statement::parse_make(c, compile)) return pass();
-					return errvoid();
+					if (!Statement::parse_make(c, compile)) return err::fail;
+					return err::ok;
 				}
 				else if (buf == "let") {
-					if (!Statement::parse_let(c, compile)) return pass();
-					return errvoid();
+					if (!Statement::parse_let(c, compile)) return err::fail;
+					return err::ok;
 				}
 				else if (buf == "if") {
-					if (!Statement::parse_if(c, termination, compile)) return pass();
-					return errvoid();
+					if (!Statement::parse_if(c, termination, compile)) return err::fail;
+					return err::ok;
 				}
 				else if (buf == "while") {
-					if (!Statement::parse_while(c, termination, compile)) return pass();
-					return errvoid();
+					if (!Statement::parse_while(c, termination, compile)) return err::fail;
+					return err::ok;
 				}
 				else if (buf == "for") {
-					if (!Statement::parse_for(c, termination, compile)) return pass();
-					return errvoid();
+					if (!Statement::parse_for(c, termination, compile)) return err::fail;
+					return err::ok;
 				}
 				
 				else if (buf == "break") {
@@ -213,12 +213,12 @@ namespace Corrosive {
 					if (Statement::runtime(compile)) {
 
 						for (auto d = compiler->defer_scope().rbegin(); d != compiler->defer_scope().rend(); d++) {
-							if (!ILBuilder::build_call(compiler->scope(), (*d)->il_function_decl)) return pass();
+							if (!ILBuilder::build_call(compiler->scope(), (*d)->il_function_decl)) return err::fail;
 							if ((*d)->return_type->rvalue_stacked()) {
-								if (!ILBuilder::build_forget(compiler->scope(), ILDataType::word)) return pass();
+								if (!ILBuilder::build_forget(compiler->scope(), ILDataType::word)) return err::fail;
 							}
 							else {
-								if (!ILBuilder::build_forget(compiler->scope(), (*d)->return_type->rvalue())) return pass();
+								if (!ILBuilder::build_forget(compiler->scope(), (*d)->return_type->rvalue())) return err::fail;
 							}
 						}
 
@@ -226,7 +226,7 @@ namespace Corrosive {
 							return throw_specific_error(c, "Break must be called from loop");
 						}
 
-						if (!ILBuilder::build_jmp(compiler->scope(), compiler->loop_break())) return pass();
+						if (!ILBuilder::build_jmp(compiler->scope(), compiler->loop_break())) return err::fail;
 						termination = BlockTermination::breaked;
 					}
 					else {
@@ -241,19 +241,19 @@ namespace Corrosive {
 						return throw_wrong_token_error(c, "';'");
 					}
 					c.move();
-					return errvoid();
+					return err::ok;
 				}
 				else if (buf == "continue") {
 
 					if (Statement::runtime(compile)) {
 
 						for (auto d = compiler->defer_scope().rbegin(); d != compiler->defer_scope().rend(); d++) {
-							if (!ILBuilder::build_call(compiler->scope(), (*d)->il_function_decl)) return pass();
+							if (!ILBuilder::build_call(compiler->scope(), (*d)->il_function_decl)) return err::fail;
 							if ((*d)->return_type->rvalue_stacked()) {
-								if (!ILBuilder::build_forget(compiler->scope(), ILDataType::word)) return pass();
+								if (!ILBuilder::build_forget(compiler->scope(), ILDataType::word)) return err::fail;
 							}
 							else {
-								if (!ILBuilder::build_forget(compiler->scope(), (*d)->return_type->rvalue())) return pass();
+								if (!ILBuilder::build_forget(compiler->scope(), (*d)->return_type->rvalue())) return err::fail;
 							}
 						}
 
@@ -261,7 +261,7 @@ namespace Corrosive {
 							return throw_specific_error(c, "Continue must be called from loop");
 						}
 
-						if (!ILBuilder::build_jmp(compiler->scope(), compiler->loop_continue())) return pass();
+						if (!ILBuilder::build_jmp(compiler->scope(), compiler->loop_continue())) return err::fail;
 						termination = BlockTermination::breaked;
 					}
 					else {
@@ -276,7 +276,7 @@ namespace Corrosive {
 						return throw_wrong_token_error(c, "';'");
 					}
 					c.move();
-					return errvoid();
+					return err::ok;
 				}
 				else if (buf == "defer") {
 					c.move();
@@ -284,7 +284,7 @@ namespace Corrosive {
 					if (Statement::runtime(compile)) {
 						CompileValue cval;
 						Cursor err = c;
-						if (!Operand::parse(c, cval, CompileType::compile, true)) return pass();
+						if (!Operand::parse(c, cval, CompileType::compile, true)) return err::fail;
 
 						if (cval.type != compiler->types()->t_void || !cval.lvalue) {
 							return throw_specific_error(err, "Only function call can be defered");
@@ -293,7 +293,7 @@ namespace Corrosive {
 					else {
 						CompileValue cval;
 						Cursor err = c;
-						if (!Operand::parse(c, cval, CompileType::eval, true)) return pass();
+						if (!Operand::parse(c, cval, CompileType::eval, true)) return err::fail;
 
 						if (cval.type != compiler->types()->t_void || !cval.lvalue) {
 							return throw_specific_error(err, "Only function call can be defered");
@@ -304,7 +304,7 @@ namespace Corrosive {
 						return throw_wrong_token_error(c, "';'");
 					}
 					c.move();
-					return errvoid();
+					return err::ok;
 				}
 
 			}break;
@@ -313,20 +313,20 @@ namespace Corrosive {
 				if (compile == ForceCompile::no) {
 					ILBlock* block = compiler->target()->create_and_append_block();
 
-					if (!ILBuilder::build_jmp(compiler->scope(), block)) return pass();
+					if (!ILBuilder::build_jmp(compiler->scope(), block)) return err::fail;
 
 					ILBlock* continue_block = compiler->target()->create_block();
 
 					compiler->switch_scope(continue_block);
-					if (!Statement::parse_inner_block_start(block, compile)) return pass();
-					if (!Statement::parse_inner_block(c, termination, false, nullptr, compile)) return pass();
+					if (!Statement::parse_inner_block_start(block, compile)) return err::fail;
+					if (!Statement::parse_inner_block(c, termination, false, nullptr, compile)) return err::fail;
 					compiler->target()->append_block(continue_block);
 				}
 				else {
-					if (!Statement::parse_inner_block_start(nullptr, compile)) return pass();
-					if (!Statement::parse_inner_block(c, termination, false, nullptr, compile)) return pass();
+					if (!Statement::parse_inner_block_start(nullptr, compile)) return err::fail;
+					if (!Statement::parse_inner_block(c, termination, false, nullptr, compile)) return err::fail;
 				}
-				return errvoid();
+				return err::ok;
 			}break;
 		}
 
@@ -334,19 +334,19 @@ namespace Corrosive {
 
 		CompileValue ret_val;
 		if (Statement::runtime(compile)) {
-			if (!Expression::parse(c, ret_val, CompileType::compile, false)) return pass();
-			if (!Operand::deref(ret_val, CompileType::compile)) return pass();
+			if (!Expression::parse(c, ret_val, CompileType::compile, false)) return err::fail;
+			if (!Operand::deref(ret_val, CompileType::compile)) return err::fail;
 		}
 		else {
-			if (!Expression::parse(c,ret_val, CompileType::eval, false)) return pass();
-			if (!Operand::deref(ret_val, CompileType::eval)) return pass();
+			if (!Expression::parse(c,ret_val, CompileType::eval, false)) return err::fail;
+			if (!Operand::deref(ret_val, CompileType::eval)) return err::fail;
 		}
 
 		if (c.tok != RecognizedToken::Semicolon) {
 			return throw_wrong_token_error(c, "';'");
 		}
 		c.move();
-		return errvoid();
+		return err::ok;
 	}
 
 	errvoid Statement::parse_if(Cursor& c, BlockTermination& termination, ForceCompile force_compile, bool do_next) {
@@ -358,10 +358,10 @@ namespace Corrosive {
 			CompileValue test_value;
 			Cursor err = c;
 
-			if (!Expression::parse(c, test_value, CompileType::compile)) return pass();
-			if (!Operand::deref(test_value, CompileType::compile)) return pass();
-			if (!Operand::cast(err, test_value, compiler->types()->t_bool, CompileType::compile, true)) return pass();
-			if (!Expression::rvalue(test_value, CompileType::compile)) return pass();
+			if (!Expression::parse(c, test_value, CompileType::compile)) return err::fail;
+			if (!Operand::deref(test_value, CompileType::compile)) return err::fail;
+			if (!Operand::cast(err, test_value, compiler->types()->t_bool, CompileType::compile, true)) return err::fail;
+			if (!Expression::rvalue(test_value, CompileType::compile)) return err::fail;
 
 			if (c.tok != RecognizedToken::OpenBrace) {
 				return throw_wrong_token_error(c, "'{'");
@@ -369,7 +369,7 @@ namespace Corrosive {
 			c.move();
 
 			ILBlock* block_from = compiler->scope();
-			if (!ILBuilder::build_yield(block_from, ILDataType::none)) return pass();
+			if (!ILBuilder::build_yield(block_from, ILDataType::none)) return err::fail;
 
 			ILBlock* continue_block = compiler->target()->create_block();
 
@@ -378,8 +378,8 @@ namespace Corrosive {
 			ILBlock* block = compiler->target()->create_and_append_block();
 
 			BlockTermination term = BlockTermination::continued;
-			if (!Statement::parse_inner_block_start(block)) return pass();
-			if (!Statement::parse_inner_block(c, term)) return pass();
+			if (!Statement::parse_inner_block_start(block)) return err::fail;
+			if (!Statement::parse_inner_block(c, term)) return err::fail;
 
 			if (c.buffer() == "else") {
 				c.move();
@@ -390,22 +390,22 @@ namespace Corrosive {
 					ILBlock* else_block = compiler->target()->create_and_append_block();
 
 					BlockTermination term2 = BlockTermination::continued;
-					if (!Statement::parse_inner_block_start(else_block)) return pass();
-					if (!Statement::parse_inner_block(c, term2)) return pass();
+					if (!Statement::parse_inner_block_start(else_block)) return err::fail;
+					if (!Statement::parse_inner_block(c, term2)) return err::fail;
 
 					if (term == BlockTermination::terminated && term2 == BlockTermination::terminated) { termination = BlockTermination::terminated; }
 					else { termination = BlockTermination::continued; }
 
-					if (!ILBuilder::build_jmpz(block_from, else_block, block)) return pass();
+					if (!ILBuilder::build_jmpz(block_from, else_block, block)) return err::fail;
 				}
 				else if (c.buffer() == "if") {
 					BlockTermination term2 = BlockTermination::continued;
-					if (!Statement::parse_if(c, term2, force_compile)) return pass();
+					if (!Statement::parse_if(c, term2, force_compile)) return err::fail;
 
 					if (term == BlockTermination::terminated && term2 == BlockTermination::terminated) { termination = BlockTermination::terminated; }
 					else { termination = BlockTermination::continued; }
 
-					if (!ILBuilder::build_jmpz(block_from, continue_block, block)) return pass();
+					if (!ILBuilder::build_jmpz(block_from, continue_block, block)) return err::fail;
 				}
 				else {
 					termination = term;
@@ -413,7 +413,7 @@ namespace Corrosive {
 				}
 			}
 			else {
-				if (!ILBuilder::build_jmpz(block_from, continue_block, block)) return pass();
+				if (!ILBuilder::build_jmpz(block_from, continue_block, block)) return err::fail;
 			}
 
 			compiler->target()->append_block(continue_block);
@@ -423,14 +423,14 @@ namespace Corrosive {
 			CompileValue test_value;
 			Cursor err = c;
 
-			if (!Expression::parse(c, test_value, CompileType::eval)) return pass();
-			if (!Operand::deref(test_value, CompileType::eval)) return pass();
-			if (!Operand::cast(err, test_value, compiler->types()->t_bool, CompileType::eval, true)) return pass();
-			if (!Expression::rvalue(test_value, CompileType::eval)) return pass();
+			if (!Expression::parse(c, test_value, CompileType::eval)) return err::fail;
+			if (!Operand::deref(test_value, CompileType::eval)) return err::fail;
+			if (!Operand::cast(err, test_value, compiler->types()->t_bool, CompileType::eval, true)) return err::fail;
+			if (!Expression::rvalue(test_value, CompileType::eval)) return err::fail;
 
 
 			bool condition;
-			if (!compiler->evaluator()->pop_register_value<bool>(condition)) return pass();
+			if (!compiler->evaluator()->pop_register_value<bool>(condition)) return err::fail;
 
 			condition &= do_next;
 
@@ -445,7 +445,7 @@ namespace Corrosive {
 				auto scope = ScopeState();
 				if (compile != ForceCompile::force) scope.context(compiler->target()->context);
 
-				if (!Statement::parse(c, termination, compile == ForceCompile::force ? ForceCompile::force : ForceCompile::inlineblock)) return pass();
+				if (!Statement::parse(c, termination, compile == ForceCompile::force ? ForceCompile::force : ForceCompile::inlineblock)) return err::fail;
 			}
 			else {
 				condition = do_next;
@@ -457,7 +457,7 @@ namespace Corrosive {
 			if (c.buffer() == "else") {
 				c.move();
 				if (c.buffer() == "if") {
-					if (!parse_if(c, termination, compile== ForceCompile::force? ForceCompile::force: ForceCompile::no, condition)) return pass();
+					if (!parse_if(c, termination, compile== ForceCompile::force? ForceCompile::force: ForceCompile::no, condition)) return err::fail;
 				}
 				else {
 					if (c.tok != RecognizedToken::OpenBrace) {
@@ -468,7 +468,7 @@ namespace Corrosive {
 						
 						auto scope = ScopeState();
 						if (compile != ForceCompile::force) scope.context(compiler->target()->context);
-						if (!Statement::parse(c, termination, compile == ForceCompile::force ? ForceCompile::force : ForceCompile::inlineblock)) return pass();
+						if (!Statement::parse(c, termination, compile == ForceCompile::force ? ForceCompile::force : ForceCompile::inlineblock)) return err::fail;
 						
 					}
 					else {
@@ -479,7 +479,7 @@ namespace Corrosive {
 			}
 
 		}
-		return errvoid();
+		return err::ok;
 	}
 
 
@@ -492,16 +492,16 @@ namespace Corrosive {
 		if (Statement::runtime(compile)) {
 			ILBlock* test_block = compiler->target()->create_and_append_block();
 
-			if (!ILBuilder::build_jmp(compiler->scope(), test_block)) return pass();
+			if (!ILBuilder::build_jmp(compiler->scope(), test_block)) return err::fail;
 			compiler->switch_scope(test_block);
 
 			CompileValue test_value;
 			Cursor err = c;
 
-			if (!Expression::parse(c, test_value, CompileType::compile)) return pass();
-			if (!Operand::deref(test_value, CompileType::compile)) return pass();
-			if (!Operand::cast(err, test_value, compiler->types()->t_bool, CompileType::compile, true)) return pass();
-			if (!Expression::rvalue(test_value, CompileType::compile)) return pass();
+			if (!Expression::parse(c, test_value, CompileType::compile)) return err::fail;
+			if (!Operand::deref(test_value, CompileType::compile)) return err::fail;
+			if (!Operand::cast(err, test_value, compiler->types()->t_bool, CompileType::compile, true)) return err::fail;
+			if (!Expression::rvalue(test_value, CompileType::compile)) return err::fail;
 
 			if (c.tok != RecognizedToken::OpenBrace) {
 				return throw_wrong_token_error(c, "'{'");
@@ -513,11 +513,11 @@ namespace Corrosive {
 			compiler->loop_block_stack.push_back(std::make_pair(continue_block, test_block));
 
 			ILBlock* block = compiler->target()->create_and_append_block();
-			if (!Statement::parse_inner_block_start(block)) return pass();
+			if (!Statement::parse_inner_block_start(block)) return err::fail;
 			bool term = false;
-			if (!Statement::parse_inner_block(c, termination)) return pass();
+			if (!Statement::parse_inner_block(c, termination)) return err::fail;
 
-			if (!ILBuilder::build_jmpz(test_block, continue_block, block)) return pass();
+			if (!ILBuilder::build_jmpz(test_block, continue_block, block)) return err::fail;
 
 			compiler->loop_block_stack.pop_back();
 
@@ -536,10 +536,10 @@ namespace Corrosive {
 				c = save;
 				Cursor err = c;
 				CompileValue res;
-				if (!Expression::parse(c, res, CompileType::eval, true)) return pass();
-				if (!Operand::deref(res, CompileType::eval)) return pass();
-				if (!Operand::cast(err, res, compiler->types()->t_bool, CompileType::eval, true)) return pass();
-				if (!Expression::rvalue(res, CompileType::eval)) return pass();
+				if (!Expression::parse(c, res, CompileType::eval, true)) return err::fail;
+				if (!Operand::deref(res, CompileType::eval)) return err::fail;
+				if (!Operand::cast(err, res, compiler->types()->t_bool, CompileType::eval, true)) return err::fail;
+				if (!Expression::rvalue(res, CompileType::eval)) return err::fail;
 
 				if (c.tok != RecognizedToken::OpenBrace) {
 					return throw_wrong_token_error(c, "'{'");
@@ -553,7 +553,7 @@ namespace Corrosive {
 				}
 
 				bool condition;
-				if (!compiler->evaluator()->pop_register_value<bool>(condition)) return pass();
+				if (!compiler->evaluator()->pop_register_value<bool>(condition)) return err::fail;
 				if (!condition) break;
 
 
@@ -561,7 +561,7 @@ namespace Corrosive {
 					auto scope = ScopeState();
 					if (compile != ForceCompile::force) scope.context(compiler->target()->context);
 					
-					if (!Statement::parse(c, termination, compile == ForceCompile::force ? ForceCompile::force : ForceCompile::inlineblock)) return pass();
+					if (!Statement::parse(c, termination, compile == ForceCompile::force ? ForceCompile::force : ForceCompile::inlineblock)) return err::fail;
 				}
 
 				if (termination != BlockTermination::continued) break;
@@ -573,7 +573,7 @@ namespace Corrosive {
 			c = jump_over;
 
 		}
-		return errvoid();
+		return err::ok;
 	}
 
 
@@ -594,20 +594,20 @@ namespace Corrosive {
 			Cursor cc = c;
 			Cursor err = cc;
 			cc.move();
-			if (!Statement::parse(cc, termination)) return pass();
+			if (!Statement::parse(cc, termination)) return err::fail;
 
 
 			ILBlock* test_block = compiler->target()->create_and_append_block();
-			if (!ILBuilder::build_jmp(compiler->scope(), test_block)) return pass();
+			if (!ILBuilder::build_jmp(compiler->scope(), test_block)) return err::fail;
 			compiler->switch_scope(test_block);
 
 			CompileValue test_value;
 
 			err = cc;
-			if (!Expression::parse(cc, test_value, CompileType::compile)) return pass();
-			if (!Operand::deref(test_value, CompileType::compile)) return pass();
-			if (!Operand::cast(err, test_value, compiler->types()->t_bool, CompileType::compile, true)) return pass();
-			if (!Expression::rvalue(test_value, CompileType::compile)) return pass();
+			if (!Expression::parse(cc, test_value, CompileType::compile)) return err::fail;
+			if (!Operand::deref(test_value, CompileType::compile)) return err::fail;
+			if (!Operand::cast(err, test_value, compiler->types()->t_bool, CompileType::compile, true)) return err::fail;
+			if (!Expression::rvalue(test_value, CompileType::compile)) return err::fail;
 
 			if (cc.tok != RecognizedToken::Semicolon) {
 				return throw_wrong_token_error(c, "';'");
@@ -627,18 +627,18 @@ namespace Corrosive {
 			ILBlock* increment_block = compiler->target()->create_and_append_block();
 			compiler->push_scope(increment_block);
 
-			if (!Expression::parse(cc, test_value, CompileType::compile, false)) return pass();
-			if (!Operand::deref(test_value, CompileType::compile)) return pass();
-			if (!ILBuilder::build_jmp(increment_block, test_block)) return pass();
+			if (!Expression::parse(cc, test_value, CompileType::compile, false)) return err::fail;
+			if (!Operand::deref(test_value, CompileType::compile)) return err::fail;
+			if (!ILBuilder::build_jmp(increment_block, test_block)) return err::fail;
 
 			
 			compiler->loop_block_stack.push_back(std::make_pair(continue_block, increment_block));
 
 			ILBlock* block = compiler->target()->create_and_append_block();
 
-			if (!Statement::parse_inner_block_start(block)) return pass();
+			if (!Statement::parse_inner_block_start(block)) return err::fail;
 			bool term = false;
-			if (!Statement::parse_inner_block(c, termination)) return pass();
+			if (!Statement::parse_inner_block(c, termination)) return err::fail;
 			if (termination == BlockTermination::breaked) termination = BlockTermination::continued;
 
 
@@ -646,7 +646,7 @@ namespace Corrosive {
 
 			compiler->pop_scope();
 
-			if (!ILBuilder::build_jmpz(test_block, continue_block, block)) return pass();
+			if (!ILBuilder::build_jmpz(test_block, continue_block, block)) return err::fail;
 
 			compiler->switch_scope(continue_block);
 
@@ -665,7 +665,7 @@ namespace Corrosive {
 			Cursor c_init = c;
 			c_init.move();
 			BlockTermination unused;
-			if (!Statement::parse(c_init, unused, ForceCompile::force)) return pass();
+			if (!Statement::parse(c_init, unused, ForceCompile::force)) return err::fail;
 
 			CompileTimeBlockState state = CompileTimeBlockState::run;
 			compiler->push_compile_loop_state(state);
@@ -674,13 +674,13 @@ namespace Corrosive {
 				Cursor c_condition = c_init;
 				Cursor err = c_condition;
 				CompileValue res;
-				if (!Expression::parse(c_condition, res, CompileType::eval)) return pass();
-				if (!Operand::deref(res, CompileType::eval)) return pass();
-				if (!Operand::cast(err, res, compiler->types()->t_bool, CompileType::eval, true)) return pass();
-				if (!Expression::rvalue(res, CompileType::eval)) return pass();
+				if (!Expression::parse(c_condition, res, CompileType::eval)) return err::fail;
+				if (!Operand::deref(res, CompileType::eval)) return err::fail;
+				if (!Operand::cast(err, res, compiler->types()->t_bool, CompileType::eval, true)) return err::fail;
+				if (!Expression::rvalue(res, CompileType::eval)) return err::fail;
 
 				bool condition;
-				if (!compiler->evaluator()->pop_register_value<bool>(condition)) return pass();
+				if (!compiler->evaluator()->pop_register_value<bool>(condition)) return err::fail;
 				if (!condition) break;
 
 
@@ -689,7 +689,7 @@ namespace Corrosive {
 				{
 					auto scope = ScopeState();
 					if (compile != ForceCompile::force) scope.context(compiler->target()->context);
-					if (!Statement::parse(statement_copy, termination, compile == ForceCompile::force ? ForceCompile::force : ForceCompile::inlineblock)) return pass();
+					if (!Statement::parse(statement_copy, termination, compile == ForceCompile::force ? ForceCompile::force : ForceCompile::inlineblock)) return err::fail;
 				}
 
 				if (termination == BlockTermination::terminated) break;
@@ -700,7 +700,7 @@ namespace Corrosive {
 					return throw_wrong_token_error(c_condition, "';'");
 				}
 				c_condition.move();
-				if (!Expression::parse(c_condition, res, CompileType::eval,false)) return pass();
+				if (!Expression::parse(c_condition, res, CompileType::eval,false)) return err::fail;
 			}
 			compiler->pop_compile_loop_state();
 
@@ -710,7 +710,7 @@ namespace Corrosive {
 			c.move_matching();
 			c.move();
 		}
-		return errvoid();
+		return err::ok;
 		
 	}
 
@@ -732,21 +732,21 @@ namespace Corrosive {
 		c.move();
 		CompileValue ret_val;
 		Cursor err = c;
-		if (!Expression::parse(c, ret_val, CompileType::compile)) return pass();
-		if (!Operand::deref(ret_val, CompileType::compile)) return pass();
+		if (!Expression::parse(c, ret_val, CompileType::compile)) return err::fail;
+		if (!Operand::deref(ret_val, CompileType::compile)) return err::fail;
 
 		Type* to = compiler->return_type();
-		if (!Operand::cast(err, ret_val, to, CompileType::compile, false)) return pass();
-		if (!Expression::rvalue(ret_val, CompileType::compile)) return pass();
+		if (!Operand::cast(err, ret_val, to, CompileType::compile, false)) return err::fail;
+		if (!Expression::rvalue(ret_val, CompileType::compile)) return err::fail;
 
 		if (compiler->return_type()->rvalue_stacked()) {
-			if (!ILBuilder::build_local(compiler->scope(), 0)) return pass();
-			if (!ILBuilder::build_load(compiler->scope(), ILDataType::word)) return pass();
-			if (!Expression::copy_from_rvalue(compiler->return_type(), CompileType::compile)) return pass();
+			if (!ILBuilder::build_local(compiler->scope(), 0)) return err::fail;
+			if (!ILBuilder::build_load(compiler->scope(), ILDataType::word)) return err::fail;
+			if (!Expression::copy_from_rvalue(compiler->return_type(), CompileType::compile)) return err::fail;
 		}
 		else {
 			if (has_defer) {
-				if (!ILBuilder::build_yield(compiler->scope(), compiler->return_type()->rvalue())) return pass();
+				if (!ILBuilder::build_yield(compiler->scope(), compiler->return_type()->rvalue())) return err::fail;
 			}
 		}
 
@@ -754,30 +754,30 @@ namespace Corrosive {
 
 		for (auto ds = compiler->defer_function().rbegin(); ds != compiler->defer_function().rend(); ds++) {
 			for (auto d = ds->rbegin(); d != ds->rend(); d++) {
-				if (!ILBuilder::build_call(compiler->scope(), (*d)->il_function_decl)) return pass();
+				if (!ILBuilder::build_call(compiler->scope(), (*d)->il_function_decl)) return err::fail;
 				if ((*d)->return_type->rvalue_stacked()) {
-					if (!ILBuilder::build_forget(compiler->scope(), ILDataType::word)) return pass();
+					if (!ILBuilder::build_forget(compiler->scope(), ILDataType::word)) return err::fail;
 				}
 				else {
-					if (!ILBuilder::build_forget(compiler->scope(), (*d)->return_type->rvalue())) return pass();
+					if (!ILBuilder::build_forget(compiler->scope(), (*d)->return_type->rvalue())) return err::fail;
 				}
 			}
 		}
 
 
 		if (compiler->return_type()->rvalue_stacked()) {
-			if (!ILBuilder::build_ret(compiler->scope(), ILDataType::none)) return pass();
+			if (!ILBuilder::build_ret(compiler->scope(), ILDataType::none)) return err::fail;
 		}
 		else {
 
 			if (has_defer) {
 				ILBlock* exit_block = compiler->target()->create_and_append_block();
-				if (!ILBuilder::build_jmp(compiler->scope(), exit_block)) return pass();
+				if (!ILBuilder::build_jmp(compiler->scope(), exit_block)) return err::fail;
 				compiler->switch_scope(exit_block);
-				if (!ILBuilder::build_accept(exit_block, compiler->return_type()->rvalue())) return pass();
+				if (!ILBuilder::build_accept(exit_block, compiler->return_type()->rvalue())) return err::fail;
 			}
 
-			if (!ILBuilder::build_ret(compiler->scope(), compiler->return_type()->rvalue())) return pass();
+			if (!ILBuilder::build_ret(compiler->scope(), compiler->return_type()->rvalue())) return err::fail;
 		}
 
 
@@ -786,7 +786,7 @@ namespace Corrosive {
 		}
 
 		c.move();
-		return errvoid();
+		return err::ok;
 	}
 
 	errvoid Statement::parse_let(Cursor& c, ForceCompile force_compile) {
@@ -825,11 +825,11 @@ namespace Corrosive {
 
 			Cursor err = c;
 			CompileValue val;
-			if (!Expression::parse(c, val, CompileType::compile)) return pass();
-			if (!Operand::deref(val, CompileType::compile)) return pass();
+			if (!Expression::parse(c, val, CompileType::compile)) return err::fail;
+			if (!Operand::deref(val, CompileType::compile)) return err::fail;
 
 			if (!reference) {
-				if (!Expression::rvalue(val, CompileType::compile)) return pass();
+				if (!Expression::rvalue(val, CompileType::compile)) return err::fail;
 			}
 			else {
 				if (!val.lvalue) {
@@ -837,7 +837,7 @@ namespace Corrosive {
 				}
 			}
 			Type* new_t = val.type;
-			if (!new_t->compile()) return pass();
+			if (!new_t->compile()) return err::fail;
 
 			if (new_t->context() != ILContext::both && compiler->scope_context() != new_t->context()) {
 				return throw_specific_error(err, "Type was not designed for this context");
@@ -851,18 +851,18 @@ namespace Corrosive {
 			compiler->stack()->push_item(name.buffer(), new_t, local_id);
 
 
-			if (!ILBuilder::build_local(compiler->scope(), local_id)) return pass();
-			if (!Expression::copy_from_rvalue(new_t, CompileType::compile)) return pass();
+			if (!ILBuilder::build_local(compiler->scope(), local_id)) return err::fail;
+			if (!Expression::copy_from_rvalue(new_t, CompileType::compile)) return err::fail;
 		}
 		else {
 
 			Cursor err = c;
 			CompileValue val;
-			if (!Expression::parse(c, val, CompileType::eval)) return pass();
-			if (!Operand::deref(val, CompileType::eval)) return pass();
+			if (!Expression::parse(c, val, CompileType::eval)) return err::fail;
+			if (!Operand::deref(val, CompileType::eval)) return err::fail;
 
 			if (!reference) {
-				if (!Expression::rvalue(val, CompileType::eval)) return pass();
+				if (!Expression::rvalue(val, CompileType::eval)) return err::fail;
 			}
 			else {
 				if (!val.lvalue) {
@@ -870,7 +870,7 @@ namespace Corrosive {
 				}
 			}
 			Type* new_t = val.type;
-			if (!new_t->compile()) return pass();
+			if (!new_t->compile()) return err::fail;
 
 			if (new_t->context() != ILContext::both && compiler->scope_context() != new_t->context()) {
 				return throw_specific_error(err, "Type was not designed for this context");
@@ -885,15 +885,15 @@ namespace Corrosive {
 
 			compiler->compiler_stack()->push_item(name.buffer(), new_t, loc_id);
 
-			if (!ILBuilder::eval_const_word(compiler->evaluator(), loc_ptr)) return pass();
-			if (!Expression::copy_from_rvalue(new_t, CompileType::eval)) return pass();
+			if (!ILBuilder::eval_const_word(compiler->evaluator(), loc_ptr)) return err::fail;
+			if (!Expression::copy_from_rvalue(new_t, CompileType::eval)) return err::fail;
 		}
 		
 		if (c.tok != RecognizedToken::Semicolon) {
 			return throw_wrong_token_error(c, "';'");
 		}
 		c.move();
-		return errvoid();
+		return err::ok;
 	}
 
 	errvoid Statement::parse_make(Cursor& c, ForceCompile force_compile) {
@@ -919,9 +919,9 @@ namespace Corrosive {
 				auto scope = ScopeState().context(ILContext::compile);
 
 
-				if (!Expression::parse(c, val, CompileType::eval)) return pass();
-				if (!Operand::deref(val, CompileType::eval)) return pass();
-				if (!Expression::rvalue(val, CompileType::eval)) return pass();
+				if (!Expression::parse(c, val, CompileType::eval)) return err::fail;
+				if (!Operand::deref(val, CompileType::eval)) return err::fail;
+				if (!Expression::rvalue(val, CompileType::eval)) return err::fail;
 
 				if (val.type != compiler->types()->t_type) {
 					return throw_specific_error(err, "Exprected type");
@@ -930,9 +930,9 @@ namespace Corrosive {
 			}
 
 			Type* new_t;
-			if (!compiler->evaluator()->pop_register_value<Type*>(new_t)) return pass();
-			if (!Type::assert(err, new_t)) return pass();
-			if (!new_t->compile()) return pass();
+			if (!compiler->evaluator()->pop_register_value<Type*>(new_t)) return err::fail;
+			if (!Type::assert(err, new_t)) return err::fail;
+			if (!new_t->compile()) return err::fail;
 
 			if (new_t->context() != ILContext::both && compiler->scope_context() != new_t->context()) {
 				return throw_specific_error(err, "Type was not designed for this context");
@@ -947,18 +947,18 @@ namespace Corrosive {
 			CompileValue val;
 
 
-			if (!Expression::parse(c, val, CompileType::eval)) return pass();
-			if (!Operand::deref(val, CompileType::eval)) return pass();
-			if (!Expression::rvalue(val, CompileType::eval)) return pass();
+			if (!Expression::parse(c, val, CompileType::eval)) return err::fail;
+			if (!Operand::deref(val, CompileType::eval)) return err::fail;
+			if (!Expression::rvalue(val, CompileType::eval)) return err::fail;
 
 			if (val.type != compiler->types()->t_type) {
 				return throw_specific_error(err, "Exprected type");
 			}
 
 			Type* new_t;
-			if (!compiler->evaluator()->pop_register_value<Type*>(new_t)) return pass();
-			if (!Type::assert(err, new_t)) return pass();
-			if (!new_t->compile()) return pass();
+			if (!compiler->evaluator()->pop_register_value<Type*>(new_t)) return err::fail;
+			if (!Type::assert(err, new_t)) return err::fail;
+			if (!new_t->compile()) return err::fail;
 
 			if (new_t->context() != ILContext::both && compiler->scope_context() != new_t->context()) {
 				return throw_specific_error(err, "Type was not designed for this context");
@@ -973,6 +973,6 @@ namespace Corrosive {
 			return throw_wrong_token_error(c, "';'");
 		}
 		c.move();
-		return errvoid();
+		return err::ok;
 	}
 }
