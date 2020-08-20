@@ -585,7 +585,11 @@ namespace Corrosive {
 							argtypes.push_back(a);
 						}
 
-						ft->type = compiler->types()->load_or_register_function_type(ft->ast_node->convention, std::move(argtypes), ft->returns, ft->ast_node->context);
+						TypeFunction* fun_type = compiler->types()->load_or_register_function_type(ft->ast_node->convention, std::move(argtypes), ft->returns, ft->ast_node->context);
+						auto fun_inst_type = std::make_unique<TypeFunctionInstance>();
+						fun_inst_type->owner = ft.get();
+						fun_inst_type->function_type = fun_type;
+						ft->type = std::move(fun_inst_type);
 						ft->compile_state = 1;
 						trait[ttid->second] = std::move(ft);
 
@@ -680,6 +684,46 @@ namespace Corrosive {
 
 		sinst->member_table[name] = std::make_pair((std::uint16_t)sinst->member_vars.size(), MemberTableEntryType::var);
 		sinst->member_vars.push_back(std::make_pair(type, 0));
+	}
+
+
+	
+	void StructureTemplate::include_wrapper(Type* type) {
+		Compiler* compiler = Compiler::current();
+		StructureInstance* sinst = (StructureInstance*)compiler->workspace();
+
+		switch (type->type()) {
+			case TypeInstanceType::type_function_template: {
+
+				TypeFunctionTemplate* func = (TypeFunctionTemplate*)type;
+				auto ft = std::make_unique<FunctionTemplate>();
+				ft->ast_node = func->owner->ast_node;
+				ft->compile_state = 0;
+				ft->parent = sinst;
+				ft->type = std::make_unique<TypeFunctionTemplate>();
+				ft->type->owner = ft.get();
+				ft->generic_ctx.generator = &sinst->generic_inst;
+				if (!ft->compile()) { ILEvaluator::ex_throw(); return; }
+				
+				if (dynamic_cast<AstFunctionNode*>(ft->ast_node) && !((AstFunctionNode*)ft->ast_node)->is_generic) {
+					FunctionInstance* finst;
+					if (!ft->compile()) {ILEvaluator::ex_throw(); return;}
+					if (!ft->generate(nullptr, finst)){ILEvaluator::ex_throw(); return;}
+
+					if (finst->arguments.size()>1 && finst->arguments[0] == sinst->type.get()) {
+						sinst->member_table[ft->ast_node->name_string] = std::make_pair((tableelement_t)sinst->subfunctions.size(),MemberTableEntryType::func);
+					}
+				}
+
+				sinst->name_table[ft->ast_node->name_string] = std::make_pair((std::uint8_t)2, (std::uint32_t)sinst->subfunctions.size());
+				sinst->subfunctions.push_back(std::move(ft));
+
+			} break;
+
+			default:
+				throw_runtime_exception(Compiler::current()->evaluator(), "included type is not function instance or function template");
+				ILEvaluator::ex_throw();
+		}
 	}
 
 	void StructureTemplate::var_alias_wrapper(dword_t dw, Type* type) {
@@ -1028,9 +1072,13 @@ namespace Corrosive {
 				argtypes.push_back(a);
 			}
 
-			new_inst->type = compiler->types()->load_or_register_function_type(ast_node->convention, std::move(argtypes), new_inst->returns, new_inst->context);
-			new_inst->compile_state = 1;
+			TypeFunction* fun_type = compiler->types()->load_or_register_function_type(ast_node->convention, std::move(argtypes), new_inst->returns, new_inst->context);
+			auto fun_inst_type = std::make_unique<TypeFunctionInstance>();
+			fun_inst_type->function_type = fun_type;
+			fun_inst_type->owner = new_inst;
 
+			new_inst->type = std::move(fun_inst_type);
+			new_inst->compile_state = 1;
 		}
 
 		return err::ok;
@@ -1042,10 +1090,10 @@ namespace Corrosive {
 
 			if (ast_node->has_body()) {
 				Compiler* compiler = Compiler::current();
-				if(!type->compile()) return err::fail;
+				if(!type->function_type->compile()) return err::fail;
 				auto func = compiler->global_module()->create_function(context);
 				this->func = func;
-				func->decl_id = type->il_function_decl;
+				func->decl_id = type->function_type->il_function_decl;
 
 				ILBlock* b = func->create_and_append_block();
 
@@ -1111,7 +1159,7 @@ namespace Corrosive {
 				}
 			}
 			else {
-				if(!type->compile()) return err::fail;
+				if(!type->function_type->compile()) return err::fail;
 				std::string name = std::string(ast_node->name_string);
 				Namespace* nspc = parent;
 				while(nspc && nspc->ast_node) {
@@ -1127,7 +1175,7 @@ namespace Corrosive {
 
 				auto func = Compiler::current()->global_module()->create_native_function(name);
 				this->func = func;
-				func->decl_id = type->il_function_decl;
+				func->decl_id = type->function_type->il_function_decl;
 				compile_state = 3;
 			}
 		}

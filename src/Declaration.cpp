@@ -7,7 +7,10 @@
 
 namespace Corrosive {
 
-	FindNameResult Namespace::find_name(std::string_view name) {
+	FindNameResult Namespace::find_name(std::string_view name, bool recurse_up ) {
+		if (name == "printany") {
+			int i = 0;
+		}
 		auto res = name_table.find(name);
 		if (res != name_table.end()) {
 
@@ -19,8 +22,8 @@ namespace Corrosive {
 				case 4: return substatics[res->second.second].get();
 			}
 		}
-		else if (parent) {
-			return parent->find_name(name);
+		else if (recurse_up && parent) {
+			return parent->find_name(name,true);
 		}
 
 		return nullptr;

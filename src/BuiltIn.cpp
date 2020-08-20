@@ -116,13 +116,13 @@ namespace Corrosive {
 
 		if (data_string == "compiler_standard_libraries") {
 			FunctionInstance* r;
-			if (!Compiler::current()->register_native_function(r, { "std","print_slice" }, (void*)StandardLibraryCode::print)) ILEvaluator::ex_throw();
-			if (!Compiler::current()->register_native_function(r, { "std","malloc" }, (void*)StandardLibraryCode::malloc)) ILEvaluator::ex_throw();
-			if (!Compiler::current()->register_native_function(r, { "std","realloc" }, (void*)StandardLibraryCode::realloc)) ILEvaluator::ex_throw();
-			if (!Compiler::current()->register_native_function(r, { "std","free" }, (void*)StandardLibraryCode::free)) ILEvaluator::ex_throw();
-			if (!Compiler::current()->register_native_function(r, { "std","library","share" }, (void*)StandardLibraryCode::share)) ILEvaluator::ex_throw();
-			if (!Compiler::current()->register_native_function(r, { "std","library","function" }, (void*)StandardLibraryCode::function)) ILEvaluator::ex_throw();
-			if (!Compiler::current()->register_native_function(r, { "std","library","release" }, (void*)StandardLibraryCode::release)) ILEvaluator::ex_throw();
+			if (!Compiler::current()->register_native_function(r, { "std","print_slice" }, (void*)StandardLibraryCode::print)) { ILEvaluator::ex_throw(); return; }
+			if (!Compiler::current()->register_native_function(r, { "std","malloc" }, (void*)StandardLibraryCode::malloc)) { ILEvaluator::ex_throw(); return; }
+			if (!Compiler::current()->register_native_function(r, { "std","realloc" }, (void*)StandardLibraryCode::realloc)) { ILEvaluator::ex_throw(); return; }
+			if (!Compiler::current()->register_native_function(r, { "std","free" }, (void*)StandardLibraryCode::free)) { ILEvaluator::ex_throw(); return; }
+			if (!Compiler::current()->register_native_function(r, { "std","library","share" }, (void*)StandardLibraryCode::share)) { ILEvaluator::ex_throw(); return; }
+			if (!Compiler::current()->register_native_function(r, { "std","library","function" }, (void*)StandardLibraryCode::function)) { ILEvaluator::ex_throw(); return; }
+			if (!Compiler::current()->register_native_function(r, { "std","library","release" }, (void*)StandardLibraryCode::release)) { ILEvaluator::ex_throw(); return; }
 		}
 	}
 
@@ -235,13 +235,14 @@ namespace Corrosive {
 			"namespace compiler {\n"
 			"fn compile native reference_of: (type) type;\n"
 			"fn compile native array_of: (type, u32) type;\n"
-			"fn compile native native_subtype_of: (type,[]u8) type;\n"
+			"fn compile native subtype_of: (type,[]u8) type;\n"
 			"fn compile native slice_of: (type) type;\n"
 			"fn compile native type_size: (type) size;\n"
 			"fn compile native require: ([]u8);\n"
 			"fn compile native entry: ([]u8);\n"
 			"fn compile native build: ();\n"
 			"fn compile native var: ([]u8, type);\n"
+			"fn compile native include: (type);\n"
 			"fn compile native var_alias: ([]u8, type);\n"
 			"fn compile native link: ([]u8);\n"
 			"fn compile native print_type: (type);\n"
@@ -290,6 +291,7 @@ namespace Corrosive {
 		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","require" }, (void*)Source::require_wrapper)) return err::fail;
 		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","build" }, (void*)BuiltInCode::compile)) return err::fail;
 		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","var" }, (void*)StructureTemplate::var_wrapper)) return err::fail;
+		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","include" }, (void*)StructureTemplate::include_wrapper)) return err::fail;
 		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","var_alias" }, (void*)StructureTemplate::var_alias_wrapper)) return err::fail;
 		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","entry" }, (void*)BuiltInCode::entry_point)) return err::fail;
 		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","link" }, (void*)BuiltInCode::ask_for)) return err::fail;

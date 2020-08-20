@@ -193,27 +193,6 @@ namespace Corrosive {
 			res.lvalue = false;
 			res.type = to;
 		}
-		/*else if (res.type == compiler->types()->t_ptr && to->type() == TypeInstanceType::type_function) {
-			if (!Expression::rvalue(res, cpt)) return err::fail;
-			res.lvalue = false;
-			res.type = to;
-		}
-		else if (to == compiler->types()->t_ptr && res.type->type() == TypeInstanceType::type_function) {
-			if (!Expression::rvalue(res, cpt)) return err::fail;
-			res.lvalue = false;
-			res.type = to;
-		}
-		else if (res.type->type() == TypeInstanceType::type_reference && to->type() == TypeInstanceType::type_reference) {
-			if (res.type != to && implicit) {
-				if (((TypeReference*)to)->owner != compiler->types()->t_void) {
-					return throw_cannot_implicit_cast_error(err, res.type, to);
-				}
-			}
-
-			if (!Expression::rvalue(res, cpt)) return err::fail;
-			res.lvalue = false;
-			res.type = to;
-		}*/
 		else if (to->type() == TypeInstanceType::type_reference && ((TypeReference*)to)->owner == res.type) {
 			TypeReference* tr = (TypeReference*)to;
 			if (tr->owner != res.type) {
@@ -829,7 +808,7 @@ namespace Corrosive {
 			}
 		}
 		else {
-			found = compiler->workspace()->find_name(c.buffer());
+			found = compiler->workspace()->find_name(c.buffer(),true);
 
 			if (found.type() == FindNameResultType::None) {
 				return throw_specific_error(c, "Path start point not found");
@@ -853,7 +832,7 @@ namespace Corrosive {
 
 		while (found.type() == FindNameResultType::Structure) {
 			auto struct_inst = found.get_structure();
-			if (!struct_inst->compile()) return false;
+			if (!struct_inst->compile()) return err::fail;
 
 			StructureInstance* inst;
 			if (struct_inst->ast_node->is_generic) {
@@ -879,9 +858,12 @@ namespace Corrosive {
 				res.lvalue = false;
 				return err::ok;
 			}
-			c.move();
 
+			c.move();
 			found = inst->find_name(c.buffer());
+			if (found.type() == FindNameResultType::None) {
+				return throw_specific_error(c, "This symbol is not a member of provided structure");
+			}
 			c.move();
 		}
 
@@ -897,7 +879,7 @@ namespace Corrosive {
 
 
 				if (!ILBuilder::build_fnptr(compiler->scope(), inst->func)) return err::fail;
-				res.type = inst->type;
+				res.type = inst->type->function_type;
 				res.lvalue = false;
 
 				return err::ok;
@@ -916,7 +898,7 @@ namespace Corrosive {
 				if (!inst->compile()) return err::fail;
 
 				if (!ILBuilder::build_fnptr(compiler->scope(), inst->func)) return err::fail;
-				res.type = inst->type;
+				res.type = inst->type->function_type;
 				res.lvalue = false;
 				return err::ok;
 			}
@@ -1214,7 +1196,7 @@ namespace Corrosive {
 
 				Cursor err = c;
 
-				auto res = compiler->workspace()->find_name(c.buffer());
+				auto res = compiler->workspace()->find_name(c.buffer(),true);
 
 				if (res.type() == FindNameResultType::None) {
 					return throw_specific_error(c, "Path start point not found");
@@ -1240,32 +1222,12 @@ namespace Corrosive {
 					if (!struct_inst->compile()) return err::fail;
 
 					if (struct_inst->ast_node->is_generic) {
-						if (cpt == CompileType::eval) {
-
-							if (!ILBuilder::eval_const_word(compiler->evaluator(), struct_inst->type.get())) return err::fail;
-						}
-						else if (cpt == CompileType::compile) {
-							if (compiler->scope_context() != ILContext::compile) {
-								return throw_specific_error(err, "Use of a type in runtime context");
-							}
-
-							if (!ILBuilder::build_const_word(compiler->scope(), struct_inst->type.get())) return err::fail;
-						}
+						if (!ILBuilder::eval_const_word(compiler->evaluator(), struct_inst->type.get())) return err::fail;
 					}
 					else {
 						StructureInstance* inst;
 						if (!struct_inst->generate(nullptr, inst)) return err::fail;
-
-						if (cpt == CompileType::eval) {
-							if (!ILBuilder::eval_const_word(compiler->evaluator(), inst->type.get())) return err::fail;
-						}
-						else if (cpt == CompileType::compile) {
-							if (compiler->scope_context() != ILContext::compile) {
-								return throw_specific_error(err, "Use of a type in runtime context");
-							}
-
-							if (!ILBuilder::build_const_word(compiler->scope(), inst->type.get())) return err::fail;
-						}
+						if (!ILBuilder::eval_const_word(compiler->evaluator(), inst->type.get())) return err::fail;
 					}
 
 					ret.lvalue = false;
@@ -1278,30 +1240,13 @@ namespace Corrosive {
 					if (!(func_inst->ast_node->has_body() && ((AstFunctionNode*)func_inst->ast_node)->is_generic)) {
 						FunctionInstance* inst;
 						if (!func_inst->generate(nullptr, inst)) return err::fail;
-						if (!inst->compile()) return err::fail;
 
-						if (cpt == CompileType::eval) {
-							if (!ILBuilder::eval_fnptr(compiler->evaluator(), inst->func)) return err::fail;
-						}
-						else if (cpt == CompileType::compile) {
-							if (!ILBuilder::build_fnptr(compiler->scope(), inst->func)) return err::fail;
-						}
-
+						if (!ILBuilder::eval_const_word(compiler->evaluator(), inst->type.get())) return err::fail;
 						ret.lvalue = false;
-						ret.type = inst->type;
+						ret.type = compiler->types()->t_type;
 					}
 					else {
-						if (cpt == CompileType::eval) {
-							if (!ILBuilder::eval_const_word(compiler->evaluator(), func_inst->type.get())) return err::fail;
-						}
-						else if (cpt == CompileType::compile) {
-							if (compiler->scope_context() != ILContext::compile) {
-								return throw_specific_error(err, "Use of a type in runtime context");
-
-							}
-
-							if (!ILBuilder::build_const_word(compiler->scope(), func_inst->type.get())) return err::fail;
-						}
+						if (!ILBuilder::eval_const_word(compiler->evaluator(), func_inst->type.get())) return err::fail;
 
 						ret.lvalue = false;
 						ret.type = compiler->types()->t_type;
@@ -1311,35 +1256,13 @@ namespace Corrosive {
 					if (!trait_inst->compile()) return err::fail;
 
 					if (trait_inst->ast_node->is_generic) {
-						if (cpt == CompileType::eval) {
-							if (!ILBuilder::eval_const_word(compiler->evaluator(), trait_inst->type.get())) return err::fail;
-						}
-						else if (cpt == CompileType::compile) {
-							if (compiler->scope_context() != ILContext::compile) {
-								return throw_specific_error(err, "Use of a type in runtime context");
-
-							}
-
-							if (!ILBuilder::build_const_word(compiler->scope(), trait_inst->type.get())) return err::fail;
-						}
+						if (!ILBuilder::eval_const_word(compiler->evaluator(), trait_inst->type.get())) return err::fail;
 					}
 					else {
 						TraitInstance* inst;
 						if (!trait_inst->generate(nullptr, inst)) return err::fail;
-
-						if (cpt == CompileType::eval) {
-							if (!ILBuilder::eval_const_word(compiler->evaluator(), inst->type.get())) return err::fail;
-						}
-						else if (cpt == CompileType::compile) {
-							if (compiler->scope_context() != ILContext::compile) {
-								return throw_specific_error(err, "Use of a type in runtime context");
-
-							}
-							if (!ILBuilder::build_const_word(compiler->scope(), inst->type.get())) return err::fail;
-						}
+						if (!ILBuilder::eval_const_word(compiler->evaluator(), inst->type.get())) return err::fail;
 					}
-
-
 
 					ret.lvalue = false;
 					ret.type = compiler->types()->t_type;
@@ -1347,16 +1270,8 @@ namespace Corrosive {
 				else if (auto static_inst = res.get_static()) {
 					if (!static_inst->compile()) return err::fail;
 
-					if (static_inst->context != ILContext::both && static_inst->context != compiler->scope_context()) {
-						return throw_specific_error(nm_err, "Static declaration is not targeted for this context");
-					}
-
-					if (cpt == CompileType::compile) {
-						if (!ILBuilder::build_staticref(compiler->scope(), static_inst->sid)) return err::fail;
-					}
-					else {
-						if (!ILBuilder::eval_staticref(compiler->evaluator(), static_inst->sid)) return err::fail;
-					}
+					if (!ILBuilder::eval_staticref(compiler->evaluator(), static_inst->sid)) return err::fail;
+					
 					ret.lvalue = true;
 					ret.type = static_inst->type;
 				}
@@ -1546,7 +1461,6 @@ namespace Corrosive {
 
 		if (layout != generating->generic_ctx.generic_layout.end()) {
 			return throw_specific_error(c, "Not enough arguments");
-
 		}
 
 		c.move();
@@ -1706,13 +1620,12 @@ namespace Corrosive {
 				if (!compiler->evaluator()->pop_register_value<Type*>(dt)) return err::fail;
 				if (!Type::assert(nm_err, dt)) return err::fail;
 
-				if (dt->type() != TypeInstanceType::type_structure_template && dt->type() != TypeInstanceType::type_trait_template && dt->type() != TypeInstanceType::type_function_template) {
-					return throw_specific_error(c, "this type is not a generic type");
-
+				if (dt->type() != TypeInstanceType::type_structure_template && dt->type() != TypeInstanceType::type_trait_template && dt->type() != TypeInstanceType::type_function_template && dt->type() != TypeInstanceType::type_function_instance) {
+					return throw_specific_error(c, "this type is not a generic type or function instance");
 				}
-				c.move();
 
 				if (dt->type() == TypeInstanceType::type_structure_template) {
+					c.move();
 					StructureInstance* inst;
 					if (!Operand::parse_generate_template(c, ((TypeStructureTemplate*)dt)->owner, inst)) return err::fail;
 					if (!ILBuilder::eval_const_word(compiler->evaluator(), inst->type.get())) return err::fail;
@@ -1722,6 +1635,7 @@ namespace Corrosive {
 
 				}
 				else if (dt->type() == TypeInstanceType::type_trait_template) {
+					c.move();
 					TraitInstance* inst;
 					if (!Operand::parse_generate_template(c, ((TypeTraitTemplate*)dt)->owner, inst)) return err::fail;
 					if (!ILBuilder::eval_const_word(compiler->evaluator(), inst->type.get())) return err::fail;
@@ -1730,17 +1644,23 @@ namespace Corrosive {
 					ret.type = compiler->types()->t_type;
 				}
 				else if (dt->type() == TypeInstanceType::type_function_template) {
+					c.move();
 					FunctionInstance* inst;
 					if (!Operand::parse_generate_template(c, ((TypeFunctionTemplate*)dt)->owner, inst)) return err::fail;
-					if (!inst->compile()) return err::fail;
+					if (!ILBuilder::eval_const_word(compiler->evaluator(), inst->type.get())) return err::fail;
 
+					ret.lvalue = false;
+					ret.type = compiler->types()->t_type;
+				}else if (dt->type() == TypeInstanceType::type_function_instance) {
+					FunctionInstance* inst = ((TypeFunctionInstance*)dt)->owner;
+					if (!inst->compile()) return err::fail;
 					if (!ILBuilder::eval_fnptr(compiler->evaluator(), inst->func)) return err::fail;
 
 					ret.lvalue = false;
-					ret.type = inst->type;
+					ret.type = ((TypeFunctionInstance*)dt)->function_type;
+
+					if (!Operand::function_call(ret, c, CompileType::eval, 0, targets_defer)) return err::fail;
 				}
-
-
 
 			}
 			else if (ret.type->type() == TypeInstanceType::type_template) {
@@ -1808,9 +1728,20 @@ namespace Corrosive {
 		}
 		else if (ret.type->type() == TypeInstanceType::type_function) {
 			if (!Operand::function_call(ret, c, cpt, 0,targets_defer)) return err::fail;
-		}
-		else {
-			return throw_specific_error(c, "not implemented yet");
+		} else if (ret.type->type() == TypeInstanceType::type_function_instance) {
+			if (!((TypeFunctionInstance*)ret.type)->owner->compile()) return err::fail;
+
+			if (cpt == CompileType::compile) {
+				if (!ILBuilder::build_fnptr(compiler->scope(), ((TypeFunctionInstance*)ret.type)->owner->func)) return err::fail;
+			} else {
+				if (!ILBuilder::eval_fnptr(compiler->evaluator(), ((TypeFunctionInstance*)ret.type)->owner->func)) return err::fail;	
+			}
+
+			ret.type = ((TypeFunctionInstance*)ret.type)->function_type;
+
+			if (!Operand::function_call(ret, c, cpt, 0,targets_defer)) return err::fail;
+		} else {
+			return throw_specific_error(c, "Operator () cant be used on this type");
 		}
 		return err::ok;
 
@@ -1895,7 +1826,7 @@ namespace Corrosive {
 			if (!Operand::structure_element_offset(ret, si->pass_array_id, cpt)) return err::fail;
 		}
 
-		if (ret.type->type() == TypeInstanceType::type_reference){
+		if (ret.type->type() == TypeInstanceType::type_reference) {
 			TypeReference* tr = (TypeReference*)ret.type;
 
 			if (tr->owner->type() == TypeInstanceType::type_slice || tr->owner->type() == TypeInstanceType::type_array) {
@@ -2108,7 +2039,7 @@ namespace Corrosive {
 
 						if (!ILBuilder::eval_fnptr(compiler->evaluator(), finst->func)) return err::fail;
 
-						ret.type = finst->type;
+						ret.type = finst->type->function_type;
 						ret.lvalue = false;
 						if (!Operand::function_call(ret, c, cpt, 0, targets_defer)) return err::fail;
 					}break;
@@ -2137,15 +2068,22 @@ namespace Corrosive {
 	}
 
 	errvoid Operand::function_call(CompileValue& ret, Cursor& c, CompileType cpt, unsigned int argi, bool targets_defer) {
+		if (ret.type->type() != TypeInstanceType::type_function) {
+			return throw_specific_error(c, "Compiler error, passed wrong type to function call");
+		}
+
 		Compiler* compiler = Compiler::current();
 		if (!Expression::rvalue(ret, cpt)) return err::fail;
 
-		TypeFunction* ft = (TypeFunction*)ret.type;
+		TypeFunction* ft = (TypeFunction*)ret.type;		 
 
 		if (ft->context() != ILContext::both && compiler->scope_context() != ft->context()) {
 			return throw_specific_error(c, "Cannot call function with different context specifier");
 		}
 
+		if (c.tok != RecognizedToken::OpenParenthesis) {
+			return throw_wrong_token_error(c, "'('");
+		}
 		c.move();
 
 		CompileValue retval;
@@ -2211,7 +2149,6 @@ namespace Corrosive {
 
 			if (argi != compiler->types()->argument_array_storage.get(ft->argument_array_id).size()) {
 				return throw_specific_error(c, "Wrong number of arguments");
-
 			}
 
 			c.move();
@@ -2665,7 +2602,7 @@ namespace Corrosive {
 								if (!ILBuilder::eval_fnptr(compiler->evaluator(), finst->func)) return err::fail;
 							}
 
-							ret.type = finst->type;
+							ret.type = finst->type->function_type;
 							ret.lvalue = false;
 							if (!Operand::function_call(ret, c, cpt, 1, targets_defer)) return err::fail;
 							return err::ok;

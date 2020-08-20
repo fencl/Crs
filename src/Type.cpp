@@ -237,10 +237,6 @@ namespace Corrosive {
 	bool Type::rvalue_stacked() {
 		return false;
 	}
-	
-	bool TypeSlice::rvalue_stacked() {
-		return false;
-	}
 
 	bool TypeArray::rvalue_stacked() {
 		return true;
@@ -381,6 +377,10 @@ namespace Corrosive {
 		//TODO: os << "[" << Compiler::current()->global_module()->array_tables[table].count << "]";
 		owner->print(os);
 	}
+	
+	void TypeFunctionInstance::print(std::ostream& os) {
+		function_type->print(os);
+	}
 
 	void TypeFunction::print(std::ostream& os) {
 		os << "fn";
@@ -435,8 +435,6 @@ namespace Corrosive {
 	ILSize TypeSlice::size() {
 		return ILSize::slice;
 	}
-
-
 	ILSize TypeFunction::size() {
 		return ILSize::single_ptr;
 	}
@@ -505,5 +503,6 @@ namespace Corrosive {
 	std::uint64_t TypeArray::magic() { return type_magic | 0x09u; }
 	std::uint64_t TypeReference::magic() { return type_magic | 0x0au; }
 	std::uint64_t TypeTemplate::magic() { return type_magic | 0x0bu; }
+	std::uint64_t TypeFunctionInstance::magic() { return type_magic | 0x0cu; }
 
 }

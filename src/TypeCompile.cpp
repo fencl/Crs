@@ -32,6 +32,11 @@ namespace Corrosive {
 		return owner->compile();
 	}
 
+	
+	errvoid TypeFunctionInstance::compile() {
+		return owner->compile();
+	}
+
 	errvoid TypeFunction::compile() {
 		if (il_function_decl == UINT32_MAX) {
 

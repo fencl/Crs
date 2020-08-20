@@ -93,7 +93,7 @@ namespace Corrosive {
 		std::vector<std::unique_ptr<TraitTemplate>>     subtraits;
 		std::vector<std::unique_ptr<StaticInstance>>    substatics;
 
-		FindNameResult find_name(std::string_view name);
+		FindNameResult find_name(std::string_view name, bool recurse_up = false);
 	};
 
 	enum class StructureInstanceType {
@@ -143,6 +143,7 @@ namespace Corrosive {
 		unsigned char compile_state = 0;
 
 		static void var_wrapper(dword_t dw, Type* type);
+		static void include_wrapper(Type* type);
 		static void var_alias_wrapper(dword_t dw, Type* type);
 
 
@@ -200,10 +201,11 @@ namespace Corrosive {
 
 	class FunctionInstance {
 	public:
+		std::unique_ptr<TypeFunctionInstance> type;
 		ILFunction*		func = nullptr;
 
 		Namespace*		parent;
-		TypeFunction*	type;
+		//TypeFunction*	type;
 		GenericInstance generic_inst;
 		ILContext		context;
 

@@ -18,12 +18,13 @@ namespace Corrosive {
 	class StructureTemplate;
 	class TraitTemplate;
 	class FunctionTemplate;
+	class FunctionInstance;
 	class TraitInstance;
 	class Type;
 	class BuiltInTypes;
 
 	enum class TypeInstanceType {
-		type_structure_template,type_structure_instance,type_array,type_reference,type_function,type_trait_template,type_trait,type_function_template,type_template,type_slice,type_undefined
+		type_structure_template,type_structure_instance,type_array,type_reference,type_function,type_trait_template,type_trait,type_function_template,type_template,type_slice,type_function_instance,type_undefined
 	};
 	class TypeArray;
 	class TypeReference;
@@ -188,8 +189,6 @@ namespace Corrosive {
 
 		virtual ILDataType rvalue();
 
-		virtual bool rvalue_stacked();
-
 		virtual ILContext context();
 		virtual ILSize size();
 		virtual void print(std::ostream& os);
@@ -213,6 +212,18 @@ namespace Corrosive {
 		virtual ILSize size();
 		virtual void print(std::ostream& os);
 
+		virtual errvoid compile();
+	};
+
+	class TypeFunctionInstance : public Type {
+	public:
+		virtual std::uint64_t magic();
+		inline virtual TypeInstanceType type() { return TypeInstanceType::type_function_instance; }
+
+		FunctionInstance* owner;
+		TypeFunction* function_type;
+
+		virtual void print(std::ostream& os);
 		virtual errvoid compile();
 	};
 
