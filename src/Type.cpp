@@ -9,7 +9,7 @@
 
 namespace Corrosive {
 	errvoid Type::compare_for_generic_storage(std::int8_t& r, unsigned char* me, unsigned char* to) {
-		size_t s = size().eval(Compiler::current()->global_module(), compiler_arch);
+		size_t s = size().eval(Compiler::current()->global_module());
 		if (!wrap || wrap(sandbox) == 0) {
 			auto v = memcmp(me, to, s);
 			if (v < 0) { r = -1; return err::ok; }
@@ -25,7 +25,7 @@ namespace Corrosive {
 	}
 
 	errvoid Type::copy_to_generic_storage(unsigned char* me, unsigned char* to) {
-		size_t s = size().eval(Compiler::current()->global_module(), compiler_arch);
+		size_t s = size().eval(Compiler::current()->global_module());
 		if (!wrap || wrap(sandbox) == 0) {
 			std::memcpy(to, me, s);
 		}
@@ -158,7 +158,7 @@ namespace Corrosive {
 		data = std::string(storage_size,'\0');
 		std::uint8_t* ptr_src = (std::uint8_t*)me_ptr;
 		std::uint8_t* ptr_dst = (std::uint8_t*)data.data();
-		std::size_t elem_size = owner->size().eval(compiler->global_module(), compiler_arch);
+		std::size_t elem_size = owner->size().eval(compiler->global_module());
 		std::uint32_t count = (std::uint32_t)(((std::size_t)storage_size)/elem_size);
 
 		for (std::uint32_t i=0;i<count; ++i) {
@@ -200,12 +200,12 @@ namespace Corrosive {
 
 		
 		Compiler* compiler = Compiler::current();
-		std::size_t me_size = size().eval(compiler->global_module(), compiler_arch);
+		std::size_t me_size = size().eval(compiler->global_module());
 		data = std::string(me_size,'\0');
 		
 		std::uint8_t* ptr_src = (std::uint8_t*)source;
 		std::uint8_t* ptr_dst = (std::uint8_t*)data.data();
-		std::size_t elem_size = owner->size().eval(compiler->global_module(), compiler_arch);
+		std::size_t elem_size = owner->size().eval(compiler->global_module());
 		for (std::size_t i=0;i<(me_size)/elem_size; ++i) {
 			if (!owner->constantize(err, ptr_dst, ptr_src)) return err::fail;
 			ptr_src += elem_size;

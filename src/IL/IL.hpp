@@ -37,6 +37,7 @@ namespace Corrosive {
 			err_handler(err_undef_false_tag&& h) : state(4) {};
 			err_handler(bool b) : state(b?1:2) {  }
 			err_handler(err_handler&& h) : state(((bool)h)?1:2) { if (h.state <=2) h.state = 0; }
+
 			~err_handler() {
 				switch(state) {
 					case 1:
@@ -130,7 +131,9 @@ namespace Corrosive {
 		table32roffset8, table32roffset16, table32roffset32,
 		aoffset8, aoffset16, aoffset32,
 		woffset8, woffset16, woffset32, 
-		aroffset, wroffset, clone, combinedw, splitdw, highdw
+		aroffset, wroffset, clone, combinedw, splitdw, highdw, lowdw,
+		extract8, extract16, extract32,
+		cut8, cut16, cut32,
 	};
 
 	enum class ILDataType : unsigned char {
@@ -204,8 +207,8 @@ namespace Corrosive {
 		tableid_t value;
 		ILSizeType type;
 
-		std::size_t eval(ILModule* mod, ILArchitecture arch) const;
-		std::size_t alignment(ILModule* mod, ILArchitecture arch) const;
+		std::size_t eval(ILModule* mod) const;
+		std::size_t alignment(ILModule* mod) const;
 
 		static const ILSize single_ptr;
 		static const ILSize double_ptr;
@@ -226,9 +229,8 @@ namespace Corrosive {
 		std::vector<ILSize> elements;
 		std::vector<std::size_t> calculated_offsets;
 		std::size_t calculated_size;
-		std::size_t calculated_alignment;
-		ILArchitecture calculated_for = ILArchitecture::none;
-		void calculate(ILModule* mod, ILArchitecture arch);
+		std::size_t calculated_alignment = 0;
+		void calculate(ILModule* mod);
 
 		void clean_prepass(ILModule& mod, std::unordered_set<std::size_t>& used_tables,
 			std::unordered_set<std::size_t>& used_arrays);
@@ -241,9 +243,8 @@ namespace Corrosive {
 		ILSize element;
 		std::uint32_t count;
 		std::size_t calculated_size;
-		std::size_t calculated_alignment;
-		ILArchitecture calculated_for = ILArchitecture::none;
-		void calculate(ILModule* mod, ILArchitecture arch);
+		std::size_t calculated_alignment = 0;
+		void calculate(ILModule* mod);
 
 		void clean_prepass(ILModule& mod, std::unordered_set<std::size_t>& used_tables,
 			std::unordered_set<std::size_t>& used_arrays);
@@ -469,13 +470,12 @@ namespace Corrosive {
 	public:
 		ILContext context;
 
-		std::vector<std::size_t>			calculated_local_offsets;
-		std::size_t						calculated_local_stack_size;
-		std::size_t						calculated_local_stack_alignment;
-		ILArchitecture				calculated_for = ILArchitecture::none;
+		std::vector<std::size_t>	calculated_local_offsets;
+		std::size_t					calculated_local_stack_size;
+		std::size_t					calculated_local_stack_alignment = 0;
 		ILLifetime					local_stack_lifetime;
 
-		void calculate_stack(ILArchitecture arch);
+		void calculate_stack();
 
 		std::vector<ILBlock*>						blocks;
 		std::vector<std::unique_ptr<ILBlock>>		blocks_memory;
@@ -751,6 +751,9 @@ namespace Corrosive {
 
 		static errvoid eval_combine_dword(ILEvaluator* eval_ctx);
 		static errvoid eval_high_word(ILEvaluator* eval_ctx);
+		static errvoid eval_low_word(ILEvaluator* eval_ctx);
+		static errvoid eval_extract(ILEvaluator* eval_ctx, ILSize s);
+		static errvoid eval_cut(ILEvaluator* eval_ctx, ILSize s);
 		static errvoid eval_split_dword(ILEvaluator* eval_ctx);
 		static errvoid eval_tableoffset(ILEvaluator* eval_ctx, tableid_t tableid, tableelement_t itemid);
 		static errvoid eval_tableroffset(ILEvaluator* eval_ctx, ILDataType src, ILDataType dst, tableid_t tableid, tableelement_t itemid);
@@ -814,6 +817,9 @@ namespace Corrosive {
 
 		static errvoid build_combine_dword(ILBlock* block);
 		static errvoid build_high_word(ILBlock* block);
+		static errvoid build_low_word(ILBlock* block);
+		static errvoid build_extract(ILBlock* block, ILSize s);
+		static errvoid build_cut(ILBlock* block, ILSize s);
 		static errvoid build_split_dword(ILBlock* block);
 		static errvoid build_duplicate(ILBlock* block, ILDataType type);
 		static errvoid build_clone(ILBlock* block, ILDataType type, std::uint16_t times);

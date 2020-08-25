@@ -191,7 +191,7 @@ namespace Corrosive {
 	
 	std::size_t BuiltInCode::type_size(Type* t) {
 		Type::assert(t);
-		return t->size().eval(Compiler::current()->global_module(), compiler_arch);
+		return t->size().eval(Compiler::current()->global_module());
 	}
 
 	
@@ -205,7 +205,8 @@ namespace Corrosive {
 			if (auto fun = res.get_function()) {
 				FunctionInstance* finst;
 				if (!fun->generate(nullptr, finst)){ ILEvaluator::ex_throw(); return;}
-				if (!finst->compile()){ILEvaluator::ex_throw();return;}
+				auto res = finst->compile();
+				if (!res){ ILEvaluator::ex_throw(); return; }
 				main = finst->func;
 			}
 			else {
@@ -249,10 +250,12 @@ namespace Corrosive {
 			"}"
 			, "standard_library<buffer>");
 
-		std_lib.pair_tokens();
+		if (!std_lib.pair_tokens()) return err::fail;
 		std_lib.register_debug();
-		std_lib.root_node = AstRootNode::parse(&std_lib);
-		std_lib.root_node->populate();
+		std::unique_ptr<AstRootNode> node;
+		if (!AstRootNode::parse(node, &std_lib)) return err::fail;
+		std_lib.root_node = std::move(node);
+		if (!std_lib.root_node->populate()) return err::fail;
 
 		setup_type("void", t_void, { ILSizeType::_0,0 }, ILDataType::none, ILContext::both, std_lib.root_node.get());
 		setup_type("i8", t_i8, { ILSizeType::abs8,1 }, ILDataType::i8, ILContext::both, std_lib.root_node.get());

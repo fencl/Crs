@@ -77,7 +77,7 @@ namespace Corrosive {
 			
 			std::uint8_t* off_src = ptr;
 			std::uint8_t* off_dst = dst;
-			std::size_t mem_size = of->size().eval(Compiler::current()->global_module(), compiler_arch);
+			std::size_t mem_size = of->size().eval(Compiler::current()->global_module());
 
 			for (std::size_t i = 0; i < size / mem_size; i++) {
 				if (!of->copy_to_generic_storage(off_src, off_dst)) return err::fail;

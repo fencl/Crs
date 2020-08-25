@@ -91,6 +91,20 @@ namespace Corrosive {
 					}
 				}
 			}
+		} else if (template_type->type() == TypeInstanceType::type_function_template) {
+			TypeFunctionTemplate* st = (TypeFunctionTemplate*)template_type;
+			TypeTemplate* tt = (TypeTemplate*)template_cast;
+
+			if (st->owner->generic_ctx.generic_layout.size() != compiler->types()->argument_array_storage.get(tt->argument_array_id).size()) {
+				return throw_runtime_exception(eval, "Template cannot be casted to this generic type");
+			}
+			else {
+				for (std::size_t i = 0; i < st->owner->generic_ctx.generic_layout.size(); i++) {
+					if (std::get<1>(st->owner->generic_ctx.generic_layout[i]) != compiler->types()->argument_array_storage.get(tt->argument_array_id)[i]) {
+						return throw_runtime_exception(eval, "Template cannot be casted to this generic type");
+					}
+				}
+			}
 		}
 		else if (template_type->type() == TypeInstanceType::type_trait_template) {
 			TypeTraitTemplate* st = (TypeTraitTemplate*)template_type;
@@ -212,7 +226,7 @@ namespace Corrosive {
 				if (!ILBuilder::build_combine_dword(compiler->scope())) return err::fail;
 			}
 			else {
-				if (!ILBuilder::eval_const_size(compiler->evaluator(), res.type->size().eval(compiler->global_module(), compiler_arch))) return err::fail;
+				if (!ILBuilder::eval_const_size(compiler->evaluator(), res.type->size().eval(compiler->global_module()))) return err::fail;
 				if (!ILBuilder::eval_combine_dword(compiler->evaluator())) return err::fail;
 			}
 
@@ -236,7 +250,7 @@ namespace Corrosive {
 				dword_t dw;
 				if (!compiler->evaluator()->read_register_value<dword_t>(dw)) return err::fail;
 				std::size_t slice_size = (std::size_t)dw.p2;
-				std::size_t array_size = to->size().eval(compiler->global_module(), compiler_arch);
+				std::size_t array_size = to->size().eval(compiler->global_module());
 				if (slice_size != array_size) {
 					return throw_specific_error(err, "The array has different size than casted slice");
 				}
@@ -528,7 +542,7 @@ namespace Corrosive {
 						}
 
 						Type* to;
-						if (compiler->evaluator()->pop_register_value<Type*>(to)) return err::fail;
+						if (!compiler->evaluator()->pop_register_value<Type*>(to)) return err::fail;
 
 						if (!Type::assert(err, to)) return err::fail;
 						if (!to->compile()) return err::fail;
@@ -653,7 +667,7 @@ namespace Corrosive {
 				}
 
 				ILSize target_size = target->size();
-				std::size_t target_size_value = target_size.eval(compiler->global_module(), compiler_arch);
+				std::size_t target_size_value = target_size.eval(compiler->global_module());
 				std::string storage;
 				std::uint32_t count = 0;
 				Cursor err = c;
@@ -903,6 +917,13 @@ namespace Corrosive {
 				return err::ok;
 			}
 
+		} else if (found.type() == FindNameResultType::Orphan) {
+			auto func_inst = found.get_orphan();
+			if (!func_inst->compile()) return err::fail;
+			if (!ILBuilder::build_fnptr(compiler->scope(), func_inst->func)) return err::fail;
+			res.type = func_inst->type->function_type;
+			res.lvalue = false;
+			return err::ok;
 		}
 		else if (found.type() == FindNameResultType::Static) {
 			auto static_inst = found.get_static();
@@ -1019,7 +1040,7 @@ namespace Corrosive {
 				if (!ILBuilder::build_const_size(compiler->scope(), tp->size())) return err::fail;
 			}
 			else {
-				if (!ILBuilder::eval_const_size(compiler->evaluator(), tp->size().eval(compiler->global_module(), compiler_arch))) return err::fail;
+				if (!ILBuilder::eval_const_size(compiler->evaluator(), tp->size().eval(compiler->global_module()))) return err::fail;
 			}
 
 			ret.lvalue = false;
@@ -1180,7 +1201,7 @@ namespace Corrosive {
 				ret.lvalue = true;
 				c.move();
 			}
-			else if (cpt != CompileType::compile && compiler->compiler_stack()->find(c.buffer(), sitm)) {
+			else if (cpt == CompileType::eval && compiler->compiler_stack()->find(c.buffer(), sitm)) {
 				compiler->eval_local(sitm.id);
 				ret.type = sitm.type;
 				ret.lvalue = true;
@@ -1251,6 +1272,11 @@ namespace Corrosive {
 						ret.lvalue = false;
 						ret.type = compiler->types()->t_type;
 					}
+				}else if (auto func_inst = res.get_orphan()) {
+					if (!func_inst->compile()) return err::fail;
+					if (!ILBuilder::eval_const_word(compiler->evaluator(), func_inst->type.get())) return err::fail;
+					ret.lvalue = false;
+					ret.type = compiler->types()->t_type;
 				}
 				else if (auto trait_inst = res.get_trait()) {
 					if (!trait_inst->compile()) return err::fail;
@@ -1534,6 +1560,10 @@ namespace Corrosive {
 			act_layout = ((TypeTraitTemplate*)gen_type)->owner->generic_ctx.generic_layout.rbegin();
 			gen_types = ((TypeTraitTemplate*)gen_type)->owner->generic_ctx.generic_layout.size();
 		}
+		else if (gen_type->type() == TypeInstanceType::type_function_template) {
+			act_layout = ((TypeFunctionTemplate*)gen_type)->owner->generic_ctx.generic_layout.rbegin();
+			gen_types = ((TypeFunctionTemplate*)gen_type)->owner->generic_ctx.generic_layout.size();
+		}
 
 
 
@@ -1567,7 +1597,11 @@ namespace Corrosive {
 			((TypeTraitTemplate*)gen_type)->owner->generate(key_base, out);
 			eval->write_register_value(out->type.get());
 		}
-
+		else if (gen_type->type() == TypeInstanceType::type_function_template) {
+			FunctionInstance* out = nullptr;
+			((TypeFunctionTemplate*)gen_type)->owner->generate(key_base, out);
+			eval->write_register_value(out->type.get());
+		}
 
 		StackItem sitm;
 		while (compiler->compiler_stack()->pop_item(sitm)) {}
@@ -1720,6 +1754,9 @@ namespace Corrosive {
 				else {
 					if (!ILBuilder::eval_insintric(compiler->evaluator(), ILInsintric::build_template)) return err::fail;
 				}
+
+				ret.lvalue = false;
+				ret.type = compiler->types()->t_type;
 			}
 			else {
 				return throw_specific_error(c, "Operation not supported on plain type, please cast to generic type");
@@ -1849,15 +1886,29 @@ namespace Corrosive {
 		}
 		c.move();
 
-		TypeSlice* slice = (TypeSlice*)ret.type;
-		Type* base_slice = slice->owner;
+		Type* base_slice;
+
+		if (ret.type->type() != TypeInstanceType::type_slice) {
+			base_slice = ((TypeSlice*)ret.type)->owner;
+		} else if (ret.type->type() != TypeInstanceType::type_array) {
+			base_slice = ((TypeArray*)ret.type)->owner;
+		}
 
 		if (ret.type->type() == TypeInstanceType::type_slice) {
+			if (ret.lvalue) {
+				if (cpt == CompileType::compile) {
+					if (!ILBuilder::build_load(compiler->scope(), ILDataType::dword)) return err::fail;
+				}
+				else {
+					if (!ILBuilder::eval_load(compiler->evaluator(), ILDataType::dword)) return err::fail;
+				}
+			}
+
 			if (cpt == CompileType::compile) {
-				if (!ILBuilder::build_load(compiler->scope(), ILDataType::word)) return err::fail;
+				if (!ILBuilder::build_low_word(compiler->scope())) return err::fail;
 			}
 			else {
-				if (!ILBuilder::eval_load(compiler->evaluator(), ILDataType::word)) return err::fail;
+				if (!ILBuilder::eval_low_word(compiler->evaluator())) return err::fail;
 			}
 		}
 
@@ -1868,18 +1919,36 @@ namespace Corrosive {
 		if (!Expression::rvalue(index, cpt)) return err::fail;
 		if (!Operand::cast(err, index, compiler->types()->t_size, cpt, true)) return err::fail;
 
+		if (c.tok == RecognizedToken::DoubleDot) {
+			c.move();
 
+			if (!Expression::parse(c, index, cpt)) return err::fail;
+			if (!Operand::deref(index, cpt)) return err::fail;
+			if (!Expression::rvalue(index, cpt)) return err::fail;
+			if (!Operand::cast(err, index, compiler->types()->t_size, cpt, true)) return err::fail;
 
-		if (cpt == CompileType::compile) {
-			if (!ILBuilder::build_const_size(compiler->scope(), base_slice->size())) return err::fail;
-			if (!ILBuilder::build_mul(compiler->scope(), ILDataType::word, ILDataType::word)) return err::fail;
-			if (!ILBuilder::build_rtoffset(compiler->scope())) return err::fail;
+			if (cpt == CompileType::compile) {
+				if (!ILBuilder::build_cut(compiler->scope(), base_slice->size())) return err::fail;
+			}
+			else {
+				if (!ILBuilder::eval_cut(compiler->evaluator(), base_slice->size())) return err::fail;
+			}
+			
+			ret.lvalue = false;
+			ret.type = base_slice->generate_slice();
+		} else {
+			if (cpt == CompileType::compile) {
+				if (!ILBuilder::build_extract(compiler->scope(), base_slice->size())) return err::fail;
+			}
+			else {
+				if (!ILBuilder::eval_extract(compiler->evaluator(), base_slice->size())) return err::fail;
+			}
+			
+			ret.lvalue = true;
+			ret.type = base_slice;
 		}
-		else {
-			if (!ILBuilder::eval_const_size(compiler->evaluator(), base_slice->size().eval(compiler->global_module(), compiler_arch))) return err::fail;
-			if (!ILBuilder::eval_mul(compiler->evaluator(), ILDataType::word, ILDataType::word)) return err::fail;
-			if (!ILBuilder::eval_rtoffset(compiler->evaluator())) return err::fail;
-		}
+
+		
 
 		if (c.tok != RecognizedToken::CloseBracket) {
 			return throw_wrong_token_error(c, "']'");
@@ -1887,8 +1956,6 @@ namespace Corrosive {
 
 		c.move();
 
-		ret.lvalue = true;
-		ret.type = base_slice;
 		return err::ok;
 
 
@@ -2340,7 +2407,7 @@ namespace Corrosive {
 						if (!ILBuilder::build_div(compiler->scope(), ILDataType::word, ILDataType::word)) return err::fail;
 					}
 					else {
-						if (!ILBuilder::eval_const_size(compiler->evaluator(), ts->owner->size().eval(compiler->global_module(), compiler_arch))) return err::fail;
+						if (!ILBuilder::eval_const_size(compiler->evaluator(), ts->owner->size().eval(compiler->global_module()))) return err::fail;
 						if (!ILBuilder::eval_div(compiler->evaluator(), ILDataType::word, ILDataType::word)) return err::fail;
 					}
 				}
@@ -2562,7 +2629,7 @@ namespace Corrosive {
 							continue_deeper = false;
 							if (!Operand::structure_element_offset(ret, table_element->second.first, cpt)) return err::fail;
 							break;
-						case MemberTableEntryType::func:
+						case MemberTableEntryType::func: {
 
 							// rvalues will be stored in temporary memory location
 							if (!ret.lvalue && !ret.type->rvalue_stacked()) {
@@ -2606,6 +2673,52 @@ namespace Corrosive {
 							ret.lvalue = false;
 							if (!Operand::function_call(ret, c, cpt, 1, targets_defer)) return err::fail;
 							return err::ok;
+						}
+						
+						case MemberTableEntryType::orphan: {
+
+							// rvalues will be stored in temporary memory location
+							if (!ret.lvalue && !ret.type->rvalue_stacked()) {
+								if (cpt == CompileType::compile) {
+									stackid_t local_id = compiler->target()->local_stack_lifetime.append(ret.type->size());
+									compiler->temp_stack()->push_item("$tmp", ret.type, local_id);
+									
+									if (!ILBuilder::build_store(compiler->scope(), ret.type->rvalue())) return err::fail;
+									if (!ILBuilder::build_local(compiler->scope(), local_id)) return err::fail;
+									ret.lvalue = true;
+								}
+								else {
+									stackid_t local_id = compiler->push_local(ret.type->size());
+									compiler->compiler_stack()->push_item("$tmp", ret.type, local_id);
+									if (!ILBuilder::eval_store(compiler->evaluator(), ret.type->rvalue())) return err::fail;
+									compiler->eval_local(local_id);
+									ret.lvalue = true;
+								}
+							}
+
+							if (!ret.lvalue && !ret.type->rvalue_stacked()) {
+								return throw_wrong_token_error(c, "This function can be called only from lvalue object or reference");
+							}
+
+							if (c.tok != RecognizedToken::OpenParenthesis) {
+								return throw_wrong_token_error(c, "'('");
+							}
+
+							FunctionInstance* finst = si->orphaned_functions[table_element->second.first].get();
+							if (!finst->compile()) return err::fail;
+
+							if (cpt == CompileType::compile) {
+								if (!ILBuilder::build_fnptr(compiler->scope(), finst->func)) return err::fail;
+							}
+							else {
+								if (!ILBuilder::eval_fnptr(compiler->evaluator(), finst->func)) return err::fail;
+							}
+
+							ret.type = finst->type->function_type;
+							ret.lvalue = false;
+							if (!Operand::function_call(ret, c, cpt, 1, targets_defer)) return err::fail;
+							return err::ok;
+						}
 					}
 				}
 				else {

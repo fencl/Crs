@@ -614,7 +614,7 @@ namespace Corrosive {
 		if (offset.type == ILSizeType::table || offset.type == ILSizeType::array || offset.value > 0) {
 			std::size_t mem;
 			if (!eval_ctx->pop_register_value<std::size_t>(mem)) return err::fail;
-			mem += offset.eval(eval_ctx->parent, compiler_arch);
+			mem += offset.eval(eval_ctx->parent);
 			eval_ctx->write_register_value(mem);
 		}
 		return err::ok;
@@ -649,7 +649,7 @@ namespace Corrosive {
 	}
 	
 	errvoid ILBuilder::eval_const_slice(ILEvaluator* eval_ctx, std::uint32_t cid, ILSize s) {
-		dword_t val((void*)eval_ctx->parent->constant_memory[cid].second.get() , (void*)(s.eval(eval_ctx->parent,compiler_arch)));
+		dword_t val((void*)eval_ctx->parent->constant_memory[cid].second.get() , (void*)(s.eval(eval_ctx->parent)));
 		eval_ctx->write_register_value(val);
 		return err::ok;
 	}
@@ -684,18 +684,52 @@ namespace Corrosive {
 		eval_ctx->write_register_value(dw.p2);
 		return err::ok;
 	}
+	
+	errvoid ILBuilder::eval_low_word(ILEvaluator* eval_ctx) {
+		dword_t dw;
+		if (!eval_ctx->pop_register_value<dword_t>(dw)) return err::fail;
+		eval_ctx->write_register_value(dw.p1);
+		return err::ok;
+	}
 
 	errvoid ILBuilder::eval_debug(ILEvaluator* eval_ctx, std::uint16_t file, std::uint16_t line) {
 		eval_ctx->debug_file = file;
 		eval_ctx->debug_line = line;
 		return err::ok;
 	}
+	
+	errvoid ILBuilder::eval_extract(ILEvaluator* eval_ctx, ILSize s) {
+		std::size_t off;
+		if (!eval_ctx->pop_register_value<std::size_t>(off)) return err::fail;
+		std::uint8_t* ptr;
+		if (!eval_ctx->pop_register_value<std::uint8_t*>(ptr)) return err::fail;
+		ptr+= off * s.eval(eval_ctx->parent);
+		eval_ctx->write_register_value(ptr);		
+		return err::ok;
+	}
+
+	errvoid ILBuilder::eval_cut(ILEvaluator* eval_ctx, ILSize s) {
+		std::size_t off1, off2;
+		if (!eval_ctx->pop_register_value<std::size_t>(off2)) return err::fail;
+		if (!eval_ctx->pop_register_value<std::size_t>(off1)) return err::fail;
+		std::uint8_t* ptr;
+		if (!eval_ctx->pop_register_value<std::uint8_t*>(ptr)) return err::fail;
+		std::size_t elem_size = s.eval(eval_ctx->parent);
+		ptr += off1 * elem_size;
+
+		dword_t val;
+		val.p1 = ptr;
+		val.p2 = (void*)(elem_size*(off2-off1+1));
+
+		eval_ctx->write_register_value(val);
+		return err::ok;
+	}
 
 	errvoid ILBuilder::eval_rtoffset(ILEvaluator* eval_ctx) {
 		std::size_t offset;
-			if(!eval_ctx->pop_register_value(offset)) return err::fail;
+		if(!eval_ctx->pop_register_value(offset)) return err::fail;
 		unsigned char* mem;
-			if(!eval_ctx->pop_register_value(mem)) return err::fail;
+		if(!eval_ctx->pop_register_value(mem)) return err::fail;
 		mem += offset;
 		eval_ctx->write_register_value(mem);
 		return err::ok;
@@ -920,7 +954,7 @@ namespace Corrosive {
 
 	errvoid ILBuilder::eval_tableoffset(ILEvaluator* eval_ctx, tableid_t tableid, tableelement_t itemid) {
 		auto& table = eval_ctx->parent->structure_tables[tableid];
-		table.calculate(eval_ctx->parent, compiler_arch);
+		table.calculate(eval_ctx->parent);
 		unsigned char* ptr;
 			if(!eval_ctx->pop_register_value(ptr)) return err::fail;
 		ptr += table.calculated_offsets[itemid];
@@ -931,7 +965,7 @@ namespace Corrosive {
 
 	errvoid ILBuilder::eval_tableroffset(ILEvaluator* eval_ctx, ILDataType src, ILDataType dst, tableid_t tableid, tableelement_t itemid) {
 		auto& table = eval_ctx->parent->structure_tables[tableid];
-		table.calculate(eval_ctx->parent, compiler_arch);
+		table.calculate(eval_ctx->parent);
 		ilsize_t storage;
 		if (!eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(src), &storage)) return err::fail;
 		storage = storage >> table.calculated_offsets[itemid];
@@ -1072,7 +1106,7 @@ namespace Corrosive {
 
 				//eval_ctx->callstack_debug.push_back(std::make_tuple(eval_ctx->debug_line, eval_ctx->debug_file, std::string_view(bytecode_fun->alias)));
 
-				bytecode_fun->calculate_stack(compiler_arch);
+				bytecode_fun->calculate_stack();
 
 				ILBlock* block = bytecode_fun->blocks[0];
 				bool running = true;
@@ -1110,19 +1144,19 @@ namespace Corrosive {
 							} break;
 							case ILInstruction::memcpy: {
 								auto size = ILBlock::read_data<ILSize>(it);
-								if (!eval_memcpy(eval_ctx, size.eval(eval_ctx->parent, compiler_arch))) return err::fail;
+								if (!eval_memcpy(eval_ctx, size.eval(eval_ctx->parent))) return err::fail;
 							} break;
 							case ILInstruction::memcpy2: {
 								auto size = ILBlock::read_data<ILSize>(it);
-								if (!eval_memcpy_rev(eval_ctx, size.eval(eval_ctx->parent, compiler_arch))) return err::fail;
+								if (!eval_memcpy_rev(eval_ctx, size.eval(eval_ctx->parent))) return err::fail;
 							} break;
 							case ILInstruction::memcmp: {
 								auto size = ILBlock::read_data<ILSize>(it);
-								if (!eval_memcmp(eval_ctx, size.eval(eval_ctx->parent, compiler_arch))) return err::fail;
+								if (!eval_memcmp(eval_ctx, size.eval(eval_ctx->parent))) return err::fail;
 							} break;
 							case ILInstruction::memcmp2: {
 								auto size = ILBlock::read_data<ILSize>(it);
-								if (!eval_memcmp_rev(eval_ctx, size.eval(eval_ctx->parent, compiler_arch))) return err::fail;
+								if (!eval_memcmp_rev(eval_ctx, size.eval(eval_ctx->parent))) return err::fail;
 							} break;
 							case ILInstruction::fnptr: {
 								auto id = ILBlock::read_data<std::uint32_t>(it);
@@ -1322,7 +1356,7 @@ namespace Corrosive {
 								auto to_t = ILBlock::read_data<ILDataType>(it); 
 								auto t = ILBlock::read_data<std::uint8_t>(it);
 								auto v = ILBlock::read_data<std::uint32_t>(it);
-								if (!eval_roffset(eval_ctx, from_t, to_t, ILSize((ILSizeType)t, v).eval(eval_ctx->parent, compiler_arch))) return err::fail;
+								if (!eval_roffset(eval_ctx, from_t, to_t, ILSize((ILSizeType)t, v).eval(eval_ctx->parent))) return err::fail;
 							} break;
 								
 							case ILInstruction::roffset16: {
@@ -1330,7 +1364,7 @@ namespace Corrosive {
 								auto to_t = ILBlock::read_data<ILDataType>(it); 
 								auto t = ILBlock::read_data<std::uint8_t>(it);
 								auto v = ILBlock::read_data<std::uint16_t>(it);
-								if (!eval_roffset(eval_ctx, from_t, to_t, ILSize((ILSizeType)t, v).eval(eval_ctx->parent, compiler_arch))) return err::fail;
+								if (!eval_roffset(eval_ctx, from_t, to_t, ILSize((ILSizeType)t, v).eval(eval_ctx->parent))) return err::fail;
 							} break;
 								
 							case ILInstruction::roffset8: {
@@ -1338,7 +1372,7 @@ namespace Corrosive {
 								auto to_t = ILBlock::read_data<ILDataType>(it); 
 								auto t = ILBlock::read_data<std::uint8_t>(it);
 								auto v = ILBlock::read_data<std::uint8_t>(it);
-								if (!eval_roffset(eval_ctx, from_t, to_t, ILSize((ILSizeType)t, v).eval(eval_ctx->parent, compiler_arch))) return err::fail;
+								if (!eval_roffset(eval_ctx, from_t, to_t, ILSize((ILSizeType)t, v).eval(eval_ctx->parent))) return err::fail;
 							} break;
 
 							case ILInstruction::aroffset: {
@@ -1503,8 +1537,53 @@ namespace Corrosive {
 							case ILInstruction::highdw: {
 								if (!eval_high_word(eval_ctx)) return err::fail;
 							} break;
+							case ILInstruction::lowdw: {
+								if (!eval_low_word(eval_ctx)) return err::fail;
+							} break;
 							case ILInstruction::splitdw: {
 								if (!eval_split_dword(eval_ctx)) return err::fail;
+							} break;
+
+							case ILInstruction::extract8: {
+								ILSize s;
+								s.type = ILBlock::read_data<ILSizeType>(it);
+								s.value = (tableid_t)ILBlock::read_data<std::uint8_t>(it);
+								if (!eval_extract(eval_ctx, s)) return err::fail;
+							} break;
+
+							case ILInstruction::extract16: {
+								ILSize s;
+								s.type = ILBlock::read_data<ILSizeType>(it);
+								s.value = (tableid_t)ILBlock::read_data<std::uint16_t>(it);
+								if (!eval_extract(eval_ctx, s)) return err::fail;
+							} break;
+
+							case ILInstruction::extract32: {
+								ILSize s;
+								s.type = ILBlock::read_data<ILSizeType>(it);
+								s.value = (tableid_t)ILBlock::read_data<std::uint32_t>(it);
+								if (!eval_extract(eval_ctx, s)) return err::fail;
+							} break;
+							
+							case ILInstruction::cut8: {
+								ILSize s;
+								s.type = ILBlock::read_data<ILSizeType>(it);
+								s.value = (tableid_t)ILBlock::read_data<std::uint8_t>(it);
+								if (!eval_cut(eval_ctx, s)) return err::fail;
+							} break;
+
+							case ILInstruction::cut16: {
+								ILSize s;
+								s.type = ILBlock::read_data<ILSizeType>(it);
+								s.value = (tableid_t)ILBlock::read_data<std::uint16_t>(it);
+								if (!eval_cut(eval_ctx, s)) return err::fail;
+							} break;
+
+							case ILInstruction::cut32: {
+								ILSize s;
+								s.type = ILBlock::read_data<ILSizeType>(it);
+								s.value = (tableid_t)ILBlock::read_data<std::uint32_t>(it);
+								if (!eval_cut(eval_ctx, s)) return err::fail;
 							} break;
 
 							case ILInstruction::forget: {
@@ -1554,17 +1633,17 @@ namespace Corrosive {
 							case ILInstruction::size8: {
 								auto t = ILBlock::read_data<ILSizeType>(it);
 								auto v = ILBlock::read_data<std::uint8_t>(it);
-								if (!eval_const_size(eval_ctx, ILSize(t,v).eval(eval_ctx->parent, compiler_arch))) return err::fail;
+								if (!eval_const_size(eval_ctx, ILSize(t,v).eval(eval_ctx->parent))) return err::fail;
 							} break;
 							case ILInstruction::size16: {
 								auto t = ILBlock::read_data<ILSizeType>(it);
 								auto v = ILBlock::read_data<std::uint16_t>(it);
-								if (!eval_const_size(eval_ctx, ILSize(t,v).eval(eval_ctx->parent, compiler_arch))) return err::fail;
+								if (!eval_const_size(eval_ctx, ILSize(t,v).eval(eval_ctx->parent))) return err::fail;
 							} break;
 							case ILInstruction::size32: {
 								auto t = ILBlock::read_data<ILSizeType>(it);
 								auto v = ILBlock::read_data<std::uint32_t>(it);
-								if (!eval_const_size(eval_ctx, ILSize(t,v).eval(eval_ctx->parent, compiler_arch))) return err::fail;
+								if (!eval_const_size(eval_ctx, ILSize(t,v).eval(eval_ctx->parent))) return err::fail;
 							} break;
 
 						}

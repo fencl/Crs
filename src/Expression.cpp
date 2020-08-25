@@ -22,7 +22,7 @@ namespace Corrosive {
 		}
 		else {
 			if (me->rvalue_stacked()) {
-				if (!ILBuilder::eval_memcpy(Compiler::current()->evaluator(), me->size().eval(Compiler::current()->global_module(), compiler_arch))) return err::fail;
+				if (!ILBuilder::eval_memcpy(Compiler::current()->evaluator(), me->size().eval(Compiler::current()->global_module()))) return err::fail;
 			}
 			else {
 				if (!ILBuilder::eval_store(Compiler::current()->evaluator(), me->rvalue())) return err::fail;
@@ -42,7 +42,7 @@ namespace Corrosive {
 		}
 		else {
 			if (me->rvalue_stacked()) {
-				if (!ILBuilder::eval_memcpy_rev(Compiler::current()->evaluator(), me->size().eval(Compiler::current()->global_module(), compiler_arch))) return err::fail;
+				if (!ILBuilder::eval_memcpy_rev(Compiler::current()->evaluator(), me->size().eval(Compiler::current()->global_module()))) return err::fail;
 			}
 			else {
 				if (!ILBuilder::eval_store_rev(Compiler::current()->evaluator(), me->rvalue())) return err::fail;
@@ -111,7 +111,7 @@ namespace Corrosive {
 				}
 				else {
 					if (left.lvalue || left.type->rvalue_stacked()) {
-						if (!ILBuilder::eval_memcmp(compiler->evaluator(), left.type->size().eval(compiler->global_module(), compiler_arch))) return err::fail;
+						if (!ILBuilder::eval_memcmp(compiler->evaluator(), left.type->size().eval(compiler->global_module()))) return err::fail;
 					}
 					else {
 						if (!ILBuilder::eval_rmemcmp(compiler->evaluator(), left.type->rvalue())) return err::fail;
@@ -669,7 +669,8 @@ namespace Corrosive {
 		while (true) {
 			CompileValue value;
 			Cursor err = c;
-			if (!Operand::parse(c, value, cpt,false, request)) return err::fail;
+			if (!Operand::parse(c, value, cpt, false, request)) return err::fail;
+
 			int op_v = -1;
 			int op_t = -1;
 

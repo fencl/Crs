@@ -8,9 +8,6 @@
 namespace Corrosive {
 
 	FindNameResult Namespace::find_name(std::string_view name, bool recurse_up ) {
-		if (name == "printany") {
-			int i = 0;
-		}
 		auto res = name_table.find(name);
 		if (res != name_table.end()) {
 
@@ -20,6 +17,7 @@ namespace Corrosive {
 				case 2: return subfunctions[res->second.second].get();
 				case 3: return subtraits[res->second.second].get();
 				case 4: return substatics[res->second.second].get();
+				case 5: return orphaned_functions[res->second.second].get();
 			}
 		}
 		else if (recurse_up && parent) {
@@ -40,7 +38,7 @@ namespace Corrosive {
 
 		for (auto&& l : parent->generic_ctx.generic_layout) {
 
-			std::size_t off = std::get<1>(l)->size().eval(Compiler::current()->global_module(), compiler_arch);
+			std::size_t off = std::get<1>(l)->size().eval(Compiler::current()->global_module());
 			std::int8_t r;
 			if (!std::get<1>(l)->compare_for_generic_storage(r,loff, roff)) 
 				return false;// TODO propagate the error up 
@@ -63,7 +61,7 @@ namespace Corrosive {
 
 		for (auto&& l : parent->generic_ctx.generic_layout) {
 
-			std::size_t off = std::get<1>(l)->size().eval(Compiler::current()->global_module(), compiler_arch);
+			std::size_t off = std::get<1>(l)->size().eval(Compiler::current()->global_module());
 			std::int8_t r;
 			if (!std::get<1>(l)->compare_for_generic_storage(r,loff, roff))
 				return false; // TODO propagate the error up 
@@ -85,7 +83,7 @@ namespace Corrosive {
 		if (r > 0) return false;*/
 
 		for (auto&& l : parent->generic_ctx.generic_layout) {
-			std::size_t off = std::get<1>(l)->size().eval(Compiler::current()->global_module(), compiler_arch);
+			std::size_t off = std::get<1>(l)->size().eval(Compiler::current()->global_module());
 			std::int8_t r;
 			if (!std::get<1>(l)->compare_for_generic_storage(r,loff, roff)) 
 				return false;// TODO propagate the error up 

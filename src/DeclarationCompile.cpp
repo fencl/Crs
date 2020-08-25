@@ -81,7 +81,7 @@ namespace Corrosive {
 						return throw_specific_error(err, "Only primitive types can be used as generic arguments");
 					}
 
-					generic_ctx.generate_heap_size += t->size().eval(compiler->global_module(), compiler_arch);
+					generic_ctx.generate_heap_size += t->size().eval(compiler->global_module());
 					generic_ctx.generic_layout.push_back(std::make_tuple(name, t));
 
 					if (c.tok == RecognizedToken::Comma) {
@@ -167,7 +167,7 @@ namespace Corrosive {
 						return throw_specific_error(err, "Only primitive types can be used as generic arguments");
 					}
 
-					generic_ctx.generate_heap_size += t->size().eval(compiler->global_module(), compiler_arch);
+					generic_ctx.generate_heap_size += t->size().eval(compiler->global_module());
 					generic_ctx.generic_layout.push_back(std::make_tuple(name, t));
 
 
@@ -253,7 +253,7 @@ namespace Corrosive {
 						return throw_specific_error(err, "Only primitive types can be used as generic arguments");
 					}
 
-					generic_ctx.generate_heap_size += t->size().eval(compiler->global_module(), compiler_arch);
+					generic_ctx.generate_heap_size += t->size().eval(compiler->global_module());
 					generic_ctx.generic_layout.push_back(std::make_tuple(name, t));
 
 
@@ -323,7 +323,7 @@ namespace Corrosive {
 
 				for (auto l = generic_ctx.generic_layout.rbegin(); l != generic_ctx.generic_layout.rend(); l++) {
 					Type* t = std::get<1>(*l);
-					std::size_t c_size = t->size().eval(compiler->global_module(), compiler_arch);
+					std::size_t c_size = t->size().eval(compiler->global_module());
 					if (!t->copy_to_generic_storage(old_offset, new_offset)) return err::fail;
 					old_offset += c_size;
 					new_offset += c_size;
@@ -704,20 +704,35 @@ namespace Corrosive {
 				ft->type->owner = ft.get();
 				ft->generic_ctx.generator = &sinst->generic_inst;
 				if (!ft->compile()) { ILEvaluator::ex_throw(); return; }
-				
-				if (dynamic_cast<AstFunctionNode*>(ft->ast_node) && !((AstFunctionNode*)ft->ast_node)->is_generic) {
-					FunctionInstance* finst;
-					if (!ft->compile()) {ILEvaluator::ex_throw(); return;}
-					if (!ft->generate(nullptr, finst)){ILEvaluator::ex_throw(); return;}
-
-					if (finst->arguments.size()>1 && finst->arguments[0] == sinst->type.get()) {
-						sinst->member_table[ft->ast_node->name_string] = std::make_pair((tableelement_t)sinst->subfunctions.size(),MemberTableEntryType::func);
-					}
-				}
 
 				sinst->name_table[ft->ast_node->name_string] = std::make_pair((std::uint8_t)2, (std::uint32_t)sinst->subfunctions.size());
 				sinst->subfunctions.push_back(std::move(ft));
 
+			} break;
+
+			case TypeInstanceType::type_function_instance: {
+				TypeFunctionInstance* func = (TypeFunctionInstance*)type;
+				if (!func->compile()) {ILEvaluator::ex_throw(); return;}
+
+				auto fi = std::make_unique<FunctionInstance>();
+				fi->arguments = func->owner->arguments;
+				fi->returns = func->owner->returns;
+				fi->ast_node = func->owner->ast_node;
+				fi->compile_state = 3;
+				fi->context = func->owner->context;
+				fi->func = func->owner->func;
+				fi->generic_inst = func->owner->generic_inst;
+				fi->parent = sinst;
+				fi->type = std::make_unique<TypeFunctionInstance>();
+				fi->type->owner = fi.get();
+				fi->type->function_type = func->owner->type->function_type;
+
+				if (fi->arguments.size()>=1 && (fi->arguments[0]->type() == TypeInstanceType::type_reference) && ((TypeReference*)fi->arguments[0])->owner == sinst->type.get()) {
+					sinst->member_table[fi->ast_node->name_string] = std::make_pair((tableelement_t)sinst->orphaned_functions.size(), MemberTableEntryType::orphan);
+				}
+
+				sinst->name_table[fi->ast_node->name_string] = std::make_pair((std::uint8_t)5, (std::uint32_t)sinst->orphaned_functions.size());
+				sinst->orphaned_functions.push_back(std::move(fi));
 			} break;
 
 			default:
@@ -769,7 +784,7 @@ namespace Corrosive {
 				unsigned char* new_offset = new_key_inst.get();
 
 				for (auto l = generic_ctx.generic_layout.rbegin(); l != generic_ctx.generic_layout.rend(); l++) {
-					std::size_t c_size = std::get<1>(*l)->size().eval(Compiler::current()->global_module(), compiler_arch);
+					std::size_t c_size = std::get<1>(*l)->size().eval(Compiler::current()->global_module());
 
 					std::get<1>(*l)->copy_to_generic_storage(old_offset, new_offset);
 					old_offset += c_size;
@@ -941,7 +956,7 @@ namespace Corrosive {
 				unsigned char* new_offset = new_key_inst.get();
 
 				for (auto l = generic_ctx.generic_layout.rbegin(); l != generic_ctx.generic_layout.rend(); l++) {
-					std::size_t c_size = std::get<1>(*l)->size().eval(Compiler::current()->global_module(), compiler_arch);
+					std::size_t c_size = std::get<1>(*l)->size().eval(Compiler::current()->global_module());
 					if (!std::get<1>(*l)->copy_to_generic_storage(old_offset, new_offset)) return err::fail;
 					old_offset += c_size;
 					new_offset += c_size;
@@ -1152,10 +1167,8 @@ namespace Corrosive {
 					cb.move();
 					if (!Statement::parse_inner_block(cb, term, true, &name)) return err::fail;
 
-
 					//func->dump();
 					//std::cout << std::endl;
-
 				}
 			}
 			else {
@@ -1183,12 +1196,10 @@ namespace Corrosive {
 
 		}
 		else if (compile_state == 2) {
-			
 			Cursor c = load_cursor(ast_node->name, ast_node->get_source());
 			return throw_specific_error(c, "Build cycle");
 		}
 		else if (compile_state == 0) {
-			
 			Cursor c = load_cursor(ast_node->name, ast_node->get_source());
 			return throw_specific_error(c, "Build cycle");
 		}
@@ -1401,7 +1412,7 @@ namespace Corrosive {
 				stackid_t sid = compiler->mask_local(key_ptr);
 				compiler->compiler_stack()->push_item(std::get<0>(*key_l).buffer(), std::get<1>(*key_l), sid);
 
-				key_ptr += std::get<1>(*key_l)->size().eval(compiler->global_module(), compiler_arch);
+				key_ptr += std::get<1>(*key_l)->size().eval(compiler->global_module());
 			}
 		}
 	}

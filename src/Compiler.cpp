@@ -75,7 +75,7 @@ namespace Corrosive {
 		auto& lsb = local_stack_base.back();
 		auto& ls = local_stack_offsets.back();
 
-		std::size_t sz = size.eval(target_module.get(), compiler_arch);
+		std::size_t sz = size.eval(target_module.get());
 
 		ls.push_back(lsb + lss);
 		lss += sz;
@@ -85,7 +85,7 @@ namespace Corrosive {
 
 	void Compiler::pop_local(ILSize size) {
 		auto& lss = local_stack_size.back();
-		std::size_t sz = size.eval(target_module.get(), compiler_arch);
+		std::size_t sz = size.eval(target_module.get());
 		lss -= sz;
 		local_stack_offsets.pop_back();
 	}

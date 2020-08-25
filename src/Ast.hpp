@@ -28,7 +28,7 @@ namespace Corrosive {
 		AstCursor type;
 		bool alias;
 
-		static std::unique_ptr<AstVariableNode> parse(Cursor& c, AstNode* parent);
+		static errvoid parse(std::unique_ptr<AstVariableNode>& res,Cursor& c, AstNode* parent);
 	};
 
 	class AstFunctionDeclarationNode : public AstRegularNode {
@@ -53,7 +53,7 @@ namespace Corrosive {
 
 		virtual bool has_body() override { return true; }
 
-		static std::unique_ptr<AstFunctionDeclarationNode> parse(Cursor& c, AstNode* parent, ILContext force_context);
+		static errvoid parse(std::unique_ptr<AstFunctionDeclarationNode>& res, Cursor& c, AstNode* parent, ILContext force_context);
 	};
 
 	class AstTraitNode : public AstRegularNode {
@@ -65,7 +65,7 @@ namespace Corrosive {
 		ILContext context;
 		std::vector<std::unique_ptr<AstFunctionDeclarationNode>> declarations;
 
-		static std::unique_ptr<AstTraitNode> parse(Cursor& c, AstNode* parent);
+		static errvoid parse(std::unique_ptr<AstTraitNode>& res,Cursor& c, AstNode* parent);
 	};
 
 	class AstImplementationNode : public AstRegularNode {
@@ -74,7 +74,7 @@ namespace Corrosive {
 		AstCursor trait;
 		std::vector<std::unique_ptr<AstFunctionNode>> functions;
 
-		static std::unique_ptr<AstImplementationNode> parse(Cursor& c, AstNode* parent);
+		static errvoid parse(std::unique_ptr<AstImplementationNode>& res,Cursor& c, AstNode* parent);
 	};
 
 
@@ -86,7 +86,7 @@ namespace Corrosive {
 		ILContext context;
 		bool has_value;
 
-		static std::unique_ptr<AstStaticNode> parse(Cursor& c, AstNode* parent);
+		static errvoid parse(std::unique_ptr<AstStaticNode>& res, Cursor& c, AstNode* parent);
 	};
 
 
@@ -107,7 +107,7 @@ namespace Corrosive {
 		std::vector<std::unique_ptr<AstStaticNode>> statics;
 		std::vector<AstCursor> compile_blocks;
 
-		static std::unique_ptr<AstStructureNode> parse(Cursor& c, AstNode* parent);
+		static errvoid parse(std::unique_ptr<AstStructureNode>& res, Cursor& c, AstNode* parent);
 	};
 
 	class Compiler;
@@ -121,14 +121,14 @@ namespace Corrosive {
 		std::vector<std::unique_ptr<AstFunctionDeclarationNode>> functions;
 		std::vector<std::unique_ptr<AstStaticNode>> statics;
 
-		void populate(Namespace* into);
+		errvoid populate(Namespace* into);
 	};
 
 	class AstNamedNamespaceNode : public AstNamespaceNode {
 	public:
 		std::string_view name_string;
 		AstCursor name;
-		static std::unique_ptr<AstNamedNamespaceNode> parse(Cursor& c, AstNode* parent);
+		static errvoid parse(std::unique_ptr<AstNamedNamespaceNode>& res, Cursor& c, AstNode* parent);
 	};
 
 	class AstRootNode : public AstNode {
@@ -137,9 +137,9 @@ namespace Corrosive {
 		Source* parent;
 		virtual Source* get_source() override { return parent; }
 		std::unique_ptr<AstNamespaceNode> global_namespace;
-		static std::unique_ptr<AstRootNode> parse(Source* src);
+		static errvoid parse(std::unique_ptr<AstRootNode>& res, Source* src);
 
-		void populate();
+		errvoid populate();
 	};
 
 	

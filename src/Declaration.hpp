@@ -53,7 +53,8 @@ namespace Corrosive {
 		Structure = 2,
 		Function = 3,
 		Trait = 4,
-		Static = 5
+		Static = 5,
+		Orphan = 6
 	};
 
 	class FindNameResult {
@@ -64,6 +65,7 @@ namespace Corrosive {
 		FunctionTemplate* get_function() { return type() == FindNameResultType::Function ? std::get<3>(value) : nullptr; }
 		TraitTemplate* get_trait() { return type() == FindNameResultType::Trait ? std::get<4>(value) : nullptr; }
 		StaticInstance* get_static() { return type() == FindNameResultType::Static ? std::get<5>(value) : nullptr; }
+		FunctionInstance* get_orphan() { return type() == FindNameResultType::Orphan ? std::get<6>(value) : nullptr; }
 
 		FindNameResult() : value(nullptr) {}
 		FindNameResult(std::nullptr_t v) :value(v) {}
@@ -72,9 +74,10 @@ namespace Corrosive {
 		FindNameResult(FunctionTemplate* v) :value(v) {}
 		FindNameResult(TraitTemplate* v) :value(v) {}
 		FindNameResult(StaticInstance* v) :value(v) {}
+		FindNameResult(FunctionInstance* v) :value(v) {}
 
 	private:
-		std::variant<std::nullptr_t, Namespace*, StructureTemplate*, FunctionTemplate*, TraitTemplate*, StaticInstance*> value;
+		std::variant<std::nullptr_t, Namespace*, StructureTemplate*, FunctionTemplate*, TraitTemplate*, StaticInstance*, FunctionInstance*> value;
 	};
 
 
@@ -92,6 +95,7 @@ namespace Corrosive {
 		std::vector<std::unique_ptr<FunctionTemplate>>  subfunctions;
 		std::vector<std::unique_ptr<TraitTemplate>>     subtraits;
 		std::vector<std::unique_ptr<StaticInstance>>    substatics;
+		std::vector<std::unique_ptr<FunctionInstance>>  orphaned_functions;
 
 		FindNameResult find_name(std::string_view name, bool recurse_up = false);
 	};
@@ -101,7 +105,7 @@ namespace Corrosive {
 	};
 
 	enum class MemberTableEntryType : std::uint8_t {
-		var, alias, func
+		var, alias, func, orphan
 	};
 
 	class StructureInstance : public Namespace {

@@ -25,8 +25,8 @@ namespace Corrosive {
 	}
 
 
-	std::unique_ptr<AstRootNode> AstRootNode::parse(Source* src) {
-		auto root = std::make_unique<AstRootNode>();
+	errvoid AstRootNode::parse(std::unique_ptr<AstRootNode>& root,Source* src) {
+		root = std::make_unique<AstRootNode>();
 		root->parent = src;
 		
 		Cursor c = src->read_first();
@@ -38,86 +38,106 @@ namespace Corrosive {
 
 			auto buf = c.buffer();
 			if (buf == "namespace") {
-				global->namespaces.push_back(AstNamedNamespaceNode::parse(c, global.get()));
+				std::unique_ptr<AstNamedNamespaceNode> node;
+				if (!AstNamedNamespaceNode::parse(node, c, global.get())) return err::fail;
+				global->namespaces.push_back(std::move(node));
 			}
 			else if (buf == "struct") {
-				global->structures.push_back(AstStructureNode::parse(c, global.get()));
+				std::unique_ptr<AstStructureNode> node;
+				if (!AstStructureNode::parse(node, c, global.get())) return err::fail;
+				global->structures.push_back(std::move(node));
 			}
 			else if (buf == "fn") {
-				global->functions.push_back(AstFunctionNode::parse(c, global.get(),ILContext::both));
+				std::unique_ptr<AstFunctionDeclarationNode> node;
+				if (!AstFunctionNode::parse(node, c, global.get(),ILContext::both)) return err::fail;
+				global->functions.push_back(std::move(node));
 			}
 			else if (buf == "trait") {
-				global->traits.push_back(AstTraitNode::parse(c, global.get()));
+				std::unique_ptr<AstTraitNode> node;
+				if (!AstTraitNode::parse(node, c, global.get())) return err::fail;
+				global->traits.push_back(std::move(node));
 			}
 			else if (buf == "compile") {
 				c.move();
 				root->compile.push_back(c.offset);
 
 				if (c.tok != RecognizedToken::OpenBrace) {
-					throw_wrong_token_error(c, "'{'");
+					return throw_wrong_token_error(c, "'{'");
 				}
 				c.move_matching();
 				c.move();
 			}
 			else if (buf == "static") {
-				global->statics.push_back(AstStaticNode::parse(c, global.get()));
+				std::unique_ptr<AstStaticNode> node;
+				if (!AstStaticNode::parse(node, c, global.get())) return err::fail;
+				global->statics.push_back(std::move(node));
 			}
 			else {
-				throw_wrong_token_error(c, "namespace, fn, struct, trait, compile or static");
+				return throw_wrong_token_error(c, "namespace, fn, struct, trait, compile or static");
 			}
 
 		}
 
 		root->global_namespace = std::move(global);
-		return std::move(root);
+		return err::ok;
 	}
 
-	std::unique_ptr<AstNamedNamespaceNode> AstNamedNamespaceNode::parse(Cursor& c, AstNode* parent) {
-		auto space = std::make_unique<AstNamedNamespaceNode>();
+	errvoid AstNamedNamespaceNode::parse(std::unique_ptr<AstNamedNamespaceNode>& space, Cursor& c, AstNode* parent) {
+		space = std::make_unique<AstNamedNamespaceNode>();
 		space->parent = parent;
 		c.move();
 		space->name = c.offset;
 		space->name_string = c.buffer();
 		c.move();
 		if (c.tok != RecognizedToken::OpenBrace) {
-			throw_wrong_token_error(c, "'{'");
+			return throw_wrong_token_error(c, "'{'");
 		}
 		c.move();
 
 		while (c.tok != RecognizedToken::CloseBrace) {
 			if (c.tok == RecognizedToken::Eof) {
-				throw_eof_error(c, "parsing of namespace");
+				return throw_eof_error(c, "parsing of namespace");
 			}
 
 			auto buf = c.buffer();
 			if (buf == "namespace") {
-				space->namespaces.push_back(AstNamedNamespaceNode::parse(c, space.get()));
+				std::unique_ptr<AstNamedNamespaceNode> node;
+				if (!AstNamedNamespaceNode::parse(node, c, space.get())) return err::fail;
+				space->namespaces.push_back(std::move(node));
 			}
 			else if (buf == "struct") {
-				space->structures.push_back(AstStructureNode::parse(c, space.get()));
+				std::unique_ptr<AstStructureNode> node;
+				if (!AstStructureNode::parse(node, c, space.get())) return err::fail;
+				space->structures.push_back(std::move(node));
 			}
 			else if (buf == "fn") {
-				space->functions.push_back(AstFunctionNode::parse(c, space.get(),ILContext::both));
+				std::unique_ptr<AstFunctionDeclarationNode> node;
+				if (!AstFunctionNode::parse(node, c, space.get(),ILContext::both)) return err::fail;
+				space->functions.push_back(std::move(node));
 			}
 			else if (buf == "trait") {
-				space->traits.push_back(AstTraitNode::parse(c,space.get()));
+				std::unique_ptr<AstTraitNode> node;
+				if (!AstTraitNode::parse(node, c, space.get())) return err::fail;
+				space->traits.push_back(std::move(node));
 			}
 			else if (buf == "static") {
-				space->statics.push_back(AstStaticNode::parse(c, space.get()));
+				std::unique_ptr<AstStaticNode> node;
+				if (!AstStaticNode::parse(node, c, space.get())) return err::fail;
+				space->statics.push_back(std::move(node));
 			}
 			else {
-				throw_wrong_token_error(c, "namespace, fn, struct, trait or static");
+				return throw_wrong_token_error(c, "namespace, fn, struct, trait or static");
 			}
 		}
 
 		c.move();
 
 
-		return std::move(space);
+		return err::ok;
 	}
 
-	std::unique_ptr<AstStructureNode> AstStructureNode::parse(Cursor& c, AstNode* parent) {
-		auto structure = std::make_unique<AstStructureNode>();
+	errvoid AstStructureNode::parse(std::unique_ptr<AstStructureNode>& structure, Cursor& c, AstNode* parent) {
+		structure = std::make_unique<AstStructureNode>();
 		structure->parent = parent;
 		c.move();
 		if (c.tok == RecognizedToken::OpenParenthesis) {
@@ -147,39 +167,51 @@ namespace Corrosive {
 		structure->name_string = c.buffer();
 		c.move();
 		if (c.tok != RecognizedToken::OpenBrace) {
-			throw_wrong_token_error(c, "'{'");
+			return throw_wrong_token_error(c, "'{'");
 		}
 		c.move();
 
 		while (c.tok != RecognizedToken::CloseBrace) {
 			if (c.tok == RecognizedToken::Eof) {
-				throw_eof_error(c, "parsing of structure");
+				return throw_eof_error(c, "parsing of structure");
 			}
 
 			auto buf = c.buffer();
 			if (buf == "struct") {
-				structure->structures.push_back(AstStructureNode::parse(c, structure.get()));
+				std::unique_ptr<AstStructureNode> node;
+				if (!AstStructureNode::parse(node, c, structure.get())) return err::fail;
+				structure->structures.push_back(std::move(node));
 			}
 			else if (buf == "fn") {
 				Cursor err = c;
-				auto fun = AstFunctionNode::parse(c, structure.get(), ILContext::both);
-				if (!fun->has_body()) {
-					throw_specific_error(err, "Functions inside structures are supposed to have a body");
+				std::unique_ptr<AstFunctionDeclarationNode> node;
+				if (!AstFunctionNode::parse(node, c, structure.get(), ILContext::both)) return err::fail;
+
+				if (!node->has_body()) {
+					return throw_specific_error(err, "Functions inside structures are supposed to have a body");
 				}
 
-				structure->functions.push_back(std::move(fun));
+				structure->functions.push_back(std::move(node));
 			}
 			else if (buf == "var") {
-				structure->variables.push_back(AstVariableNode::parse(c, structure.get()));
+				std::unique_ptr<AstVariableNode> node;
+				if (!AstVariableNode::parse(node, c, structure.get())) return err::fail;
+				structure->variables.push_back(std::move(node));
 			}
 			else if (buf == "trait") {
-				structure->traits.push_back(AstTraitNode::parse(c,structure.get()));
+				std::unique_ptr<AstTraitNode> node;
+				if (!AstTraitNode::parse(node, c,structure.get())) return err::fail;
+				structure->traits.push_back(std::move(node));
 			}
 			else if (buf == "impl") {
-				structure->implementations.push_back(AstImplementationNode::parse(c, structure.get()));
+				std::unique_ptr<AstImplementationNode> node;
+				if (!AstImplementationNode::parse(node, c, structure.get())) return err::fail;
+				structure->implementations.push_back(std::move(node));
 			}
 			else if (buf == "static") {
-				structure->statics.push_back(AstStaticNode::parse(c, structure.get()));
+				std::unique_ptr<AstStaticNode> node;
+				if (!AstStaticNode::parse(node, c, structure.get())) return err::fail;
+				structure->statics.push_back(std::move(node));
 			}
 			else if (buf == "compile") {
 				c.move();
@@ -190,7 +222,7 @@ namespace Corrosive {
 				}else {
 					while(c.tok != RecognizedToken::Semicolon) {
 						if (c.tok == RecognizedToken::Eof) {
-							throw_eof_error(c,"parsing of compile expression");
+							return throw_eof_error(c,"parsing of compile expression");
 						}
 						c.move();
 					}
@@ -198,18 +230,18 @@ namespace Corrosive {
 				}
 			}
 			else {
-				throw_wrong_token_error(c, "var, fn, struct, impl, trait, static or compile");
+				return throw_wrong_token_error(c, "var, fn, struct, impl, trait, static or compile");
 			}
 		}
 
 		c.move();
 
 
-		return std::move(structure);
+		return err::ok;
 	}
 
 
-	std::unique_ptr<AstFunctionDeclarationNode> AstFunctionNode::parse(Cursor& c, AstNode* parent, ILContext force_context) {
+	errvoid AstFunctionNode::parse(std::unique_ptr<AstFunctionDeclarationNode>& res, Cursor& c, AstNode* parent, ILContext force_context) {
 		c.move();
 		bool is_generic = false;
 		AstCursor annotation = 0;
@@ -232,7 +264,7 @@ namespace Corrosive {
 					context = ILContext::compile;
 				}
 				else {
-					throw_specific_error(c, "Context was forced by parent declaration");
+					return throw_specific_error(c, "Context was forced by parent declaration");
 				}
 
 				c.move();
@@ -242,7 +274,7 @@ namespace Corrosive {
 					context = ILContext::runtime;
 				}
 				else {
-					throw_specific_error(c, "Context was forced by parent declaration");
+					return throw_specific_error(c, "Context was forced by parent declaration");
 				}
 
 				c.move();
@@ -268,11 +300,11 @@ namespace Corrosive {
 		std::string_view name_string = c.buffer();
 		c.move();
 		if (c.tok != RecognizedToken::Colon) {
-			throw_wrong_token_error(c, "':'");
+			return throw_wrong_token_error(c, "':'");
 		}
 		c.move();
 		if (c.tok != RecognizedToken::OpenParenthesis) {
-			throw_wrong_token_error(c, "'('");
+			return throw_wrong_token_error(c, "'('");
 		}
 		AstCursor type = c.offset;
 		Cursor ct = c;
@@ -283,7 +315,7 @@ namespace Corrosive {
 		// TODO: this is dumb
 		while (c.tok != RecognizedToken::OpenBrace && c.tok != RecognizedToken::Semicolon) {
 			if (c.tok == RecognizedToken::Eof) {
-				throw_eof_error(c, "parsing of function type");
+				return throw_eof_error(c, "parsing of function type");
 			}
 			c.move();
 		}
@@ -305,13 +337,13 @@ namespace Corrosive {
 			if (ct.tok != RecognizedToken::CloseParenthesis) {
 				while (ct.tok != RecognizedToken::Eof) {
 					if (ct.tok != RecognizedToken::Symbol) {
-						throw_not_a_name_error(ct);
+						return throw_not_a_name_error(ct);
 					}
 					fun->argument_names.push_back(std::make_pair(ct.offset, ct.buffer()));
 
 					ct.move();
 					if (ct.tok != RecognizedToken::Colon) {
-						throw_wrong_token_error(ct, "':'");
+						return throw_wrong_token_error(ct, "':'");
 					}
 
 					ct.move();
@@ -329,7 +361,7 @@ namespace Corrosive {
 						break;
 					}
 					else {
-						throw_wrong_token_error(ct, "',' or ')'");
+						return throw_wrong_token_error(ct, "',' or ')'");
 					}
 				}
 			}
@@ -338,7 +370,7 @@ namespace Corrosive {
 
 			c.move_matching();
 			c.move();
-			return std::move(fun);
+			res= std::move(fun);
 		}
 		else {
 			auto fun = std::make_unique<AstFunctionDeclarationNode>();
@@ -350,13 +382,15 @@ namespace Corrosive {
 			fun->parent = parent;
 			fun->exported = exported;
 			c.move();
-			return std::move(fun);
+			res= std::move(fun);
 		}
+
+		return err::ok;
 	}
 
 
-	std::unique_ptr<AstVariableNode> AstVariableNode::parse(Cursor& c, AstNode* parent) {
-		auto var = std::make_unique<AstVariableNode>();
+	errvoid AstVariableNode::parse(std::unique_ptr<AstVariableNode>& var, Cursor& c, AstNode* parent) {
+		var = std::make_unique<AstVariableNode>();
 		
 		c.move();
 		
@@ -373,7 +407,7 @@ namespace Corrosive {
 		c.move();
 
 		if (c.tok != RecognizedToken::Colon) {
-			throw_wrong_token_error(c, "':'");
+			return throw_wrong_token_error(c, "':'");
 		}
 		c.move();
 		var->type = c.offset;
@@ -382,7 +416,7 @@ namespace Corrosive {
 			switch (c.tok)
 			{
 				case RecognizedToken::Eof:
-					throw_eof_error(c, "parsing variable type"); break;
+					return throw_eof_error(c, "parsing variable type"); break;
 				case RecognizedToken::OpenParenthesis:
 				case RecognizedToken::OpenBrace:
 					c.move_matching();
@@ -392,12 +426,12 @@ namespace Corrosive {
 			}
 		}
 		c.move();
-		return std::move(var);
+		return err::ok;
 	}
 
 
-	std::unique_ptr<AstTraitNode> AstTraitNode::parse(Cursor& c, AstNode* parent) {
-		auto trait = std::make_unique<AstTraitNode>();
+	errvoid AstTraitNode::parse(std::unique_ptr<AstTraitNode>& trait, Cursor& c, AstNode* parent) {
+		trait = std::make_unique<AstTraitNode>();
 		trait->parent = parent;
 		c.move();
 		if (c.tok == RecognizedToken::OpenParenthesis) {
@@ -429,41 +463,42 @@ namespace Corrosive {
 		c.move();
 
 		if (c.tok != RecognizedToken::OpenBrace) {
-			throw_wrong_token_error(c, "'{'");
+			return throw_wrong_token_error(c, "'{'");
 		}
 		c.move();
 
 
 		while (c.tok != RecognizedToken::CloseBrace) {
 			if (c.tok == RecognizedToken::Eof) {
-				throw_eof_error(c, "parsing of trait");
+				return throw_eof_error(c, "parsing of trait");
 			}
 
 			auto buf = c.buffer();
 			if (buf == "fn") {
-				trait->declarations.push_back(AstFunctionNode::parse(c, trait.get(), trait->context));
+				std::unique_ptr<AstFunctionDeclarationNode> node;
+				if (!AstFunctionNode::parse(node, c, trait.get(), trait->context)) return err::fail;
+				trait->declarations.push_back(std::move(node));
 			}
 			else {
-				throw_wrong_token_error(c, "fn");
+				return throw_wrong_token_error(c, "fn");
 			}
 		}
 
 		c.move();
 
-
-		return std::move(trait);
+		return err::ok;
 	}
 
 
-	std::unique_ptr<AstImplementationNode> AstImplementationNode::parse(Cursor& c, AstNode* parent) {
-		auto impl = std::make_unique<AstImplementationNode>();
+	errvoid AstImplementationNode::parse(std::unique_ptr<AstImplementationNode>& impl,Cursor& c, AstNode* parent) {
+		impl = std::make_unique<AstImplementationNode>();
 		impl->parent = parent;
 		c.move();
 		impl->trait = c.offset;
 		// TODO maybe put type into parenthesies?
 		while (c.tok != RecognizedToken::OpenBrace && c.tok!= RecognizedToken::Colon) {
 			if (c.tok == RecognizedToken::Eof) {
-				throw_eof_error(c, "parsing of implementation type");
+				return throw_eof_error(c, "parsing of implementation type");
 			}
 
 			c.move();
@@ -476,22 +511,23 @@ namespace Corrosive {
 
 			while (c.tok != RecognizedToken::CloseBrace) {
 				if (c.tok == RecognizedToken::Eof) {
-					throw_eof_error(c, "parsing of trait");
+					return throw_eof_error(c, "parsing of trait");
 				}
 
 				auto buf = c.buffer();
 				if (buf == "fn") {
 					Cursor err = c;
-					auto fun = AstFunctionNode::parse(c,impl.get(), ILContext::both);
+					std::unique_ptr<AstFunctionDeclarationNode> fun;
+					if (!AstFunctionNode::parse(fun, c,impl.get(), ILContext::both)) return err::fail;
 					if (fun->has_body()) {
 						impl->functions.push_back((std::unique_ptr<AstFunctionNode>&&)std::move(fun));
 					}
 					else {
-						throw_specific_error(err, "Functions inside implementations are supposed to have a body");
+						return throw_specific_error(err, "Functions inside implementations are supposed to have a body");
 					}
 				}
 				else {
-					throw_wrong_token_error(c, "fn");
+					return throw_wrong_token_error(c, "fn");
 				}
 			}
 
@@ -526,7 +562,7 @@ namespace Corrosive {
 			c.move();
 			while (c.tok != RecognizedToken::OpenBrace) {
 				if (c.tok == RecognizedToken::Eof) {
-					throw_eof_error(c, "parsing of function declaration");
+					return throw_eof_error(c, "parsing of function declaration");
 				}
 				c.move();
 			}
@@ -536,31 +572,31 @@ namespace Corrosive {
 			impl->functions.push_back(std::move(fundecl));
 		}
 
-		return std::move(impl);
+		return err::ok;
 	}
 
 
-	void AstRootNode::populate() {
-		global_namespace->populate(Compiler::current()->global_namespace());
+	errvoid AstRootNode::populate() {
+		if (!global_namespace->populate(Compiler::current()->global_namespace())) return err::fail;
+
+		return err::ok;
 	}
 
 
-	void AstNamespaceNode::populate(Namespace* into) {
+	errvoid AstNamespaceNode::populate(Namespace* into) {
 		for (auto&& n : namespaces) {
 			std::unique_ptr<Namespace> nspc = std::make_unique<Namespace>();
 			nspc->ast_node = n.get();
 			nspc->parent = into;
 
 			if (into->name_table.find(n->name_string)!= into->name_table.end()) {
-				
 				Cursor c = load_cursor(n->name, n->get_source());
-				throw_specific_error(c, "Name already exists in the namespace");
+				return throw_specific_error(c, "Name already exists in the namespace");
 			}
 
 			into->name_table[n->name_string] = std::make_pair<std::uint8_t,std::uint32_t>(0, (std::uint32_t)into->subnamespaces.size());
-			n->populate(nspc.get());
+			if (!n->populate(nspc.get())) return err::fail;
 			into->subnamespaces.push_back(std::move(nspc));
-
 		}
 
 		for (auto&& n : structures) {
@@ -569,9 +605,8 @@ namespace Corrosive {
 			structure->parent = into;
 
 			if (into->name_table.find(n->name_string) != into->name_table.end()) {
-				
 				Cursor c = load_cursor(n->name, n->get_source());
-				throw_specific_error(c, "Name already exists in the namespace");
+				return throw_specific_error(c, "Name already exists in the namespace");
 			}
 			into->name_table[n->name_string] = std::make_pair<std::uint8_t, std::uint32_t>(1, (std::uint32_t)into->subtemplates.size());
 			into->subtemplates.push_back(std::move(structure));
@@ -586,9 +621,8 @@ namespace Corrosive {
 			}
 
 			if (into->name_table.find(n->name_string) != into->name_table.end()) {
-				
 				Cursor c = load_cursor(n->name, n->get_source());
-				throw_specific_error(c, "Name already exists in the namespace");
+				return throw_specific_error(c, "Name already exists in the namespace");
 			}
 			into->name_table[n->name_string] = std::make_pair<std::uint8_t, std::uint32_t>(2, (std::uint32_t)into->subfunctions.size());
 			into->subfunctions.push_back(std::move(function));
@@ -601,7 +635,7 @@ namespace Corrosive {
 
 			if (into->name_table.find(n->name_string) != into->name_table.end()) {
 				Cursor c = load_cursor(n->name, n->get_source());
-				throw_specific_error(c, "Name already exists in the namespace");
+				return throw_specific_error(c, "Name already exists in the namespace");
 			}
 			into->name_table[n->name_string] = std::make_pair<std::uint8_t, std::uint32_t>(3, (std::uint32_t)into->subtraits.size());
 			into->subtraits.push_back(std::move(trait));
@@ -614,16 +648,18 @@ namespace Corrosive {
 
 			if (into->name_table.find(n->name_string) != into->name_table.end()) {
 				Cursor c = load_cursor(n->name, n->get_source());
-				throw_specific_error(c, "Name already exists in the namespace");
+				return throw_specific_error(c, "Name already exists in the namespace");
 			}
 			into->name_table[n->name_string] = std::make_pair<std::uint8_t, std::uint32_t>(4, (std::uint32_t)into->substatics.size());
 			into->substatics.push_back(std::move(substatic));
 		}
+
+		return err::ok;
 	}
 
 
-	std::unique_ptr<AstStaticNode> AstStaticNode::parse(Cursor& c, AstNode* parent) {
-		auto svar = std::make_unique<AstStaticNode>();
+	errvoid AstStaticNode::parse(std::unique_ptr<AstStaticNode>& svar,Cursor& c, AstNode* parent) {
+		svar = std::make_unique<AstStaticNode>();
 		svar->parent = parent;
 		c.move();
 
@@ -641,7 +677,7 @@ namespace Corrosive {
 		}
 
 		if (c.tok != RecognizedToken::Symbol) {
-			throw_not_a_name_error(c);
+			return throw_not_a_name_error(c);
 		}
 		svar->name = c.offset;
 		svar->name_string = c.buffer();
@@ -649,7 +685,7 @@ namespace Corrosive {
 
 
 		if (c.tok != RecognizedToken::Colon && c.tok != RecognizedToken::Equals) {
-			throw_wrong_token_error(c, "':' or '='");
+			return throw_wrong_token_error(c, "':' or '='");
 		}
 		svar->has_value = c.tok == RecognizedToken::Equals;
 		c.move();
@@ -657,12 +693,12 @@ namespace Corrosive {
 
 		while (c.tok != RecognizedToken::Semicolon) {
 			if (c.tok == RecognizedToken::Eof) {
-				throw_eof_error(c, "parsing of static declaration");
+				return throw_eof_error(c, "parsing of static declaration");
 			}
 			c.move();
 		}
 		c.move();
 
-		return std::move(svar);
+		return err::ok;
 	}
 }

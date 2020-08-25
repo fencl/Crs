@@ -36,7 +36,7 @@ namespace Corrosive {
 		void read_after(Cursor& out, const Cursor& c);
 		Cursor read_first();
 
-		void pair_tokens();
+		errvoid pair_tokens();
 		void move_matching(Cursor& c) const;
 		std::unique_ptr<AstRootNode> root_node;
 

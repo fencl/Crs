@@ -220,7 +220,6 @@ namespace Corrosive {
 		block->write_instruction(ILInstruction::memcpy);
 		block->write_value(size);
 		return err::ok;
-
 	}
 
 	errvoid ILBuilder::build_memcpy_rev(ILBlock* block, ILSize size) {
@@ -849,14 +848,68 @@ namespace Corrosive {
 		block->write_instruction(ILInstruction::combinedw);
 		return err::ok;
 	}
+	
 	errvoid ILBuilder::build_split_dword(ILBlock* block) {
 		block->write_instruction(ILInstruction::splitdw);
 		return err::ok;
 	}
+
 	errvoid ILBuilder::build_high_word(ILBlock* block) {
 		block->write_instruction(ILInstruction::highdw);
 		return err::ok;
 	}
 
+	errvoid ILBuilder::build_low_word(ILBlock* block) {
+		block->write_instruction(ILInstruction::lowdw);
+		return err::ok;
+	}
+
+	errvoid ILBuilder::build_extract(ILBlock* block, ILSize value) {
+		if (value.value <= UINT8_MAX) {
+			std::uint8_t offset8 = value.value;
+			block->write_instruction(ILInstruction::extract8);
+			block->write_value(value.type);
+			block->write_value(offset8);
+		}
+		else if (value.value <= UINT16_MAX) {
+			std::uint16_t offset16 = value.value;
+			block->write_instruction(ILInstruction::extract16);
+			block->write_value(value.type);
+			block->write_value(offset16);
+		}
+		else if (value.value <= UINT32_MAX) {
+			block->write_instruction(ILInstruction::extract32);
+			block->write_value(value.type);
+			block->write_value(value.value);
+		}
+		else {
+			throw string_exception("Compiler error: please fix extract");
+		}
+		return err::ok;
+	}
+
+	errvoid ILBuilder::build_cut(ILBlock* block, ILSize value) {
+		if (value.value <= UINT8_MAX) {
+			std::uint8_t offset8 = value.value;
+			block->write_instruction(ILInstruction::cut8);
+			block->write_value(value.type);
+			block->write_value(offset8);
+		}
+		else if (value.value <= UINT16_MAX) {
+			std::uint16_t offset16 = value.value;
+			block->write_instruction(ILInstruction::cut16);
+			block->write_value(value.type);
+			block->write_value(offset16);
+		}
+		else if (value.value <= UINT32_MAX) {
+			block->write_instruction(ILInstruction::cut32);
+			block->write_value(value.type);
+			block->write_value(value.value);
+		}
+		else {
+			throw string_exception("Compiler error: please fix extract");
+		}
+		return err::ok;
+	}
 
 }

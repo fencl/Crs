@@ -246,7 +246,7 @@ namespace Corrosive {
 	}
 
 	std::uint32_t ILModule::register_constant(unsigned char* memory, ILSize size) {
-		std::size_t compile_size = size.eval(this, compiler_arch);
+		std::size_t compile_size = size.eval(this);
 		auto data = std::make_unique<unsigned char[]>(compile_size);
 		std::memcpy(data.get(), memory, compile_size);
 		constant_memory.push_back(std::make_pair(size,std::move(data)));
@@ -257,7 +257,7 @@ namespace Corrosive {
 	}
 
 	std::uint32_t ILModule::register_static(unsigned char* memory, ILSize size) {
-		std::size_t compile_size = size.eval(this, compiler_arch);
+		std::size_t compile_size = size.eval(this);
 		auto data = std::make_unique<unsigned char[]>(compile_size);
 		if (memory != nullptr) {
 			std::memcpy(data.get(), memory, compile_size);
@@ -269,10 +269,10 @@ namespace Corrosive {
 		return (std::uint32_t)static_memory.size() - 1;
 	}
 
-	void ILBytecodeFunction::calculate_stack(ILArchitecture arch) {
-		if (arch != calculated_for) {
+	void ILBytecodeFunction::calculate_stack() {
+		if (calculated_local_stack_alignment == 0) {
+			calculated_local_stack_alignment = 1;
 			calculated_local_stack_size = 0;
-			calculated_local_stack_alignment = 0;
 			std::size_t stack_size = 0;
 			std::vector<std::size_t> stack_sizes;
 			stack_sizes.push_back(0);
@@ -296,21 +296,17 @@ namespace Corrosive {
 						std::uint32_t ptr_val = (((std::uint32_t) * (ptr++)) << 24) | (((std::uint32_t) * (ptr++)) << 16) | (((std::uint32_t) * (ptr++)) << 8) | (((std::uint32_t) * (ptr++)));
 
 						ILSize ptr_s = ILSize(ptr_t, ptr_val);
-						std::size_t elem_align = ptr_s.alignment(parent, arch);
+						std::size_t elem_align = ptr_s.alignment(parent);
 						calculated_local_stack_alignment = std::max(elem_align, calculated_local_stack_alignment);
 
 						stack_size = align_up(stack_size, elem_align);
 						calculated_local_offsets[lid++] = stack_size;
-						std::size_t sz = ptr_s.eval(parent, arch);
+						std::size_t sz = ptr_s.eval(parent);
 						stack_size += sz;
 						calculated_local_stack_size = std::max(calculated_local_stack_size, stack_size);
 					}break;
 				}
 			}
-
-
-
-			calculated_for = arch;
 		}
 	}
 
@@ -357,7 +353,7 @@ namespace Corrosive {
 		return ins.first->second;
 	}
 
-	std::size_t ILSize::eval(ILModule* mod, ILArchitecture arch) const {
+	std::size_t ILSize::eval(ILModule* mod) const {
 		switch (type) {
 			case ILSizeType::_0: return 0;
 
@@ -380,38 +376,22 @@ namespace Corrosive {
 
 			case ILSizeType::word: 
 			case ILSizeType::ptr: {
-				switch (arch)
-				{
-					case ILArchitecture::bit32:
-						return (std::size_t)value * 4;
-					case ILArchitecture::bit64:
-						return (std::size_t)value * 8;
-					default:
-						return 0;
-				}
+				return (std::size_t)value * sizeof(void*);
 			}
 
 			case ILSizeType::slice: {
-				switch (arch)
-				{
-					case ILArchitecture::bit32:
-						return (std::size_t)value * 4 * 2;
-					case ILArchitecture::bit64:
-						return (std::size_t)value * 8 * 2;
-					default:
-						return 0;
-				}
+				return (std::size_t)value * sizeof(void*) * 2;
 			}
 
 			case ILSizeType::table: {
 				auto& stable = mod->structure_tables[value];
-				stable.calculate(mod, arch);
+				stable.calculate(mod);
 				return stable.calculated_size;
 			}
 
 			case ILSizeType::array: {
 				auto& stable = mod->array_tables[value];
-				stable.calculate(mod, arch);
+				stable.calculate(mod);
 				return stable.calculated_size;
 			}
 		}
@@ -431,54 +411,31 @@ namespace Corrosive {
 		return v;
 	}
 
-	std::size_t ILSize::alignment(ILModule* mod, ILArchitecture arch) const {
+	std::size_t ILSize::alignment(ILModule* mod) const {
 		switch (type) {
 			case ILSizeType::_0:
-			case ILSizeType::abs8: return 1;
-
-			case ILSizeType::abs16: return 2;
-
+			case ILSizeType::abs8: return alignof(std::uint8_t);
+			case ILSizeType::abs16: return alignof(std::uint16_t);
 			case ILSizeType::absf32:
-			case ILSizeType::abs32: return 4;
-
-			
-			case ILSizeType::absf64: return 8;
-
-			case ILSizeType::abs64: {
-				switch (arch)
-				{
-					case ILArchitecture::bit32:
-						return 4;
-					case ILArchitecture::bit64:
-						return 8;
-					default:
-						return 0;
-				}
-			}
+			case ILSizeType::abs32: return alignof(std::uint32_t);
+			case ILSizeType::absf64: return alignof(double);
+			case ILSizeType::abs64:	return alignof(std::uint64_t);
 
 			case ILSizeType::slice:
 			case ILSizeType::word:
 			case ILSizeType::ptr: {
-				switch (arch)
-				{
-					case ILArchitecture::bit32:
-						return 4;
-					case ILArchitecture::bit64:
-						return 8;
-					default:
-						return 0;
-				}
+				return sizeof(void*);
 			}
 
 			case ILSizeType::table: {
 				auto& stable = mod->structure_tables[value];
-				stable.calculate(mod, arch);
+				stable.calculate(mod);
 				return stable.calculated_alignment;
 			}
 
 			case ILSizeType::array: {
 				auto& stable = mod->array_tables[value];
-				stable.calculate(mod, arch);
+				stable.calculate(mod);
 				return stable.calculated_alignment;
 			}
 		}
@@ -491,31 +448,29 @@ namespace Corrosive {
 	const ILSize ILSize::slice = { ILSizeType::slice, 1};
 	const ILSize ILSize::single_word = { ILSizeType::word, 1};
 
-	void ILStructTable::calculate(ILModule* mod, ILArchitecture arch) {
-		if (arch != calculated_for) {
+	void ILStructTable::calculate(ILModule* mod) {
+		if (calculated_alignment == 0) {
 			calculated_size = 0;
 			calculated_alignment = 1;
 			calculated_offsets.resize(elements.size());
 
 			std::size_t id = 0;
 			for (auto elem = elements.begin(); elem != elements.end(); elem++) {
-				std::size_t elem_align = elem->alignment(mod, arch);
+				std::size_t elem_align = elem->alignment(mod);
 				calculated_size = align_up(calculated_size, elem_align);
 				calculated_offsets[id++] = calculated_size;
-				calculated_size += elem->eval(mod, arch);
+				calculated_size += elem->eval(mod);
 				calculated_alignment = std::max(calculated_alignment, elem_align);
 			}
 
 			calculated_size = align_up(calculated_size, calculated_alignment);
-			calculated_for = arch;
 		}
 	}
 
-	void ILArrayTable::calculate(ILModule* mod, ILArchitecture arch) {
-		if (arch != calculated_for) {
-			calculated_alignment = element.alignment(mod, arch);
-			calculated_size = (std::size_t)(align_up(element.eval(mod, arch), calculated_alignment) * count);
-			calculated_for = arch;
+	void ILArrayTable::calculate(ILModule* mod) {
+		if (calculated_alignment == 0) {
+			calculated_alignment = element.alignment(mod);
+			calculated_size = (std::size_t)(align_up(element.eval(mod), calculated_alignment) * count);
 		}
 	}
 
@@ -869,6 +824,10 @@ namespace Corrosive {
 					std::cout << "   high [word]\n";
 				} break;
 
+				case ILInstruction::lowdw: {
+					std::cout << "   low [word]\n";
+				} break;
+
 				case ILInstruction::splitdw: {
 					std::cout << "   split [dword]\n";
 				} break;
@@ -1170,6 +1129,54 @@ namespace Corrosive {
 					std::cout << "\n";
 				}break;
 
+				case ILInstruction::extract8: {
+					std::cout << "   extract ";
+					auto t = ILBlock::read_data<ILSizeType>(it);
+					auto v = ILBlock::read_data<std::uint8_t>(it);
+					ILSize(t,(tableid_t)v).print(parent->parent);
+					std::cout << "\n";
+				}break;
+
+				case ILInstruction::extract16: {
+					std::cout << "   extract ";
+					auto t = ILBlock::read_data<ILSizeType>(it);
+					auto v = ILBlock::read_data<std::uint16_t>(it);
+					ILSize(t, (tableid_t)v).print(parent->parent);
+					std::cout << "\n";
+				}break;
+
+				case ILInstruction::extract32: {
+					std::cout << "   extract ";
+					auto t = ILBlock::read_data<ILSizeType>(it);
+					auto v = ILBlock::read_data<std::uint32_t>(it);
+					ILSize(t, (tableid_t)v).print(parent->parent);
+					std::cout << "\n";
+				}break;
+				
+				case ILInstruction::cut8: {
+					std::cout << "   cut ";
+					auto t = ILBlock::read_data<ILSizeType>(it);
+					auto v = ILBlock::read_data<std::uint8_t>(it);
+					ILSize(t,(tableid_t)v).print(parent->parent);
+					std::cout << "\n";
+				}break;
+
+				case ILInstruction::cut16: {
+					std::cout << "   cut ";
+					auto t = ILBlock::read_data<ILSizeType>(it);
+					auto v = ILBlock::read_data<std::uint16_t>(it);
+					ILSize(t, (tableid_t)v).print(parent->parent);
+					std::cout << "\n";
+				}break;
+
+				case ILInstruction::cut32: {
+					std::cout << "   cut ";
+					auto t = ILBlock::read_data<ILSizeType>(it);
+					auto v = ILBlock::read_data<std::uint32_t>(it);
+					ILSize(t, (tableid_t)v).print(parent->parent);
+					std::cout << "\n";
+				}break;
+
 			}
 		}
 	}
@@ -1394,7 +1401,7 @@ namespace Corrosive {
 			ILSize s;
 			s.type = (ILSizeType)file.u8();
 			s.value = file.u32();
-			std::size_t es = s.eval(this, compiler_arch);
+			std::size_t es = s.eval(this);
 			auto mem = std::make_unique<unsigned char[]>(es);
 			s.load(this, file, mem.get());
 			constant_memory[cid] = std::make_pair(s, std::move(mem));
@@ -1406,7 +1413,7 @@ namespace Corrosive {
 			ILSize s;
 			s.type = (ILSizeType)file.u8();
 			s.value = file.u32();
-			std::size_t es = s.eval(this, compiler_arch);
+			std::size_t es = s.eval(this);
 			auto mem = std::make_unique<unsigned char[]>(es);
 			static_memory[sid] = std::make_pair(s, std::move(mem));
 		}
@@ -1626,9 +1633,9 @@ namespace Corrosive {
 			} break;
 
 			case ILSizeType::table: {
-				std::size_t s = eval(mod, compiler_arch);
+				std::size_t s = eval(mod);
 				auto& table = mod->structure_tables[value];
-				table.calculate(mod, compiler_arch);
+				table.calculate(mod);
 				for (std::size_t e = 0; e<table.elements.size(); ++e) {
 					unsigned char* elem_off = ptr + table.calculated_offsets[e];
 					table.elements[e].load(mod,stream, elem_off);
@@ -1636,9 +1643,9 @@ namespace Corrosive {
 				ptr+=s;
 			}
 			case ILSizeType::array: {
-				std::size_t s = eval(mod, compiler_arch);
+				std::size_t s = eval(mod);
 				auto& table = mod->array_tables[value];
-				table.calculate(mod, compiler_arch);
+				table.calculate(mod);
 				table.element.load(mod, stream, ptr);
 				ptr+=s;
 			}
@@ -1684,9 +1691,9 @@ namespace Corrosive {
 				throw string_exception("Compiler error: there are pointers values inside data export");
 			}break;
 			case ILSizeType::table: {
-				std::size_t s = eval(mod, compiler_arch);
+				std::size_t s = eval(mod);
 				auto& table = mod->structure_tables[value];
-				table.calculate(mod, compiler_arch);
+				table.calculate(mod);
 				for (std::size_t e = 0; e<table.elements.size(); ++e) {
 					unsigned char* elem_off = ptr + table.calculated_offsets[e];
 					table.elements[e].save(mod,stream, elem_off);
@@ -1694,9 +1701,9 @@ namespace Corrosive {
 				ptr+=s;
 			}
 			case ILSizeType::array: {
-				std::size_t s = eval(mod, compiler_arch);
+				std::size_t s = eval(mod);
 				auto& table = mod->array_tables[value];
-				table.calculate(mod, compiler_arch);
+				table.calculate(mod);
 				table.element.save(mod, stream, ptr);
 				ptr+=s;
 			}

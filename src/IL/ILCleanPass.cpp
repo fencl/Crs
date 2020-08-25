@@ -641,6 +641,77 @@ namespace Corrosive {
 						}
 					} break;
 
+					case ILInstruction::extract8: {
+						auto t = ILBlock::read_data<ILSizeType>(it);
+						auto v = ILBlock::read_data<std::uint8_t>(it);
+						if (t == ILSizeType::table) {
+							used_tables.insert(v);
+						}
+						else if (t == ILSizeType::array) {
+							used_arrays.insert(v);
+						}
+					} break;
+
+					
+					case ILInstruction::extract16: {
+						auto t = ILBlock::read_data<ILSizeType>(it);
+						auto v = ILBlock::read_data<std::uint16_t>(it);
+						if (t == ILSizeType::table) {
+							used_tables.insert(v);
+						}
+						else if (t == ILSizeType::array) {
+							used_arrays.insert(v);
+						}
+					} break;
+
+					
+					case ILInstruction::extract32: {
+						auto t = ILBlock::read_data<ILSizeType>(it);
+						auto v = ILBlock::read_data<std::uint32_t>(it);
+						if (t == ILSizeType::table) {
+							used_tables.insert(v);
+						}
+						else if (t == ILSizeType::array) {
+							used_arrays.insert(v);
+						}
+					} break;
+
+					
+					case ILInstruction::cut8: {
+						auto t = ILBlock::read_data<ILSizeType>(it);
+						auto v = ILBlock::read_data<std::uint8_t>(it);
+						if (t == ILSizeType::table) {
+							used_tables.insert(v);
+						}
+						else if (t == ILSizeType::array) {
+							used_arrays.insert(v);
+						}
+					} break;
+
+					
+					case ILInstruction::cut16: {
+						auto t = ILBlock::read_data<ILSizeType>(it);
+						auto v = ILBlock::read_data<std::uint16_t>(it);
+						if (t == ILSizeType::table) {
+							used_tables.insert(v);
+						}
+						else if (t == ILSizeType::array) {
+							used_arrays.insert(v);
+						}
+					} break;
+
+					
+					case ILInstruction::cut32: {
+						auto t = ILBlock::read_data<ILSizeType>(it);
+						auto v = ILBlock::read_data<std::uint32_t>(it);
+						if (t == ILSizeType::table) {
+							used_tables.insert(v);
+						}
+						else if (t == ILSizeType::array) {
+							used_arrays.insert(v);
+						}
+					} break;
+
 				}
 			}
 		}
@@ -1635,6 +1706,200 @@ namespace Corrosive {
 
 					} break;
 
+					
+					case ILInstruction::extract8: {
+						auto t = ILBlock::read_data<ILSizeType>(it);
+						auto v = ILBlock::read_data<std::uint8_t>(it);
+						std::uint32_t new_id = v;
+						if (t == ILSizeType::table) {
+							new_id = (tableid_t)map_tables[new_id];
+						}
+						else if (t == ILSizeType::array) {
+							new_id = (tableid_t)map_arrays[new_id];
+						}
+
+						switch (bit(new_id))
+						{
+							case ILBitWidth::b8: {
+								block->write_value(ILInstruction::extract8);
+								block->write_value(t);
+								block->write_value((std::uint8_t)new_id);
+							} break;
+							case ILBitWidth::b16: {
+								block->write_value(ILInstruction::extract16);
+								block->write_value(t);
+								block->write_value((std::uint16_t)new_id);
+							} break;
+							case ILBitWidth::b32: {
+								block->write_value(ILInstruction::extract32);
+								block->write_value(t);
+								block->write_value((std::uint32_t)new_id);
+							} break;
+						}
+
+					} break;
+
+
+					case ILInstruction::extract16: {
+						auto t = ILBlock::read_data<ILSizeType>(it);
+						auto v = ILBlock::read_data<std::uint16_t>(it);
+						std::uint32_t new_id = v;
+						if (t == ILSizeType::table) {
+							new_id = (tableid_t)map_tables[new_id];
+						}
+						else if (t == ILSizeType::array) {
+							new_id = (tableid_t)map_arrays[new_id];
+						}
+
+						switch (bit(new_id))
+						{
+							case ILBitWidth::b8: {
+								block->write_value(ILInstruction::extract8);
+								block->write_value(t);
+								block->write_value((std::uint8_t)new_id);
+							} break;
+							case ILBitWidth::b16: {
+								block->write_value(ILInstruction::extract16);
+								block->write_value(t);
+								block->write_value((std::uint16_t)new_id);
+							} break;
+							case ILBitWidth::b32: {
+								block->write_value(ILInstruction::extract32);
+								block->write_value(t);
+								block->write_value((std::uint32_t)new_id);
+							} break;
+						}
+
+					} break;
+
+					case ILInstruction::extract32: {
+						auto t = ILBlock::read_data<ILSizeType>(it);
+						auto v = ILBlock::read_data<std::uint32_t>(it);
+						std::uint32_t new_id = v;
+						if (t == ILSizeType::table) {
+							new_id = (tableid_t)map_tables[new_id];
+						}
+						else if (t == ILSizeType::array) {
+							new_id = (tableid_t)map_arrays[new_id];
+						}
+
+						switch (bit(new_id))
+						{
+							case ILBitWidth::b8: {
+								block->write_value(ILInstruction::extract8);
+								block->write_value(t);
+								block->write_value((std::uint8_t)new_id);
+							} break;
+							case ILBitWidth::b16: {
+								block->write_value(ILInstruction::extract16);
+								block->write_value(t);
+								block->write_value((std::uint16_t)new_id);
+							} break;
+							case ILBitWidth::b32: {
+								block->write_value(ILInstruction::extract32);
+								block->write_value(t);
+								block->write_value((std::uint32_t)new_id);
+							} break;
+						}
+
+					} break;
+					
+					case ILInstruction::cut8: {
+						auto t = ILBlock::read_data<ILSizeType>(it);
+						auto v = ILBlock::read_data<std::uint8_t>(it);
+						std::uint32_t new_id = v;
+						if (t == ILSizeType::table) {
+							new_id = (tableid_t)map_tables[new_id];
+						}
+						else if (t == ILSizeType::array) {
+							new_id = (tableid_t)map_arrays[new_id];
+						}
+
+						switch (bit(new_id))
+						{
+							case ILBitWidth::b8: {
+								block->write_value(ILInstruction::cut8);
+								block->write_value(t);
+								block->write_value((std::uint8_t)new_id);
+							} break;
+							case ILBitWidth::b16: {
+								block->write_value(ILInstruction::cut16);
+								block->write_value(t);
+								block->write_value((std::uint16_t)new_id);
+							} break;
+							case ILBitWidth::b32: {
+								block->write_value(ILInstruction::cut32);
+								block->write_value(t);
+								block->write_value((std::uint32_t)new_id);
+							} break;
+						}
+
+					} break;
+					
+					case ILInstruction::cut16: {
+						auto t = ILBlock::read_data<ILSizeType>(it);
+						auto v = ILBlock::read_data<std::uint16_t>(it);
+						std::uint32_t new_id = v;
+						if (t == ILSizeType::table) {
+							new_id = (tableid_t)map_tables[new_id];
+						}
+						else if (t == ILSizeType::array) {
+							new_id = (tableid_t)map_arrays[new_id];
+						}
+
+						switch (bit(new_id))
+						{
+							case ILBitWidth::b8: {
+								block->write_value(ILInstruction::cut8);
+								block->write_value(t);
+								block->write_value((std::uint8_t)new_id);
+							} break;
+							case ILBitWidth::b16: {
+								block->write_value(ILInstruction::cut16);
+								block->write_value(t);
+								block->write_value((std::uint16_t)new_id);
+							} break;
+							case ILBitWidth::b32: {
+								block->write_value(ILInstruction::cut32);
+								block->write_value(t);
+								block->write_value((std::uint32_t)new_id);
+							} break;
+						}
+
+					} break;
+					
+					case ILInstruction::cut32: {
+						auto t = ILBlock::read_data<ILSizeType>(it);
+						auto v = ILBlock::read_data<std::uint32_t>(it);
+						std::uint32_t new_id = v;
+						if (t == ILSizeType::table) {
+							new_id = (tableid_t)map_tables[new_id];
+						}
+						else if (t == ILSizeType::array) {
+							new_id = (tableid_t)map_arrays[new_id];
+						}
+
+						switch (bit(new_id))
+						{
+							case ILBitWidth::b8: {
+								block->write_value(ILInstruction::cut8);
+								block->write_value(t);
+								block->write_value((std::uint8_t)new_id);
+							} break;
+							case ILBitWidth::b16: {
+								block->write_value(ILInstruction::cut16);
+								block->write_value(t);
+								block->write_value((std::uint16_t)new_id);
+							} break;
+							case ILBitWidth::b32: {
+								block->write_value(ILInstruction::cut32);
+								block->write_value(t);
+								block->write_value((std::uint32_t)new_id);
+							} break;
+						}
+
+					} break;
+
 
 					case ILInstruction::start: 
 					case ILInstruction::rtoffset: 
@@ -1643,6 +1908,7 @@ namespace Corrosive {
 					case ILInstruction::null: 
 					case ILInstruction::combinedw:
 					case ILInstruction::highdw:
+					case ILInstruction::lowdw:
 					case ILInstruction::splitdw: {
 						block->write_value(inst);
 					} break;
@@ -1764,9 +2030,9 @@ namespace Corrosive {
 				}
 			}break;
 			case ILSizeType::table: {
-				std::size_t s = eval(mod, compiler_arch);
+				std::size_t s = eval(mod);
 				auto& table = mod->structure_tables[value];
-				table.calculate(mod, compiler_arch);
+				table.calculate(mod);
 				for (std::size_t e = 0; e<table.elements.size(); ++e) {
 					unsigned char* elem_off = ptr + table.calculated_offsets[e];
 					table.elements[e].clean_prepass(mod, pointer_offsets, elem_off);
@@ -1774,10 +2040,10 @@ namespace Corrosive {
 				ptr+=s;
 			}
 			case ILSizeType::array: {
-				std::size_t s = eval(mod, compiler_arch);
+				std::size_t s = eval(mod);
 				auto& table = mod->array_tables[value];
-				std::size_t es = table.element.eval(mod, compiler_arch);
-				table.calculate(mod, compiler_arch);
+				std::size_t es = table.element.eval(mod);
+				table.calculate(mod);
 				unsigned char* offset = ptr;
 				for (std::uint32_t i=0; i<table.count; ++i) {
 					table.element.clean_prepass(mod, pointer_offsets, offset);

@@ -356,7 +356,11 @@ namespace Corrosive {
 					} break;
 					case ';': out.tok = (RecognizedToken::Semicolon); break;
 					case ',': out.tok = (RecognizedToken::Comma); break;
-					case '.': out.tok = (RecognizedToken::Dot); break;
+					case '.': switch (nc)
+					{
+						case '.': offset++; out.tok = (RecognizedToken::DoubleDot); break;
+						default: out.tok = (RecognizedToken::Dot); break;
+					} break;
 					case '%': out.tok = (RecognizedToken::Percent); break;
 					case '^': out.tok = (RecognizedToken::Xor); break;
 					case '\\': out.tok = (RecognizedToken::Backslash); break;
@@ -434,7 +438,7 @@ namespace Corrosive {
 		c = token_pair.find(c.offset)->second;
 	}
 
-	void Source::pair_tokens() {
+	errvoid Source::pair_tokens() {
 		Cursor c = read_first();
 		int level_braces = 0;
 		int level_parenthesies = 0;
@@ -460,7 +464,7 @@ namespace Corrosive {
 						level_braces--;
 					}
 					else {
-						throw_specific_error(c, "There was no '}' to match this brace");
+						return throw_specific_error(c, "There was no '}' to match this brace");
 					}
 					break;
 
@@ -471,7 +475,7 @@ namespace Corrosive {
 						level_parenthesies--;
 					}
 					else {
-						throw_specific_error(c, "There was no ')' to match this parenthesis");
+						return throw_specific_error(c, "There was no ')' to match this parenthesis");
 					}
 					break;
 			}
@@ -480,11 +484,12 @@ namespace Corrosive {
 		}
 
 		if (level_braces != 0) {
-			throw_specific_error(open_braces.back(), "There was no '}' to close this block");
+			return throw_specific_error(open_braces.back(), "There was no '}' to close this block");
 		}
 		if (level_parenthesies != 0) {
-			throw_specific_error(open_parenthesies.back(), "There was no ')' to close this block");
+			return throw_specific_error(open_parenthesies.back(), "There was no ')' to close this block");
 		}
+		return err::ok;
 	}
 
 	ILBytecodeFunction* compile_build_block(Cursor& c) {
@@ -526,11 +531,13 @@ namespace Corrosive {
 			new_src->path = abs;
 			new_src->load(abs.generic_string().c_str());
 			new_src->register_debug();
-			new_src->pair_tokens();
+			if (!new_src->pair_tokens()) return err::fail;
 			auto ptr = new_src.get();
 			compiler->included_sources[std::move(abs)] = std::move(new_src);
-			ptr->root_node = AstRootNode::parse(ptr);
-			ptr->root_node->populate();
+			std::unique_ptr<AstRootNode> node;
+			if (!AstRootNode::parse(node,ptr)) return err::fail;
+			ptr->root_node = std::move(node);
+			if (!ptr->root_node->populate()) return err::fail;
 
 			compiler->source_stack.push_back(ptr);
 
