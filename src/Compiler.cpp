@@ -18,14 +18,24 @@ namespace Corrosive {
 	}
 
 
-	errvoid Compiler::register_native_function(FunctionInstance*& r, std::initializer_list<const char*> path, void* ptr) {
+	errvoid Compiler::precompile_native_function(FunctionInstance*& r, const char* func_path, void* ptr) {
+		std::string_view path = func_path;
 
 		Namespace* nspc = global_namespace();
 		FunctionTemplate* func = nullptr;
 
-		for (auto&& p : path) {
+		while (true) {
+			auto dcind = path.find(':');
+			std::string_view part;
+			if (dcind != std::string_view::npos) {
+				part = path.substr(0, dcind);
+				path = path.substr(dcind + 2);
+			}
+			else {
+				part = path;
+			}
 			
-			auto res = nspc->find_name(p);
+			auto res = nspc->find_name(part);
 
 
 			if (res.type() == FindNameResultType::Namespace && !func) {
@@ -38,13 +48,15 @@ namespace Corrosive {
 				r = nullptr;
 				return err::ok;
 			}
+
+			if (dcind == std::string_view::npos) break;
 		}
 
 		FunctionInstance* finst;
 		if (!func->generate(nullptr, finst)) return err::fail;
 		if (!finst->compile()) return err::fail;
 		((ILNativeFunction*)finst->func)->ptr = ptr;
-		r= finst;
+		r = finst;
 		return err::ok;
 	}
 

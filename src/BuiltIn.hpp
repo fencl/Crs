@@ -58,8 +58,6 @@ namespace Corrosive {
 
 	class StandardLibraryCode {
 	public:
-		static void 	print(dword_t slice);
-
 		static void* 	share(dword_t slice);
 		static void* 	function(void* lib, dword_t slice);
 		static void 	release(void* lib);
@@ -69,6 +67,12 @@ namespace Corrosive {
 		static void 	free(void* ref);
 
 		static void     link(ILModule* mod);
+
+		static void*	stdout_stream();
+		static void*	stderr_stream();
+		static void		fwrite(void* f, dword_t slice);
+		static void		fclose(void* f);
+		static void*	fopen(dword_t slice, std::uint8_t m);
 	};
 
 	class BuiltInCode {

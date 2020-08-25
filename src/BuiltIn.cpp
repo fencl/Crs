@@ -2,6 +2,8 @@
 #include <iostream>
 #include "Operand.hpp"
 #include "Compiler.hpp"
+#define _CRT_SECURE_NO_WARNINGS
+#include <cstdio>
 
 
 #ifdef WINDOWS
@@ -71,6 +73,51 @@ namespace Corrosive {
 		return std::realloc(ptr, size);
 	}
 
+	
+	void* StandardLibraryCode::stdout_stream() {
+		return stdout;
+	}
+	
+	void* StandardLibraryCode::stderr_stream() {
+		return stderr;
+	}
+
+	void StandardLibraryCode::fwrite(void* f, dword_t slice) {
+		std::fwrite(slice.p1,1,(std::size_t)slice.p2, (FILE*)f);
+	}
+	
+	void StandardLibraryCode::fclose(void* f) {
+		std::fclose((FILE*)f);
+	}
+
+	void* StandardLibraryCode::fopen(dword_t slice, std::uint8_t m) {
+		std::basic_string_view<char> view((char*)slice.p1, (std::size_t)slice.p2);
+		std::string file(view);
+		const char* mode;
+		if ((m & 0x01) == 0x01) {
+			if ((m&0x08) == 0x08) {
+				mode = "wb";
+			} else {
+				mode = "w";
+			}
+		}else if ((m & 0x02) == 0x02) {
+			if ((m&0x08) == 0x08) {
+				mode = "rb";
+			} else {
+				mode = "r";
+			}
+		}else if ((m & 0x04) == 0x04) {
+			if ((m&0x08) == 0x08) {
+				mode = "ab";
+			} else {
+				mode = "a";
+			}
+		}
+		
+		return std::fopen(file.c_str(), mode);
+	}
+
+
 	void StandardLibraryCode::free(void* ref) {
 		std::free(ref);
 		--allocated_counter;
@@ -90,11 +137,6 @@ namespace Corrosive {
 		FreeLibrary((HMODULE)lib);
 	}
 
-	void StandardLibraryCode::print(dword_t slice) {
-		std::basic_string_view<char> sv((char*)slice.p1, (std::size_t)slice.p2);
-		std::cout << sv;
-	}
-
 	void BuiltInCode::entry_point(dword_t slice) {
 		std::basic_string_view<char> sv((char*)slice.p1, (std::size_t)slice.p2);
 		Compiler::current()->entry_point = sv;
@@ -102,13 +144,17 @@ namespace Corrosive {
 
 	
 	void StandardLibraryCode::link(ILModule* mod) {
-		mod->try_link("std::print_slice", (void*)StandardLibraryCode::print);
 		mod->try_link("std::malloc", (void*)StandardLibraryCode::malloc);
 		mod->try_link("std::free", (void*)StandardLibraryCode::free);
 		mod->try_link("std::realloc", (void*)StandardLibraryCode::realloc);
 		mod->try_link("std::library::share", (void*)StandardLibraryCode::share);
 		mod->try_link("std::library::function", (void*)StandardLibraryCode::function);
 		mod->try_link("std::library::release", (void*)StandardLibraryCode::release);
+		mod->try_link("std::stream::stdout", (void*)StandardLibraryCode::stdout_stream);
+		mod->try_link("std::stream::stderr", (void*)StandardLibraryCode::stderr_stream);
+		mod->try_link("std::stream::write", (void*)StandardLibraryCode::fwrite);
+		mod->try_link("std::stream::close", (void*)StandardLibraryCode::fclose);
+		mod->try_link("std::stream::open", (void*)StandardLibraryCode::fopen);
 	}
 
 	void BuiltInCode::ask_for(dword_t slice) {
@@ -116,13 +162,17 @@ namespace Corrosive {
 
 		if (data_string == "compiler_standard_libraries") {
 			FunctionInstance* r;
-			if (!Compiler::current()->register_native_function(r, { "std","print_slice" }, (void*)StandardLibraryCode::print)) { ILEvaluator::ex_throw(); return; }
-			if (!Compiler::current()->register_native_function(r, { "std","malloc" }, (void*)StandardLibraryCode::malloc)) { ILEvaluator::ex_throw(); return; }
-			if (!Compiler::current()->register_native_function(r, { "std","realloc" }, (void*)StandardLibraryCode::realloc)) { ILEvaluator::ex_throw(); return; }
-			if (!Compiler::current()->register_native_function(r, { "std","free" }, (void*)StandardLibraryCode::free)) { ILEvaluator::ex_throw(); return; }
-			if (!Compiler::current()->register_native_function(r, { "std","library","share" }, (void*)StandardLibraryCode::share)) { ILEvaluator::ex_throw(); return; }
-			if (!Compiler::current()->register_native_function(r, { "std","library","function" }, (void*)StandardLibraryCode::function)) { ILEvaluator::ex_throw(); return; }
-			if (!Compiler::current()->register_native_function(r, { "std","library","release" }, (void*)StandardLibraryCode::release)) { ILEvaluator::ex_throw(); return; }
+			if (!Compiler::current()->precompile_native_function(r, "std::malloc", (void*)StandardLibraryCode::malloc)) { ILEvaluator::ex_throw(); return; }
+			if (!Compiler::current()->precompile_native_function(r, "std::realloc", (void*)StandardLibraryCode::realloc)) { ILEvaluator::ex_throw(); return; }
+			if (!Compiler::current()->precompile_native_function(r, "std::free", (void*)StandardLibraryCode::free)) { ILEvaluator::ex_throw(); return; }
+			if (!Compiler::current()->precompile_native_function(r, "std::library::share", (void*)StandardLibraryCode::share)) { ILEvaluator::ex_throw(); return; }
+			if (!Compiler::current()->precompile_native_function(r, "std::library::function", (void*)StandardLibraryCode::function)) { ILEvaluator::ex_throw(); return; }
+			if (!Compiler::current()->precompile_native_function(r, "std::library::release", (void*)StandardLibraryCode::release)) { ILEvaluator::ex_throw(); return; }
+			if (!Compiler::current()->precompile_native_function(r, "std::stream::stdout", (void*)StandardLibraryCode::stdout_stream)) { ILEvaluator::ex_throw(); return; }
+			if (!Compiler::current()->precompile_native_function(r, "std::stream::stderr", (void*)StandardLibraryCode::stderr_stream)) { ILEvaluator::ex_throw(); return; }
+			if (!Compiler::current()->precompile_native_function(r, "std::stream::write", (void*)StandardLibraryCode::fwrite)) { ILEvaluator::ex_throw(); return; }
+			if (!Compiler::current()->precompile_native_function(r, "std::stream::close", (void*)StandardLibraryCode::fclose)) { ILEvaluator::ex_throw(); return; }
+			if (!Compiler::current()->precompile_native_function(r, "std::stream::open", (void*)StandardLibraryCode::fopen)) { ILEvaluator::ex_throw(); return; }
 		}
 	}
 
@@ -286,19 +336,19 @@ namespace Corrosive {
 		primitives[(unsigned char)ILDataType::f64] = t_f64;
 		primitives[(unsigned char)ILDataType::word] = t_size;
 
-		if (!Compiler::current()->register_native_function(f_build_reference, { "compiler","reference_of" }, (void*)BuiltInCode::build_reference)) return err::fail;
-		if (!Compiler::current()->register_native_function(f_build_array, { "compiler","array_of" }, (void*)BuiltInCode::build_array)) return err::fail;
-		if (!Compiler::current()->register_native_function(f_build_subtype, { "compiler","subtype_of" }, (void*)BuiltInCode::build_subtype)) return err::fail;
-		if (!Compiler::current()->register_native_function(f_build_slice, { "compiler","slice_of" }, (void*)BuiltInCode::build_slice)) return err::fail;
-		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","type_size" }, (void*)BuiltInCode::type_size)) return err::fail;
-		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","require" }, (void*)Source::require_wrapper)) return err::fail;
-		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","build" }, (void*)BuiltInCode::compile)) return err::fail;
-		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","var" }, (void*)StructureTemplate::var_wrapper)) return err::fail;
-		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","include" }, (void*)StructureTemplate::include_wrapper)) return err::fail;
-		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","var_alias" }, (void*)StructureTemplate::var_alias_wrapper)) return err::fail;
-		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","entry" }, (void*)BuiltInCode::entry_point)) return err::fail;
-		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","link" }, (void*)BuiltInCode::ask_for)) return err::fail;
-		if (!Compiler::current()->register_native_function(f_type_size, { "compiler","print_type" }, (void*)BuiltInCode::print_type)) return err::fail;
+		if (!Compiler::current()->precompile_native_function(f_build_reference, "compiler::reference_of", (void*)BuiltInCode::build_reference)) return err::fail;
+		if (!Compiler::current()->precompile_native_function(f_build_array, "compiler::array_of", (void*)BuiltInCode::build_array)) return err::fail;
+		if (!Compiler::current()->precompile_native_function(f_build_subtype, "compiler::subtype_of", (void*)BuiltInCode::build_subtype)) return err::fail;
+		if (!Compiler::current()->precompile_native_function(f_build_slice, "compiler::slice_of" , (void*)BuiltInCode::build_slice)) return err::fail;
+		if (!Compiler::current()->precompile_native_function(f_type_size, "compiler::type_size", (void*)BuiltInCode::type_size)) return err::fail;
+		if (!Compiler::current()->precompile_native_function(f_type_size, "compiler::require", (void*)Source::require_wrapper)) return err::fail;
+		if (!Compiler::current()->precompile_native_function(f_type_size, "compiler::build", (void*)BuiltInCode::compile)) return err::fail;
+		if (!Compiler::current()->precompile_native_function(f_type_size, "compiler::var", (void*)StructureTemplate::var_wrapper)) return err::fail;
+		if (!Compiler::current()->precompile_native_function(f_type_size, "compiler::include", (void*)StructureTemplate::include_wrapper)) return err::fail;
+		if (!Compiler::current()->precompile_native_function(f_type_size, "compiler::var_alias", (void*)StructureTemplate::var_alias_wrapper)) return err::fail;
+		if (!Compiler::current()->precompile_native_function(f_type_size, "compiler::entry", (void*)BuiltInCode::entry_point)) return err::fail;
+		if (!Compiler::current()->precompile_native_function(f_type_size, "compiler::link", (void*)BuiltInCode::ask_for)) return err::fail;
+		if (!Compiler::current()->precompile_native_function(f_type_size, "compiler::print_type", (void*)BuiltInCode::print_type)) return err::fail;
 
 		std::vector<Type*> args;
 		t_build_script = load_or_register_function_type(ILCallingConvention::bytecode, std::move(args), t_void, ILContext::compile);

@@ -36,9 +36,9 @@ namespace Corrosive {
 		}
 		std::chrono::steady_clock::time_point compile_end = std::chrono::steady_clock::now();
 
-		if (compiled_module) {
+		if (compiled_module && compiled_module->entry_point) {
 			std::cout << "========= TEST =========\n";
-			std::chrono::steady_clock::time_point saveload_start = std::chrono::steady_clock::now();
+			/*std::chrono::steady_clock::time_point saveload_start = std::chrono::steady_clock::now();
 			{
 				std::ofstream file("output.bin", std::ios::binary);
 				ILOutputStream stream(&file);
@@ -51,7 +51,7 @@ namespace Corrosive {
 				compiled_module->load(stream);
 				StandardLibraryCode::link(compiled_module.get());
 			}
-			std::chrono::steady_clock::time_point saveload_end = std::chrono::steady_clock::now();
+			std::chrono::steady_clock::time_point saveload_end = std::chrono::steady_clock::now();*/
 
 
 			std::chrono::steady_clock::time_point runtime_start = std::chrono::steady_clock::now();
@@ -61,8 +61,11 @@ namespace Corrosive {
 
 			std::cout << "========= ==== =========\n\n";
 			std::cout << "compile time: " << std::chrono::duration_cast<std::chrono::milliseconds>(compile_end - compile_begin).count() << "[ms]\n";
-			std::cout << "save and load time: " << std::chrono::duration_cast<std::chrono::milliseconds>(saveload_end - saveload_start).count() << "[ms]\n";
+			//std::cout << "save and load time: " << std::chrono::duration_cast<std::chrono::milliseconds>(saveload_end - saveload_start).count() << "[ms]\n";
 			std::cout << "runtime: " << std::chrono::duration_cast<std::chrono::milliseconds>(runtime_end - runtime_start).count() << "[ms]\n" << std::endl;
+		}
+		else {
+			std::cout << "compile time: " << std::chrono::duration_cast<std::chrono::milliseconds>(compile_end - compile_begin).count() << "[ms]\n";
 		}
 
 		ILEvaluator::sandbox_end();

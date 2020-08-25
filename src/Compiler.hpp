@@ -79,7 +79,7 @@ namespace Corrosive {
 		StackManager compiler_stack_manager;
 		StackManager temporary_stack_manager;
 
-		errvoid register_native_function(FunctionInstance*& r,std::initializer_list<const char*> path, void* ptr);
+		errvoid precompile_native_function(FunctionInstance*& r,const char* path, void* ptr);
 
 		static thread_local std::vector<Compiler*> c;
 		static void push_compiler(Compiler* c);

@@ -518,9 +518,6 @@ namespace Corrosive {
 	enum class ILInsintric : unsigned char {
 		push_template, build_template, type_dynamic_cast
 	};
-
-	extern const ILArchitecture compiler_arch;
-
 	
 	errvoid throw_runtime_exception(const ILEvaluator* eval, std::string_view message);
 	errvoid throw_segfault_exception(const ILEvaluator* eval, int signal);
