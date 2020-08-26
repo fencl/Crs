@@ -655,7 +655,7 @@ namespace Corrosive {
 	}
 
 	errvoid ILBuilder::eval_staticref(ILEvaluator* eval_ctx, std::uint32_t cid) {
-		eval_ctx->write_register_value(eval_ctx->parent->static_memory[cid].second.get());
+		eval_ctx->write_register_value(std::get<1>(eval_ctx->parent->static_memory[cid]).get());
 		return err::ok;
 	}
 

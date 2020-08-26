@@ -502,7 +502,6 @@ namespace Corrosive {
 			std::unordered_map<std::size_t, std::size_t>& map_tables,
 			std::unordered_map<std::size_t, std::size_t>& map_arrays);
 
-			
 		void load(ILInputStream& stream);
 		void save(ILOutputStream& stream);
 	};
@@ -673,7 +672,7 @@ namespace Corrosive {
 
 		std::map<std::string, std::uint32_t> external_functions;
 		std::vector<std::pair<ILSize,std::unique_ptr<unsigned char[]>>> constant_memory;
-		std::vector<std::pair<ILSize,std::unique_ptr<unsigned char[]>>> static_memory;
+		std::vector<std::tuple<ILSize,std::unique_ptr<unsigned char[]>,std::uint32_t>> static_memory;
 
 		std::vector<std::unique_ptr<ILFunction>> functions;
 		std::vector<std::pair<std::uint32_t,std::unique_ptr<void* []>>> vtable_data;
@@ -690,10 +689,12 @@ namespace Corrosive {
 		ILBytecodeFunction* create_function(ILContext context);
 		ILNativeFunction* create_native_function(std::string alias);
 		std::uint32_t register_constant(unsigned char* memory, ILSize size);
-		std::uint32_t register_static(unsigned char* memory, ILSize size);
+		std::uint32_t register_static(unsigned char* memory, ILSize size, ILBytecodeFunction* init);
 		std::uint32_t register_function_decl(std::tuple<ILCallingConvention, ILDataType, std::vector<ILDataType>> decl);
 
 		void strip_unused_content();
+
+		errvoid initialize_statics();
 
 		errvoid (*insintric_function[256])(ILEvaluator*);
 		std::string insintric_function_name[256];

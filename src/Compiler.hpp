@@ -74,7 +74,6 @@ namespace Corrosive {
 		std::unique_ptr<ILEvaluator> compiler_evaluator = std::make_unique<ILEvaluator>();
 		std::unique_ptr<ConstantManager> constant_stack_manager = std::make_unique<ConstantManager>();
 
-
 		StackManager runtime_stack_manager;
 		StackManager compiler_stack_manager;
 		StackManager temporary_stack_manager;

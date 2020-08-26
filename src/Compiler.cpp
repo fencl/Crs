@@ -154,6 +154,7 @@ namespace Corrosive {
 		target_module->strip_unused_content();
 		release_jit_code();
 		if (ILEvaluator::sandboxed()) build_sandbox();
+		target_module->initialize_statics();
 		return std::move(target_module);
 	}
 

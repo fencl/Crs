@@ -255,6 +255,7 @@ namespace Corrosive {
 		GenericInstance* generator = nullptr;
 		ILContext		context;
 		std::uint32_t sid;
+		ILBytecodeFunction* init_func;
 
 		errvoid compile();
 	};

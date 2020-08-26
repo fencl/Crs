@@ -256,15 +256,17 @@ namespace Corrosive {
 		return (std::uint32_t)constant_memory.size() - 1;
 	}
 
-	std::uint32_t ILModule::register_static(unsigned char* memory, ILSize size) {
+	std::uint32_t ILModule::register_static(unsigned char* memory, ILSize size, ILBytecodeFunction* init) {
 		std::size_t compile_size = size.eval(this);
 		auto data = std::make_unique<unsigned char[]>(compile_size);
 		if (memory != nullptr) {
 			std::memcpy(data.get(), memory, compile_size);
 		}
-		static_memory.push_back(std::make_pair(size, std::move(data)));
+		std::uint32_t fid = UINT32_MAX;
+		if (init) { fid = init->id; }
+		static_memory.push_back(std::make_tuple(size, std::move(data), fid));
 
-		unsigned char* ptr1 = (unsigned char*)static_memory.back().second.get();
+		unsigned char* ptr1 = (unsigned char*)std::get<1>(static_memory.back()).get();
 		unsigned char* ptr2 = ptr1 + compile_size;
 		return (std::uint32_t)static_memory.size() - 1;
 	}
@@ -326,6 +328,19 @@ namespace Corrosive {
 			if (lr8b) { std::cout << "leaked 8 byte registers: " << lr8b << "\n"; }
 		}
 		current.pop_back();
+	}
+
+	errvoid ILModule::initialize_statics() {
+		current.push_back(this);
+		auto eval = std::make_unique<ILEvaluator>();
+		eval->parent = this;
+		for (auto&& s : static_memory) {
+			if (std::get<2>(s) != UINT32_MAX) {
+				if (ILBuilder::eval_fncall(eval.get(), functions[std::get<2>(s)].get())) return err::fail;
+			}
+		}
+		current.pop_back();
+		return err::ok;
 	}
 
 	
@@ -1311,8 +1326,9 @@ namespace Corrosive {
 		
 		file.s(static_memory.size());
 		for (auto&& static_mem: static_memory) {
-			file.u8((std::uint8_t)static_mem.first.type);
-			file.u32((std::uint8_t)static_mem.first.value);
+			file.u8((std::uint8_t)std::get<0>(static_mem).type);
+			file.u32((std::uint8_t)std::get<0>(static_mem).value);
+			file.u32((std::uint8_t)std::get<2>(static_mem));
 		}
 	}
 
@@ -1408,14 +1424,15 @@ namespace Corrosive {
 		}
 
 		read_size = file.s();
-		static_memory = std::vector<std::pair<ILSize,std::unique_ptr<unsigned char[]>>>(read_size);
+		static_memory = std::vector<std::tuple<ILSize,std::unique_ptr<unsigned char[]>, std::uint32_t>>(read_size);
 		for (std::size_t sid = 0; sid < read_size; ++sid) {
 			ILSize s;
 			s.type = (ILSizeType)file.u8();
 			s.value = file.u32();
+			std::uint32_t fid = file.u32();
 			std::size_t es = s.eval(this);
 			auto mem = std::make_unique<unsigned char[]>(es);
-			static_memory[sid] = std::make_pair(s, std::move(mem));
+			static_memory[sid] = std::make_tuple(s, std::move(mem), fid);
 		}
 
 		entry_point = has_entry_point?functions[e_point_id].get() : nullptr;

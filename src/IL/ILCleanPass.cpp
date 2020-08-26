@@ -108,10 +108,13 @@ namespace Corrosive {
 		}
 		constant_memory = std::move(new_constants);
 
-		std::vector<std::pair<ILSize, std::unique_ptr<unsigned char[]>>> new_statics;
+		std::vector<std::tuple<ILSize, std::unique_ptr<unsigned char[]>, std::uint32_t>> new_statics;
 		for (auto&& used_static : used_statics) {
 			map_statics[used_static] = new_statics.size();
 			new_statics.push_back(std::move(static_memory[used_static]));
+			std::uint32_t& funid = std::get<2>(new_statics.back());
+			if (funid != UINT32_MAX)
+				funid = map_functions[funid];
 		}
 		static_memory = std::move(new_statics);
 
@@ -402,11 +405,18 @@ namespace Corrosive {
 					case ILInstruction::staticref: {
 						std::uint32_t cid = ILBlock::read_data<std::uint32_t>(it);
 						used_statics.insert(cid);
-						ILSize& s = parent->static_memory[cid].first;
+						ILSize& s = std::get<0>(parent->static_memory[cid]);
 						if (s.type == ILSizeType::table) {
 							used_tables.insert(s.value);
 						} else if (s.type == ILSizeType::array) {
 							used_arrays.insert(s.value);
+						}
+
+						std::uint32_t fid = std::get<2>(parent->static_memory[cid]);
+						if (fid != UINT32_MAX) {
+							used_functions.insert(fid);
+							ILBytecodeFunction* fun = (ILBytecodeFunction*)parent->functions[fid].get();
+							fun->clean_prepass(used_functions, used_constants, used_statics, used_vtables, used_decls, used_tables, used_arrays);
 						}
 					} break;
 					case ILInstruction::roffset32: {

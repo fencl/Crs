@@ -1443,8 +1443,8 @@ namespace Corrosive {
 	errvoid StaticInstance::compile() {
 		if (compile_state == 0) {
 			compile_state = 1;
-			auto scope = ScopeState().context(ILContext::compile).stack().compiler_stack();
-
+			
+			Compiler* compiler = Compiler::current();
 			context = ast_node->context;
 
 			if (generator != nullptr) {
@@ -1454,15 +1454,16 @@ namespace Corrosive {
 			Cursor c = load_cursor(ast_node->type, ast_node->get_source());
 			Cursor err = c;
 
-			CompileValue typevalue;
-			if (!Expression::parse(c, typevalue, CompileType::eval)) return err::fail;
-			if (!Operand::deref(typevalue, CompileType::eval)) return err::fail;
-			if (!Expression::rvalue(typevalue, CompileType::eval)) return err::fail;
-
-			Compiler* compiler = Compiler::current();
 			
 			if (!ast_node->has_value) {
+				auto scope = ScopeState().context(ILContext::compile).stack().compiler_stack();
+
+				CompileValue typevalue;
+				if (!Expression::parse(c, typevalue, CompileType::eval)) return err::fail;
+				if (!Operand::deref(typevalue, CompileType::eval)) return err::fail;
+				if (!Expression::rvalue(typevalue, CompileType::eval)) return err::fail;
 				if (!Operand::cast(err, typevalue, compiler->types()->t_type, CompileType::eval, true)) return err::fail;
+
 				if (!compiler->evaluator()->pop_register_value<Type*>(type)) return err::fail;
 				if (!Type::assert(err,type)) return err::fail;
 				if(!type->compile()) return err::fail;
@@ -1485,9 +1486,35 @@ namespace Corrosive {
 				}
 
 
-				sid = compiler->global_module()->register_static(nullptr, type->size());
+				sid = compiler->global_module()->register_static(nullptr, type->size(), nullptr);
 			}
 			else {
+				//ILCallingConvention, ILDataType, std::vector<ILDataType>
+				init_func = compiler->global_module()->create_function(ILContext::both);
+				init_func->decl_id = compiler->global_module()->register_function_decl(std::make_tuple(ILCallingConvention::bytecode, ILDataType::none, std::vector<ILDataType>()));
+				ILBlock* b = init_func->create_and_append_block();
+
+				auto scope = ScopeState().function(init_func, compiler->types()->t_void).stack().compiler_stack().context(context);
+				compiler->push_scope(b);
+				CompileValue typevalue;
+				if (!Expression::parse(c, typevalue, CompileType::compile)) return err::fail;
+				if (!Operand::deref(typevalue, CompileType::compile)) return err::fail;
+				if (!Expression::rvalue(typevalue, CompileType::compile)) return err::fail;
+				
+				
+				sid = compiler->global_module()->register_static(nullptr, typevalue.type->size(),init_func);
+				if (typevalue.lvalue || typevalue.type->rvalue_stacked()) {
+					if (!ILBuilder::build_staticref(b, sid)) return err::fail;
+					if (!ILBuilder::build_memcpy(b, typevalue.type->size())) return err::fail;
+				} else {
+					if (!ILBuilder::build_staticref(b, sid)) return err::fail;
+					if (!ILBuilder::build_store(b, typevalue.type->rvalue())) return err::fail;
+				}
+
+				if (!ILBuilder::build_ret(b,ILDataType::none)) return err::fail;
+
+				compiler->pop_scope();
+
 				type = typevalue.type;
 				if(!type->compile()) return err::fail;
 
@@ -1508,16 +1535,7 @@ namespace Corrosive {
 					}
 				}
 
-				if (typevalue.lvalue || type->rvalue_stacked()) {
-					void* ptr;
-					if (!compiler->evaluator()->pop_register_value<void*>(ptr)) return err::fail;
-					sid = compiler->global_module()->register_static((unsigned char*)ptr, type->size());
-				}
-				else {
-					ilsize_t storage;
-					if (!compiler->evaluator()->pop_register_value_indirect(compiler->evaluator()->compile_time_register_size(type->rvalue()), &storage)) return err::fail;
-					sid = compiler->global_module()->register_static((unsigned char*)&storage, type->size());
-				}
+				if (!ILBuilder::eval_fncall(compiler->evaluator(), init_func)) return err::fail;				
 			}
 
 			compile_state = 2;

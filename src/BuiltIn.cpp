@@ -160,7 +160,7 @@ namespace Corrosive {
 	void BuiltInCode::ask_for(dword_t slice) {
 		std::basic_string_view<char> data_string((char*)slice.p1, (std::size_t)slice.p2);
 
-		if (data_string == "compiler_standard_libraries") {
+		if (data_string == "crsstdlib") {
 			FunctionInstance* r;
 			if (!Compiler::current()->precompile_native_function(r, "std::malloc", (void*)StandardLibraryCode::malloc)) { ILEvaluator::ex_throw(); return; }
 			if (!Compiler::current()->precompile_native_function(r, "std::realloc", (void*)StandardLibraryCode::realloc)) { ILEvaluator::ex_throw(); return; }

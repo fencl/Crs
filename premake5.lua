@@ -9,7 +9,7 @@ project "crs"
 	cppdialect "C++17"
 	exceptionhandling "on"
 
-	files { "src/*.cpp", "src/IL/*.cpp" }
+	files { "src/*.cpp", "src/IL/*.cpp","src/*.hpp", "src/IL/*.hpp" }
 	
 	defines { "WINDOWS" }
 	
