@@ -29,9 +29,8 @@ Build using make and gcc (msys on Windows):
 Exxecutable will be placed inside bin folder in subdirectory tree corresponding to build configuration
 
 ## Compile/Run
-To run crs program use `crs file -r` where `file` is path to build file
-`-r` is argument to tell the compiler to run the program directly
+To run crs program use `crs file -r` where `file` is path to build file and `-r` is argument to tell the compiler to run the program directly
  - There is currently no other option, without this switch, compiler will generate nothing
 
 ## Examples
-Run `crs ex_helloworld.crs -r` inside examples folder. Other examples are `ex_hellofile.crs`, `ex_tuple.crs` , `ex_trait.crs` and `ex_stdcall.crs`
+Run `crs ex_helloworld.crs -r` inside examples folder. Other examples are `ex_hellofile.crs`, `ex_tuple.crs`, `ex_trait.crs` and `ex_stdcall.crs`
