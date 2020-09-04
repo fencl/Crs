@@ -12,6 +12,16 @@
 #include "Ast.hpp"
 #include "Statement.hpp"
 
+#ifdef WINDOWS
+#include <windows.h>
+#endif
+
+#ifdef LINUX
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
+#endif
+
 namespace Corrosive {
 
 
@@ -23,13 +33,13 @@ namespace Corrosive {
 		return l.offset <= r.offset + r.length && r.offset <= l.offset+l.length;
 	}
 
-	std::size_t Cursor::line() {
+	std::size_t Cursor::line() const {
 		if (src == nullptr) return 0;
 
 		return src->get_line(*this);
 	}
 
-	std::size_t Source::get_line(Cursor c) {
+	std::size_t Source::get_line(Cursor c) const {
 		if (c.src != this) {
 			return 0;
 		}
@@ -37,7 +47,7 @@ namespace Corrosive {
 		SourceRange range;
 		range.length = c.length;
 		range.offset = c.offset;
-		return lines[range];
+		return lines.at(range);
 	}
 
 	void Source::register_debug() {
@@ -73,9 +83,9 @@ namespace Corrosive {
 		}
 	}
 
-	std::string_view const Source::data() {
+	const std::string_view Source::data() const {
 		return std::string_view(buffer);
-	}	
+	}
 
 	void Source::load(const char* file) {
 
@@ -83,7 +93,9 @@ namespace Corrosive {
 		if (in)
 		{
 			in.seekg(0, std::ios::end);
-			buffer.resize((const unsigned int)in.tellg());
+			
+			const unsigned int buf_size = (const unsigned int)in.tellg();
+			buffer.resize(buf_size);
 			in.seekg(0, std::ios::beg);
 			in.read(&buffer[0], buffer.size());
 			in.close();
@@ -100,12 +112,12 @@ namespace Corrosive {
 		}
 	}
 
-	void Source::load_data(const char* data, const char* nm) {
-		buffer = data;
+	void Source::load_data(const char* new_data, const char* nm) {
+		buffer = new_data;
 		name = nm;
 	}
 
-	void Source::read_after(Cursor& out, const Cursor& c) {
+	void Source::read_after(Cursor& out, const Cursor& c) const {
 		read(out, c.offset + c.length,c.x,c.y);
 	}
 
@@ -137,7 +149,7 @@ namespace Corrosive {
 		((Corrosive::Source*)src)->read_after(*this, *this);
 	}
 
-	void Source::read(Cursor& out, std::size_t offset, std::size_t x, std::size_t y) {
+	void Source::read(Cursor& out, std::size_t offset, std::size_t x, std::size_t y) const {
 		while (true) {
 			while (offset < buffer.size() && isspace(buffer[offset]))
 			{
@@ -418,7 +430,7 @@ namespace Corrosive {
 		}
 		else {
 			out.tok = RecognizedToken::Eof;
-			out.src = this;
+			out.src =  this;
 			out.offset = offset+1;
 			out.x = x+1;
 			out.y = y;
@@ -511,25 +523,67 @@ namespace Corrosive {
 		return func;
 	}
 
-	errvoid Source::require(std::filesystem::path file, Source* src) 
+	std::string_view parent_path(std::string_view path) {
+		std::size_t off=0;
+		off = path.find_last_of("\\/");
+		if (off != std::string_view::npos) {
+			return path.substr(0, off);
+		}else {
+			return ".";
+		}
+	}
+
+#ifdef WINDOWS
+	std::string abs_path(std::string path) {
+  		char full[MAX_PATH];
+  		GetFullPathNameA(path.c_str(), MAX_PATH, full, nullptr);
+		return std::string(full);
+	}
+#endif
+
+#ifdef LINUX
+	std::string abs_path(std::string path) {
+        char* abs = realpath(path.c_str(), nullptr);
+		std::string res(abs);
+		std::free(abs);
+		return std::move(res);
+	}
+#endif
+
+	errvoid Source::require(std::string_view file, Source* src) 
 	{
 		Compiler* compiler = Compiler::current();
-		std::filesystem::path abs;
+		std::string abs;
 		if (src) {
-			abs = src->path.parent_path();
-			abs += abs.preferred_separator;
+			abs = parent_path(src->path);
+
+			#ifdef WINDOWS
+			abs += "\\";
+			#else
+			abs += "/";
+			#endif
+
 			abs += file;
-			abs = std::filesystem::absolute(abs);
 		}
 		else {
-			abs = std::filesystem::absolute(file);
+			abs = file;
 		}
+
+		{
+			std::ifstream f(abs.c_str());
+    		if (!f.good()) {
+				std::string msg = "Required file \"" + std::string(abs) + "\" does not exist";
+				return throw_runtime_exception(compiler->evaluator(), msg);
+			}
+		}
+
+		abs = abs_path(abs);
 
 		auto f = compiler->included_sources.find(abs);
 		if (f == compiler->included_sources.end()) {
 			auto new_src = std::make_unique<Source>();
 			new_src->path = abs;
-			new_src->load(abs.generic_string().c_str());
+			new_src->load(abs.c_str());
 			new_src->register_debug();
 			if (!new_src->pair_tokens()) return err::fail;
 			auto ptr = new_src.get();

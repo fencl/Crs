@@ -10,7 +10,6 @@
 
 namespace Corrosive {
 	class Compiler;
-	extern const char* PredefinedNamespace;
 
 	template <typename T>
 	class idset {

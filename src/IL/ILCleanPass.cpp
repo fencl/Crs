@@ -116,7 +116,7 @@ namespace Corrosive {
 			new_statics.push_back(std::move(static_memory[used_static]));
 			std::uint32_t& funid = std::get<2>(new_statics.back());
 			if (funid != UINT32_MAX)
-				funid = map_functions[funid];
+				funid = (std::uint32_t)map_functions[funid];
 		}
 		static_memory = std::move(new_statics);
 		std::sort(static_memory.begin(), static_memory.end(), static_memory_sort);

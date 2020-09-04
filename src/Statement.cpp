@@ -207,7 +207,9 @@ namespace Corrosive {
 					if (!Statement::parse_for(c, termination, compile)) return err::fail;
 					return err::ok;
 				}
-				
+				else if (buf == "panic") {
+					return throw_specific_error(c,"Compilation was manually halted.");
+				}
 				else if (buf == "break") {
 
 					if (Statement::runtime(compile)) {
@@ -465,11 +467,10 @@ namespace Corrosive {
 					}
 
 					if (condition) {
-						
 						auto scope = ScopeState();
 						if (compile != ForceCompile::force) scope.context(compiler->target()->context);
+
 						if (!Statement::parse(c, termination, compile == ForceCompile::force ? ForceCompile::force : ForceCompile::inlineblock)) return err::fail;
-						
 					}
 					else {
 						c.move_matching();

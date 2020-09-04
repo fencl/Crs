@@ -4,7 +4,6 @@
 #include <unordered_map> 
 #include <map> 
 #include <string>
-#include <filesystem>
 
 namespace Corrosive {
 	class Compiler;
@@ -24,23 +23,23 @@ namespace Corrosive {
 		void register_debug();
 		std::map<SourceRange, std::size_t> lines;
 
-		std::size_t get_line(Cursor c);
+		std::size_t get_line(Cursor c) const;
 
 		std::string name;
-		std::filesystem::path path;
+		std::string path;
 
-		std::string_view const data();
+		const std::string_view data() const;
 		void load(const char* file);
 		void load_data(const char* data, const char* name);
-		void read(Cursor& out, std::size_t offset, std::size_t x, std::size_t y);
-		void read_after(Cursor& out, const Cursor& c);
+		void read(Cursor& out, std::size_t offset, std::size_t x, std::size_t y) const;
+		void read_after(Cursor& out, const Cursor& c) const;
 		Cursor read_first();
 
 		errvoid pair_tokens();
 		void move_matching(Cursor& c) const;
 		std::unique_ptr<AstRootNode> root_node;
 
-		static errvoid require(std::filesystem::path file, Source* base=nullptr);
+		static errvoid require(std::string_view file, Source* base=nullptr);
 		static void require_wrapper(dword_t slice);
 	private:
 		std::string buffer;

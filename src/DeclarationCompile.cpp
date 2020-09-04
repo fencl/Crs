@@ -1049,6 +1049,7 @@ namespace Corrosive {
 
 			if (c.tok != RecognizedToken::OpenBrace && c.tok != RecognizedToken::Semicolon) {
 				Cursor err = c;
+
 				if (!Expression::parse(c, cvres, CompileType::eval)) return err::fail;
 				if (!Operand::deref(cvres, CompileType::eval)) return err::fail;
 				if (!Expression::rvalue(cvres, CompileType::eval)) return err::fail;

@@ -77,11 +77,8 @@ namespace Corrosive {
 	errvoid throw_runtime_exception(const ILEvaluator* eval, std::string_view message) {
 		std::stringstream cerr;
 		throw_runtime_exception_header(eval, cerr);
-
-
 		cerr << message;
 		throw_runtime_exception_footer(eval, cerr);
-		//throw string_exception(std::move(cerr.str()));
 		std::cerr << cerr.str();
 		return err::fail;
 	}
@@ -92,7 +89,6 @@ namespace Corrosive {
 
 		cerr << "Attempt to access protected memory range (Segmentation fault [" << signal << "])";
 		throw_runtime_exception_footer(eval, cerr);
-		//throw string_exception(std::move(cerr.str()));
 		std::cerr << cerr.str();
 		return err::fail;
 	}
@@ -103,7 +99,6 @@ namespace Corrosive {
 
 		cerr << "Interrupt exception (Interrupt [" << signal << "])";
 		throw_runtime_exception_footer(eval, cerr);
-		//throw string_exception(std::move(cerr.str()));
 		std::cerr << cerr.str();
 		return err::fail;
 	}

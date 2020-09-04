@@ -1,8 +1,8 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include "BuiltIn.hpp"
 #include <iostream>
 #include "Operand.hpp"
 #include "Compiler.hpp"
-#define _CRT_SECURE_NO_WARNINGS
 #include <cstdio>
 
 
@@ -18,9 +18,6 @@
 
 
 namespace Corrosive {
-
-	const char* PredefinedNamespace = "corrosive";
-
 
 	void setup_type(std::string_view name, Type*& into, ILSize size, ILDataType ildt, ILContext context, AstRootNode* root) {
 
@@ -317,7 +314,12 @@ namespace Corrosive {
 			"fn compile native var_alias: ([]u8, type);\n"
 			"fn compile native link: ([]u8);\n"
 			"fn compile native print_type: (type);\n"
+			#ifdef WINDOWS
 			"static compile platform = cast(u8) 1u;"
+			#endif
+			#ifdef LINUX
+			"static compile platform = cast(u8) 2u;"
+			#endif
 			"}\n"
 			"namespace platform {\n"
 			"static compile windows = cast(u8) 1u;\n"
@@ -334,6 +336,7 @@ namespace Corrosive {
 		std_lib.register_debug();
 		std::unique_ptr<AstRootNode> node;
 		if (!AstRootNode::parse(node, &std_lib)) return err::fail;
+		
 		std_lib.root_node = std::move(node);
 		if (!std_lib.root_node->populate()) return err::fail;
 
@@ -365,7 +368,7 @@ namespace Corrosive {
 		primitives[(unsigned char)ILDataType::f32] = t_f32;
 		primitives[(unsigned char)ILDataType::f64] = t_f64;
 		primitives[(unsigned char)ILDataType::word] = t_size;
-
+		
 		if (!Compiler::current()->precompile_native_function(f_build_reference, "compiler::reference_of", (void*)BuiltInCode::build_reference)) return err::fail;
 		if (!Compiler::current()->precompile_native_function(f_build_array, "compiler::array_of", (void*)BuiltInCode::build_array)) return err::fail;
 		if (!Compiler::current()->precompile_native_function(f_build_subtype, "compiler::subtype_of", (void*)BuiltInCode::build_subtype)) return err::fail;

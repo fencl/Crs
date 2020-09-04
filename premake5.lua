@@ -1,7 +1,11 @@
 workspace "crs_build"
 	configurations { "debug", "release" }
 	location "build"
-	platforms { "windows_x86","windows_x64","linux_x86" }
+	
+	filter "action:vs*"
+		platforms { "windows_x86","windows_x64" }
+	filter "action:gmake*"
+		platforms { "windows_x86","windows_x64","linux_x86","linux_x64" }
 
 project "crs"
 	kind "ConsoleApp"
@@ -16,18 +20,27 @@ project "crs"
 		defines { "WINDOWS", "X64" }
 		architecture "x64"
 		targetdir "bin/windows/x64/%{cfg.buildcfg}"
+		targetextension ".exe"
 	
 	filter "platforms:windows_x86"
 		defines { "WINDOWS","X86" }
 		architecture "x32"
 		targetdir "bin/windows/x86/%{cfg.buildcfg}"
+		targetextension ".exe"
 		
 	filter "platforms:linux_x86"
 		defines { "LINUX","X86" }
 		architecture "x32"
 		links "dl"
-		links "stdc++fs"
 		targetdir "bin/linux/x86/%{cfg.buildcfg}"
+		targetextension ""
+		
+	filter "platforms:linux_x64"
+		defines { "LINUX","X64" }
+		architecture "x64"
+		links "dl"
+		targetdir "bin/linux/x64/%{cfg.buildcfg}"
+		targetextension ""
 
 	filter "configurations:debug"
 		defines { "DEBUG" }

@@ -65,7 +65,7 @@ namespace Corrosive {
 		std::vector<std::vector<std::vector<TypeFunction*>>> defers;
 		std::vector<std::vector<TypeFunction*>> compile_defers;
 
-		std::map<std::filesystem::path, std::unique_ptr<Source>> included_sources;
+		std::map<std::string, std::unique_ptr<Source>> included_sources;
 
 		std::unique_ptr<ILModule> target_module = std::make_unique<ILModule>();
 		std::unique_ptr<BuiltInTypes> default_types = std::make_unique<BuiltInTypes>();

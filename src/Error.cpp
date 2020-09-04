@@ -70,12 +70,9 @@ namespace Corrosive {
 	}
 
 	errvoid throw_specific_error(Cursor& c, std::string_view text) {
-
 		std::stringstream cerr = throw_error_header(c);
 		cerr << text;
-		//throw string_exception(std::move(cerr.str()));
 		std::cerr<<cerr.str()<<"\n";
-
 		return err::fail;
 	}
 
@@ -88,8 +85,6 @@ namespace Corrosive {
 		cerr << "' to '";
 		to->print(cerr);
 		cerr << "'";
-		//throw string_exception(std::move(cerr.str()));
-		
 		std::cerr<<cerr.str()<<"\n";
 		return err::fail;
 	}
@@ -103,8 +98,6 @@ namespace Corrosive {
 		cerr << "' to '";
 		to->print(cerr);
 		cerr << "'\n |\tplease, use explicit cast(...) and be careful";
-		//throw string_exception(std::move(cerr.str()));
-		
 		std::cerr<<cerr.str()<<"\n";
 		return err::fail;
 	}
@@ -114,8 +107,6 @@ namespace Corrosive {
 
 		std::stringstream cerr = throw_error_header(c);
 		cerr << "End of file found during " << during;
-		//throw string_exception(std::move(cerr.str()));
-		
 		std::cerr<<cerr.str()<<"\n";
 		return err::fail;
 	}
@@ -123,8 +114,6 @@ namespace Corrosive {
 
 		std::stringstream cerr = throw_error_header(c);
 		cerr << "Symbol '" << c.buffer() << "' is not a valid name";
-		//throw string_exception(std::move(cerr.str()));
-		
 		std::cerr<<cerr.str()<<"\n";
 		return err::fail;
 	}
@@ -133,8 +122,6 @@ namespace Corrosive {
 
 		std::stringstream cerr = throw_error_header(c);
 		cerr << "Variable with the name '" << c.buffer() << "' was not found";
-		//throw string_exception(std::move(cerr.str()));
-
 		std::cerr<<cerr.str()<<"\n";
 		return err::fail;
 	}
@@ -142,9 +129,7 @@ namespace Corrosive {
 	errvoid throw_wrong_token_error(Cursor& c, std::string_view expected) {
 
 		std::stringstream cerr = throw_error_header(c);
-		cerr << "Token '" << c.buffer() << "' found but parser expected " << expected;
-		//throw string_exception(std::move(cerr.str()));
-		
+		cerr << "Token '" << c.buffer() << "' found but parser expected " << expected;		
 		std::cerr<<cerr.str()<<"\n";
 		return err::fail;
 	}

@@ -20,14 +20,14 @@ namespace Corrosive {
 		void move();
 
 		
-		Source* src = nullptr;
+		const Source* src = nullptr;
 		std::string_view buffer() const;
 		std::size_t offset = 0;
 		std::size_t length = 0;
 		std::size_t y = 0;
 		std::size_t x = 0;
 		RecognizedToken tok;
-		std::size_t line();
+		std::size_t line() const;
 		void move_matching();
 	};
 

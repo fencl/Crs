@@ -27,7 +27,7 @@ namespace Corrosive {
 
 	bool crs(std::string file, crs_params params) {
 
-		ILEvaluator::sandbox_begin();
+		//ILEvaluator::sandbox_begin();
 		
 		std::unique_ptr<ILModule> compiled_module = nullptr;
 		std::chrono::steady_clock::time_point compile_begin = std::chrono::steady_clock::now();
@@ -80,7 +80,7 @@ namespace Corrosive {
 			}
 		}
 
-		ILEvaluator::sandbox_end();
+		//ILEvaluator::sandbox_end();
 		
 		return true;
 	}
