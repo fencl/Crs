@@ -1199,12 +1199,14 @@ namespace Corrosive {
 				if (!ILBuilder::build_local(compiler->scope(), sitm.id)) return err::fail;
 				ret.type = sitm.type;
 				ret.lvalue = true;
+				ret.reflock = false;
 				c.move();
 			}
 			else if (cpt == CompileType::eval && compiler->compiler_stack()->find(c.buffer(), sitm)) {
 				compiler->eval_local(sitm.id);
 				ret.type = sitm.type;
 				ret.lvalue = true;
+				ret.reflock = false;
 				c.move();
 			}
 			else if (cpt == CompileType::compile) {

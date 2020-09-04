@@ -367,8 +367,9 @@ namespace Corrosive {
 
 				CompileValue val2;
 				if (!Expression::parse(c, val2, cpt)) return err::fail;
+				if (!Operand::deref(val2, cpt)) return err::fail;
 				if (!Operand::cast(err, val2, val.type, cpt, true)) return err::fail;
-				if (!Expression::rvalue(val2, CompileType::compile)) return err::fail;
+				if (!Expression::rvalue(val2, cpt)) return err::fail;
 				if (!Expression::copy_from_rvalue_reverse(val.type, cpt)) return err::fail;
 
 				if (!require_output) {
@@ -420,7 +421,9 @@ namespace Corrosive {
 
 				CompileValue val2;
 				if (!Expression::parse(c, val2, cpt)) return err::fail;
+				if (!Operand::deref(val2, cpt)) return err::fail;
 				if (!Expression::rvalue(val2, cpt)) return err::fail;
+				
 				if (!Operand::is_numeric_value(val2.type)) {
 					return throw_specific_error(err, "Expected numeric value");
 				}

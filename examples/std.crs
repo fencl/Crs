@@ -33,7 +33,8 @@ namespace std {
 		return slice;
 	}
 	
-	fn (T: type) resize_slice: (slice: &[]T, s: size) {
+	fn (T: type) resize_slice: (slice: &[]T, c: size) {
+		let s = c * typesize(T);
 		slice.ptr = std::realloc(slice.ptr, s);
 		slice.size = s;
 	}
@@ -68,6 +69,77 @@ namespace std {
 		}
 	}
 	
+	// list
+	struct(T: type) list {
+		var alias slice: []T;
+		var _count: size;
+		
+		fn new: () self {
+			make this: self;
+			this.slice.ptr = null;
+			this.slice.size = 0u;
+			this._count = 0u;
+			return this;
+		}
+		
+		fn count: (this: &self) size {
+			return this._count;
+		}
+		
+		fn capacity: (this: &self) size {
+			return this.slice.count;
+		}
+		
+		fn empty: (this: &self) bool {
+			return this._count == 0;
+		}
+		
+		fn resize: (this: &self, ns: size) {
+			std::resize_slice(T)(this.slice, ns);
+			this._count = ns;
+		}
+		
+		fn reserve: (this: &self, ns: size) {
+			std::resize_slice(T)(this.slice, ns);
+			if this._count > ns { this._count = ns; }
+		}
+		
+		fn add: (this: &self, e: T) {
+			if this._count >= this.slice.count {
+				if this.slice.size == 0u {
+					this.slice = std::make_slice(T)(1u);
+				} else {
+					std::resize_slice(T)(this.slice, this.slice.count*2u);
+				}
+			}
+			
+			this.slice[this._count] = e;
+			this._count += 1u;
+		}
+		
+		fn pop: (this: &self) T {
+			let r = this.slice[this._count - 1u];
+			this._count -= 1;
+			
+			let ns = this.slice.count / 2u;
+			if this._count <= ns / 2u {
+				if ns > 0 {
+					std::resize_slice(T)(this.slice, ns);
+				} else if this.slice.size > 0 {
+					std::drop_slice(T)(this.slice);
+				}
+			}
+			
+			return r;
+		}
+		
+		fn drop: (this: &self) {
+			if this.slice.ptr != null {
+				std::drop_slice(T)(this.slice);
+			}
+		}
+	}
+	
 	// stream printer
 	fn cout: () printer {
 		make p : printer;
@@ -93,7 +165,7 @@ namespace std {
 		return p;
 	}
 	
-	fn read: (file: []u8) printer {
+	/*fn read: (file: []u8) printer {
 		make p : printer;
 		p.handle = std::stream::open(file, 2);
 		return p;
@@ -103,7 +175,7 @@ namespace std {
 		make p : printer;
 		p.handle = std::stream::open(file, 2 & 8);
 		return p;
-	}
+	}*/
 	
 	fn append: (file: []u8) printer {
 		make p : printer;
@@ -201,6 +273,11 @@ namespace std {
 				defer std::string::drop(str);
 				compiler::var(str, T[i]);
 			}
+		}
+		
+		fn new: () self {
+			make this: self;
+			return this;
 		}
 	}
 	
