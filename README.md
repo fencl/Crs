@@ -19,8 +19,19 @@ Build on Windows using Visual Studio 2019:
 Build using make and gcc (msys on Windows):
 - `premake5 gmake2`
 - `cd build`
-- `make config=release_windows_x64` ( debug | release \_ windows | linux \_ x86 | x64 )
+- `make config=release_linux_x64` ( debug | release \_ windows | linux \_ x86 | x64 )
 	- currently supported configurations
 		- windows x64
 		- windows x86
+		- linux x64
 		- linux x86
+
+Exxecutable will be placed inside bin folder in subdirectory tree corresponding to build configuration
+
+## Compile/Run
+To run crs program use `crs file -r` where `file` is path to build file
+`-r` is argument to tell the compiler to run the program directly
+ - There is currently no other option, without this switch, compiler will generate nothing
+
+## Examples
+Run `crs ex_helloworld.crs -r` inside examples folder. Other examples are `ex_hellofile.crs`, `ex_tuple.crs` , `ex_trait.crs` and `ex_stdcall.crs`

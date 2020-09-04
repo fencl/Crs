@@ -1,0 +1,8 @@
+compile {
+	compiler::require("std.crs");
+	compiler::build(binary::program);
+}
+
+fn runtime main: () {
+	std::write("hellofile.txt").slice("Hello, file!");
+}

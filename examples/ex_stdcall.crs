@@ -1,0 +1,21 @@
+compile {
+	compiler::require("std.crs");
+	compiler::build(binary::program);
+}
+
+static compile message_box_function = fn stdcall(ptr,ptr,ptr,u32);
+
+fn runtime main: () {
+	compile if compiler::platform == platform::windows {
+	
+		let user32 = std::library::share("user32.dll");
+		defer std::library::release(user32);
+	
+		let message_box = bitcast(message_box_function) std::library::function(user32,"MessageBoxA");
+		message_box(null, "Hello!\0".ptr, "Simple message box\0".ptr, 0);
+		
+	} else {	
+		compile std::cerr().slice("\n | Error: example works only on windows").endl();
+		panic;
+	}
+}

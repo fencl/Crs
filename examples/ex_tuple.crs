@@ -1,0 +1,25 @@
+compile {
+	compiler::require("std.crs");
+	compiler::build(binary::program);
+}
+
+
+struct(T: []type) tuple {
+	compile {
+		for (let i=0; i<T.count; i+=1) {
+			let str = std::string::build().slice("_").uint(i+1).get();
+			defer std::string::drop(str);
+			compiler::var(str, T[i]);
+		}
+	}
+}
+
+fn runtime main: () {
+	make tup1: tuple({ []u8, i32 });
+	tup1._1 = "one";
+	tup1._2 = 2;
+	
+	let tup2 = tup1;
+	
+	std::cout().slice("first: ").slice(tup2._1).endl().slice("second: ").int(tup2._2).endl();
+}

@@ -1,0 +1,8 @@
+compile {
+	compiler::require("std.crs");
+	compiler::build(binary::program);
+}
+
+fn runtime main: () {
+	std::cout().slice("Hello, world!").endl();	
+}

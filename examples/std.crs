@@ -1,0 +1,287 @@
+compile {
+	compiler::link("crsstdlib");
+}
+
+namespace std {
+
+	// external functions
+	namespace library {
+		fn native share: ([]u8) shared;
+		fn native function: (shared,[]u8) ptr;
+		fn native release: (shared);
+		
+		static shared = ptr;
+	}
+	
+	fn native malloc: (size) ptr;
+	fn native realloc: (ptr, size) ptr;
+	fn native free: (ptr);
+	
+	namespace stream {
+		fn native write: (ptr,[]u8);
+		fn native close: (ptr);
+		fn native open: ([]u8, u8) ptr;
+		fn native stdout: () ptr;
+		fn native stderr: () ptr;
+	}
+	
+	// allocator
+	fn(T: type) make_slice: (s: size) []T {
+		make slice: []T;
+		slice.size=s*typesize(T);
+		slice.ptr=std::malloc(slice.size);
+		return slice;
+	}
+	
+	fn (T: type) resize_slice: (slice: &[]T, s: size) {
+		slice.ptr = std::realloc(slice.ptr, s);
+		slice.size = s;
+	}
+	
+	fn(T: type) drop_slice: (slice: &[]T) {
+		std::free(slice.ptr);
+		invalidate_slice(T)(slice);
+	}
+	
+	fn(T: type) new: () &T {
+		let ref = cast(&T) std::malloc(typesize(T));
+		return ref;
+	}
+	
+	fn(T: type) delete: (ref: &T) {
+		std::free(ref);
+	}
+	
+	// array
+	struct(T: type) array {
+		var alias slice: []T;
+		
+		fn new: (s: size) self {
+			make this: self;
+			
+			this.slice = std::make_slice(T)(s);
+			return this;
+		}
+		
+		fn drop: (this: &self) {
+			std::drop_slice(T)(this.slice);
+		}
+	}
+	
+	// stream printer
+	fn cout: () printer {
+		make p : printer;
+		p.handle = std::stream::stdout();
+		return p;
+	}
+	
+	fn cerr: () printer {
+		make p : printer;
+		p.handle = std::stream::stderr();
+		return p;
+	}
+	
+	fn write: (file: []u8) printer {
+		make p : printer;
+		p.handle = std::stream::open(file, 1);
+		return p;
+	}
+	
+	fn write_b: (file: []u8) printer {
+		make p : printer;
+		p.handle = std::stream::open(file, 1 & 8);
+		return p;
+	}
+	
+	fn read: (file: []u8) printer {
+		make p : printer;
+		p.handle = std::stream::open(file, 2);
+		return p;
+	}
+	
+	fn read_b: (file: []u8) printer {
+		make p : printer;
+		p.handle = std::stream::open(file, 2 & 8);
+		return p;
+	}
+	
+	fn append: (file: []u8) printer {
+		make p : printer;
+		p.handle = std::stream::open(file, 4);
+		return p;
+	}
+	
+	fn append_b: (file: []u8) printer {
+		make p : printer;
+		p.handle = std::stream::open(file, 4 & 8);
+		return p;
+	}
+	
+	struct printer {
+		var handle: ptr;
+		
+		fn close: (this: &self) {
+			std::stream::close(this.handle);
+		}
+		
+		fn endl: (this: &self) &self {
+			return this.slice("\n");
+		}
+		
+		fn slice: (this: &self, s: []u8) &self {
+			std::stream::write(this.handle, s);
+			return this;
+		}
+		
+		fn uint: (this: &self, v: u64) &self {
+			
+			if (v == 0ul) {
+				std::stream::write(this.handle, "0");
+			} else {
+				let v_copy = v;
+				let s_width = 0ul;
+				while v_copy > 0ul {
+					s_width += 1ul;
+					v_copy /= 10ul;
+				}
+				
+				let arr = std::array(u8)::new(s_width);
+				defer arr.drop();
+				
+				while v > 0ul {
+					s_width -= 1ul;
+					arr[s_width] = cast(u8) 48ul + v % 10ul;
+					v /= 10ul;
+				}
+				
+				std::stream::write(this.handle, arr.slice);
+			}
+			
+			return this;
+		}
+		
+		fn int: (this: &self, v: i64) &self {
+			
+			if (v == 0) {
+				std::stream::write(this.handle, "0");
+			} else {
+			
+				if v<0 {
+					std::stream::write(this.handle, "-");
+					v = -v;
+				}
+				
+				let v_copy = v;
+				let s_width = 0;
+				while v_copy > 0 {
+					s_width += 1;
+					v_copy /= 10;
+				}
+				
+				let arr = std::array(u8)::new(s_width);
+				defer arr.drop();
+				
+				while v > 0 {
+					s_width -= 1;
+					arr[s_width] = cast(u8) 48 + v % 10;
+					v /= 10;
+				}
+				
+				std::stream::write(this.handle, arr.slice);
+			}
+			
+			return this;
+		}
+	}
+	
+	struct(T: []type) tuple {
+		compile {
+			for (let i=0; i<T.count; i+=1) {
+				let str = std::string::build().slice("_").uint(i+1).get();
+				defer std::string::drop(str);
+				compiler::var(str, T[i]);
+			}
+		}
+	}
+	
+	namespace string {
+		fn build: () std::string_builder {
+			make builder: std::string_builder;
+			builder.data = std::make_slice(u8)(128);
+			builder.length = 0;
+			return builder;
+		}
+		
+		fn drop: (str: &[]u8) {
+			drop_slice(u8)(str);
+		}
+	}
+	
+	struct string_builder {
+		var data: []u8;
+		var length: size;
+		
+		fn slice: (this: &self, s: []u8) &self {
+			for (let i=0; i<s.size; i+=1) {
+				this.data[this.length] = s[i];
+				this.length+=1;
+				if this.length == this.data.size {
+					std::resize_slice(u8)(this.data, this.data.size * 2);
+				}
+			}
+			
+			return this;
+		}
+		
+		fn get: (this: &self) []u8 {
+			let str = std::make_slice(u8)(this.length);
+			for (let i=0; i<this.length; i+=1) {
+				str[i] = this.data[i];
+			}
+			std::drop_slice(u8)(this.data);
+			return str;
+		}
+		
+		fn uint: (this: &self, v: u64) &self {
+			if (v == 0ul) {
+				this.slice("0");
+			} else {
+				let v_copy = v;
+				while v_copy > 0ul {
+					v_copy /= 10ul;
+					this.length += 1;
+					
+					if (this.length == this.data.size) {
+						std::resize_slice(u8)(this.data, this.data.size * 2);
+					}
+				}
+				
+				let i = 0;
+				while v > 0ul {
+					i += 1;
+					this.data[this.length - i] = cast(u8) 48ul + v % 10ul;
+					v /= 10ul;
+				}
+				
+			}
+			
+			
+			return this;
+		}
+		
+		fn int: (this: &self, v: i64) &self {
+			if (v == 0) {
+				this.slice("0");
+			} else {
+				if (v<0) {
+					this.slice("-");
+					v = -v;
+				}
+				
+				this.uint(v);
+			}
+			
+			return this;
+		}
+	}
+}

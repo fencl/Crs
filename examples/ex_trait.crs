@@ -1,0 +1,54 @@
+compile {
+	compiler::require("std.crs");
+	compiler::build(binary::program);
+}
+
+trait printable {
+	fn print: ();
+}
+
+struct class1 {
+	var ex_msg: []u8;
+	
+	fn new: (msg: []u8) self {
+		make this: self;
+		this.ex_msg = msg;
+		return this;
+	}
+	
+	impl printable {
+		fn print: (this: &self) {
+			std::cout().slice("called print from class1 with message: ").slice(this.ex_msg).endl();
+		}
+	}
+}
+
+struct class2 {
+	var ex_num: i32;
+	
+	fn new: (num: i32) self {
+		make this: self;
+		this.ex_num = num;
+		return this;
+	}
+	
+	impl printable {
+		fn print: (this: &self) {
+			std::cout().slice("called print from class2 with number: ").int(this.ex_num).endl();
+		}
+	}
+}
+
+
+fn runtime main: () {	
+	let c1 = class1::new("Hello!");
+	let c2 = class2::new(42);
+	
+	make p: [2]printable;
+	p[0] = c1;
+	p[1] = c2;
+	
+	for (let i=0; i<2; i+=1) {
+		p[i].print();
+	}
+}
