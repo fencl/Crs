@@ -9,7 +9,12 @@
 
 namespace Corrosive {
 
-	thread_local err_handler eval_extern_err = err_handler(err_undef_tag());
+#ifdef DEBUG
+	thread_local errvoid eval_extern_err = err_handler(err_undef_tag());
+#else
+	thread_local errvoid eval_extern_err = false;
+#endif
+
 	void ILEvaluator::ex_throw() { eval_extern_err = false; }
 
 	int sigint_value = INT_MIN;
@@ -1094,6 +1099,7 @@ namespace Corrosive {
 	}
 
 	errvoid ILBuilder::eval_call(ILEvaluator* eval_ctx, std::uint32_t decl) {
+		eval_ctx->debug_callstack.push_back(std::make_tuple(eval_ctx->debug_line, eval_ctx->debug_file, "<native function>"));
 
 		if (!wrap || wrap(sandbox) == 0) {
 			auto& declaration = eval_ctx->parent->function_decl[decl];
@@ -1103,7 +1109,7 @@ namespace Corrosive {
 
 			if (std::get<0>(declaration) == ILCallingConvention::bytecode) {
 				ILBytecodeFunction* bytecode_fun = (ILBytecodeFunction*)ptr;
-
+				std::get<2>(eval_ctx->debug_callstack.back()) = bytecode_fun->name;
 				//eval_ctx->callstack_debug.push_back(std::make_tuple(eval_ctx->debug_line, eval_ctx->debug_file, std::string_view(bytecode_fun->alias)));
 
 				bytecode_fun->calculate_stack();
@@ -1668,11 +1674,20 @@ namespace Corrosive {
 				if (!eval_extern_err) return err::fail;
 			}
 
+			if (eval_ctx->debug_callstack.empty()) {
+				return throw_runtime_exception(eval_ctx, "Compiler error, please fix debug callstack");
+			}
+
+			eval_ctx->debug_line = std::get<0>(eval_ctx->debug_callstack.back());
+			eval_ctx->debug_file = std::get<1>(eval_ctx->debug_callstack.back());
+			eval_ctx->debug_callstack.pop_back();
+
 		}
 		else {
 			return throw_runtime_handler_exception(eval_ctx);
 		}
 
+		
 		return err::ok;
 	}
 

@@ -9,10 +9,17 @@
 
 namespace Corrosive {
 
-	thread_local std::vector<ILModule*> ILModule::current;
-
+#ifdef DEBUG
 	errvoid err::ok = (err_undef_true_tag());
 	errvoid err::fail = (err_undef_false_tag());
+#else
+	errvoid err::ok = true;
+	errvoid err::fail = false;
+#endif
+
+
+	
+	thread_local ILEvaluator* ILEvaluator::active = nullptr;
 
 	void throw_il_wrong_data_flow_error() {
 		throw string_exception("Compiler Error, Wrong data flow inside compiler IL");
@@ -36,25 +43,31 @@ namespace Corrosive {
 	}
 
 	void throw_runtime_exception_header(const ILEvaluator* eval, std::stringstream& cerr) {
-		if (eval->debug_file < eval->debug_file_names.size()) {
-			cerr << "\n | Error (" << eval->debug_file_names[eval->debug_file] << ": " << (eval->debug_line + 1) << "):\n | \t";
+		if (eval->debug_file < eval->parent->debug_file_names.size()) {
+			cerr << "\n | Error (" << eval->parent->debug_file_names[eval->debug_file] << ": " << (eval->debug_line + 1) << "):\n | \t";
 		}
 		else {
-			cerr << "\n | Error (?):\n | \t";
+			cerr << "\n | Error (external):\n | \t";
 		}
 	}
 
 	void throw_runtime_exception_footer(const ILEvaluator* eval, std::stringstream& cerr) {
-		/*cerr << "\n |\n";
-		for (auto t = eval->callstack_debug.rbegin(); t != eval->callstack_debug.rend(); t++) {
-			if (std::get<1>(*t) < eval->debug_file_names.size()) {
-				cerr << "\n | At (" << eval->debug_file_names[std::get<1>(*t)] << ": " << (std::get<0>(*t) + 1) << ") " << std::get<2>(*t);
+		cerr << "\n |";
+		for (auto t = eval->debug_callstack.rbegin(); t != eval->debug_callstack.rend(); t++) {
+			if (std::get<1>(*t) < eval->parent->debug_file_names.size()) {
+				cerr << "\n | At (" << eval->parent->debug_file_names[std::get<1>(*t)] << ": " << (std::get<0>(*t) + 1) << ") called " << std::get<2>(*t);
 			}
 			else {
-				cerr << "\n | At (?) " << std::get<2>(*t);
+				cerr << "\n | At (external) called " << std::get<2>(*t);
 			}
-		}*/
-		cerr << "\n";
+		}
+		cerr << "\n\n";
+	}
+
+	void ILEvaluator::reset_debug() {
+		debug_file = UINT16_MAX;
+		debug_line = 0;
+		debug_callstack.clear();
 	}
 
 	std::size_t align_up(std::size_t value, std::size_t alignment) {
@@ -100,7 +113,7 @@ namespace Corrosive {
 		return l.second <= r.first;
 	}
 	
-	std::uint16_t ILEvaluator::register_debug_source(std::string name) {
+	std::uint16_t ILModule::register_debug_source(std::string name) {
 		debug_file_names.push_back(name);
 		return (std::uint16_t)debug_file_names.size() - 1;
 	}
@@ -264,7 +277,7 @@ namespace Corrosive {
 		}
 		std::uint32_t fid = UINT32_MAX;
 		if (init) { fid = init->id; }
-		static_memory.push_back(std::make_tuple(size, std::move(data), fid));
+		static_memory.push_back(std::make_tuple(size, std::move(data), fid, static_memory.size()));
 
 		unsigned char* ptr1 = (unsigned char*)std::get<1>(static_memory.back()).get();
 		unsigned char* ptr2 = ptr1 + compile_size;
@@ -314,9 +327,10 @@ namespace Corrosive {
 
 
 	void ILModule::run(ILFunction* func) {
-		current.push_back(this);
 		auto eval = std::make_unique<ILEvaluator>();
 		eval->parent = this;
+		ILEvaluator::active = eval.get();
+
 		if (ILBuilder::eval_fncall(eval.get(), func)) {
 			auto lr1b = (std::size_t)(eval->register_stack_pointer_1b - eval->register_stack_1b);
 			if (lr1b > 0) { std::cout << "leaked 1 byte registers: " << lr1b << "\n"; }
@@ -327,19 +341,18 @@ namespace Corrosive {
 			auto lr8b = (std::size_t)(eval->register_stack_pointer_8b - eval->register_stack_8b);
 			if (lr8b) { std::cout << "leaked 8 byte registers: " << lr8b << "\n"; }
 		}
-		current.pop_back();
 	}
 
 	errvoid ILModule::initialize_statics() {
-		current.push_back(this);
 		auto eval = std::make_unique<ILEvaluator>();
 		eval->parent = this;
+		ILEvaluator::active = eval.get();
+
 		for (auto&& s : static_memory) {
 			if (std::get<2>(s) != UINT32_MAX) {
 				if (ILBuilder::eval_fncall(eval.get(), functions[std::get<2>(s)].get())) return err::fail;
 			}
 		}
-		current.pop_back();
 		return err::ok;
 	}
 
@@ -1271,6 +1284,8 @@ namespace Corrosive {
 			if (auto bfunc = dynamic_cast<ILBytecodeFunction*>(func.get())) {
 				file.u8(1);
 				file.u32(func->decl_id);
+				file.s(bfunc->name.size());
+				file.write(bfunc->name.data(), bfunc->name.size());
 				bfunc->save(file);
 			}else {
 				ILNativeFunction* nfun = (ILNativeFunction*)func.get();
@@ -1348,6 +1363,11 @@ namespace Corrosive {
 				fun->parent = this;
 				fun->id = funcid;
 				fun->decl_id = file.u32();
+
+				std::size_t alias_size = file.s();
+				fun->name = std::string(alias_size,'\0');
+				file.read(fun->name.data(), alias_size);
+
 				fun->load(file);
 				functions[funcid] = std::move(fun);
 			} else if (ftype == 2) {
@@ -1355,9 +1375,11 @@ namespace Corrosive {
 				fun->parent = this;
 				fun->id = funcid;
 				fun->decl_id = file.u32();
+
 				std::size_t alias_size = file.s();
 				fun->name = std::string(alias_size,'\0');
 				file.read(fun->name.data(), alias_size);
+
 				external_functions[fun->name] = fun->id;
 				functions[funcid] = std::move(fun);
 			}
@@ -1424,7 +1446,7 @@ namespace Corrosive {
 		}
 
 		read_size = file.s();
-		static_memory = std::vector<std::tuple<ILSize,std::unique_ptr<unsigned char[]>, std::uint32_t>>(read_size);
+		static_memory = std::vector<std::tuple<ILSize,std::unique_ptr<unsigned char[]>, std::uint32_t, std::size_t>>(read_size);
 		for (std::size_t sid = 0; sid < read_size; ++sid) {
 			ILSize s;
 			s.type = (ILSizeType)file.u8();
@@ -1432,7 +1454,7 @@ namespace Corrosive {
 			std::uint32_t fid = file.u32();
 			std::size_t es = s.eval(this);
 			auto mem = std::make_unique<unsigned char[]>(es);
-			static_memory[sid] = std::make_tuple(s, std::move(mem), fid);
+			static_memory[sid] = std::make_tuple(s, std::move(mem), fid, static_memory.size());
 		}
 
 		entry_point = has_entry_point?functions[e_point_id].get() : nullptr;

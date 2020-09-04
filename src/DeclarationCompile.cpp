@@ -456,7 +456,7 @@ namespace Corrosive {
 						ft->generic_inst.generator = &generic_ctx;
 						ft->generic_inst.key = new_key;
 						ft->ast_node = f.get();
-						ft->parent = (Namespace*)this;
+						ft->parent = (Namespace*)new_inst;
 						ft->context = new_inst->context;
 
 						std::string_view name_str;
@@ -1107,6 +1107,7 @@ namespace Corrosive {
 				Compiler* compiler = Compiler::current();
 				if(!type->function_type->compile()) return err::fail;
 				auto func = compiler->global_module()->create_function(context);
+				func->name = ast_node->name_string;
 				this->func = func;
 				func->decl_id = type->function_type->il_function_decl;
 

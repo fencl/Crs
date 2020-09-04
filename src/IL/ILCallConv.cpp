@@ -7,6 +7,10 @@
 #include <Windows.h>
 #endif
 
+#ifdef LINUX
+#include <sys/mman.h>
+#endif
+
 namespace Corrosive {
 	
 
@@ -44,9 +48,28 @@ namespace Corrosive {
 		std::unordered_map < std::tuple<ILDataType, std::uint32_t, ILDataType*>, void*, call_wrapper_hash, call_wrapper_compare>(256)
 	};
 
+	std::uint8_t* virtual_alloc_page() {
+	#ifdef WINDOWS
+		return (std::uint8_t*)VirtualAlloc(nullptr, 4096, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+	#endif
+
+	#ifdef LINUX
+		return (std::uint8_t*)mmap(nullptr, 4096, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
+	#endif
+	}
+
+	void virtual_free_page(std::uint8_t* mem) {
+	#ifdef WINDOWS
+		VirtualFree((void*)mem, 0, MEM_RELEASE);
+	#endif
+	#ifdef LINUX
+		munmap((void*)mem, 4096);
+	#endif
+	}
+
 	void* exec_alloc(std::size_t bytes) {
 		if (memory_pages.size() == 0) {
-			std::uint8_t* mem = (std::uint8_t*)VirtualAlloc(nullptr, 4096, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+			std::uint8_t* mem = virtual_alloc_page();
 			memory_pages.push_back(std::make_pair(mem,mem));
 		}
 
@@ -57,7 +80,7 @@ namespace Corrosive {
 			return r;
 		}
 		else {
-			std::uint8_t* mem = (std::uint8_t*)VirtualAlloc(nullptr, 4096, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+			std::uint8_t* mem = virtual_alloc_page();
 			memory_pages.push_back(std::make_pair(mem, mem + bytes));
 			return mem;
 		}
@@ -67,7 +90,7 @@ namespace Corrosive {
 		invalidate_sandbox();
 
 		for (auto&& p : memory_pages) {
-			VirtualFree(p.first, 0, MEM_RELEASE);
+			virtual_free_page(p.first);
 		}
 
 		for (std::size_t i = 0; i < (std::uint8_t)ILCallingConvention::__max; ++i) {
@@ -198,9 +221,8 @@ namespace Corrosive {
 		}
 	}
 
-#ifdef WINDOWS
 
-	void* build_win_x86_cdecl_stdcall_call_wrapper(ILCallingConvention conv, std::tuple<ILDataType, std::uint32_t, ILDataType*> decl) {
+	void* build_x86_cdecl_stdcall_call_wrapper(ILCallingConvention conv, std::tuple<ILDataType, std::uint32_t, ILDataType*> decl) {
 		auto& cwrps = call_wrappers[(std::uint8_t)conv];
 		auto f = cwrps.find(decl);
 		if (f != cwrps.end()) {
@@ -302,7 +324,7 @@ namespace Corrosive {
 
 	errvoid call_x86_cdecl(ILEvaluator* eval,void* pointer, std::tuple<ILCallingConvention,ILDataType, std::vector<ILDataType>>& decl) {
 
-		void* asm_call_wrapper = build_win_x86_cdecl_stdcall_call_wrapper(ILCallingConvention::native,std::make_tuple(std::get<1>(decl), (std::uint32_t)std::get<2>(decl).size(), std::get<2>(decl).data()));
+		void* asm_call_wrapper = build_x86_cdecl_stdcall_call_wrapper(ILCallingConvention::native,std::make_tuple(std::get<1>(decl), (std::uint32_t)std::get<2>(decl).size(), std::get<2>(decl).data()));
 		if (!push_32bit_temp_stack(eval, decl, pointer)) return err::fail;
 
 		switch (std::get<1>(decl)) {
@@ -334,7 +356,7 @@ namespace Corrosive {
 
 	errvoid call_x86_stdcall(ILEvaluator* eval, void* pointer, std::tuple<ILCallingConvention,ILDataType, std::vector<ILDataType>>& decl) {
 
-		void* asm_call_wrapper = build_win_x86_cdecl_stdcall_call_wrapper(ILCallingConvention::stdcall, std::make_tuple(std::get<1>(decl), (std::uint32_t)std::get<2>(decl).size(), std::get<2>(decl).data()));
+		void* asm_call_wrapper = build_x86_cdecl_stdcall_call_wrapper(ILCallingConvention::stdcall, std::make_tuple(std::get<1>(decl), (std::uint32_t)std::get<2>(decl).size(), std::get<2>(decl).data()));
 		if (!push_32bit_temp_stack(eval, decl,pointer)) return err::fail;
 
 		switch (std::get<1>(decl)) {
@@ -363,7 +385,6 @@ namespace Corrosive {
 
 		return err::ok;
 	}
-#endif
 #endif
 
 
@@ -497,6 +518,36 @@ namespace Corrosive {
 		0xC3
 	};
 
+	/*
+	mov [rcx], rdx
+ 	mov [rcx+8], rbx
+ 	lea r8, [rsp+8]
+ 	mov [rcx + 0x10], r8
+ 	mov [rcx + 0x18], rbp
+ 	mov [rcx + 0x20], rsi
+ 	mov [rcx + 0x28], rdi
+ 	mov [rcx + 0x30], r12
+ 	mov [rcx + 0x38], r13
+ 	mov [rcx + 0x40], r14
+ 	mov [rcx + 0x48], r15
+ 	mov r8, [rsp]
+ 	mov [rcx + 0x50], r8
+ 	stmxcsr dword ptr [rcx + 0x58]
+ 	fnstcw word ptr [rcx + 0x5c]
+ 	movdqa [rcx + 0x60], xmm6
+ 	movdqa [rcx + 0x70], xmm7
+ 	movdqa [rcx + 0x80], xmm8
+ 	movdqa [rcx + 0x90], xmm9
+ 	movdqa [rcx + 0x0a0], xmm10
+ 	movdqa [rcx + 0x0b0], xmm11
+ 	movdqa [rcx + 0x0c0], xmm12
+ 	movdqa [rcx + 0x0d0], xmm13
+ 	movdqa [rcx + 0x0e0], xmm14
+ 	movdqa [rcx + 0x0f0], xmm15
+ 	xor eax, eax
+ 	ret  
+	*/
+
 	unsigned char longjmp_data[] = {
 		0x8B, 0xC2,
 		0x48, 0x8B, 0x11,
@@ -530,6 +581,32 @@ namespace Corrosive {
 		0x00, 0x00, 0x00,
 		0x41, 0xFF, 0xE0
 	};
+
+	/*
+	mov eax, edx
+    mov rdx, [rcx]
+    mov rbx, [rcx+8]
+    mov rsp, [rcx + 0x10]
+    mov rbp, [rcx + 0x18]
+    mov rsi, [rcx + 0x20]
+    mov rdi, [rcx + 0x28]
+    mov r12, [rcx + 0x30]
+    mov r13, [rcx + 0x38]
+    mov r14, [rcx + 0x40]
+    mov r15, [rcx + 0x48]
+    mov r8, [rcx + 0x50]
+    movdqa xmm6,  [rcx + 0x60]
+    movdqa xmm7,  [rcx + 0x70]
+    movdqa xmm8,  [rcx + 0x80]
+    movdqa xmm9,  [rcx + 0x90]
+    movdqa xmm10, [rcx + 0x0a0]
+    movdqa xmm11, [rcx + 0x0b0]
+    movdqa xmm12, [rcx + 0x0c0]
+    movdqa xmm13, [rcx + 0x0d0]
+    movdqa xmm14, [rcx + 0x0e0]
+    movdqa xmm15, [rcx + 0x0f0]
+    jmp r8
+	*/
 
 	void build_sandbox() {
 		if (!wrap) {
@@ -793,7 +870,11 @@ namespace Corrosive {
 				if (!call_x86_cdecl(eval,ptr, decl)) return err::fail;
 				break;
 			case Corrosive::ILCallingConvention::stdcall:
+			#ifdef WINDOWS
 				if (!call_x86_stdcall(eval, ptr, decl)) return err::fail;
+			#else 
+				if (!call_x86_cdecl(eval,ptr, decl)) return err::fail;
+			#endif
 				break;
 #endif
 

@@ -61,8 +61,8 @@ namespace Corrosive {
 	}
 
 	thread_local std::vector<Compiler*> Compiler::c;
-	void Compiler::push_compiler(Compiler* compiler) { c.push_back(compiler); }
-	void Compiler::pop_compiler() { c.pop_back(); }
+	void Compiler::push_compiler(Compiler* compiler) { c.push_back(compiler); ILEvaluator::active = compiler->evaluator(); }
+	void Compiler::pop_compiler() { c.pop_back(); if (c.size() > 0) { ILEvaluator::active = c.back()->evaluator(); }}
 	Compiler* Compiler::current() { return c.back(); }
 	std::unique_ptr<Compiler> Compiler::create() {
 		auto cmp = std::make_unique<Compiler>();

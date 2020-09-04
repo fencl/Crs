@@ -42,7 +42,7 @@ namespace Corrosive {
 
 	void Source::register_debug() {
 		if (debug_id == UINT16_MAX) {
-			debug_id = Compiler::current()->evaluator()->register_debug_source(name);
+			debug_id = Compiler::current()->global_module()->register_debug_source(name);
 		}
 
 		std::size_t l = 0;
@@ -543,9 +543,7 @@ namespace Corrosive {
 
 			for (auto&& r : ptr->root_node->compile) {
 				auto scope = ScopeState().context(ILContext::compile).compiler_stack().function(nullptr,nullptr);
-
 				Cursor c = load_cursor(r, ptr);
-
 				BlockTermination termination;
 				if (!Statement::parse(c, termination, ForceCompile::single)) return err::fail;
 			}

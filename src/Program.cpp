@@ -19,7 +19,13 @@
 #include <cstring>
 
 namespace Corrosive {
-	bool crs(std::string file, bool debug) {
+
+	struct crs_params {
+		bool debug = false;
+		bool run = false;
+	};
+
+	bool crs(std::string file, crs_params params) {
 
 		ILEvaluator::sandbox_begin();
 		
@@ -37,9 +43,9 @@ namespace Corrosive {
 		}
 		std::chrono::steady_clock::time_point compile_end = std::chrono::steady_clock::now();
 
-		if (compiled_module && compiled_module->entry_point) {
-			if (debug) {
-				std::cout << "========= TEST =========\n";
+		if (params.run && compiled_module && compiled_module->entry_point) {
+			if (params.debug) {
+				std::cout << "========= RUNTIME =========\n";
 			}
 			/*std::chrono::steady_clock::time_point saveload_start = std::chrono::steady_clock::now();
 			{
@@ -61,15 +67,15 @@ namespace Corrosive {
 			compiled_module->run(compiled_module->entry_point);
 			std::chrono::steady_clock::time_point runtime_end = std::chrono::steady_clock::now();
 
-			if (debug) {
-				std::cout << "========= ==== =========\n\n";
+			if (params.debug) {
+				std::cout << "===========================\n\n";
 				std::cout << "compile time: " << std::chrono::duration_cast<std::chrono::milliseconds>(compile_end - compile_begin).count() << "[ms]\n";
 				//std::cout << "save and load time: " << std::chrono::duration_cast<std::chrono::milliseconds>(saveload_end - saveload_start).count() << "[ms]\n";
 				std::cout << "runtime: " << std::chrono::duration_cast<std::chrono::milliseconds>(runtime_end - runtime_start).count() << "[ms]\n" << std::endl;
 			}
 		}
 		else {
-			if (debug) {
+			if (params.debug) {
 				std::cout << "compile time: " << std::chrono::duration_cast<std::chrono::milliseconds>(compile_end - compile_begin).count() << "[ms]\n";
 			}
 		}
@@ -86,15 +92,18 @@ int main(int argc, char** argv) {
 		return 2;
 	}
 
-	bool debug = false;
+	Corrosive::crs_params params;
+
 	for (std::size_t i = 2; i < argc; ++i) {
 		if (strcmp(argv[i],"-d") == 0) {
-			debug = true;
+			params.debug = true;
+		} else if (strcmp(argv[i],"-r") == 0) {
+			params.run = true;
 		} else {
-			std::cerr << "wrong argument found: " << argv[i] << "\n\t-d\tshow debug output";
+			std::cerr << "wrong argument found: " << argv[i] << "\n\t-d\tshow debug output\n\t-r run program\n";
 			return 2;
 		}
 	}
 
-	return Corrosive::crs(argv[1], debug) ? 0 : 1;
+	return Corrosive::crs(argv[1], params) ? 0 : 1;
 }

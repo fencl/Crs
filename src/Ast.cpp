@@ -520,7 +520,7 @@ namespace Corrosive {
 					std::unique_ptr<AstFunctionDeclarationNode> fun;
 					if (!AstFunctionNode::parse(fun, c,impl.get(), ILContext::both)) return err::fail;
 					if (fun->has_body()) {
-						impl->functions.push_back((std::unique_ptr<AstFunctionNode>&&)std::move(fun));
+						impl->functions.push_back(std::unique_ptr<AstFunctionNode>(dynamic_cast<AstFunctionNode*>(fun.release())));
 					}
 					else {
 						return throw_specific_error(err, "Functions inside implementations are supposed to have a body");

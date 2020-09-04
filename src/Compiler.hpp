@@ -17,7 +17,6 @@ namespace Corrosive {
 	class Compiler {
 	public:
 		bool initialized = false;
-		std::string entry_point = "";
 		std::vector<FunctionTemplate*> exported_functions;
 
 		ILEvaluator* evaluator() { return compiler_evaluator.get(); }

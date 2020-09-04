@@ -11,6 +11,11 @@
 #include <Windows.h>
 #endif
 
+#ifdef LINUX
+// for library test
+#include <dlfcn.h>
+#endif
+
 
 namespace Corrosive {
 
@@ -125,23 +130,34 @@ namespace Corrosive {
 
 	void* StandardLibraryCode::share(dword_t slice) {
 		std::basic_string_view<char> view((char*)slice.p1, (std::size_t)slice.p2);
+	#ifdef WINDOWS
 		return LoadLibraryA(std::string(view).c_str());
+	#endif
+
+	#ifdef LINUX
+		return dlopen(std::string(view).c_str(), RTLD_LAZY);
+	#endif
 	}
 
 	void* StandardLibraryCode::function(void* lib, dword_t slice) {
 		std::basic_string_view<char> view((char*)slice.p1, (std::size_t)slice.p2);
+	#ifdef WINDOWS
 		return (void*)GetProcAddress((HMODULE)lib, std::string(view).c_str());
+	#endif
+	#ifdef LINUX
+		return (void*)dlsym(lib, std::string(view).c_str());
+	#endif
 	}
 
 	void StandardLibraryCode::release(void* lib) {
+	#ifdef WINDOWS
 		FreeLibrary((HMODULE)lib);
-	}
+	#endif
 
-	void BuiltInCode::entry_point(dword_t slice) {
-		std::basic_string_view<char> sv((char*)slice.p1, (std::size_t)slice.p2);
-		Compiler::current()->entry_point = sv;
+	#ifdef LINUX
+		dlclose(lib);
+	#endif
 	}
-
 	
 	void StandardLibraryCode::link(ILModule* mod) {
 		mod->try_link("std::malloc", (void*)StandardLibraryCode::malloc);
@@ -246,9 +262,9 @@ namespace Corrosive {
 
 	
 
-	void BuiltInCode::compile() {
-		if (!Compiler::current()->entry_point.empty()) {
-			auto res = Compiler::current()->find_name(Compiler::current()->entry_point);
+	void BuiltInCode::compile(std::uint8_t t) {
+		if (t == 1) {
+			auto res = Compiler::current()->find_name("main");
 
 			ILFunction* main = nullptr;
 
@@ -258,15 +274,20 @@ namespace Corrosive {
 				auto res = finst->compile();
 				if (!res){ ILEvaluator::ex_throw(); return; }
 				main = finst->func;
+				if (finst->context != ILContext::runtime) {
+					throw_runtime_exception(ILEvaluator::active, "Entry point must be declared as runtime-only function.");
+					ILEvaluator::ex_throw();
+				}
 			}
 			else {
-				throw string_exception("Entry point was set but function not found");
+				throw_runtime_exception(ILEvaluator::active, "Entry point was not found. Please implement main function inside global namespace.");
+				ILEvaluator::ex_throw();
 			}
 
 			Compiler::current()->global_module()->entry_point = main;
 			Compiler::current()->global_module()->exported_functions.push_back(main);
 		}
-		else {
+		else if (t == 2) {
 			for (auto&& ft : Compiler::current()->exported_functions) {
 				FunctionInstance* finst;
 				if (!ft->generate(nullptr, finst)) {ILEvaluator::ex_throw();return;}
@@ -290,14 +311,23 @@ namespace Corrosive {
 			"fn compile native slice_of: (type) type;\n"
 			"fn compile native type_size: (type) size;\n"
 			"fn compile native require: ([]u8);\n"
-			"fn compile native entry: ([]u8);\n"
-			"fn compile native build: ();\n"
+			"fn compile native build: (u8);\n"
 			"fn compile native var: ([]u8, type);\n"
 			"fn compile native include: (type);\n"
 			"fn compile native var_alias: ([]u8, type);\n"
 			"fn compile native link: ([]u8);\n"
 			"fn compile native print_type: (type);\n"
-			"}"
+			"static compile platform = cast(u8) 1u;"
+			"}\n"
+			"namespace platform {\n"
+			"static compile windows = cast(u8) 1u;\n"
+			"static compile linux = cast(u8) 2u;\n"
+			"static compile macos = cast(u8) 3u;\n"
+			"}\n"
+			"namespace binary {\n"
+			"static compile program = cast(u8) 1u;\n"
+			"static compile library = cast(u8) 2u;\n"
+			"}\n"
 			, "standard_library<buffer>");
 
 		if (!std_lib.pair_tokens()) return err::fail;
@@ -346,7 +376,6 @@ namespace Corrosive {
 		if (!Compiler::current()->precompile_native_function(f_type_size, "compiler::var", (void*)StructureTemplate::var_wrapper)) return err::fail;
 		if (!Compiler::current()->precompile_native_function(f_type_size, "compiler::include", (void*)StructureTemplate::include_wrapper)) return err::fail;
 		if (!Compiler::current()->precompile_native_function(f_type_size, "compiler::var_alias", (void*)StructureTemplate::var_alias_wrapper)) return err::fail;
-		if (!Compiler::current()->precompile_native_function(f_type_size, "compiler::entry", (void*)BuiltInCode::entry_point)) return err::fail;
 		if (!Compiler::current()->precompile_native_function(f_type_size, "compiler::link", (void*)BuiltInCode::ask_for)) return err::fail;
 		if (!Compiler::current()->precompile_native_function(f_type_size, "compiler::print_type", (void*)BuiltInCode::print_type)) return err::fail;
 

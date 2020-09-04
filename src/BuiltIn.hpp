@@ -79,13 +79,12 @@ namespace Corrosive {
 	public:
 		static void 	ask_for(dword_t slice);
 		static void 	print_type(Type* t);
-		static void 	compile();
+		static void 	compile(std::uint8_t);
 		static Type* 	build_array(std::uint32_t size, Type* t);
 		static Type* 	build_reference(Type* t);
 		static Type* 	build_subtype(Type* t, dword_t slice);
 		static Type* 	build_slice(Type* t);
 		static std::size_t 	type_size(Type* t);
-		static void 	entry_point(dword_t slice);
 	};
 
 	class BuiltInTypes {

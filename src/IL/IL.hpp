@@ -24,6 +24,7 @@ namespace Corrosive {
 		const char* what() const noexcept { return s.c_str(); }
 	};
 
+#ifdef DEBUG
 	struct err_undef_tag {};
 	struct err_undef_true_tag {};
 	struct err_undef_false_tag {};
@@ -69,13 +70,16 @@ namespace Corrosive {
 	};
 
 	using errvoid = err_handler;
+	inline bool operator!(err_handler& h) { return !((bool)h); }
+#else
+	using errvoid = bool;
+#endif
 	
 	struct err {
 		static errvoid ok;
 		static errvoid fail;
 	};
 
-	inline bool operator!(err_handler& h) { return !((bool)h); }
 
 
 	
@@ -464,6 +468,7 @@ namespace Corrosive {
 		std::uint32_t id;
 		ILModule* parent;
 		std::uint32_t decl_id = UINT32_MAX;
+		std::string name;
 	};
 
 	class ILBytecodeFunction : public ILFunction {
@@ -508,7 +513,6 @@ namespace Corrosive {
 
 	class ILNativeFunction : public ILFunction {
 	public:
-		std::string name;
 		void* ptr = nullptr;
 	};
 
@@ -525,7 +529,9 @@ namespace Corrosive {
 
 	class ILEvaluator {
 	public:
+		static thread_local ILEvaluator* active;
 		static void ex_throw();
+
 
 		ILModule* parent = nullptr;
 
@@ -553,10 +559,9 @@ namespace Corrosive {
 		//std::vector<std::tuple<std::uint16_t, std::uint16_t, std::string_view>> callstack_debug;
 
 		std::uint16_t debug_line = 0;
-		std::uint16_t debug_file = 0;
-
-		std::vector<std::string> debug_file_names;
-		std::uint16_t register_debug_source(std::string name);
+		std::uint16_t debug_file = UINT16_MAX;
+		std::vector<std::tuple<std::uint16_t, std::uint16_t, std::string_view>> debug_callstack;
+		void reset_debug();
 
 		static void sandbox_begin();
 		static void sandbox_end();
@@ -665,14 +670,13 @@ namespace Corrosive {
 	};
 
 	class ILModule {
-	private:
-		static thread_local std::vector<ILModule*> current;
 	public:
-		static ILModule* active() { return current.back(); }
+		std::vector<std::string> debug_file_names;
+		std::uint16_t register_debug_source(std::string name);
 
 		std::map<std::string, std::uint32_t> external_functions;
 		std::vector<std::pair<ILSize,std::unique_ptr<unsigned char[]>>> constant_memory;
-		std::vector<std::tuple<ILSize,std::unique_ptr<unsigned char[]>,std::uint32_t>> static_memory;
+		std::vector<std::tuple<ILSize,std::unique_ptr<unsigned char[]>,std::uint32_t, std::size_t>> static_memory;
 
 		std::vector<std::unique_ptr<ILFunction>> functions;
 		std::vector<std::pair<std::uint32_t,std::unique_ptr<void* []>>> vtable_data;

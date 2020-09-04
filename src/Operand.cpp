@@ -1302,7 +1302,7 @@ namespace Corrosive {
 					ret.type = static_inst->type;
 				}
 				else {
-					return throw_specific_error(nm_err, "Path is pointing to a namespace");
+					return throw_specific_error(nm_err, "Symbol not found");
 				}
 
 			}

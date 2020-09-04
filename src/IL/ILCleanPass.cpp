@@ -1,11 +1,13 @@
 #include "IL.hpp"
 #include <unordered_map>
 #include <vector>
-#include <deque>
-
+#include <algorithm>
 
 namespace Corrosive {
 
+	bool static_memory_sort(const std::tuple<ILSize,std::unique_ptr<unsigned char[]>,std::uint32_t, std::size_t>& l, const std::tuple<ILSize,std::unique_ptr<unsigned char[]>,std::uint32_t, std::size_t>& r) {
+		return std::get<3>(l) < std::get<3>(r);
+	}
 
 	void ILStructTable::clean_prepass(ILModule& mod, std::unordered_set<std::size_t>& used_tables, std::unordered_set<std::size_t>& used_arrays) {
 		for (auto&& elem: elements) {
@@ -108,7 +110,7 @@ namespace Corrosive {
 		}
 		constant_memory = std::move(new_constants);
 
-		std::vector<std::tuple<ILSize, std::unique_ptr<unsigned char[]>, std::uint32_t>> new_statics;
+		std::vector<std::tuple<ILSize, std::unique_ptr<unsigned char[]>, std::uint32_t, std::size_t>> new_statics;
 		for (auto&& used_static : used_statics) {
 			map_statics[used_static] = new_statics.size();
 			new_statics.push_back(std::move(static_memory[used_static]));
@@ -117,6 +119,10 @@ namespace Corrosive {
 				funid = map_functions[funid];
 		}
 		static_memory = std::move(new_statics);
+		std::sort(static_memory.begin(), static_memory.end(), static_memory_sort);
+		for (std::size_t i=0; i< static_memory.size(); ++i) {
+			std::get<3>(static_memory[i]) = i;	
+		}
 
 
 		std::vector<std::pair<std::uint32_t,std::unique_ptr<void* []>>> new_vtables;
