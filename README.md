@@ -1,4 +1,4 @@
-![Crs](/resources/logomd.svg)
+![Crs](https://github.com/fencl/fencl.github.io/raw/master/crs/logomd.svg)
 
 # Crs
 A programming language based on ideas and concepts from programming languages like C, C++ and newer languages like Rust or Zig. 
