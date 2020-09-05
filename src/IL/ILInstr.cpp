@@ -772,7 +772,6 @@ namespace Corrosive {
 				case ILInstruction::aroffset: if (!op<il_aroffset_instr, P>::call(inst, it, block, pass)) return err::fail; break;
 				case ILInstruction::wroffset: if (!op<il_wroffset_instr, P>::call(inst, it, block, pass)) return err::fail; break;
 
-
 				case ILInstruction::table8offset8: if (!op<il_tableoffset_instr<std::uint8_t, std::uint8_t>, P>::call(inst, it, block, pass)) return err::fail; break;
 				case ILInstruction::table16offset8: if (!op<il_tableoffset_instr<std::uint16_t, std::uint8_t>, P>::call(inst, it, block, pass)) return err::fail; break;
 				case ILInstruction::table32offset8: if (!op<il_tableoffset_instr<std::uint32_t, std::uint8_t>, P>::call(inst, it, block, pass)) return err::fail; break;

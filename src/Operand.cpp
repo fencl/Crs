@@ -456,7 +456,7 @@ namespace Corrosive {
 			case RecognizedToken::Minus: {
 				Cursor err = c;
 				c.move();
-				if (!Expression::parse(c, res, cpt)) return err::fail;
+				if (!Operand::parse(c, res, cpt,targets_defer, request)) return err::fail;
 				if (!Operand::deref(res, cpt)) return err::fail;
 				if (!Expression::rvalue(res, cpt)) return err::fail;
 
@@ -475,7 +475,7 @@ namespace Corrosive {
 			case RecognizedToken::ExclamationMark: {
 				c.move();
 				Cursor err = c;
-				if(!Expression::parse(c, res, cpt)) return err::fail;
+				if(!Operand::parse(c, res, cpt, targets_defer, request)) return err::fail;
 				if(!Operand::deref(res, cpt)) return err::fail;
 				if(!Expression::rvalue(res, cpt)) return err::fail;
 				if(!Operand::cast(err, res, compiler->types()->t_bool, cpt, true)) return err::fail;
