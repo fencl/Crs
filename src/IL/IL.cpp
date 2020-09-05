@@ -180,7 +180,7 @@ namespace Corrosive {
 
 
 	void ILBytecodeFunction::dump() {
-		ILBytecodeFunction::print_function(this);
+		if (!ILBytecodeFunction::print_function(this)) return;
 	}
 
 	void ILBlock::dump_data_type(ILDataType dt) {
