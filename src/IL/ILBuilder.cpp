@@ -4,14 +4,105 @@
 #include <functional>
 
 namespace Corrosive {
-	errvoid ILBuilder::build_const_i8(ILBlock* block, std::int8_t   value) { block->write_instruction(ILInstruction::i8);     block->write_value(value); return err::ok; }
-	errvoid ILBuilder::build_const_i16(ILBlock* block, std::int16_t  value) { block->write_instruction(ILInstruction::i16);    block->write_value(value); return err::ok; }
-	errvoid ILBuilder::build_const_i32(ILBlock* block, std::int32_t  value) { block->write_instruction(ILInstruction::i32);    block->write_value(value); return err::ok; }
-	errvoid ILBuilder::build_const_i64(ILBlock* block, std::int64_t  value) { block->write_instruction(ILInstruction::i64);    block->write_value(value); return err::ok; }
-	errvoid ILBuilder::build_const_u8(ILBlock* block, std::uint8_t  value) { block->write_instruction(ILInstruction::u8);   block->write_value(value); return err::ok; }
-	errvoid ILBuilder::build_const_u16(ILBlock* block, std::uint16_t value) { block->write_instruction(ILInstruction::u16);    block->write_value(value); return err::ok; }
-	errvoid ILBuilder::build_const_u32(ILBlock* block, std::uint32_t value) { block->write_instruction(ILInstruction::u32);    block->write_value(value); return err::ok; }
-	errvoid ILBuilder::build_const_u64(ILBlock* block, std::uint64_t value) { block->write_instruction(ILInstruction::u64);    block->write_value(value); return err::ok; }
+	
+
+	errvoid ILBuilder::build_const_i8(ILBlock* block, std::int8_t  value) { 
+		block->write_instruction(ILInstruction::i8);  
+		block->write_value(value); 
+		return err::ok;
+	}
+
+	errvoid ILBuilder::build_const_i16(ILBlock* block, std::int16_t value) {
+		if (value>=INT8_MIN && value <= INT8_MAX) {
+			block->write_instruction(ILInstruction::i16_8);
+			block->write_value((std::int8_t)value);
+		}else {
+			block->write_instruction(ILInstruction::i16);
+			block->write_value(value);
+		}
+		return err::ok;
+	}
+	
+	errvoid ILBuilder::build_const_i32(ILBlock* block, std::int32_t value) {
+		if (value>=INT8_MIN && value <= INT8_MAX) {
+			block->write_instruction(ILInstruction::i32_8);
+			block->write_value((std::int8_t)value);
+		} else if (value>=INT16_MIN && value<=INT16_MAX) {
+			block->write_instruction(ILInstruction::i32_16);
+			block->write_value((std::int16_t)value);
+		} else {
+			block->write_instruction(ILInstruction::i32);
+			block->write_value(value);
+		}
+		return err::ok;
+	}
+
+	errvoid ILBuilder::build_const_i64(ILBlock* block, std::int64_t value)  {
+		if (value>=INT8_MIN && value <= INT8_MAX) {
+			block->write_instruction(ILInstruction::i64_8);
+			block->write_value((std::int8_t)value);
+		} else if (value>=INT16_MIN && value<=INT16_MAX) {
+			block->write_instruction(ILInstruction::i64_16);
+			block->write_value((std::int16_t)value);
+		} else if (value>=INT32_MIN && value<=INT32_MAX) {
+			block->write_instruction(ILInstruction::i64_32);
+			block->write_value((std::int32_t)value);
+		} else {
+			block->write_instruction(ILInstruction::u64);
+			block->write_value(value);
+		}
+		return err::ok;
+	}
+
+	errvoid ILBuilder::build_const_u8(ILBlock* block, std::uint8_t  value) { 
+		block->write_instruction(ILInstruction::u8);  
+		block->write_value(value); 
+		return err::ok;
+	}
+
+	errvoid ILBuilder::build_const_u16(ILBlock* block, std::uint16_t value) {
+		if (value <= UINT8_MAX) {
+			block->write_instruction(ILInstruction::u16_8);
+			block->write_value((std::uint8_t)value);
+		}else {
+			block->write_instruction(ILInstruction::u16);
+			block->write_value(value);
+		}
+		return err::ok;
+	}
+
+	errvoid ILBuilder::build_const_u32(ILBlock* block, std::uint32_t value) {
+		if (value <= UINT8_MAX) {
+			block->write_instruction(ILInstruction::u32_8);
+			block->write_value((std::uint8_t)value);
+		} else if (value<=UINT16_MAX) {
+			block->write_instruction(ILInstruction::u32_16);
+			block->write_value((std::uint16_t)value);
+		} else {
+			block->write_instruction(ILInstruction::u32);
+			block->write_value(value);
+		}
+		return err::ok;
+	}
+
+	errvoid ILBuilder::build_const_u64(ILBlock* block, std::uint64_t value)  {
+		if (value <= UINT8_MAX) {
+			block->write_instruction(ILInstruction::u64_8);
+			block->write_value((std::uint8_t)value);
+		} else if (value<=UINT16_MAX) {
+			block->write_instruction(ILInstruction::u64_16);
+			block->write_value((std::uint16_t)value);
+		} else if (value<=UINT32_MAX) {
+			block->write_instruction(ILInstruction::u64_32);
+			block->write_value((std::uint32_t)value);
+		} else {
+			block->write_instruction(ILInstruction::u64);
+			block->write_value(value);
+		}
+		return err::ok;
+	}
+
+
 	errvoid ILBuilder::build_const_f32(ILBlock* block, float    value) { block->write_instruction(ILInstruction::f32);    block->write_value(value); return err::ok; }
 	errvoid ILBuilder::build_const_f64(ILBlock* block, double   value) { block->write_instruction(ILInstruction::f64);    block->write_value(value); return err::ok; }
 	errvoid ILBuilder::build_const_word(ILBlock* block, void* value) { block->write_instruction(ILInstruction::word); 	  block->write_value(value); return err::ok; }

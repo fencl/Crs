@@ -592,12 +592,24 @@ namespace Corrosive {
 						ILBlock::read_data<std::uint32_t>(it);
 					} break;
 
-					case ILInstruction::u8: ILBlock::read_data<std::uint8_t>(it); break;
-					case ILInstruction::i8: ILBlock::read_data<std::int8_t>(it); break;
-					case ILInstruction::u16: ILBlock::read_data<std::uint16_t>(it); break;
-					case ILInstruction::i16: ILBlock::read_data<std::int16_t>(it); break;
-					case ILInstruction::u32: ILBlock::read_data<std::uint32_t>(it); break;
-					case ILInstruction::i32: ILBlock::read_data<std::int32_t>(it); break;
+					case ILInstruction::u8:
+					case ILInstruction::u16_8: 
+					case ILInstruction::u32_8:
+					case ILInstruction::u64_8: ILBlock::read_data<std::uint8_t>(it); break;
+					case ILInstruction::i8: 
+					case ILInstruction::i16_8: 
+					case ILInstruction::i32_8:
+					case ILInstruction::i64_8: ILBlock::read_data<std::int8_t>(it); break;
+					case ILInstruction::u16: 
+					case ILInstruction::u32_16: 
+					case ILInstruction::u64_16: ILBlock::read_data<std::uint16_t>(it); break;
+					case ILInstruction::i16: 
+					case ILInstruction::i32_16: 
+					case ILInstruction::i64_16: ILBlock::read_data<std::int16_t>(it); break;
+					case ILInstruction::u32: 
+					case ILInstruction::u64_32: ILBlock::read_data<std::uint32_t>(it); break;
+					case ILInstruction::i32: 
+					case ILInstruction::i64_32: ILBlock::read_data<std::int32_t>(it); break;
 					case ILInstruction::u64: ILBlock::read_data<std::uint64_t>(it); break;
 					case ILInstruction::i64: ILBlock::read_data<std::int64_t>(it); break;
 					case ILInstruction::f32: ILBlock::read_data<float>(it); break;
@@ -1584,12 +1596,24 @@ namespace Corrosive {
 						block->write_value((std::uint32_t)map_blocks[ILBlock::read_data<std::uint32_t>(it)]);
 					} break;
 
-					case ILInstruction::u8:   block->write_value(inst); block->write_value(ILBlock::read_data<std::uint8_t>(it)); break;
-					case ILInstruction::i8:   block->write_value(inst); block->write_value(ILBlock::read_data<std::int8_t>(it)); break;
-					case ILInstruction::u16:  block->write_value(inst); block->write_value(ILBlock::read_data<std::uint16_t>(it)); break;
-					case ILInstruction::i16:  block->write_value(inst); block->write_value(ILBlock::read_data<std::int16_t>(it)); break;
-					case ILInstruction::u32:  block->write_value(inst); block->write_value(ILBlock::read_data<std::uint32_t>(it)); break;
-					case ILInstruction::i32:  block->write_value(inst); block->write_value(ILBlock::read_data<std::int32_t>(it)); break;
+					case ILInstruction::u8:  
+					case ILInstruction::u16_8:
+					case ILInstruction::u32_8: 
+					case ILInstruction::u64_8:   block->write_value(inst); block->write_value(ILBlock::read_data<std::uint8_t>(it)); break;
+					case ILInstruction::i8:
+					case ILInstruction::i16_8:
+					case ILInstruction::i32_8:
+					case ILInstruction::i64_8:   block->write_value(inst); block->write_value(ILBlock::read_data<std::int8_t>(it)); break;
+					case ILInstruction::u16: 
+					case ILInstruction::u32_16:  
+					case ILInstruction::u64_16:  block->write_value(inst); block->write_value(ILBlock::read_data<std::uint16_t>(it)); break;
+					case ILInstruction::i16:  
+					case ILInstruction::i32_16: 
+					case ILInstruction::i64_16:  block->write_value(inst); block->write_value(ILBlock::read_data<std::int16_t>(it)); break;
+					case ILInstruction::u32:  
+					case ILInstruction::u64_32:  block->write_value(inst); block->write_value(ILBlock::read_data<std::uint32_t>(it)); break;
+					case ILInstruction::i32:  
+					case ILInstruction::i64_32:  block->write_value(inst); block->write_value(ILBlock::read_data<std::int32_t>(it)); break;
 					case ILInstruction::u64:  block->write_value(inst); block->write_value(ILBlock::read_data<std::uint64_t>(it)); break;
 					case ILInstruction::i64:  block->write_value(inst); block->write_value(ILBlock::read_data<std::int64_t>(it)); break;
 					case ILInstruction::f32:  block->write_value(inst); block->write_value(ILBlock::read_data<float>(it)); break;
