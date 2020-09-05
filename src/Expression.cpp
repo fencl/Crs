@@ -22,10 +22,10 @@ namespace Corrosive {
 		}
 		else {
 			if (me->rvalue_stacked()) {
-				if (!ILBuilder::eval_memcpy(Compiler::current()->evaluator(), me->size().eval(Compiler::current()->global_module()))) return err::fail;
+				if (!ILBuilder::eval_memcpy(me->size())) return err::fail;
 			}
 			else {
-				if (!ILBuilder::eval_store(Compiler::current()->evaluator(), me->rvalue())) return err::fail;
+				if (!ILBuilder::eval_store(me->rvalue())) return err::fail;
 			}
 		}
 		return err::ok;
@@ -42,10 +42,10 @@ namespace Corrosive {
 		}
 		else {
 			if (me->rvalue_stacked()) {
-				if (!ILBuilder::eval_memcpy_rev(Compiler::current()->evaluator(), me->size().eval(Compiler::current()->global_module()))) return err::fail;
+				if (!ILBuilder::eval_memcpy_rev(me->size())) return err::fail;
 			}
 			else {
-				if (!ILBuilder::eval_store_rev(Compiler::current()->evaluator(), me->rvalue())) return err::fail;
+				if (!ILBuilder::eval_store_rev(me->rvalue())) return err::fail;
 			}
 		}
 		return err::ok;
@@ -60,7 +60,7 @@ namespace Corrosive {
 			}
 			else if (cpt == CompileType::eval) {
 				value.lvalue = false;
-				if (!ILBuilder::eval_load(Compiler::current()->evaluator(), value.type->rvalue())) return err::fail;
+				if (!ILBuilder::eval_load(value.type->rvalue())) return err::fail;
 			}
 		}
 		return err::ok;
@@ -111,10 +111,10 @@ namespace Corrosive {
 				}
 				else {
 					if (left.lvalue || left.type->rvalue_stacked()) {
-						if (!ILBuilder::eval_memcmp(compiler->evaluator(), left.type->size().eval(compiler->global_module()))) return err::fail;
+						if (!ILBuilder::eval_memcmp(left.type->size())) return err::fail;
 					}
 					else {
-						if (!ILBuilder::eval_rmemcmp(compiler->evaluator(), left.type->rvalue())) return err::fail;
+						if (!ILBuilder::eval_rmemcmp(left.type->rvalue())) return err::fail;
 					}
 					if (!compiler->evaluator()->pop_register_value<std::int8_t>(eval_value)) return err::fail;
 				}
@@ -160,26 +160,26 @@ namespace Corrosive {
 						case 1: {
 							switch (op) {
 								case 0: {
-									if (!ILBuilder::eval_const_i8(compiler->evaluator(), eval_value == 0 ? 1 : 0)) return err::fail;
+									if (!ILBuilder::eval_const_i8(eval_value == 0 ? 1 : 0)) return err::fail;
 								}break;
 								case 1: {
-									if (!ILBuilder::eval_const_i8(compiler->evaluator(), eval_value == 0 ? 0 : 1)) return err::fail;
+									if (!ILBuilder::eval_const_i8(eval_value == 0 ? 0 : 1)) return err::fail;
 								}break;
 							}
 						}break;
 						case 2: {
 							switch (op) {
 								case 0: {
-									if (!ILBuilder::eval_const_i8(compiler->evaluator(), eval_value == 1 ? 1 : 0)) return err::fail;
+									if (!ILBuilder::eval_const_i8(eval_value == 1 ? 1 : 0)) return err::fail;
 								}break;
 								case 1: {
-									if (!ILBuilder::eval_const_i8(compiler->evaluator(), eval_value == -1 ? 1 : 0)) return err::fail;
+									if (!ILBuilder::eval_const_i8(eval_value == -1 ? 1 : 0)) return err::fail;
 								} break;
 								case 2: {
-									if (!ILBuilder::eval_const_i8(compiler->evaluator(), eval_value == -1 ? 0 : 1)) return err::fail;
+									if (!ILBuilder::eval_const_i8(eval_value == -1 ? 0 : 1)) return err::fail;
 								}break;
 								case 3: {
-									if (!ILBuilder::eval_const_i8(compiler->evaluator(), eval_value == 1 ? 0 : 1)) return err::fail;
+									if (!ILBuilder::eval_const_i8(eval_value == 1 ? 0 : 1)) return err::fail;
 								}break;
 							}
 						}break;
@@ -270,62 +270,62 @@ namespace Corrosive {
 					case 0: {
 						switch (op) {
 							case 0: {
-								if (!ILBuilder::eval_and(compiler->evaluator(), left.type->rvalue(), right.type->rvalue())) return err::fail;
+								if (!ILBuilder::eval_and(left.type->rvalue(), right.type->rvalue())) return err::fail;
 							}break;
 							case 1: {
-								if (!ILBuilder::eval_or(compiler->evaluator(), left.type->rvalue(), right.type->rvalue())) return err::fail;
+								if (!ILBuilder::eval_or(left.type->rvalue(), right.type->rvalue())) return err::fail;
 							}break;
 							case 2: {
-								if (!ILBuilder::eval_xor(compiler->evaluator(), left.type->rvalue(), right.type->rvalue())) return err::fail;
+								if (!ILBuilder::eval_xor(left.type->rvalue(), right.type->rvalue())) return err::fail;
 							}break;
 						}
 					}break;
 					case 1: {
 						switch (op) {
 							case 0: {
-								if (!ILBuilder::eval_eq(compiler->evaluator(), left.type->rvalue(), right.type->rvalue())) return err::fail;
+								if (!ILBuilder::eval_eq(left.type->rvalue(), right.type->rvalue())) return err::fail;
 							}break;
 							case 1: {
-								if (!ILBuilder::eval_ne(compiler->evaluator(), left.type->rvalue(), right.type->rvalue())) return err::fail;
+								if (!ILBuilder::eval_ne(left.type->rvalue(), right.type->rvalue())) return err::fail;
 							}break;
 						}
 					}break;
 					case 2: {
 						switch (op) {
 							case 0: {
-								if (!ILBuilder::eval_gt(compiler->evaluator(), left.type->rvalue(), right.type->rvalue())) return err::fail;
+								if (!ILBuilder::eval_gt(left.type->rvalue(), right.type->rvalue())) return err::fail;
 							}break;
 							case 1: {
-								if (!ILBuilder::eval_lt(compiler->evaluator(), left.type->rvalue(), right.type->rvalue())) return err::fail;
+								if (!ILBuilder::eval_lt(left.type->rvalue(), right.type->rvalue())) return err::fail;
 							} break;
 							case 2: {
-								if (!ILBuilder::eval_ge(compiler->evaluator(), left.type->rvalue(), right.type->rvalue())) return err::fail;
+								if (!ILBuilder::eval_ge(left.type->rvalue(), right.type->rvalue())) return err::fail;
 							}break;
 							case 3: {
-								if (!ILBuilder::eval_le(compiler->evaluator(), left.type->rvalue(), right.type->rvalue())) return err::fail;
+								if (!ILBuilder::eval_le(left.type->rvalue(), right.type->rvalue())) return err::fail;
 							}break;
 						}
 					}break;
 					case 3: {
 						switch (op) {
 							case 0: {
-								if (!ILBuilder::eval_add(compiler->evaluator(), left.type->rvalue(), right.type->rvalue())) return err::fail;
+								if (!ILBuilder::eval_add(left.type->rvalue(), right.type->rvalue())) return err::fail;
 							}break;
 							case 1: {
-								if (!ILBuilder::eval_sub(compiler->evaluator(), left.type->rvalue(), right.type->rvalue())) return err::fail;
+								if (!ILBuilder::eval_sub(left.type->rvalue(), right.type->rvalue())) return err::fail;
 							}break;
 						}
 					}break;
 					case 4: {
 						switch (op) {
 							case 0: {
-								if (!ILBuilder::eval_mul(compiler->evaluator(), left.type->rvalue(), right.type->rvalue())) return err::fail;
+								if (!ILBuilder::eval_mul(left.type->rvalue(), right.type->rvalue())) return err::fail;
 							}break;
 							case 1: {
-								if (!ILBuilder::eval_div(compiler->evaluator(), left.type->rvalue(), right.type->rvalue())) return err::fail;
+								if (!ILBuilder::eval_div(left.type->rvalue(), right.type->rvalue())) return err::fail;
 							} break;
 							case 2: {
-								if (!ILBuilder::eval_rem(compiler->evaluator(), left.type->rvalue(), right.type->rvalue())) return err::fail;
+								if (!ILBuilder::eval_rem(left.type->rvalue(), right.type->rvalue())) return err::fail;
 							}break;
 						}
 					}break;
@@ -358,7 +358,7 @@ namespace Corrosive {
 						if (!ILBuilder::build_duplicate(compiler->scope(), ILDataType::word)) return err::fail;
 					}
 					else {
-						if (!ILBuilder::eval_duplicate(compiler->evaluator(), ILDataType::word)) return err::fail;
+						if (!ILBuilder::eval_duplicate(ILDataType::word)) return err::fail;
 					}
 				}
 
@@ -404,7 +404,7 @@ namespace Corrosive {
 						if (!ILBuilder::build_duplicate(compiler->scope(), ILDataType::word)) return err::fail;
 					}
 					else {
-						if (!ILBuilder::eval_duplicate(compiler->evaluator(), ILDataType::word)) return err::fail;
+						if (!ILBuilder::eval_duplicate(ILDataType::word)) return err::fail;
 					}
 				}
 
@@ -412,7 +412,7 @@ namespace Corrosive {
 					if (!ILBuilder::build_duplicate(compiler->scope(), ILDataType::word)) return err::fail;
 				}
 				else {
-					if (!ILBuilder::eval_duplicate(compiler->evaluator(), ILDataType::word)) return err::fail;
+					if (!ILBuilder::eval_duplicate(ILDataType::word)) return err::fail;
 				}
 				if (!Expression::rvalue(val, cpt)) return err::fail;
 
@@ -447,20 +447,20 @@ namespace Corrosive {
 				}
 				else {
 					if (op == 1) {
-						if (!ILBuilder::eval_add(compiler->evaluator(), val.type->rvalue(), val2.type->rvalue())) return err::fail;
+						if (!ILBuilder::eval_add(val.type->rvalue(), val2.type->rvalue())) return err::fail;
 					}
 					else if (op == 2){
-						if (!ILBuilder::eval_sub(compiler->evaluator(), val.type->rvalue(), val2.type->rvalue())) return err::fail;
+						if (!ILBuilder::eval_sub(val.type->rvalue(), val2.type->rvalue())) return err::fail;
 					}
 					else if (op == 3){
-						if (!ILBuilder::eval_mul(compiler->evaluator(), val.type->rvalue(), val2.type->rvalue())) return err::fail;
+						if (!ILBuilder::eval_mul(val.type->rvalue(), val2.type->rvalue())) return err::fail;
 					}
 					else {
-						if (!ILBuilder::eval_div(compiler->evaluator(), val.type->rvalue(), val2.type->rvalue())) return err::fail;
+						if (!ILBuilder::eval_div(val.type->rvalue(), val2.type->rvalue())) return err::fail;
 					}
 
-					if (!ILBuilder::eval_cast(compiler->evaluator(), ILBuilder::arith_result(val.type->rvalue(), val2.type->rvalue()), val.type->rvalue())) return err::fail;
-					if (!ILBuilder::eval_store_rev(compiler->evaluator(), val.type->rvalue())) return err::fail;
+					if (!ILBuilder::eval_cast(ILBuilder::arith_result(val.type->rvalue(), val2.type->rvalue()), val.type->rvalue())) return err::fail;
+					if (!ILBuilder::eval_store_rev(val.type->rvalue())) return err::fail;
 				}
 
 				if (!require_output) {
@@ -478,7 +478,7 @@ namespace Corrosive {
 					if (!ILBuilder::build_forget(compiler->scope(), ILDataType::word)) return err::fail;
 				}
 				else {
-					if (!ILBuilder::eval_forget(compiler->evaluator(), ILDataType::word)) return err::fail;
+					if (!ILBuilder::eval_forget(ILDataType::word)) return err::fail;
 				}
 			}
 			else {
@@ -486,7 +486,7 @@ namespace Corrosive {
 					if (!ILBuilder::build_forget(compiler->scope(), res.type->rvalue())) return err::fail;
 				}
 				else {
-					if (!ILBuilder::eval_forget(compiler->evaluator(), res.type->rvalue())) return err::fail;
+					if (!ILBuilder::eval_forget(res.type->rvalue())) return err::fail;
 				}
 			}
 
@@ -524,7 +524,7 @@ namespace Corrosive {
 				
 				std::uint8_t rv;
 				if (!compiler->evaluator()->pop_register_value<std::uint8_t>(rv)) return err::fail;
-				if (!ILBuilder::eval_const_i8(compiler->evaluator(), v & rv)) return err::fail;
+				if (!ILBuilder::eval_const_i8(v & rv)) return err::fail;
 			}
 			else {
 				if (!fallback) {
@@ -605,7 +605,7 @@ namespace Corrosive {
 
 				std::uint8_t rv;
 				if (!compiler->evaluator()->pop_register_value<std::uint8_t>(rv)) return err::fail;
-				if (!ILBuilder::eval_const_i8(compiler->evaluator(), v | rv)) return err::fail;
+				if (!ILBuilder::eval_const_i8(v | rv)) return err::fail;
 			}
 			else {
 				if (!fallback) {

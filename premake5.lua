@@ -19,27 +19,27 @@ project "crs"
 	filter "platforms:windows_x64"
 		defines { "WINDOWS", "X64" }
 		architecture "x64"
-		targetdir "bin/windows/x64/%{cfg.buildcfg}"
+		targetdir "bin/%{cfg.buildcfg}/windows/x64"
 		targetextension ".exe"
 	
 	filter "platforms:windows_x86"
 		defines { "WINDOWS","X86" }
 		architecture "x32"
-		targetdir "bin/windows/x86/%{cfg.buildcfg}"
+		targetdir "bin/%{cfg.buildcfg}/windows/x86"
 		targetextension ".exe"
 		
 	filter "platforms:linux_x86"
 		defines { "LINUX","X86" }
 		architecture "x32"
 		links "dl"
-		targetdir "bin/linux/x86/%{cfg.buildcfg}"
+		targetdir "bin/%{cfg.buildcfg}/linux/x86"
 		targetextension ""
 		
 	filter "platforms:linux_x64"
 		defines { "LINUX","X64" }
 		architecture "x64"
 		links "dl"
-		targetdir "bin/linux/x64/%{cfg.buildcfg}"
+		targetdir "bin/%{cfg.buildcfg}/linux/x64"
 		targetextension ""
 
 	filter "configurations:debug"

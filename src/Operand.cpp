@@ -138,7 +138,7 @@ namespace Corrosive {
 		
 		if (res.type == compiler->types()->t_type && to->type() == TypeInstanceType::type_template) {
 			if (cpt == CompileType::eval) {
-				if (!ILBuilder::eval_const_word(compiler->evaluator(), to)) return err::fail;
+				if (!ILBuilder::eval_const_word(to)) return err::fail;
 				if (!Operand::type_template_cast_crsr(compiler->evaluator(), err)) return err::fail;
 
 				res.type = to;
@@ -194,8 +194,8 @@ namespace Corrosive {
 
 			if (cpt == CompileType::eval) {
 
-				if (!ILBuilder::eval_vtable(compiler->evaluator(), vtableid)) return err::fail;
-				if (!ILBuilder::eval_combine_dword(compiler->evaluator())) return err::fail;
+				if (!ILBuilder::eval_vtable(vtableid)) return err::fail;
+				if (!ILBuilder::eval_combine_dword()) return err::fail;
 
 			}
 			else {
@@ -226,8 +226,8 @@ namespace Corrosive {
 				if (!ILBuilder::build_combine_dword(compiler->scope())) return err::fail;
 			}
 			else {
-				if (!ILBuilder::eval_const_size(compiler->evaluator(), res.type->size().eval(compiler->global_module()))) return err::fail;
-				if (!ILBuilder::eval_combine_dword(compiler->evaluator())) return err::fail;
+				if (!ILBuilder::eval_const_size(res.type->size().eval(compiler->global_module()))) return err::fail;
+				if (!ILBuilder::eval_combine_dword()) return err::fail;
 			}
 
 			res.type = to;
@@ -255,9 +255,9 @@ namespace Corrosive {
 					return throw_specific_error(err, "The array has different size than casted slice");
 				}
 
-				if (!ILBuilder::eval_bitcast(compiler->evaluator(), ILDataType::dword, ILDataType::word)) return err::fail;
+				if (!ILBuilder::eval_bitcast(ILDataType::dword, ILDataType::word)) return err::fail;
 				compiler->eval_local(local_id);
-				if (!ILBuilder::eval_memcpy(compiler->evaluator(), array_size)) return err::fail;
+				if (!ILBuilder::eval_memcpy(to->size())) return err::fail;
 				compiler->eval_local(local_id);
 			}
 
@@ -268,7 +268,7 @@ namespace Corrosive {
 			if (!Expression::rvalue(res, cpt)) return err::fail;
 			if (cpt == CompileType::eval) {
 				if (res.type->rvalue() != to->rvalue()) {
-					if (!ILBuilder::eval_bitcast(compiler->evaluator(), res.type->rvalue(), to->rvalue())) return err::fail;
+					if (!ILBuilder::eval_bitcast(res.type->rvalue(), to->rvalue())) return err::fail;
 				}
 				
 
@@ -288,7 +288,7 @@ namespace Corrosive {
 			if (!Expression::rvalue(res, cpt)) return err::fail;
 			if (cpt == CompileType::eval) {
 				if (res.type->rvalue() != to->rvalue()) {
-					if (!ILBuilder::eval_cast(compiler->evaluator(), res.type->rvalue(), to->rvalue())) return err::fail;
+					if (!ILBuilder::eval_cast(res.type->rvalue(), to->rvalue())) return err::fail;
 				}
 
 				res.type = to;
@@ -440,7 +440,7 @@ namespace Corrosive {
 						if (!ILBuilder::build_bitcast(compiler->scope(), res.type->rvalue(), to->rvalue())) return err::fail;
 					}
 					else {
-						if (!ILBuilder::eval_bitcast(compiler->evaluator(), res.type->rvalue(), to->rvalue())) return err::fail;
+						if (!ILBuilder::eval_bitcast(res.type->rvalue(), to->rvalue())) return err::fail;
 					}
 
 					res.type = to;
@@ -468,7 +468,7 @@ namespace Corrosive {
 					if (!ILBuilder::build_negative(compiler->scope(), res.type->rvalue())) return err::fail;
 				}
 				else {
-					if (!ILBuilder::eval_negative(compiler->evaluator(), res.type->rvalue())) return err::fail;
+					if (!ILBuilder::eval_negative(res.type->rvalue())) return err::fail;
 				}
 			}return err::ok;
 
@@ -484,7 +484,7 @@ namespace Corrosive {
 					if (!ILBuilder::build_negate(compiler->scope())) return err::fail;
 				}
 				else {
-					if (!ILBuilder::eval_negate(compiler->evaluator())) return err::fail;
+					if (!ILBuilder::eval_negate()) return err::fail;
 				}
 			}return err::ok;
 
@@ -617,7 +617,7 @@ namespace Corrosive {
 							if (!ILBuilder::build_bitcast(compiler->scope(), res.type->rvalue(), to->rvalue())) return err::fail;
 						}
 						else {
-							if (!ILBuilder::eval_bitcast(compiler->evaluator(), res.type->rvalue(), to->rvalue())) return err::fail;
+							if (!ILBuilder::eval_bitcast(res.type->rvalue(), to->rvalue())) return err::fail;
 						}
 
 						res.type = to;
@@ -698,11 +698,19 @@ namespace Corrosive {
 							if (cv.type->rvalue_stacked()) {
 								unsigned char* src;
 								if (!compiler->evaluator()->pop_register_value<unsigned char*>(src)) return err::fail;
-								std::memcpy((unsigned char*)&storage.data()[storage.size()-target_size_value], src, target_size_value); // TODO wrap
+								if (!wrap || wrap(sandbox) == 0) {
+									std::memcpy((unsigned char*)&storage.data()[storage.size()-target_size_value], src, target_size_value);
+								} else {
+									return throw_runtime_handler_exception(compiler->evaluator());
+								}
 							} else {
 								ilsize_t srcstorage;
 								if (!compiler->evaluator()->pop_register_value_indirect(compiler->evaluator()->compile_time_register_size(cv.type->rvalue()), &srcstorage)) return err::fail;
-								std::memcpy((unsigned char*)&storage.data()[storage.size()-target_size_value], (unsigned char*)&srcstorage,target_size_value); // TODO wrap
+								if (!wrap || wrap(sandbox) == 0) {
+									std::memcpy((unsigned char*)&storage.data()[storage.size()-target_size_value], (unsigned char*)&srcstorage,target_size_value);
+								} else {
+									return throw_runtime_handler_exception(compiler->evaluator());
+								}
 							}
 						}
 
@@ -755,9 +763,9 @@ namespace Corrosive {
 						dword_t v;
 						v.p1 = dst;
 						v.p2 = (void*)(target_size_value*count);
-						if (!ILBuilder::eval_const_dword(compiler->evaluator(),v)) return err::fail;
+						if (!ILBuilder::eval_const_dword(v)) return err::fail;
 					} else {
-						if (!ILBuilder::eval_const_word(compiler->evaluator(), dst)) return err::fail;
+						if (!ILBuilder::eval_const_word(dst)) return err::fail;
 					}
 				}
 
@@ -782,7 +790,7 @@ namespace Corrosive {
 		if (compiler->compiler_stack()->find(c.buffer(), sitm)) {
 			if (sitm.type == compiler->types()->t_type) {
 				compiler->eval_local(sitm.id);
-				if (!ILBuilder::eval_load(compiler->evaluator(), ILDataType::word)) return err::fail;
+				if (!ILBuilder::eval_load(ILDataType::word)) return err::fail;
 				Type* rec_type;
 				if (!compiler->evaluator()->pop_register_value<Type*>(rec_type)) return err::fail;
 				if (!Type::assert(err, rec_type)) return err::fail;
@@ -965,7 +973,7 @@ namespace Corrosive {
 				if (!ILBuilder::build_const_i8(compiler->scope(), true)) return err::fail;
 			}
 			else if (cpt == CompileType::eval) {
-				if (!ILBuilder::eval_const_i8(compiler->evaluator(), true)) return err::fail;
+				if (!ILBuilder::eval_const_i8(true)) return err::fail;
 			}
 		}
 		else if (buf == "false") {
@@ -976,7 +984,7 @@ namespace Corrosive {
 				if (!ILBuilder::build_const_i8(compiler->scope(), false)) return err::fail;
 			}
 			else if (cpt == CompileType::eval) {
-				if (!ILBuilder::eval_const_i8(compiler->evaluator(), false)) return err::fail;
+				if (!ILBuilder::eval_const_i8(false)) return err::fail;
 			}
 		}
 		else if (buf == "self") {
@@ -999,7 +1007,7 @@ namespace Corrosive {
 					if (!ILBuilder::build_const_word(compiler->scope(), s->type.get())) return err::fail;
 				}
 				else if (cpt == CompileType::eval) {
-					if (!ILBuilder::eval_const_word(compiler->evaluator(), s->type.get())) return err::fail;
+					if (!ILBuilder::eval_const_word(s->type.get())) return err::fail;
 				}
 			}
 
@@ -1014,7 +1022,7 @@ namespace Corrosive {
 				if (!ILBuilder::build_null(compiler->scope())) return err::fail;
 			}
 			else if (cpt == CompileType::eval) {
-				if (!ILBuilder::eval_null(compiler->evaluator())) return err::fail;
+				if (!ILBuilder::eval_null()) return err::fail;
 			}
 		}
 		else if (buf == "typesize") {
@@ -1040,7 +1048,7 @@ namespace Corrosive {
 				if (!ILBuilder::build_const_size(compiler->scope(), tp->size())) return err::fail;
 			}
 			else {
-				if (!ILBuilder::eval_const_size(compiler->evaluator(), tp->size().eval(compiler->global_module()))) return err::fail;
+				if (!ILBuilder::eval_const_size(tp->size().eval(compiler->global_module()))) return err::fail;
 			}
 
 			ret.lvalue = false;
@@ -1245,12 +1253,12 @@ namespace Corrosive {
 					if (!struct_inst->compile()) return err::fail;
 
 					if (struct_inst->ast_node->is_generic) {
-						if (!ILBuilder::eval_const_word(compiler->evaluator(), struct_inst->type.get())) return err::fail;
+						if (!ILBuilder::eval_const_word(struct_inst->type.get())) return err::fail;
 					}
 					else {
 						StructureInstance* inst;
 						if (!struct_inst->generate(nullptr, inst)) return err::fail;
-						if (!ILBuilder::eval_const_word(compiler->evaluator(), inst->type.get())) return err::fail;
+						if (!ILBuilder::eval_const_word(inst->type.get())) return err::fail;
 					}
 
 					ret.lvalue = false;
@@ -1264,19 +1272,19 @@ namespace Corrosive {
 						FunctionInstance* inst;
 						if (!func_inst->generate(nullptr, inst)) return err::fail;
 
-						if (!ILBuilder::eval_const_word(compiler->evaluator(), inst->type.get())) return err::fail;
+						if (!ILBuilder::eval_const_word(inst->type.get())) return err::fail;
 						ret.lvalue = false;
 						ret.type = compiler->types()->t_type;
 					}
 					else {
-						if (!ILBuilder::eval_const_word(compiler->evaluator(), func_inst->type.get())) return err::fail;
+						if (!ILBuilder::eval_const_word(func_inst->type.get())) return err::fail;
 
 						ret.lvalue = false;
 						ret.type = compiler->types()->t_type;
 					}
 				}else if (auto func_inst = res.get_orphan()) {
 					if (!func_inst->compile()) return err::fail;
-					if (!ILBuilder::eval_const_word(compiler->evaluator(), func_inst->type.get())) return err::fail;
+					if (!ILBuilder::eval_const_word(func_inst->type.get())) return err::fail;
 					ret.lvalue = false;
 					ret.type = compiler->types()->t_type;
 				}
@@ -1284,12 +1292,12 @@ namespace Corrosive {
 					if (!trait_inst->compile()) return err::fail;
 
 					if (trait_inst->ast_node->is_generic) {
-						if (!ILBuilder::eval_const_word(compiler->evaluator(), trait_inst->type.get())) return err::fail;
+						if (!ILBuilder::eval_const_word(trait_inst->type.get())) return err::fail;
 					}
 					else {
 						TraitInstance* inst;
 						if (!trait_inst->generate(nullptr, inst)) return err::fail;
-						if (!ILBuilder::eval_const_word(compiler->evaluator(), inst->type.get())) return err::fail;
+						if (!ILBuilder::eval_const_word(inst->type.get())) return err::fail;
 					}
 
 					ret.lvalue = false;
@@ -1298,7 +1306,7 @@ namespace Corrosive {
 				else if (auto static_inst = res.get_static()) {
 					if (!static_inst->compile()) return err::fail;
 
-					if (!ILBuilder::eval_staticref(compiler->evaluator(), static_inst->sid)) return err::fail;
+					if (!ILBuilder::eval_staticref(static_inst->sid)) return err::fail;
 					
 					ret.lvalue = true;
 					ret.type = static_inst->type;
@@ -1360,10 +1368,10 @@ namespace Corrosive {
 		}
 		else if (cpt == CompileType::eval) {
 			if (usg) {
-				if (!ILBuilder::eval_const_u32(compiler->evaluator(), (std::uint32_t)d)) return err::fail;
+				if (!ILBuilder::eval_const_u32((std::uint32_t)d)) return err::fail;
 			}
 			else {
-				if (!ILBuilder::eval_const_i32(compiler->evaluator(), (std::int32_t)d)) return err::fail;
+				if (!ILBuilder::eval_const_i32((std::int32_t)d)) return err::fail;
 			}
 
 		}
@@ -1400,10 +1408,10 @@ namespace Corrosive {
 		}
 		else if (cpt == CompileType::eval) {
 			if (usg) {
-				if (!ILBuilder::eval_const_u64(compiler->evaluator(), d)) return err::fail;
+				if (!ILBuilder::eval_const_u64(d)) return err::fail;
 			}
 			else {
-				if (!ILBuilder::eval_const_i64(compiler->evaluator(), d)) return err::fail;
+				if (!ILBuilder::eval_const_i64(d)) return err::fail;
 			}
 
 		}
@@ -1440,10 +1448,10 @@ namespace Corrosive {
 		}
 		else if (cpt == CompileType::eval) {
 			if (dbl) {
-				if (!ILBuilder::eval_const_f64(compiler->evaluator(), d)) return err::fail;
+				if (!ILBuilder::eval_const_f64(d)) return err::fail;
 			}
 			else {
-				if (!ILBuilder::eval_const_f32(compiler->evaluator(), (float)d)) return err::fail;
+				if (!ILBuilder::eval_const_f32((float)d)) return err::fail;
 			}
 
 		}
@@ -1664,7 +1672,7 @@ namespace Corrosive {
 					c.move();
 					StructureInstance* inst;
 					if (!Operand::parse_generate_template(c, ((TypeStructureTemplate*)dt)->owner, inst)) return err::fail;
-					if (!ILBuilder::eval_const_word(compiler->evaluator(), inst->type.get())) return err::fail;
+					if (!ILBuilder::eval_const_word(inst->type.get())) return err::fail;
 
 					ret.lvalue = false;
 					ret.type = compiler->types()->t_type;
@@ -1674,7 +1682,7 @@ namespace Corrosive {
 					c.move();
 					TraitInstance* inst;
 					if (!Operand::parse_generate_template(c, ((TypeTraitTemplate*)dt)->owner, inst)) return err::fail;
-					if (!ILBuilder::eval_const_word(compiler->evaluator(), inst->type.get())) return err::fail;
+					if (!ILBuilder::eval_const_word(inst->type.get())) return err::fail;
 
 					ret.lvalue = false;
 					ret.type = compiler->types()->t_type;
@@ -1683,14 +1691,14 @@ namespace Corrosive {
 					c.move();
 					FunctionInstance* inst;
 					if (!Operand::parse_generate_template(c, ((TypeFunctionTemplate*)dt)->owner, inst)) return err::fail;
-					if (!ILBuilder::eval_const_word(compiler->evaluator(), inst->type.get())) return err::fail;
+					if (!ILBuilder::eval_const_word(inst->type.get())) return err::fail;
 
 					ret.lvalue = false;
 					ret.type = compiler->types()->t_type;
 				}else if (dt->type() == TypeInstanceType::type_function_instance) {
 					FunctionInstance* inst = ((TypeFunctionInstance*)dt)->owner;
 					if (!inst->compile()) return err::fail;
-					if (!ILBuilder::eval_fnptr(compiler->evaluator(), inst->func)) return err::fail;
+					if (!ILBuilder::eval_fnptr(inst->func)) return err::fail;
 
 					ret.lvalue = false;
 					ret.type = ((TypeFunctionInstance*)dt)->function_type;
@@ -1709,9 +1717,9 @@ namespace Corrosive {
 					if (!ILBuilder::build_insintric(compiler->scope(), ILInsintric::push_template)) return err::fail;
 				}
 				else {
-					if (!ILBuilder::eval_const_word(compiler->evaluator(), ret.type)) return err::fail;
-					if (!ILBuilder::eval_insintric(compiler->evaluator(), ILInsintric::type_dynamic_cast)) return err::fail;
-					if (!ILBuilder::eval_insintric(compiler->evaluator(), ILInsintric::push_template)) return err::fail;
+					if (!ILBuilder::eval_const_word(ret.type)) return err::fail;
+					if (!ILBuilder::eval_insintric(ILInsintric::type_dynamic_cast)) return err::fail;
+					if (!ILBuilder::eval_insintric(ILInsintric::push_template)) return err::fail;
 				}
 
 				TypeTemplate* tt = (TypeTemplate*)ret.type;
@@ -1754,7 +1762,7 @@ namespace Corrosive {
 					if (!ILBuilder::build_insintric(compiler->scope(), ILInsintric::build_template)) return err::fail;
 				}
 				else {
-					if (!ILBuilder::eval_insintric(compiler->evaluator(), ILInsintric::build_template)) return err::fail;
+					if (!ILBuilder::eval_insintric(ILInsintric::build_template)) return err::fail;
 				}
 
 				ret.lvalue = false;
@@ -1773,7 +1781,7 @@ namespace Corrosive {
 			if (cpt == CompileType::compile) {
 				if (!ILBuilder::build_fnptr(compiler->scope(), ((TypeFunctionInstance*)ret.type)->owner->func)) return err::fail;
 			} else {
-				if (!ILBuilder::eval_fnptr(compiler->evaluator(), ((TypeFunctionInstance*)ret.type)->owner->func)) return err::fail;	
+				if (!ILBuilder::eval_fnptr(((TypeFunctionInstance*)ret.type)->owner->func)) return err::fail;	
 			}
 
 			ret.type = ((TypeFunctionInstance*)ret.type)->function_type;
@@ -1845,7 +1853,7 @@ namespace Corrosive {
 						if (!ILBuilder::build_load(compiler->scope(), ret.type->rvalue())) return err::fail;
 					}
 					else if (cpt == CompileType::eval) {
-						if (!ILBuilder::eval_load(compiler->evaluator(), ret.type->rvalue())) return err::fail;
+						if (!ILBuilder::eval_load(ret.type->rvalue())) return err::fail;
 					}
 				}
 
@@ -1874,7 +1882,7 @@ namespace Corrosive {
 						if (!ILBuilder::build_load(compiler->scope(), ret.type->rvalue())) return err::fail;
 					}
 					else if (cpt == CompileType::eval) {
-						if (!ILBuilder::eval_load(compiler->evaluator(), ret.type->rvalue())) return err::fail;
+						if (!ILBuilder::eval_load(ret.type->rvalue())) return err::fail;
 					}
 				}
 
@@ -1902,7 +1910,7 @@ namespace Corrosive {
 					if (!ILBuilder::build_load(compiler->scope(), ILDataType::dword)) return err::fail;
 				}
 				else {
-					if (!ILBuilder::eval_load(compiler->evaluator(), ILDataType::dword)) return err::fail;
+					if (!ILBuilder::eval_load(ILDataType::dword)) return err::fail;
 				}
 			}
 
@@ -1910,7 +1918,7 @@ namespace Corrosive {
 				if (!ILBuilder::build_low_word(compiler->scope())) return err::fail;
 			}
 			else {
-				if (!ILBuilder::eval_low_word(compiler->evaluator())) return err::fail;
+				if (!ILBuilder::eval_low_word()) return err::fail;
 			}
 		}
 
@@ -1933,7 +1941,7 @@ namespace Corrosive {
 				if (!ILBuilder::build_cut(compiler->scope(), base_slice->size())) return err::fail;
 			}
 			else {
-				if (!ILBuilder::eval_cut(compiler->evaluator(), base_slice->size())) return err::fail;
+				if (!ILBuilder::eval_cut(base_slice->size())) return err::fail;
 			}
 			
 			ret.lvalue = false;
@@ -1943,7 +1951,7 @@ namespace Corrosive {
 				if (!ILBuilder::build_extract(compiler->scope(), base_slice->size())) return err::fail;
 			}
 			else {
-				if (!ILBuilder::eval_extract(compiler->evaluator(), base_slice->size())) return err::fail;
+				if (!ILBuilder::eval_extract(base_slice->size())) return err::fail;
 			}
 			
 			ret.lvalue = true;
@@ -1987,7 +1995,7 @@ namespace Corrosive {
 				if (!compiler->evaluator()->pop_register_value<Type*>(t)) return err::fail;
 				if (!Type::assert(t_err, t)) return err::fail;
 				Type* nt = t->generate_slice();
-				if (!ILBuilder::eval_const_word(compiler->evaluator(), nt)) return err::fail;
+				if (!ILBuilder::eval_const_word(nt)) return err::fail;
 			}
 			else {
 				if (!ILBuilder::build_fncall(compiler->scope(), compiler->types()->f_build_slice->func)) return err::fail;
@@ -2022,7 +2030,7 @@ namespace Corrosive {
 				std::uint32_t val;
 				if (!compiler->evaluator()->pop_register_value<std::uint32_t>(val)) return err::fail;
 				TypeArray* nt = t->generate_array(val);
-				if (!ILBuilder::eval_const_word(compiler->evaluator(), nt)) return err::fail;
+				if (!ILBuilder::eval_const_word(nt)) return err::fail;
 			}
 			else {
 				if (!ILBuilder::build_fncall(compiler->scope(), compiler->types()->f_build_array->func)) return err::fail;
@@ -2083,13 +2091,13 @@ namespace Corrosive {
 						ret.type = compiler->types()->t_type;
 
 						if (tplt->ast_node->is_generic) {
-							if (!ILBuilder::eval_const_word(compiler->evaluator(), tplt->type.get())) return err::fail;
+							if (!ILBuilder::eval_const_word(tplt->type.get())) return err::fail;
 						}
 						else {
 							StructureInstance* inst = nullptr;
 
 							tplt->generate(compiler->local_stack_base.back(), inst);
-							if (!ILBuilder::eval_const_word(compiler->evaluator(), inst->type.get())) return err::fail;
+							if (!ILBuilder::eval_const_word(inst->type.get())) return err::fail;
 						}
 
 
@@ -2106,7 +2114,7 @@ namespace Corrosive {
 						if (!struct_inst->subfunctions[f->second.second]->generate(nullptr, finst)) return err::fail;
 						if (!finst->compile()) return err::fail;
 
-						if (!ILBuilder::eval_fnptr(compiler->evaluator(), finst->func)) return err::fail;
+						if (!ILBuilder::eval_fnptr(finst->func)) return err::fail;
 
 						ret.type = finst->type->function_type;
 						ret.lvalue = false;
@@ -2119,7 +2127,7 @@ namespace Corrosive {
 						if (!sinst->compile()) return err::fail;
 						ret.lvalue = true;
 						ret.type = sinst->type;
-						if (!ILBuilder::eval_staticref(compiler->evaluator(), sinst->sid)) return err::fail;
+						if (!ILBuilder::eval_staticref(sinst->sid)) return err::fail;
 					} break;
 
 					default:
@@ -2204,7 +2212,7 @@ namespace Corrosive {
 
 			stackid_t local_stack_item;
 
-			if (!ILBuilder::eval_callstart(compiler->evaluator())) return err::fail;
+			if (!ILBuilder::eval_callstart()) return err::fail;
 
 			if (ft->return_type->rvalue_stacked()) {
 				local_stack_item = compiler->push_local(retval.type->size());
@@ -2225,7 +2233,7 @@ namespace Corrosive {
 
 			if (!targets_defer || c.tok != RecognizedToken::Semicolon) {
 
-				if (!ILBuilder::eval_call(compiler->evaluator(), ft->il_function_decl)) return err::fail;
+				if (!ILBuilder::eval_call(ft->il_function_decl)) return err::fail;
 
 				if (ft->return_type->rvalue_stacked()) {
 					compiler->eval_local(local_stack_item);
@@ -2297,22 +2305,22 @@ namespace Corrosive {
 					switch (elem_size.type)
 					{
 						case ILSizeType::table:
-							if (!ILBuilder::eval_tableoffset(compiler->evaluator(), elem_size.value, elem_id)) return err::fail; break;
+							if (!ILBuilder::eval_tableoffset(elem_size.value, elem_id)) return err::fail; break;
 						case ILSizeType::abs8: 
-							if (!ILBuilder::eval_aoffset(compiler->evaluator(), (std::uint32_t)elem_size.value)) return err::fail; break;
+							if (!ILBuilder::eval_aoffset((std::uint32_t)elem_size.value)) return err::fail; break;
 						case ILSizeType::abs16: 
-							if (!ILBuilder::eval_aoffset(compiler->evaluator(), (std::uint32_t)(elem_size.value*2))) return err::fail; break;
+							if (!ILBuilder::eval_aoffset((std::uint32_t)(elem_size.value*2))) return err::fail; break;
 						case ILSizeType::abs32: 
-							if (!ILBuilder::eval_aoffset(compiler->evaluator(), (std::uint32_t)(elem_size.value*4))) return err::fail; break;
+							if (!ILBuilder::eval_aoffset((std::uint32_t)(elem_size.value*4))) return err::fail; break;
 						case ILSizeType::abs64: 
-							if (!ILBuilder::eval_aoffset(compiler->evaluator(), (std::uint32_t)(elem_size.value*8))) return err::fail; break;
+							if (!ILBuilder::eval_aoffset((std::uint32_t)(elem_size.value*8))) return err::fail; break;
 						case ILSizeType::ptr:
-							if (!ILBuilder::eval_woffset(compiler->evaluator(), (std::uint32_t)elem_size.value)) return err::fail; break;
+							if (!ILBuilder::eval_woffset((std::uint32_t)elem_size.value)) return err::fail; break;
 						default:
 							break;
 					}	
 					if (!ret.lvalue && !mem_type->rvalue_stacked()) {
-						if (!ILBuilder::eval_load(compiler->evaluator(), mem_type->rvalue())) return err::fail;
+						if (!ILBuilder::eval_load(mem_type->rvalue())) return err::fail;
 					}
 				}	
 			}
@@ -2347,17 +2355,17 @@ namespace Corrosive {
 					switch (elem_size.type)
 					{
 						case ILSizeType::table:
-							if (!ILBuilder::eval_tableroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), elem_size.value, elem_id)) return err::fail; break;
+							if (!ILBuilder::eval_tableroffset(ret.type->rvalue(), mem_type->rvalue(), elem_size.value, elem_id)) return err::fail; break;
 						case ILSizeType::abs8: 
-							if (!ILBuilder::eval_aroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)elem_size.value)) return err::fail; break;
+							if (!ILBuilder::eval_aroffset(ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)elem_size.value)) return err::fail; break;
 						case ILSizeType::abs16: 
-							if (!ILBuilder::eval_aroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)(elem_size.value*2))) return err::fail; break;
+							if (!ILBuilder::eval_aroffset(ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)(elem_size.value*2))) return err::fail; break;
 						case ILSizeType::abs32: 
-							if (!ILBuilder::eval_aroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)(elem_size.value*4))) return err::fail; break;
+							if (!ILBuilder::eval_aroffset(ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)(elem_size.value*4))) return err::fail; break;
 						case ILSizeType::abs64: 
-							if (!ILBuilder::eval_aroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)(elem_size.value*8))) return err::fail; break;
+							if (!ILBuilder::eval_aroffset(ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)(elem_size.value*8))) return err::fail; break;
 						case ILSizeType::ptr:
-							if (!ILBuilder::eval_wroffset(compiler->evaluator(), ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)elem_size.value)) return err::fail; break;
+							if (!ILBuilder::eval_wroffset(ret.type->rvalue(), mem_type->rvalue(), (std::uint32_t)elem_size.value)) return err::fail; break;
 						default:
 							break;
 					}
@@ -2395,11 +2403,11 @@ namespace Corrosive {
 				}
 				else {
 					if (ret.lvalue || ret.type->rvalue_stacked()) {
-						if (!ILBuilder::eval_woffset(compiler->evaluator(), 1)) return err::fail;
-						if (!ILBuilder::eval_load(compiler->evaluator(), ILDataType::word)) return err::fail;
+						if (!ILBuilder::eval_woffset(1)) return err::fail;
+						if (!ILBuilder::eval_load(ILDataType::word)) return err::fail;
 					}
 					else {
-						if (!ILBuilder::eval_high_word(compiler->evaluator())) return err::fail;
+						if (!ILBuilder::eval_high_word()) return err::fail;
 					}
 				}
 
@@ -2409,8 +2417,8 @@ namespace Corrosive {
 						if (!ILBuilder::build_div(compiler->scope(), ILDataType::word, ILDataType::word)) return err::fail;
 					}
 					else {
-						if (!ILBuilder::eval_const_size(compiler->evaluator(), ts->owner->size().eval(compiler->global_module()))) return err::fail;
-						if (!ILBuilder::eval_div(compiler->evaluator(), ILDataType::word, ILDataType::word)) return err::fail;
+						if (!ILBuilder::eval_const_size(ts->owner->size().eval(compiler->global_module()))) return err::fail;
+						if (!ILBuilder::eval_div(ILDataType::word, ILDataType::word)) return err::fail;
 					}
 				}
 
@@ -2439,14 +2447,14 @@ namespace Corrosive {
 				else {
 
 					if (ret.lvalue) {
-						if (!ILBuilder::eval_woffset(compiler->evaluator(), 1)) return err::fail;
+						if (!ILBuilder::eval_woffset(1)) return err::fail;
 					}
 					else if (ret.type->rvalue_stacked()) {
-						if (!ILBuilder::eval_woffset(compiler->evaluator(), 1)) return err::fail;
-						if (!ILBuilder::eval_load(compiler->evaluator(), ILDataType::word)) return err::fail;
+						if (!ILBuilder::eval_woffset(1)) return err::fail;
+						if (!ILBuilder::eval_load(ILDataType::word)) return err::fail;
 					}
 					else {
-						if (!ILBuilder::eval_high_word(compiler->evaluator())) return err::fail;
+						if (!ILBuilder::eval_high_word()) return err::fail;
 					}
 				}
 
@@ -2473,11 +2481,11 @@ namespace Corrosive {
 
 					}
 					else if (ret.type->rvalue_stacked()) {
-						if (!ILBuilder::eval_load(compiler->evaluator(), ILDataType::word)) return err::fail;
+						if (!ILBuilder::eval_load(ILDataType::word)) return err::fail;
 					}
 					else {
 
-						if (!ILBuilder::eval_bitcast(compiler->evaluator(), ret.type->rvalue(), ILDataType::word)) return err::fail;
+						if (!ILBuilder::eval_bitcast(ret.type->rvalue(), ILDataType::word)) return err::fail;
 					}
 				}
 
@@ -2520,10 +2528,10 @@ namespace Corrosive {
 					if (!ILBuilder::build_callstart(compiler->scope())) return err::fail;
 				}
 				else {
-					if (!ILBuilder::eval_split_dword(compiler->evaluator())) return err::fail;
-					if (!ILBuilder::eval_woffset(compiler->evaluator(), (std::uint32_t)off)) return err::fail;
-					if (!ILBuilder::eval_load(compiler->evaluator(), ILDataType::word)) return err::fail;
-					if (!ILBuilder::eval_callstart(compiler->evaluator())) return err::fail;
+					if (!ILBuilder::eval_split_dword()) return err::fail;
+					if (!ILBuilder::eval_woffset((std::uint32_t)off)) return err::fail;
+					if (!ILBuilder::eval_load(ILDataType::word)) return err::fail;
+					if (!ILBuilder::eval_callstart()) return err::fail;
 				}
 
 				stackid_t local_return_id = 0;
@@ -2560,7 +2568,7 @@ namespace Corrosive {
 						}
 					}
 					else {
-						if (!ILBuilder::eval_call(compiler->evaluator(), mf->il_function_decl)) return false;
+						if (!ILBuilder::eval_call(mf->il_function_decl)) return false;
 
 						if (mf->return_type->rvalue_stacked()) {
 							compiler->eval_local(local_return_id);
@@ -2592,9 +2600,9 @@ namespace Corrosive {
 					if (!ILBuilder::build_load(compiler->scope(), ILDataType::word)) return err::fail;
 				}
 				else {
-					if (!ILBuilder::eval_high_word(compiler->evaluator())) return err::fail;
-					if (!ILBuilder::eval_woffset(compiler->evaluator(), (std::uint32_t)off)) return err::fail;
-					if (!ILBuilder::eval_load(compiler->evaluator(), ILDataType::word)) return err::fail;
+					if (!ILBuilder::eval_high_word()) return err::fail;
+					if (!ILBuilder::eval_woffset((std::uint32_t)off)) return err::fail;
+					if (!ILBuilder::eval_load(ILDataType::word)) return err::fail;
 				}
 
 				ret.lvalue = false;
@@ -2646,7 +2654,7 @@ namespace Corrosive {
 								else {
 									stackid_t local_id = compiler->push_local(ret.type->size());
 									compiler->compiler_stack()->push_item("$tmp", ret.type, local_id);
-									if (!ILBuilder::eval_store(compiler->evaluator(), ret.type->rvalue())) return err::fail;
+									if (!ILBuilder::eval_store(ret.type->rvalue())) return err::fail;
 									compiler->eval_local(local_id);
 									ret.lvalue = true;
 								}
@@ -2668,7 +2676,7 @@ namespace Corrosive {
 								if (!ILBuilder::build_fnptr(compiler->scope(), finst->func)) return err::fail;
 							}
 							else {
-								if (!ILBuilder::eval_fnptr(compiler->evaluator(), finst->func)) return err::fail;
+								if (!ILBuilder::eval_fnptr(finst->func)) return err::fail;
 							}
 
 							ret.type = finst->type->function_type;
@@ -2692,7 +2700,7 @@ namespace Corrosive {
 								else {
 									stackid_t local_id = compiler->push_local(ret.type->size());
 									compiler->compiler_stack()->push_item("$tmp", ret.type, local_id);
-									if (!ILBuilder::eval_store(compiler->evaluator(), ret.type->rvalue())) return err::fail;
+									if (!ILBuilder::eval_store(ret.type->rvalue())) return err::fail;
 									compiler->eval_local(local_id);
 									ret.lvalue = true;
 								}
@@ -2713,7 +2721,7 @@ namespace Corrosive {
 								if (!ILBuilder::build_fnptr(compiler->scope(), finst->func)) return err::fail;
 							}
 							else {
-								if (!ILBuilder::eval_fnptr(compiler->evaluator(), finst->func)) return err::fail;
+								if (!ILBuilder::eval_fnptr(finst->func)) return err::fail;
 							}
 
 							ret.type = finst->type->function_type;
@@ -2746,7 +2754,7 @@ namespace Corrosive {
 			if (!ILBuilder::build_const_slice(compiler->scope(), lit.second, ILSize(ILSizeType::abs8,(std::uint32_t)lit.first.length()))) return err::fail;
 		}
 		else {
-			if (!ILBuilder::eval_const_slice(compiler->evaluator(), lit.second, ILSize(ILSizeType::abs8, (std::uint32_t)lit.first.length()))) return err::fail;
+			if (!ILBuilder::eval_const_slice(lit.second, ILSize(ILSizeType::abs8, (std::uint32_t)lit.first.length()))) return err::fail;
 		}
 
 		c.move();

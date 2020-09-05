@@ -47,10 +47,10 @@ namespace Corrosive {
 					}
 				} else {
 					if (c.src != nullptr) {
-						if (!ILBuilder::eval_debug(compiler->evaluator(), c.src->debug_id, (std::uint16_t)c.y)) return err::fail;
+						if (!ILBuilder::eval_debug(c.src->debug_id, (std::uint16_t)c.y)) return err::fail;
 					}
 					else {
-						if (!ILBuilder::eval_debug(compiler->evaluator(), UINT16_MAX, (std::uint16_t)c.y)) return err::fail;
+						if (!ILBuilder::eval_debug(UINT16_MAX, (std::uint16_t)c.y)) return err::fail;
 					}
 				}
 				line = c.y;
@@ -137,12 +137,12 @@ namespace Corrosive {
 		}
 
 		for (auto d = compiler->compile_defer_scope().rbegin(); d != compiler->compile_defer_scope().rend(); d++) {
-			if (!ILBuilder::eval_call(compiler->evaluator(), (*d)->il_function_decl)) return err::fail;
+			if (!ILBuilder::eval_call((*d)->il_function_decl)) return err::fail;
 			if ((*d)->return_type->rvalue_stacked()) {
-				if (!ILBuilder::eval_forget(compiler->evaluator(), ILDataType::word)) return err::fail;
+				if (!ILBuilder::eval_forget(ILDataType::word)) return err::fail;
 			}
 			else {
-				if (!ILBuilder::eval_forget(compiler->evaluator(), (*d)->return_type->rvalue())) return err::fail;
+				if (!ILBuilder::eval_forget((*d)->return_type->rvalue())) return err::fail;
 			}
 		}
 		
@@ -888,7 +888,7 @@ namespace Corrosive {
 
 			compiler->compiler_stack()->push_item(name.buffer(), new_t, loc_id);
 
-			if (!ILBuilder::eval_const_word(compiler->evaluator(), loc_ptr)) return err::fail;
+			if (!ILBuilder::eval_const_word(loc_ptr)) return err::fail;
 			if (!Expression::copy_from_rvalue(new_t, CompileType::eval)) return err::fail;
 		}
 		

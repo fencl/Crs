@@ -352,15 +352,15 @@ namespace Corrosive {
 	}
 
 	void TypeStructureTemplate::print(std::ostream& os) {
-		os << owner->ast_node->name_string;
+		os << owner->ast_node->name_string << "(template)";
 	}
 
 	void TypeFunctionTemplate::print(std::ostream& os) {
-		os << owner->ast_node->name_string;
+		os << owner->ast_node->name_string << "(template)";
 	}
 
 	void TypeTraitTemplate::print(std::ostream& os) {
-		os << owner->ast_node->name_string;
+		os << owner->ast_node->name_string << "(template)";
 	}
 
 	void TypeReference::print(std::ostream& os) {
@@ -374,7 +374,8 @@ namespace Corrosive {
 	}
 
 	void TypeArray::print(std::ostream& os) {
-		//TODO: os << "[" << Compiler::current()->global_module()->array_tables[table].count << "]";
+		std::size_t c = (size().eval(ILEvaluator::active->parent) / owner->size().eval(ILEvaluator::active->parent));
+		os << "[" << c << "]";
 		owner->print(os);
 	}
 	
@@ -418,7 +419,6 @@ namespace Corrosive {
 		return { ILSizeType::_0,0 };
 	}
 
-
 	ILSize TypeStructureInstance::size() {
 		return owner->size;
 	}
@@ -427,7 +427,6 @@ namespace Corrosive {
 		return ILSize::double_ptr;
 	}
 
-
 	ILSize TypeReference::size() {
 		return ILSize::single_ptr;
 	}
@@ -435,9 +434,11 @@ namespace Corrosive {
 	ILSize TypeSlice::size() {
 		return ILSize::slice;
 	}
+
 	ILSize TypeFunction::size() {
 		return ILSize::single_ptr;
 	}
+	
 	ILSize TypeTemplate::size() {
 		return ILSize::single_ptr;
 	}

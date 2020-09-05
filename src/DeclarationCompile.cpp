@@ -1537,7 +1537,7 @@ namespace Corrosive {
 					}
 				}
 
-				if (!ILBuilder::eval_fncall(compiler->evaluator(), init_func)) return err::fail;				
+				if (!ILBuilder::eval_fncall(init_func)) return err::fail;				
 			}
 
 			compile_state = 2;

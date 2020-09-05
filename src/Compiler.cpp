@@ -81,7 +81,6 @@ namespace Corrosive {
 		local_stack_offsets.pop_back();
 	}
 
-	// TODO align?
 	stackid_t Compiler::push_local(ILSize size) {
 		auto& lss = local_stack_size.back();
 		auto& lsb = local_stack_base.back();

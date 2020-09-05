@@ -426,8 +426,7 @@ namespace Corrosive {
 						}
 					} break;
 					case ILInstruction::roffset32: {
-						ILBlock::read_data<ILDataType>(it);
-						ILBlock::read_data<ILDataType>(it);
+						ILBlock::read_data<ILDataTypePair>(it);
 						auto t = ILBlock::read_data<ILSizeType>(it);
 						auto v = ILBlock::read_data<std::uint32_t>(it);
 						if (t == ILSizeType::table) {
@@ -439,8 +438,7 @@ namespace Corrosive {
 					} break;
 
 					case ILInstruction::roffset16: {
-						ILBlock::read_data<ILDataType>(it);
-						ILBlock::read_data<ILDataType>(it);
+						ILBlock::read_data<ILDataTypePair>(it);
 						auto t = ILBlock::read_data<ILSizeType>(it);
 						auto v = ILBlock::read_data<std::uint16_t>(it);
 						if (t == ILSizeType::table) {
@@ -452,8 +450,7 @@ namespace Corrosive {
 					} break;
 
 					case ILInstruction::roffset8: {
-						ILBlock::read_data<ILDataType>(it);
-						ILBlock::read_data<ILDataType>(it); 
+						ILBlock::read_data<ILDataTypePair>(it);
 						auto t = ILBlock::read_data<ILSizeType>(it);
 						auto v = ILBlock::read_data<std::uint8_t>(it);
 						if (t == ILSizeType::table) {
@@ -1024,8 +1021,8 @@ namespace Corrosive {
 					} break;
 
 					case ILInstruction::roffset32: {
-						auto tl = ILBlock::read_data<ILDataType>(it);
-						auto tr = ILBlock::read_data<ILDataType>(it);
+						auto tp = ILBlock::read_data<ILDataTypePair>(it);
+						
 						auto t = ILBlock::read_data<ILSizeType>(it);
 						auto v = ILBlock::read_data<std::uint32_t>(it);
 						std::uint32_t new_id = v;
@@ -1040,30 +1037,27 @@ namespace Corrosive {
 						{
 							case ILBitWidth::b8: {
 								block->write_value(ILInstruction::roffset8);
-								block->write_value(tl);
-								block->write_value(tr);
+								block->write_value(tp);
 								block->write_value(t);
 								block->write_value((std::uint8_t)new_id);
 							} break;
 							case ILBitWidth::b16: {
 								block->write_value(ILInstruction::roffset16);
-								block->write_value(tl);
-								block->write_value(tr);
+								block->write_value(tp);
 								block->write_value(t);
 								block->write_value((std::uint16_t)new_id);
 							} break;
 							case ILBitWidth::b32: {
 								block->write_value(ILInstruction::roffset32);
-								block->write_value(tl);
-								block->write_value(tr);
+								block->write_value(tp);
 								block->write_value(t);
 								block->write_value((std::uint32_t)new_id);
 							} break;
 						}
 					} break;
 					case ILInstruction::roffset16: {
-						auto tl = ILBlock::read_data<ILDataType>(it);
-						auto tr = ILBlock::read_data<ILDataType>(it);
+						
+						auto tp = ILBlock::read_data<ILDataTypePair>(it);
 						auto t = ILBlock::read_data<ILSizeType>(it);
 						auto v = ILBlock::read_data<std::uint16_t>(it);
 						std::uint32_t new_id = v;
@@ -1078,30 +1072,26 @@ namespace Corrosive {
 						{
 							case ILBitWidth::b8: {
 								block->write_value(ILInstruction::roffset8);
-								block->write_value(tl);
-								block->write_value(tr);
+								block->write_value(tp);
 								block->write_value(t);
 								block->write_value((std::uint8_t)new_id);
 							} break;
 							case ILBitWidth::b16: {
 								block->write_value(ILInstruction::roffset16);
-								block->write_value(tl);
-								block->write_value(tr);
+								block->write_value(tp);
 								block->write_value(t);
 								block->write_value((std::uint16_t)new_id);
 							} break;
 							case ILBitWidth::b32: {
 								block->write_value(ILInstruction::roffset32);
-								block->write_value(tl);
-								block->write_value(tr);
+								block->write_value(tp);
 								block->write_value(t);
 								block->write_value((std::uint32_t)new_id);
 							} break;
 						}
 					} break;
 					case ILInstruction::roffset8: {
-						auto tl = ILBlock::read_data<ILDataType>(it);
-						auto tr = ILBlock::read_data<ILDataType>(it);
+						auto tp = ILBlock::read_data<ILDataTypePair>(it);
 						auto t = ILBlock::read_data<ILSizeType>(it);
 						auto v = ILBlock::read_data<std::uint8_t>(it);
 						std::uint32_t new_id = v;
@@ -1116,22 +1106,19 @@ namespace Corrosive {
 						{
 							case ILBitWidth::b8: {
 								block->write_value(ILInstruction::roffset8);
-								block->write_value(tl);
-								block->write_value(tr);
+								block->write_value(tp);
 								block->write_value(t);
 								block->write_value((std::uint8_t)new_id);
 							} break;
 							case ILBitWidth::b16: {
 								block->write_value(ILInstruction::roffset16);
-								block->write_value(tl);
-								block->write_value(tr);
+								block->write_value(tp);
 								block->write_value(t);
 								block->write_value((std::uint16_t)new_id);
 							} break;
 							case ILBitWidth::b32: {
 								block->write_value(ILInstruction::roffset32);
-								block->write_value(tl);
-								block->write_value(tr);
+								block->write_value(tp);
 								block->write_value(t);
 								block->write_value((std::uint32_t)new_id);
 							} break;

@@ -122,84 +122,85 @@ namespace Corrosive {
 	}
 
 
-	errvoid ILBuilder::eval_const_i8(ILEvaluator* eval_ctx, std::int8_t   value) { if (!eval_ctx->write_register_value_indirect(sizeof(std::int8_t), (unsigned char*)&value)) return err::fail; return err::ok; }
-	errvoid ILBuilder::eval_const_i16(ILEvaluator* eval_ctx, std::int16_t  value) { if (!eval_ctx->write_register_value_indirect(sizeof(std::int16_t), (unsigned char*)&value)) return err::fail; return err::ok; }
-	errvoid ILBuilder::eval_const_i32(ILEvaluator* eval_ctx, std::int32_t  value) { 
-		if (!eval_ctx->write_register_value_indirect(sizeof(std::int32_t), (unsigned char*)&value)) return err::fail; 
+	errvoid ILBuilder::eval_const_i8(std::int8_t   value) { if (!ILEvaluator::active->write_register_value_indirect(sizeof(std::int8_t), (unsigned char*)&value)) return err::fail; return err::ok; }
+	errvoid ILBuilder::eval_const_i16(std::int16_t  value) { if (!ILEvaluator::active->write_register_value_indirect(sizeof(std::int16_t), (unsigned char*)&value)) return err::fail; return err::ok; }
+	errvoid ILBuilder::eval_const_i32(std::int32_t  value) { 
+		if (!ILEvaluator::active->write_register_value_indirect(sizeof(std::int32_t), (unsigned char*)&value)) return err::fail; 
 		return err::ok; 
 	}
-	errvoid ILBuilder::eval_const_i64(ILEvaluator* eval_ctx, std::int64_t  value) { if (!eval_ctx->write_register_value_indirect(sizeof(std::int64_t), (unsigned char*)&value)) return err::fail; return err::ok; }
-	errvoid ILBuilder::eval_const_u8(ILEvaluator* eval_ctx, std::uint8_t  value) { if (!eval_ctx->write_register_value_indirect(sizeof(std::uint8_t), (unsigned char*)&value)) return err::fail; return err::ok; }
-	errvoid ILBuilder::eval_const_u16(ILEvaluator* eval_ctx, std::uint16_t value) { if (!eval_ctx->write_register_value_indirect(sizeof(std::uint16_t), (unsigned char*)&value)) return err::fail; return err::ok; }
-	errvoid ILBuilder::eval_const_u32(ILEvaluator* eval_ctx, std::uint32_t value) { if (!eval_ctx->write_register_value_indirect(sizeof(std::uint32_t), (unsigned char*)&value)) return err::fail; return err::ok; }
-	errvoid ILBuilder::eval_const_u64(ILEvaluator* eval_ctx, std::uint64_t value) { if (!eval_ctx->write_register_value_indirect(sizeof(std::uint64_t), (unsigned char*)&value)) return err::fail; return err::ok; }
-	errvoid ILBuilder::eval_const_f32(ILEvaluator* eval_ctx, float    value) { if (!eval_ctx->write_register_value_indirect(sizeof(float), (unsigned char*)&value)) return err::fail; return err::ok; }
-	errvoid ILBuilder::eval_const_f64(ILEvaluator* eval_ctx, double   value) { if (!eval_ctx->write_register_value_indirect(sizeof(double), (unsigned char*)&value)) return err::fail; return err::ok; }
-	errvoid ILBuilder::eval_const_word(ILEvaluator* eval_ctx, void* value) { if (!eval_ctx->write_register_value_indirect(sizeof(void*), (unsigned char*)&value)) return err::fail; return err::ok; }
-	errvoid ILBuilder::eval_const_dword(ILEvaluator* eval_ctx, dword_t value) { if (!eval_ctx->write_register_value_indirect(sizeof(dword_t), (unsigned char*)&value)) return err::fail; return err::ok; }
-	errvoid ILBuilder::eval_const_size(ILEvaluator* eval_ctx, std::size_t value) { if (!eval_ctx->write_register_value_indirect(sizeof(std::size_t), (unsigned char*)&value)) return err::fail; return err::ok; }
+	errvoid ILBuilder::eval_const_i64(std::int64_t  value) { if (!ILEvaluator::active->write_register_value_indirect(sizeof(std::int64_t), (unsigned char*)&value)) return err::fail; return err::ok; }
+	errvoid ILBuilder::eval_const_u8(std::uint8_t  value) { if (!ILEvaluator::active->write_register_value_indirect(sizeof(std::uint8_t), (unsigned char*)&value)) return err::fail; return err::ok; }
+	errvoid ILBuilder::eval_const_u16(std::uint16_t value) { if (!ILEvaluator::active->write_register_value_indirect(sizeof(std::uint16_t), (unsigned char*)&value)) return err::fail; return err::ok; }
+	errvoid ILBuilder::eval_const_u32(std::uint32_t value) { if (!ILEvaluator::active->write_register_value_indirect(sizeof(std::uint32_t), (unsigned char*)&value)) return err::fail; return err::ok; }
+	errvoid ILBuilder::eval_const_u64(std::uint64_t value) { if (!ILEvaluator::active->write_register_value_indirect(sizeof(std::uint64_t), (unsigned char*)&value)) return err::fail; return err::ok; }
+	errvoid ILBuilder::eval_const_f32(float    value) { if (!ILEvaluator::active->write_register_value_indirect(sizeof(float), (unsigned char*)&value)) return err::fail; return err::ok; }
+	errvoid ILBuilder::eval_const_f64(double   value) { if (!ILEvaluator::active->write_register_value_indirect(sizeof(double), (unsigned char*)&value)) return err::fail; return err::ok; }
+	errvoid ILBuilder::eval_const_word(void* value) { if (!ILEvaluator::active->write_register_value_indirect(sizeof(void*), (unsigned char*)&value)) return err::fail; return err::ok; }
+	errvoid ILBuilder::eval_const_dword(dword_t value) { if (!ILEvaluator::active->write_register_value_indirect(sizeof(dword_t), (unsigned char*)&value)) return err::fail; return err::ok; }
+	errvoid ILBuilder::eval_const_size(std::size_t value) { if (!ILEvaluator::active->write_register_value_indirect(sizeof(std::size_t), (unsigned char*)&value)) return err::fail; return err::ok; }
+	errvoid ILBuilder::eval_const_size(ILSize value) { return eval_const_size(value.eval(ILEvaluator::active->parent)); }
 
 
-	template<typename T> inline errvoid _il_evaluator_value_pop_into(T& r, ILEvaluator* eval_ctx, ILDataType t) {
+	template<typename T> inline errvoid _il_evaluator_value_pop_into(T& r, ILDataType t) {
 		switch (t)
 		{
 			case Corrosive::ILDataType::u8: {
 				std::uint8_t v;
-				if (!eval_ctx->pop_register_value<std::uint8_t>(v)) return err::fail;
+				if (!ILEvaluator::active->pop_register_value<std::uint8_t>(v)) return err::fail;
 				r = (T)v;
 			} break;
 			case Corrosive::ILDataType::i8: {
 				std::int8_t v;
-				if (!eval_ctx->pop_register_value<std::int8_t>(v)) return err::fail;
+				if (!ILEvaluator::active->pop_register_value<std::int8_t>(v)) return err::fail;
 				r = (T)v;
 			} break;
 
 			case Corrosive::ILDataType::u16: {
 				std::uint16_t v;
-				if (!eval_ctx->pop_register_value<std::uint16_t>(v)) return err::fail;
+				if (!ILEvaluator::active->pop_register_value<std::uint16_t>(v)) return err::fail;
 				r = (T)v;
 			} break;
 			case Corrosive::ILDataType::i16: {
 				std::int16_t v;
-				if (!eval_ctx->pop_register_value<std::int16_t>(v)) return err::fail;
+				if (!ILEvaluator::active->pop_register_value<std::int16_t>(v)) return err::fail;
 				r = (T)v;
 			} break;
 
 			case Corrosive::ILDataType::u32: {
 				std::uint32_t v;
-				if (!eval_ctx->pop_register_value<std::uint32_t>(v)) return err::fail;
+				if (!ILEvaluator::active->pop_register_value<std::uint32_t>(v)) return err::fail;
 				r = (T)v;
 			} break;
 			case Corrosive::ILDataType::i32: {
 				std::int32_t v;
-				if (!eval_ctx->pop_register_value<std::int32_t>(v)) return err::fail;
+				if (!ILEvaluator::active->pop_register_value<std::int32_t>(v)) return err::fail;
 				r = (T)v;
 			} break;
 
 			case Corrosive::ILDataType::u64: {
 				std::uint64_t v;
-				if (!eval_ctx->pop_register_value<std::uint64_t>(v)) return err::fail;
+				if (!ILEvaluator::active->pop_register_value<std::uint64_t>(v)) return err::fail;
 				r = (T)v;
 			} break;
 			case Corrosive::ILDataType::i64: {
 				std::int64_t v;
-				if (!eval_ctx->pop_register_value<std::int64_t>(v)) return err::fail;
+				if (!ILEvaluator::active->pop_register_value<std::int64_t>(v)) return err::fail;
 				r = (T)v;
 			} break;
 			
 			case Corrosive::ILDataType::f32: {
 				float v;
-				if (!eval_ctx->pop_register_value<float>(v)) return err::fail;
+				if (!ILEvaluator::active->pop_register_value<float>(v)) return err::fail;
 				r = (T)v;
 			} break;
 			case Corrosive::ILDataType::f64: {
 				double v;
-				if (!eval_ctx->pop_register_value<double>(v)) return err::fail;
+				if (!ILEvaluator::active->pop_register_value<double>(v)) return err::fail;
 				r = (T)v;
 			} break;
 			case Corrosive::ILDataType::word: {
 				std::size_t v;
-				if (!eval_ctx->pop_register_value<std::size_t>(v)) return err::fail;
+				if (!ILEvaluator::active->pop_register_value<std::size_t>(v)) return err::fail;
 				r = (T)v;
 			} break;
 
@@ -209,157 +210,157 @@ namespace Corrosive {
 		return err::ok;
 	}
 
-	errvoid _il_evaluator_cast(ILEvaluator* eval_ctx, ILDataType l, ILDataType res_t) {
+	errvoid _il_evaluator_cast(ILDataType l, ILDataType res_t) {
 		switch (res_t) {
 			case ILDataType::i8: {
 				std::int8_t lval;
-				if (!_il_evaluator_value_pop_into<std::int8_t>(lval, eval_ctx, l)) return err::fail;;
-				if (!ILBuilder::eval_const_i8(eval_ctx, lval)) return err::fail;
+				if (!_il_evaluator_value_pop_into<std::int8_t>(lval, l)) return err::fail;;
+				if (!ILBuilder::eval_const_i8(lval)) return err::fail;
 			}break;
 			case ILDataType::u8: {
 				std::uint8_t lval;
-				if(!_il_evaluator_value_pop_into<std::uint8_t>(lval, eval_ctx, l)) return err::fail;
-				if (!ILBuilder::eval_const_u8(eval_ctx, lval)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::uint8_t>(lval, l)) return err::fail;
+				if (!ILBuilder::eval_const_u8(lval)) return err::fail;
 			}break;
 			case ILDataType::i16: {
 				std::int16_t lval;
-				if(!_il_evaluator_value_pop_into<std::int16_t>(lval, eval_ctx, l)) return err::fail;
-				if (!ILBuilder::eval_const_i16(eval_ctx, lval)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::int16_t>(lval, l)) return err::fail;
+				if (!ILBuilder::eval_const_i16(lval)) return err::fail;
 			}break;
 			case ILDataType::u16: {
 				std::uint16_t lval;
-				if(!_il_evaluator_value_pop_into<std::uint16_t>(lval, eval_ctx, l)) return err::fail;
-				if (!ILBuilder::eval_const_u16(eval_ctx, lval)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::uint16_t>(lval, l)) return err::fail;
+				if (!ILBuilder::eval_const_u16(lval)) return err::fail;
 			}break;
 			case ILDataType::i32: {
 				std::int32_t lval;
-				if(!_il_evaluator_value_pop_into<std::int32_t>(lval, eval_ctx, l)) return err::fail;
-				if (!ILBuilder::eval_const_i32(eval_ctx, lval)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::int32_t>(lval, l)) return err::fail;
+				if (!ILBuilder::eval_const_i32(lval)) return err::fail;
 			}break;
 			case ILDataType::u32: {
 				std::uint32_t lval;
-				if(!_il_evaluator_value_pop_into<std::uint32_t>(lval, eval_ctx, l)) return err::fail;
-				if (!ILBuilder::eval_const_u32(eval_ctx, lval)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::uint32_t>(lval, l)) return err::fail;
+				if (!ILBuilder::eval_const_u32(lval)) return err::fail;
 			}break;
 			case ILDataType::i64: {
 				std::int64_t lval;
-				if(!_il_evaluator_value_pop_into<std::int64_t>(lval, eval_ctx, l)) return err::fail;
-				if (!ILBuilder::eval_const_i64(eval_ctx, lval)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::int64_t>(lval, l)) return err::fail;
+				if (!ILBuilder::eval_const_i64(lval)) return err::fail;
 			}break;
 			case ILDataType::u64: {
 				std::uint64_t lval;
-				if(!_il_evaluator_value_pop_into<std::uint64_t>(lval, eval_ctx, l)) return err::fail;
-				if (!ILBuilder::eval_const_u64(eval_ctx, lval)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::uint64_t>(lval, l)) return err::fail;
+				if (!ILBuilder::eval_const_u64(lval)) return err::fail;
 			}break;
 			case ILDataType::f32: {
 				float lval;
-				if(!_il_evaluator_value_pop_into<float>(lval, eval_ctx, l)) return err::fail;
-				if (!ILBuilder::eval_const_f32(eval_ctx, lval)) return err::fail;
+				if(!_il_evaluator_value_pop_into<float>(lval, l)) return err::fail;
+				if (!ILBuilder::eval_const_f32(lval)) return err::fail;
 			}break;
 			case ILDataType::f64: {
 				double lval;
-				if(!_il_evaluator_value_pop_into<double>(lval, eval_ctx, l)) return err::fail;
-				if (!ILBuilder::eval_const_f64(eval_ctx, lval)) return err::fail;
+				if(!_il_evaluator_value_pop_into<double>(lval, l)) return err::fail;
+				if (!ILBuilder::eval_const_f64(lval)) return err::fail;
 			}break;
 			case ILDataType::word: {
 				std::size_t lval;
-				if(!_il_evaluator_value_pop_into<std::size_t>(lval, eval_ctx, l)) return err::fail;
-				if (!ILBuilder::eval_const_size(eval_ctx, lval)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::size_t>(lval, l)) return err::fail;
+				if (!ILBuilder::eval_const_size(lval)) return err::fail;
 			}break;
 		}
 		return err::ok;
 	}
 
-	template< template<typename Ty> class op> errvoid _il_evaluator_const_op(ILEvaluator* eval_ctx, ILDataType l, ILDataType r) {
+	template< template<typename Ty> class op> errvoid _il_evaluator_const_op(ILDataType l, ILDataType r) {
 		ILDataType res_t = ILBuilder::arith_result(l, r);
 		switch (res_t) {
 			case ILDataType::i8: {
 				std::int8_t rval;
-				if(!_il_evaluator_value_pop_into<std::int8_t>(rval, eval_ctx, r)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::int8_t>(rval, r)) return err::fail;
 				std::int8_t lval;
-				if(!_il_evaluator_value_pop_into<std::int8_t>(lval, eval_ctx, l)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::int8_t>(lval, l)) return err::fail;
 				op<std::int8_t> o;
-				if (!ILBuilder::eval_const_i8(eval_ctx, o(lval, rval))) return err::fail;
+				if (!ILBuilder::eval_const_i8(o(lval, rval))) return err::fail;
 			}break;
 			case ILDataType::u8: {
 				std::uint8_t rval;
-				if(!_il_evaluator_value_pop_into<std::uint8_t>(rval, eval_ctx, r)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::uint8_t>(rval, r)) return err::fail;
 				std::uint8_t lval;
-				if(!_il_evaluator_value_pop_into<std::uint8_t>(lval, eval_ctx, l)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::uint8_t>(lval, l)) return err::fail;
 				op<std::uint8_t> o;
-				if (!ILBuilder::eval_const_u8(eval_ctx, o(lval, rval))) return err::fail;
+				if (!ILBuilder::eval_const_u8(o(lval, rval))) return err::fail;
 			}break;
 			case ILDataType::i16: {
 				std::int16_t rval;
-				if(!_il_evaluator_value_pop_into<std::int16_t>(rval, eval_ctx, r)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::int16_t>(rval, r)) return err::fail;
 				std::int16_t lval;
-				if(!_il_evaluator_value_pop_into<std::int16_t>(lval, eval_ctx, l)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::int16_t>(lval, l)) return err::fail;
 				op<std::int16_t> o;
-				if (!ILBuilder::eval_const_i16(eval_ctx, o(lval, rval))) return err::fail;
+				if (!ILBuilder::eval_const_i16(o(lval, rval))) return err::fail;
 			}break;
 			case ILDataType::u16: {
 				std::uint16_t rval;
-				if(!_il_evaluator_value_pop_into<std::uint16_t>(rval, eval_ctx, r)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::uint16_t>(rval, r)) return err::fail;
 				std::uint16_t lval;
-				if(!_il_evaluator_value_pop_into<std::uint16_t>(lval, eval_ctx, l)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::uint16_t>(lval, l)) return err::fail;
 				op<std::uint16_t> o;
-				if (!ILBuilder::eval_const_u16(eval_ctx, o(lval, rval))) return err::fail;
+				if (!ILBuilder::eval_const_u16(o(lval, rval))) return err::fail;
 			}break;
 			case ILDataType::i32: {
 				std::int32_t rval;
-				if(!_il_evaluator_value_pop_into<std::int32_t>(rval, eval_ctx, r)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::int32_t>(rval, r)) return err::fail;
 				std::int32_t lval;
-				if(!_il_evaluator_value_pop_into<std::int32_t>(lval, eval_ctx, l)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::int32_t>(lval, l)) return err::fail;
 				op<std::int32_t> o;
-				if (!ILBuilder::eval_const_i32(eval_ctx, o(lval, rval))) return err::fail;
+				if (!ILBuilder::eval_const_i32(o(lval, rval))) return err::fail;
 			}break;
 			case ILDataType::u32: {
 				std::uint32_t rval;
-				if(!_il_evaluator_value_pop_into<std::uint32_t>(rval, eval_ctx, r)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::uint32_t>(rval, r)) return err::fail;
 				std::uint32_t lval;
-				if(!_il_evaluator_value_pop_into<std::uint32_t>(lval, eval_ctx, l)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::uint32_t>(lval, l)) return err::fail;
 				op<std::uint32_t> o;
-				if (!ILBuilder::eval_const_u32(eval_ctx, o(lval, rval))) return err::fail;
+				if (!ILBuilder::eval_const_u32(o(lval, rval))) return err::fail;
 			}break;
 			case ILDataType::i64: {
 				std::int64_t rval;
-				if(!_il_evaluator_value_pop_into<std::int64_t>(rval, eval_ctx, r)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::int64_t>(rval, r)) return err::fail;
 				std::int64_t lval;
-				if(!_il_evaluator_value_pop_into<std::int64_t>(lval, eval_ctx, l)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::int64_t>(lval, l)) return err::fail;
 				op<std::int64_t> o;
-				if (!ILBuilder::eval_const_i64(eval_ctx, o(lval, rval))) return err::fail;
+				if (!ILBuilder::eval_const_i64(o(lval, rval))) return err::fail;
 			}break;
 			case ILDataType::u64: {
 				std::uint64_t rval;
-				if(!_il_evaluator_value_pop_into<std::uint64_t>(rval, eval_ctx, r)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::uint64_t>(rval, r)) return err::fail;
 				std::uint64_t lval;
-				if(!_il_evaluator_value_pop_into<std::uint64_t>(lval, eval_ctx, l)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::uint64_t>(lval, l)) return err::fail;
 				op<std::uint64_t> o;
-				if (!ILBuilder::eval_const_u64(eval_ctx, o(lval, rval))) return err::fail;
+				if (!ILBuilder::eval_const_u64(o(lval, rval))) return err::fail;
 			}break;
 			case ILDataType::f32: {
 				float rval;
-				if(!_il_evaluator_value_pop_into<float>(rval, eval_ctx, r)) return err::fail;
+				if(!_il_evaluator_value_pop_into<float>(rval, r)) return err::fail;
 				float lval;
-				if(!_il_evaluator_value_pop_into<float>(lval, eval_ctx, l)) return err::fail;
+				if(!_il_evaluator_value_pop_into<float>(lval, l)) return err::fail;
 				op<float> o;
-				if (!ILBuilder::eval_const_f32(eval_ctx, o(lval, rval))) return err::fail;
+				if (!ILBuilder::eval_const_f32(o(lval, rval))) return err::fail;
 			}break;
 			case ILDataType::f64: {
 				double rval;
-				if(!_il_evaluator_value_pop_into<double>(rval, eval_ctx, r)) return err::fail;
+				if(!_il_evaluator_value_pop_into<double>(rval, r)) return err::fail;
 				double lval;
-				if(!_il_evaluator_value_pop_into<double>(lval, eval_ctx, l)) return err::fail;
+				if(!_il_evaluator_value_pop_into<double>(lval, l)) return err::fail;
 				op<double> o;
-				if (!ILBuilder::eval_const_f64(eval_ctx, o(lval, rval))) return err::fail;
+				if (!ILBuilder::eval_const_f64(o(lval, rval))) return err::fail;
 			}break;
 			case ILDataType::word: {
 				std::size_t rval;
-				if(!_il_evaluator_value_pop_into<std::size_t>(rval, eval_ctx, r)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::size_t>(rval, r)) return err::fail;
 				std::size_t lval;
-				if(!_il_evaluator_value_pop_into<std::size_t>(lval, eval_ctx, l)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::size_t>(lval, l)) return err::fail;
 				op<std::size_t> o;
-				if (!ILBuilder::eval_const_size(eval_ctx, o(lval, rval))) return err::fail;
+				if (!ILBuilder::eval_const_size(o(lval, rval))) return err::fail;
 			}break;
 			default: break;
 		}
@@ -367,80 +368,80 @@ namespace Corrosive {
 		return err::ok;
 	}
 
-	template< template<typename Ty> class op> errvoid _il_evaluator_const_op_binary(ILEvaluator* eval_ctx, ILDataType l, ILDataType r) {
+	template< template<typename Ty> class op> errvoid _il_evaluator_const_op_binary(ILDataType l, ILDataType r) {
 		ILDataType res_t = ILBuilder::arith_result(l, r);
 		switch (res_t) {
 			case ILDataType::i8: {
 				std::int8_t rval;
-				if(!_il_evaluator_value_pop_into<std::int8_t>(rval, eval_ctx, r)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::int8_t>(rval, r)) return err::fail;
 				std::int8_t lval;
-				if(!_il_evaluator_value_pop_into<std::int8_t>(lval, eval_ctx, l)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::int8_t>(lval, l)) return err::fail;
 				op<std::int8_t> o;
-				if (!ILBuilder::eval_const_i8(eval_ctx, o(lval, rval))) return err::fail;
+				if (!ILBuilder::eval_const_i8(o(lval, rval))) return err::fail;
 			}break;
 			case ILDataType::u8: {
 				std::uint8_t rval;
-				if(!_il_evaluator_value_pop_into<std::uint8_t>(rval, eval_ctx, r)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::uint8_t>(rval, r)) return err::fail;
 				std::uint8_t lval;
-				if(!_il_evaluator_value_pop_into<std::uint8_t>(lval, eval_ctx, l)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::uint8_t>(lval, l)) return err::fail;
 				op<std::uint8_t> o;
-				if (!ILBuilder::eval_const_u8(eval_ctx, o(lval, rval))) return err::fail;
+				if (!ILBuilder::eval_const_u8(o(lval, rval))) return err::fail;
 			}break;
 			case ILDataType::i16: {
 				std::int16_t rval;
-				if(!_il_evaluator_value_pop_into<std::int16_t>(rval, eval_ctx, r)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::int16_t>(rval, r)) return err::fail;
 				std::int16_t lval;
-				if(!_il_evaluator_value_pop_into<std::int16_t>(lval, eval_ctx, l)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::int16_t>(lval, l)) return err::fail;
 				op<std::int16_t> o;
-				if (!ILBuilder::eval_const_i16(eval_ctx, o(lval, rval))) return err::fail;
+				if (!ILBuilder::eval_const_i16(o(lval, rval))) return err::fail;
 			}break;
 			case ILDataType::u16: {
 				std::uint16_t rval;
-				if(!_il_evaluator_value_pop_into<std::uint16_t>(rval, eval_ctx, r)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::uint16_t>(rval, r)) return err::fail;
 				std::uint16_t lval;
-				if(!_il_evaluator_value_pop_into<std::uint16_t>(lval, eval_ctx, l)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::uint16_t>(lval, l)) return err::fail;
 				op<std::uint16_t> o;
-				if (!ILBuilder::eval_const_u16(eval_ctx, o(lval, rval))) return err::fail;
+				if (!ILBuilder::eval_const_u16(o(lval, rval))) return err::fail;
 			}break;
 			case ILDataType::i32: {
 				std::int32_t rval;
-				if(!_il_evaluator_value_pop_into<std::int32_t>(rval, eval_ctx, r)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::int32_t>(rval, r)) return err::fail;
 				std::int32_t lval;
-				if(!_il_evaluator_value_pop_into<std::int32_t>(lval, eval_ctx, l)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::int32_t>(lval, l)) return err::fail;
 				op<std::int32_t> o;
-				if (!ILBuilder::eval_const_i32(eval_ctx, o(lval, rval))) return err::fail;
+				if (!ILBuilder::eval_const_i32(o(lval, rval))) return err::fail;
 			}break;
 			case ILDataType::u32: {
 				std::uint32_t rval;
-				if(!_il_evaluator_value_pop_into<std::uint32_t>(rval, eval_ctx, r)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::uint32_t>(rval, r)) return err::fail;
 				std::uint32_t lval;
-				if(!_il_evaluator_value_pop_into<std::uint32_t>(lval, eval_ctx, l)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::uint32_t>(lval, l)) return err::fail;
 				op<std::uint32_t> o;
-				if (!ILBuilder::eval_const_u32(eval_ctx, o(lval, rval))) return err::fail;
+				if (!ILBuilder::eval_const_u32(o(lval, rval))) return err::fail;
 			}break;
 			case ILDataType::i64: {
 				std::int64_t rval;
-				if(!_il_evaluator_value_pop_into<std::int64_t>(rval, eval_ctx, r)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::int64_t>(rval, r)) return err::fail;
 				std::int64_t lval;
-				if(!_il_evaluator_value_pop_into<std::int64_t>(lval, eval_ctx, l)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::int64_t>(lval, l)) return err::fail;
 				op<std::int64_t> o;
-				if (!ILBuilder::eval_const_i64(eval_ctx, o(lval, rval))) return err::fail;
+				if (!ILBuilder::eval_const_i64(o(lval, rval))) return err::fail;
 			}break;
 			case ILDataType::u64: {
 				std::uint64_t rval;
-				if(!_il_evaluator_value_pop_into<std::uint64_t>(rval, eval_ctx, r)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::uint64_t>(rval, r)) return err::fail;
 				std::uint64_t lval;
-				if(!_il_evaluator_value_pop_into<std::uint64_t>(lval, eval_ctx, l)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::uint64_t>(lval, l)) return err::fail;
 				op<std::uint64_t> o;
-				if (!ILBuilder::eval_const_u64(eval_ctx, o(lval, rval))) return err::fail;
+				if (!ILBuilder::eval_const_u64(o(lval, rval))) return err::fail;
 			}break;
 			case ILDataType::word: {
 				std::size_t rval;
-				if(!_il_evaluator_value_pop_into<std::size_t>(rval, eval_ctx, r)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::size_t>(rval, r)) return err::fail;
 				std::size_t lval;
-				if(!_il_evaluator_value_pop_into<std::size_t>(lval, eval_ctx, l)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::size_t>(lval, l)) return err::fail;
 				op<std::size_t> o;
-				if (!ILBuilder::eval_const_size(eval_ctx, o(lval, rval))) return err::fail;
+				if (!ILBuilder::eval_const_size(o(lval, rval))) return err::fail;
 			}break;
 			
 			default: break;
@@ -449,96 +450,96 @@ namespace Corrosive {
 		return err::ok;
 	}
 
-	template< template<typename Ty> class op> errvoid _il_evaluator_const_op_bool(ILEvaluator* eval_ctx, ILDataType l, ILDataType r) {
+	template< template<typename Ty> class op> errvoid _il_evaluator_const_op_bool(ILDataType l, ILDataType r) {
 		ILDataType res_t = ILBuilder::arith_result(l, r);
 		switch (res_t) {
 			case ILDataType::i8: {
 				std::int8_t rval;
-				if(!_il_evaluator_value_pop_into<std::int8_t>(rval, eval_ctx, r)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::int8_t>(rval, r)) return err::fail;
 				std::int8_t lval;
-				if(!_il_evaluator_value_pop_into<std::int8_t>(lval, eval_ctx, l)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::int8_t>(lval, l)) return err::fail;
 				op<std::int8_t> o;
-				if (!ILBuilder::eval_const_i8(eval_ctx, o(lval, rval))) return err::fail;
+				if (!ILBuilder::eval_const_i8(o(lval, rval))) return err::fail;
 			}break;
 			case ILDataType::u8: {
 				std::uint8_t rval;
-				if(!_il_evaluator_value_pop_into<std::uint8_t>(rval, eval_ctx, r)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::uint8_t>(rval, r)) return err::fail;
 				std::uint8_t lval;
-				if(!_il_evaluator_value_pop_into<std::uint8_t>(lval, eval_ctx, l)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::uint8_t>(lval, l)) return err::fail;
 				op<std::uint8_t> o;
-				if (!ILBuilder::eval_const_i8(eval_ctx, o(lval, rval))) return err::fail;
+				if (!ILBuilder::eval_const_i8(o(lval, rval))) return err::fail;
 			}break;
 			case ILDataType::i16: {
 				std::int16_t rval;
-				if(!_il_evaluator_value_pop_into<std::int16_t>(rval, eval_ctx, r)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::int16_t>(rval, r)) return err::fail;
 				std::int16_t lval;
-				if(!_il_evaluator_value_pop_into<std::int16_t>(lval, eval_ctx, l)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::int16_t>(lval, l)) return err::fail;
 				op<std::int16_t> o;
-				if (!ILBuilder::eval_const_i8(eval_ctx, o(lval, rval))) return err::fail;
+				if (!ILBuilder::eval_const_i8(o(lval, rval))) return err::fail;
 			}break;
 			case ILDataType::u16: {
 				std::uint16_t rval;
-				if(!_il_evaluator_value_pop_into<std::uint16_t>(rval, eval_ctx, r)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::uint16_t>(rval, r)) return err::fail;
 				std::uint16_t lval;
-				if(!_il_evaluator_value_pop_into<std::uint16_t>(lval, eval_ctx, l)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::uint16_t>(lval, l)) return err::fail;
 				op<std::uint16_t> o;
-				if (!ILBuilder::eval_const_i8(eval_ctx, o(lval, rval))) return err::fail;
+				if (!ILBuilder::eval_const_i8(o(lval, rval))) return err::fail;
 			}break;
 			case ILDataType::i32: {
 				std::int32_t rval;
-				if(!_il_evaluator_value_pop_into<std::int32_t>(rval, eval_ctx, r)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::int32_t>(rval, r)) return err::fail;
 				std::int32_t lval;
-				if(!_il_evaluator_value_pop_into<std::int32_t>(lval, eval_ctx, l)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::int32_t>(lval, l)) return err::fail;
 				op<std::int32_t> o;
-				if (!ILBuilder::eval_const_i8(eval_ctx, o(lval, rval))) return err::fail;
+				if (!ILBuilder::eval_const_i8(o(lval, rval))) return err::fail;
 			}break;
 			case ILDataType::u32: {
 				std::uint32_t rval;
-				if(!_il_evaluator_value_pop_into<std::uint32_t>(rval, eval_ctx, r)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::uint32_t>(rval, r)) return err::fail;
 				std::uint32_t lval;
-				if(!_il_evaluator_value_pop_into<std::uint32_t>(lval, eval_ctx, l)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::uint32_t>(lval, l)) return err::fail;
 				op<std::uint32_t> o;
-				if (!ILBuilder::eval_const_i8(eval_ctx, o(lval, rval))) return err::fail;
+				if (!ILBuilder::eval_const_i8(o(lval, rval))) return err::fail;
 			}break;
 			case ILDataType::i64: {
 				std::int64_t rval;
-				if(!_il_evaluator_value_pop_into<std::int64_t>(rval, eval_ctx, r)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::int64_t>(rval, r)) return err::fail;
 				std::int64_t lval;
-				if(!_il_evaluator_value_pop_into<std::int64_t>(lval, eval_ctx, l)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::int64_t>(lval, l)) return err::fail;
 				op<std::int64_t> o;
-				if (!ILBuilder::eval_const_i8(eval_ctx, o(lval, rval))) return err::fail;
+				if (!ILBuilder::eval_const_i8(o(lval, rval))) return err::fail;
 			}break;
 			case ILDataType::u64: {
 				std::uint64_t rval;
-				if(!_il_evaluator_value_pop_into<std::uint64_t>(rval, eval_ctx, r)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::uint64_t>(rval, r)) return err::fail;
 				std::uint64_t lval;
-				if(!_il_evaluator_value_pop_into<std::uint64_t>(lval, eval_ctx, l)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::uint64_t>(lval, l)) return err::fail;
 				op<std::uint64_t> o;
-				if (!ILBuilder::eval_const_i8(eval_ctx, o(lval, rval))) return err::fail;
+				if (!ILBuilder::eval_const_i8(o(lval, rval))) return err::fail;
 			}break;
 			case ILDataType::f32: {
 				float rval;
-				if(!_il_evaluator_value_pop_into<float>(rval, eval_ctx, r)) return err::fail;
+				if(!_il_evaluator_value_pop_into<float>(rval, r)) return err::fail;
 				float lval;
-				if(!_il_evaluator_value_pop_into<float>(lval, eval_ctx, l)) return err::fail;
+				if(!_il_evaluator_value_pop_into<float>(lval, l)) return err::fail;
 				op<float> o;
-				if (!ILBuilder::eval_const_i8(eval_ctx, o(lval, rval))) return err::fail;
+				if (!ILBuilder::eval_const_i8(o(lval, rval))) return err::fail;
 			}break;
 			case ILDataType::f64: {
 				double rval;
-				if(!_il_evaluator_value_pop_into<double>(rval, eval_ctx, r)) return err::fail;
+				if(!_il_evaluator_value_pop_into<double>(rval, r)) return err::fail;
 				double lval;
-				if(!_il_evaluator_value_pop_into<double>(lval, eval_ctx, l)) return err::fail;
+				if(!_il_evaluator_value_pop_into<double>(lval, l)) return err::fail;
 				op<double> o;
-				if (!ILBuilder::eval_const_i8(eval_ctx, o(lval, rval))) return err::fail;
+				if (!ILBuilder::eval_const_i8(o(lval, rval))) return err::fail;
 			}break;
 			case ILDataType::word: {
 				std::size_t rval;
-				if(!_il_evaluator_value_pop_into<std::size_t>(rval, eval_ctx, r)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::size_t>(rval, r)) return err::fail;
 				std::size_t lval;
-				if(!_il_evaluator_value_pop_into<std::size_t>(lval, eval_ctx, l)) return err::fail;
+				if(!_il_evaluator_value_pop_into<std::size_t>(lval, l)) return err::fail;
 				op<std::size_t> o;
-				if (!ILBuilder::eval_const_i8(eval_ctx, o(lval, rval))) return err::fail;
+				if (!ILBuilder::eval_const_i8(o(lval, rval))) return err::fail;
 			}break;
 			default: break;
 		}
@@ -548,10 +549,10 @@ namespace Corrosive {
 
 
 
-	errvoid ILBuilder::eval_forget(ILEvaluator* eval_ctx, ILDataType type) {
+	errvoid ILBuilder::eval_forget(ILDataType type) {
 		if (type != ILDataType::none) {
 			ilsize_t storage;
-			if (!eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(type), &storage)) return err::fail;
+			if (!ILEvaluator::active->pop_register_value_indirect(ILEvaluator::active->compile_time_register_size(type), &storage)) return err::fail;
 		}
 		return err::ok;
 	}
@@ -594,237 +595,237 @@ namespace Corrosive {
 	}
 
 
-	errvoid ILBuilder::eval_discard(ILEvaluator* eval_ctx, ILDataType type) {
+	errvoid ILBuilder::eval_discard(ILDataType type) {
 		return err::ok;
 	}
 
-	errvoid ILBuilder::eval_yield(ILEvaluator* eval_ctx, ILDataType type) {
-		if (!eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(type), &eval_ctx->yield_storage)) return err::fail;
+	errvoid ILBuilder::eval_yield(ILDataType type) {
+		if (!ILEvaluator::active->pop_register_value_indirect(ILEvaluator::active->compile_time_register_size(type), &ILEvaluator::active->yield_storage)) return err::fail;
 		return err::ok;
 	}
 
-	errvoid ILBuilder::eval_accept(ILEvaluator* eval_ctx, ILDataType type) {
-		if (!eval_ctx->write_register_value_indirect(eval_ctx->compile_time_register_size(type), &eval_ctx->yield_storage)) return err::fail;
+	errvoid ILBuilder::eval_accept(ILDataType type) {
+		if (!ILEvaluator::active->write_register_value_indirect(ILEvaluator::active->compile_time_register_size(type), &ILEvaluator::active->yield_storage)) return err::fail;
 		return err::ok;
 	}
 
-	errvoid ILBuilder::eval_load(ILEvaluator* eval_ctx, ILDataType type) {
+	errvoid ILBuilder::eval_load(ILDataType type) {
 		void* ptr;
-		if (!eval_ctx->pop_register_value<void*>(ptr)) return err::fail;	
-		if (!eval_ctx->write_register_value_indirect(eval_ctx->compile_time_register_size(type), ptr)) return err::fail;
+		if (!ILEvaluator::active->pop_register_value<void*>(ptr)) return err::fail;	
+		if (!ILEvaluator::active->write_register_value_indirect(ILEvaluator::active->compile_time_register_size(type), ptr)) return err::fail;
 		return err::ok;
 	}
 
-	errvoid ILBuilder::eval_offset(ILEvaluator* eval_ctx, ILSize offset) {
+	errvoid ILBuilder::eval_offset(ILSize offset) {
 		if (offset.type == ILSizeType::table || offset.type == ILSizeType::array || offset.value > 0) {
 			std::size_t mem;
-			if (!eval_ctx->pop_register_value<std::size_t>(mem)) return err::fail;
-			mem += offset.eval(eval_ctx->parent);
-			eval_ctx->write_register_value(mem);
+			if (!ILEvaluator::active->pop_register_value<std::size_t>(mem)) return err::fail;
+			mem += offset.eval(ILEvaluator::active->parent);
+			ILEvaluator::active->write_register_value(mem);
 		}
 		return err::ok;
 	}
 
 
 
-	errvoid ILBuilder::eval_aoffset(ILEvaluator* eval_ctx, std::uint32_t offset) {
+	errvoid ILBuilder::eval_aoffset(std::uint32_t offset) {
 		if (offset > 0) {
 			std::size_t mem;
-			if(!eval_ctx->pop_register_value(mem)) return err::fail;
+			if(!ILEvaluator::active->pop_register_value(mem)) return err::fail;
 			mem += offset;
-			eval_ctx->write_register_value(mem);
+			ILEvaluator::active->write_register_value(mem);
 		}
 		return err::ok;
 	}
 
 
-	errvoid ILBuilder::eval_woffset(ILEvaluator* eval_ctx, std::uint32_t offset) {
+	errvoid ILBuilder::eval_woffset(std::uint32_t offset) {
 		if (offset > 0) {
 			std::size_t mem;
-			if(!eval_ctx->pop_register_value(mem)) return err::fail;
-			mem += offset * eval_ctx->compile_time_register_size(ILDataType::word);
-			eval_ctx->write_register_value(mem);
+			if(!ILEvaluator::active->pop_register_value(mem)) return err::fail;
+			mem += offset * ILEvaluator::active->compile_time_register_size(ILDataType::word);
+			ILEvaluator::active->write_register_value(mem);
 		}
 		return err::ok;
 	}
 
-	errvoid ILBuilder::eval_constref(ILEvaluator* eval_ctx, std::uint32_t cid) {
-		eval_ctx->write_register_value(eval_ctx->parent->constant_memory[cid].second.get());
+	errvoid ILBuilder::eval_constref(std::uint32_t cid) {
+		ILEvaluator::active->write_register_value(ILEvaluator::active->parent->constant_memory[cid].second.get());
 		return err::ok;
 	}
 	
-	errvoid ILBuilder::eval_const_slice(ILEvaluator* eval_ctx, std::uint32_t cid, ILSize s) {
-		dword_t val((void*)eval_ctx->parent->constant_memory[cid].second.get() , (void*)(s.eval(eval_ctx->parent)));
-		eval_ctx->write_register_value(val);
+	errvoid ILBuilder::eval_const_slice(std::uint32_t cid, ILSize s) {
+		dword_t val((void*)ILEvaluator::active->parent->constant_memory[cid].second.get() , (void*)(s.eval(ILEvaluator::active->parent)));
+		ILEvaluator::active->write_register_value(val);
 		return err::ok;
 	}
 
-	errvoid ILBuilder::eval_staticref(ILEvaluator* eval_ctx, std::uint32_t cid) {
-		eval_ctx->write_register_value(std::get<1>(eval_ctx->parent->static_memory[cid]).get());
+	errvoid ILBuilder::eval_staticref(std::uint32_t cid) {
+		ILEvaluator::active->write_register_value(std::get<1>(ILEvaluator::active->parent->static_memory[cid]).get());
 		return err::ok;
 	}
 
 
-	errvoid ILBuilder::eval_combine_dword(ILEvaluator* eval_ctx) {
+	errvoid ILBuilder::eval_combine_dword() {
 		void* p2;
-		if (!eval_ctx->pop_register_value<void*>(p2)) return err::fail;
+		if (!ILEvaluator::active->pop_register_value<void*>(p2)) return err::fail;
 		void* p1;
-		if (!eval_ctx->pop_register_value<void*>(p1)) return err::fail;
+		if (!ILEvaluator::active->pop_register_value<void*>(p1)) return err::fail;
 		dword_t dw(p1,p2);
-		eval_ctx->write_register_value(dw);
+		ILEvaluator::active->write_register_value(dw);
 		return err::ok;
 	}
 	
-	errvoid ILBuilder::eval_split_dword(ILEvaluator* eval_ctx) {
+	errvoid ILBuilder::eval_split_dword() {
 		dword_t dw;
-		if (!eval_ctx->pop_register_value<dword_t>(dw)) return err::fail;
-		eval_ctx->write_register_value(dw.p1);
-		eval_ctx->write_register_value(dw.p2);
+		if (!ILEvaluator::active->pop_register_value<dword_t>(dw)) return err::fail;
+		ILEvaluator::active->write_register_value(dw.p1);
+		ILEvaluator::active->write_register_value(dw.p2);
 		return err::ok;
 	}
 
-	errvoid ILBuilder::eval_high_word(ILEvaluator* eval_ctx) {
+	errvoid ILBuilder::eval_high_word() {
 		dword_t dw;
-		if (!eval_ctx->pop_register_value<dword_t>(dw)) return err::fail;
-		eval_ctx->write_register_value(dw.p2);
+		if (!ILEvaluator::active->pop_register_value<dword_t>(dw)) return err::fail;
+		ILEvaluator::active->write_register_value(dw.p2);
 		return err::ok;
 	}
 	
-	errvoid ILBuilder::eval_low_word(ILEvaluator* eval_ctx) {
+	errvoid ILBuilder::eval_low_word() {
 		dword_t dw;
-		if (!eval_ctx->pop_register_value<dword_t>(dw)) return err::fail;
-		eval_ctx->write_register_value(dw.p1);
+		if (!ILEvaluator::active->pop_register_value<dword_t>(dw)) return err::fail;
+		ILEvaluator::active->write_register_value(dw.p1);
 		return err::ok;
 	}
 
-	errvoid ILBuilder::eval_debug(ILEvaluator* eval_ctx, std::uint16_t file, std::uint16_t line) {
-		eval_ctx->debug_file = file;
-		eval_ctx->debug_line = line;
+	errvoid ILBuilder::eval_debug(std::uint16_t file, std::uint16_t line) {
+		ILEvaluator::active->debug_file = file;
+		ILEvaluator::active->debug_line = line;
 		return err::ok;
 	}
 	
-	errvoid ILBuilder::eval_extract(ILEvaluator* eval_ctx, ILSize s) {
+	errvoid ILBuilder::eval_extract(ILSize s) {
 		std::size_t off;
-		if (!eval_ctx->pop_register_value<std::size_t>(off)) return err::fail;
+		if (!ILEvaluator::active->pop_register_value<std::size_t>(off)) return err::fail;
 		std::uint8_t* ptr;
-		if (!eval_ctx->pop_register_value<std::uint8_t*>(ptr)) return err::fail;
-		ptr+= off * s.eval(eval_ctx->parent);
-		eval_ctx->write_register_value(ptr);		
+		if (!ILEvaluator::active->pop_register_value<std::uint8_t*>(ptr)) return err::fail;
+		ptr+= off * s.eval(ILEvaluator::active->parent);
+		ILEvaluator::active->write_register_value(ptr);		
 		return err::ok;
 	}
 
-	errvoid ILBuilder::eval_cut(ILEvaluator* eval_ctx, ILSize s) {
+	errvoid ILBuilder::eval_cut(ILSize s) {
 		std::size_t off1, off2;
-		if (!eval_ctx->pop_register_value<std::size_t>(off2)) return err::fail;
-		if (!eval_ctx->pop_register_value<std::size_t>(off1)) return err::fail;
+		if (!ILEvaluator::active->pop_register_value<std::size_t>(off2)) return err::fail;
+		if (!ILEvaluator::active->pop_register_value<std::size_t>(off1)) return err::fail;
 		std::uint8_t* ptr;
-		if (!eval_ctx->pop_register_value<std::uint8_t*>(ptr)) return err::fail;
-		std::size_t elem_size = s.eval(eval_ctx->parent);
+		if (!ILEvaluator::active->pop_register_value<std::uint8_t*>(ptr)) return err::fail;
+		std::size_t elem_size = s.eval(ILEvaluator::active->parent);
 		ptr += off1 * elem_size;
 
 		dword_t val;
 		val.p1 = ptr;
 		val.p2 = (void*)(elem_size*(off2-off1+1));
 
-		eval_ctx->write_register_value(val);
+		ILEvaluator::active->write_register_value(val);
 		return err::ok;
 	}
 
-	errvoid ILBuilder::eval_rtoffset(ILEvaluator* eval_ctx) {
+	errvoid ILBuilder::eval_rtoffset() {
 		std::size_t offset;
-		if(!eval_ctx->pop_register_value(offset)) return err::fail;
+		if(!ILEvaluator::active->pop_register_value(offset)) return err::fail;
 		unsigned char* mem;
-		if(!eval_ctx->pop_register_value(mem)) return err::fail;
+		if(!ILEvaluator::active->pop_register_value(mem)) return err::fail;
 		mem += offset;
-		eval_ctx->write_register_value(mem);
+		ILEvaluator::active->write_register_value(mem);
 		return err::ok;
 	}
 
-	errvoid ILBuilder::eval_rtoffset_rev(ILEvaluator* eval_ctx) {
+	errvoid ILBuilder::eval_rtoffset_rev() {
 		unsigned char* mem;
-			if(!eval_ctx->pop_register_value(mem)) return err::fail;
+			if(!ILEvaluator::active->pop_register_value(mem)) return err::fail;
 		std::size_t offset;
-			if(!eval_ctx->pop_register_value(offset)) return err::fail;
+			if(!ILEvaluator::active->pop_register_value(offset)) return err::fail;
 		mem += offset;
-		eval_ctx->write_register_value(mem);
+		ILEvaluator::active->write_register_value(mem);
 		return err::ok;
 	}
 
-	errvoid ILBuilder::eval_roffset(ILEvaluator* eval_ctx, ILDataType from, ILDataType to, std::size_t offset) {
+	errvoid ILBuilder::eval_roffset(ILDataType from, ILDataType to, ILSize offset) {
 		ilsize_t mem;
-		if (!eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(from), &mem)) return err::fail;
-		mem = mem << offset;
-		if (!eval_ctx->write_register_value_indirect(eval_ctx->compile_time_register_size(to), &mem)) return err::fail;
+		if (!ILEvaluator::active->pop_register_value_indirect(ILEvaluator::active->compile_time_register_size(from), &mem)) return err::fail;
+		mem = mem << offset.eval(ILEvaluator::active->parent);
+		if (!ILEvaluator::active->write_register_value_indirect(ILEvaluator::active->compile_time_register_size(to), &mem)) return err::fail;
 		return err::ok;
 	}
 
-	errvoid ILBuilder::eval_aroffset(ILEvaluator* eval_ctx, ILDataType from, ILDataType to, std::uint32_t offset) {
+	errvoid ILBuilder::eval_aroffset(ILDataType from, ILDataType to, std::uint32_t offset) {
 
 		if (offset > UINT8_MAX) {
 			throw string_exception("Compiler error: aroffset > 255 should not be possible");
 		}
 
 		ilsize_t mem;
-		if (!eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(from), &mem)) return err::fail;
+		if (!ILEvaluator::active->pop_register_value_indirect(ILEvaluator::active->compile_time_register_size(from), &mem)) return err::fail;
 		mem = mem << offset;
-		if (!eval_ctx->write_register_value_indirect(eval_ctx->compile_time_register_size(to), &mem)) return err::fail;
+		if (!ILEvaluator::active->write_register_value_indirect(ILEvaluator::active->compile_time_register_size(to), &mem)) return err::fail;
 		return err::ok;
 	}
 
-	errvoid ILBuilder::eval_wroffset(ILEvaluator* eval_ctx, ILDataType from, ILDataType to, std::uint32_t offset) {
+	errvoid ILBuilder::eval_wroffset(ILDataType from, ILDataType to, std::uint32_t offset) {
 
 		if (offset > UINT8_MAX) {
 			throw string_exception("Compiler error: wroffset > 255 should not be possible");
 		}
 
 		ilsize_t mem;
-		if (!eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(from), &mem)) return err::fail;
-		mem = mem << (offset * eval_ctx->compile_time_register_size(ILDataType::word));
-		if (!eval_ctx->write_register_value_indirect(eval_ctx->compile_time_register_size(to), &mem)) return err::fail;
+		if (!ILEvaluator::active->pop_register_value_indirect(ILEvaluator::active->compile_time_register_size(from), &mem)) return err::fail;
+		mem = mem << (offset * ILEvaluator::active->compile_time_register_size(ILDataType::word));
+		if (!ILEvaluator::active->write_register_value_indirect(ILEvaluator::active->compile_time_register_size(to), &mem)) return err::fail;
 		return err::ok;
 	}
 
 
-	errvoid ILBuilder::eval_store(ILEvaluator* eval_ctx, ILDataType type) {
+	errvoid ILBuilder::eval_store(ILDataType type) {
 		void* mem;
-		if(!eval_ctx->pop_register_value<void*>(mem)) return err::fail;
-		if (!eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(type), mem)) return err::fail;
+		if(!ILEvaluator::active->pop_register_value<void*>(mem)) return err::fail;
+		if (!ILEvaluator::active->pop_register_value_indirect(ILEvaluator::active->compile_time_register_size(type), mem)) return err::fail;
 		return err::ok;
 	}
 
-	errvoid ILBuilder::eval_store_rev(ILEvaluator* eval_ctx, ILDataType type) {
+	errvoid ILBuilder::eval_store_rev(ILDataType type) {
 		ilsize_t storage;
-		std::size_t regs = eval_ctx->compile_time_register_size(type);
-		if (!eval_ctx->pop_register_value_indirect(regs, &storage)) return err::fail;
+		std::size_t regs = ILEvaluator::active->compile_time_register_size(type);
+		if (!ILEvaluator::active->pop_register_value_indirect(regs, &storage)) return err::fail;
 		void* mem;
-		if(!eval_ctx->pop_register_value<void*>(mem)) return err::fail;
+		if(!ILEvaluator::active->pop_register_value<void*>(mem)) return err::fail;
 
 		if (!wrap || wrap(sandbox) == 0) {	
 			std::memcpy(mem, &storage, regs);
 		}
 		else {
-			return throw_runtime_handler_exception(eval_ctx);
+			return throw_runtime_handler_exception(ILEvaluator::active);
 		}
 		return err::ok;
 	}
 
-	errvoid ILBuilder::eval_duplicate(ILEvaluator* eval_ctx, ILDataType type) {
-		std::size_t reg_s = eval_ctx->compile_time_register_size(type);
-		void* lv = eval_ctx->read_last_register_value_indirect(type);
-		if (!eval_ctx->write_register_value_indirect(reg_s, lv)) return err::fail;
+	errvoid ILBuilder::eval_duplicate(ILDataType type) {
+		std::size_t reg_s = ILEvaluator::active->compile_time_register_size(type);
+		void* lv = ILEvaluator::active->read_last_register_value_indirect(type);
+		if (!ILEvaluator::active->write_register_value_indirect(reg_s, lv)) return err::fail;
 		return err::ok;
 	}
 
-	errvoid ILBuilder::eval_clone(ILEvaluator* eval_ctx, ILDataType type, std::uint16_t times) {
-		std::size_t reg_s = eval_ctx->compile_time_register_size(type);
-		void* lv = eval_ctx->read_last_register_value_indirect(type);
+	errvoid ILBuilder::eval_clone(ILDataType type, std::uint16_t times) {
+		std::size_t reg_s = ILEvaluator::active->compile_time_register_size(type);
+		void* lv = ILEvaluator::active->read_last_register_value_indirect(type);
 		for (std::uint16_t i = 0; i < times; ++i) {
-			if (!eval_ctx->write_register_value_indirect(reg_s, lv)) return err::fail;
+			if (!ILEvaluator::active->write_register_value_indirect(reg_s, lv)) return err::fail;
 		}
 		return err::ok;
 	}
 
-	errvoid ILBuilder::eval_fnptr(ILEvaluator* eval_ctx, ILFunction* fun) {
+	errvoid ILBuilder::eval_fnptr(ILFunction* fun) {
 		void* wrtptr;
 		if (!wrap || wrap(sandbox) == 0) {
 			if (auto native_fun = dynamic_cast<ILNativeFunction*>(fun)) {
@@ -834,857 +835,323 @@ namespace Corrosive {
 				wrtptr = fun;
 			}
 		} else {
-			return throw_runtime_handler_exception(eval_ctx);
+			return throw_runtime_handler_exception(ILEvaluator::active);
 		}
 
-		eval_ctx->write_register_value(wrtptr);
+		ILEvaluator::active->write_register_value(wrtptr);
 		return err::ok;
 	}
 
 
-	errvoid ILBuilder::eval_fncall(ILEvaluator* eval_ctx, ILFunction* fun) {
+	errvoid ILBuilder::eval_fncall(ILFunction* fun) {
 		uint32_t declid;
 
 		if (!wrap || wrap(sandbox) == 0) {
 			declid = fun->decl_id;
 			if (auto native_fun = dynamic_cast<ILNativeFunction*>(fun)) {				
-				eval_ctx->callstack.push_back(native_fun->ptr);
+				ILEvaluator::active->callstack.push_back(native_fun->ptr);
 			}
 			else {
-				eval_ctx->callstack.push_back(fun);
+				ILEvaluator::active->callstack.push_back(fun);
 			}
 		} else {
-			return throw_runtime_handler_exception(eval_ctx);
+			return throw_runtime_handler_exception(ILEvaluator::active);
 		}
 
-		return eval_call(eval_ctx, declid);
+		return eval_call(declid);
 	}
 
-	errvoid ILBuilder::eval_null(ILEvaluator* eval_ctx) {
-		eval_ctx->write_register_value((std::size_t)0);
+	errvoid ILBuilder::eval_null() {
+		ILEvaluator::active->write_register_value((std::size_t)0);
 		return err::ok;
 	}
 
-	errvoid ILBuilder::eval_isnotzero(ILEvaluator* eval_ctx, ILDataType type) {
+	errvoid ILBuilder::eval_isnotzero(ILDataType type) {
 		ilsize_t z = 0;
-		if (!eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(type), &z)) return err::fail;
-		eval_const_i8(eval_ctx, (z == 0 ? 0 : 1));
+		if (!ILEvaluator::active->pop_register_value_indirect(ILEvaluator::active->compile_time_register_size(type), &z)) return err::fail;
+		eval_const_i8((z == 0 ? 0 : 1));
 		return err::ok;
 	}
 
 
-	errvoid ILBuilder::eval_callstart(ILEvaluator* eval_ctx) {
+	errvoid ILBuilder::eval_callstart() {
 		ILFunction* func;
-		if(!eval_ctx->pop_register_value<ILFunction*>(func)) return err::fail;
+		if(!ILEvaluator::active->pop_register_value<ILFunction*>(func)) return err::fail;
 
-		eval_ctx->callstack.push_back(func);
+		ILEvaluator::active->callstack.push_back(func);
 		return err::ok;
 	}
 
-	errvoid ILBuilder::eval_insintric(ILEvaluator* eval_ctx, ILInsintric fun) {
-		if (!eval_ctx->parent->insintric_function[(unsigned char)fun](eval_ctx)) return err::ok;
+	errvoid ILBuilder::eval_insintric(ILInsintric fun) {
+		if (!ILEvaluator::active->parent->insintric_function[(unsigned char)fun](ILEvaluator::active)) return err::ok;
 		return err::ok;
 	}
 
-	errvoid ILBuilder::eval_vtable(ILEvaluator* eval_ctx, std::uint32_t id) {
-		eval_ctx->write_register_value(eval_ctx->parent->vtable_data[id].second.get());
+	errvoid ILBuilder::eval_vtable(std::uint32_t id) {
+		ILEvaluator::active->write_register_value(ILEvaluator::active->parent->vtable_data[id].second.get());
 		return err::ok;
 	}
 
 
-	errvoid ILBuilder::eval_memcpy(ILEvaluator* eval_ctx, std::size_t size) {
+	errvoid ILBuilder::eval_memcpy(ILSize size) {
 
 		void* dst;
-			if(!eval_ctx->pop_register_value(dst)) return err::fail;
+			if(!ILEvaluator::active->pop_register_value(dst)) return err::fail;
 		void* src;
-			if(!eval_ctx->pop_register_value(src)) return err::fail;
+			if(!ILEvaluator::active->pop_register_value(src)) return err::fail;
 
 		if (!wrap || wrap(sandbox) == 0) {
-			std::memcpy(dst, src, size);
+			std::memcpy(dst, src, size.eval(ILEvaluator::active->parent));
 		}
 		else {
-			return throw_runtime_handler_exception(eval_ctx);
+			return throw_runtime_handler_exception(ILEvaluator::active);
 		}
 		return err::ok;
 	}
 
-	errvoid ILBuilder::eval_memcpy_rev(ILEvaluator* eval_ctx, std::size_t size) {
+	errvoid ILBuilder::eval_memcpy_rev(ILSize size) {
 
 		void* src;
-			if(!eval_ctx->pop_register_value(src)) return err::fail;
+			if(!ILEvaluator::active->pop_register_value(src)) return err::fail;
 		void* dst;
-			if(!eval_ctx->pop_register_value(dst)) return err::fail;
+			if(!ILEvaluator::active->pop_register_value(dst)) return err::fail;
 
 		if (!wrap || wrap(sandbox) == 0) {
-			std::memcpy(dst, src, size);
+			std::memcpy(dst, src, size.eval(ILEvaluator::active->parent));
 		}
 		else {
-			return throw_runtime_handler_exception(eval_ctx);
+			return throw_runtime_handler_exception(ILEvaluator::active);
 		}
 		return err::ok;
 	}
 
 
-	errvoid ILBuilder::eval_memcmp(ILEvaluator* eval_ctx, std::size_t size) {
+	errvoid ILBuilder::eval_memcmp(ILSize size) {
 
 		void* dst;
-			if(!eval_ctx->pop_register_value(dst)) return err::fail;
+			if(!ILEvaluator::active->pop_register_value(dst)) return err::fail;
 		void* src;
-			if(!eval_ctx->pop_register_value(src)) return err::fail;
+			if(!ILEvaluator::active->pop_register_value(src)) return err::fail;
 
 		if (!wrap || wrap(sandbox) == 0) {
-			eval_ctx->write_register_value((std::int8_t)memcmp(dst, src, size));
+			ILEvaluator::active->write_register_value((std::int8_t)memcmp(dst, src, size.eval(ILEvaluator::active->parent)));
 		}
 		else {
-			return throw_runtime_handler_exception(eval_ctx);
+			return throw_runtime_handler_exception(ILEvaluator::active);
 		}
 		return err::ok;
 	}
 
-	errvoid ILBuilder::eval_memcmp_rev(ILEvaluator* eval_ctx, std::size_t size) {
+	errvoid ILBuilder::eval_memcmp_rev(ILSize size) {
 
 		void* src;
-			if(!eval_ctx->pop_register_value(src)) return err::fail;
+			if(!ILEvaluator::active->pop_register_value(src)) return err::fail;
 		void* dst;
-			if(!eval_ctx->pop_register_value(dst)) return err::fail;
+			if(!ILEvaluator::active->pop_register_value(dst)) return err::fail;
 
 		if (!wrap || wrap(sandbox) == 0) {
-			eval_ctx->write_register_value((std::int8_t)memcmp(dst, src, size));
+			ILEvaluator::active->write_register_value((std::int8_t)memcmp(dst, src, size.eval(ILEvaluator::active->parent)));
 		}
 		else {
-			return throw_runtime_handler_exception(eval_ctx);
+			return throw_runtime_handler_exception(ILEvaluator::active);
 		}
 		return err::ok;
 	}
 
-	errvoid ILBuilder::eval_tableoffset(ILEvaluator* eval_ctx, tableid_t tableid, tableelement_t itemid) {
-		auto& table = eval_ctx->parent->structure_tables[tableid];
-		table.calculate(eval_ctx->parent);
+	errvoid ILBuilder::eval_tableoffset(tableid_t tableid, tableelement_t itemid) {
+		auto& table = ILEvaluator::active->parent->structure_tables[tableid];
+		table.calculate(ILEvaluator::active->parent);
 		unsigned char* ptr;
-			if(!eval_ctx->pop_register_value(ptr)) return err::fail;
+			if(!ILEvaluator::active->pop_register_value(ptr)) return err::fail;
 		ptr += table.calculated_offsets[itemid];
-		eval_ctx->write_register_value(ptr);
+		ILEvaluator::active->write_register_value(ptr);
 		return err::ok;
 	}
 
 
-	errvoid ILBuilder::eval_tableroffset(ILEvaluator* eval_ctx, ILDataType src, ILDataType dst, tableid_t tableid, tableelement_t itemid) {
-		auto& table = eval_ctx->parent->structure_tables[tableid];
-		table.calculate(eval_ctx->parent);
+	errvoid ILBuilder::eval_tableroffset(ILDataType src, ILDataType dst, tableid_t tableid, tableelement_t itemid) {
+		auto& table = ILEvaluator::active->parent->structure_tables[tableid];
+		table.calculate(ILEvaluator::active->parent);
 		ilsize_t storage;
-		if (!eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(src), &storage)) return err::fail;
+		if (!ILEvaluator::active->pop_register_value_indirect(ILEvaluator::active->compile_time_register_size(src), &storage)) return err::fail;
 		storage = storage >> table.calculated_offsets[itemid];
-		if (!eval_ctx->write_register_value_indirect(eval_ctx->compile_time_register_size(dst), &storage)) return err::fail;
+		if (!ILEvaluator::active->write_register_value_indirect(ILEvaluator::active->compile_time_register_size(dst), &storage)) return err::fail;
 		return err::ok;
 	}
 
-	errvoid ILBuilder::eval_rmemcmp(ILEvaluator* eval_ctx, ILDataType type) {
-		std::size_t reg_v = eval_ctx->compile_time_register_size(type);
+	errvoid ILBuilder::eval_rmemcmp(ILDataType type) {
+		std::size_t reg_v = ILEvaluator::active->compile_time_register_size(type);
 		ilsize_t s1, s2;
-		if (!eval_ctx->pop_register_value_indirect(reg_v, &s1)) return err::fail;
-		if (!eval_ctx->pop_register_value_indirect(reg_v, &s2)) return err::fail;
+		if (!ILEvaluator::active->pop_register_value_indirect(reg_v, &s1)) return err::fail;
+		if (!ILEvaluator::active->pop_register_value_indirect(reg_v, &s2)) return err::fail;
 		std::uint8_t res;
 		if (!wrap || wrap(sandbox) == 0) {
 			res = (std::int8_t)memcmp(&s1, &s2, reg_v);
 		}
 		else {
-			return throw_runtime_handler_exception(eval_ctx);
+			return throw_runtime_handler_exception(ILEvaluator::active);
 		}
 
-		eval_ctx->write_register_value(res);
+		ILEvaluator::active->write_register_value(res);
 		return err::ok;
 	}
 
-	errvoid ILBuilder::eval_rmemcmp_rev(ILEvaluator* eval_ctx, ILDataType type) {
-		std::size_t reg_v = eval_ctx->compile_time_register_size(type);
+	errvoid ILBuilder::eval_rmemcmp_rev(ILDataType type) {
+		std::size_t reg_v = ILEvaluator::active->compile_time_register_size(type);
 		ilsize_t s1, s2;
-		if (!eval_ctx->pop_register_value_indirect(reg_v, &s2)) return err::fail;
-		if (!eval_ctx->pop_register_value_indirect(reg_v, &s1)) return err::fail;
+		if (!ILEvaluator::active->pop_register_value_indirect(reg_v, &s2)) return err::fail;
+		if (!ILEvaluator::active->pop_register_value_indirect(reg_v, &s1)) return err::fail;
 		std::uint8_t res;
 		if (!wrap || wrap(sandbox) == 0) {
 			res = (std::int8_t)memcmp(&s1, &s2, reg_v);
 		}
 		else {
-			return throw_runtime_handler_exception(eval_ctx);
+			return throw_runtime_handler_exception(ILEvaluator::active);
 		}
-		eval_ctx->write_register_value(res);
+		ILEvaluator::active->write_register_value(res);
 		return err::ok;
 	}
 
 
-	errvoid ILBuilder::eval_swap(ILEvaluator* eval_ctx, ILDataType type) {
-		std::size_t reg_v = eval_ctx->compile_time_register_size(type);
+	errvoid ILBuilder::eval_swap(ILDataType type) {
+		std::size_t reg_v = ILEvaluator::active->compile_time_register_size(type);
 		ilsize_t s1, s2;
-		if (!eval_ctx->pop_register_value_indirect(reg_v, &s1)) return err::fail;
-		if (!eval_ctx->pop_register_value_indirect(reg_v, &s2)) return err::fail;
-		if (!eval_ctx->write_register_value_indirect(reg_v, &s1)) return err::fail;
-		if (!eval_ctx->write_register_value_indirect(reg_v, &s2)) return err::fail;
+		if (!ILEvaluator::active->pop_register_value_indirect(reg_v, &s1)) return err::fail;
+		if (!ILEvaluator::active->pop_register_value_indirect(reg_v, &s2)) return err::fail;
+		if (!ILEvaluator::active->write_register_value_indirect(reg_v, &s1)) return err::fail;
+		if (!ILEvaluator::active->write_register_value_indirect(reg_v, &s2)) return err::fail;
 		return err::ok;
 	}
 
 
 
-	errvoid ILBuilder::eval_negative(ILEvaluator* eval_ctx, ILDataType type) {
+	errvoid ILBuilder::eval_negative(ILDataType type) {
 
 		switch (type) {
 			case ILDataType::u8:
 			case ILDataType::i8: {
 				std::int8_t v;
-				if (!eval_ctx->pop_register_value<std::int8_t>(v)) return err::fail;
-				eval_ctx->write_register_value(-v);
+				if (!ILEvaluator::active->pop_register_value<std::int8_t>(v)) return err::fail;
+				ILEvaluator::active->write_register_value(-v);
 			} break;
 			case ILDataType::u16:
 			case ILDataType::i16:{
 				std::int16_t v;
-				if (!eval_ctx->pop_register_value<std::int16_t>(v)) return err::fail;
-				eval_ctx->write_register_value(-v);
+				if (!ILEvaluator::active->pop_register_value<std::int16_t>(v)) return err::fail;
+				ILEvaluator::active->write_register_value(-v);
 			} break;
 			case ILDataType::u32:
 			case ILDataType::i32:{
 				std::int32_t v;
-				if (!eval_ctx->pop_register_value<std::int32_t>(v)) return err::fail;
-				eval_ctx->write_register_value(-v);
+				if (!ILEvaluator::active->pop_register_value<std::int32_t>(v)) return err::fail;
+				ILEvaluator::active->write_register_value(-v);
 			} break;
 			case ILDataType::u64:
 			case ILDataType::i64:{
 				std::int64_t v;
-				if (!eval_ctx->pop_register_value<std::int64_t>(v)) return err::fail;
-				eval_ctx->write_register_value(-v);
+				if (!ILEvaluator::active->pop_register_value<std::int64_t>(v)) return err::fail;
+				ILEvaluator::active->write_register_value(-v);
 			} break;
 			case ILDataType::f32:{
 				float v;
-				if (!eval_ctx->pop_register_value<float>(v)) return err::fail;
-				eval_ctx->write_register_value(-v);
+				if (!ILEvaluator::active->pop_register_value<float>(v)) return err::fail;
+				ILEvaluator::active->write_register_value(-v);
 			} break;
 			case ILDataType::f64:{
 				double v;
-				if (!eval_ctx->pop_register_value<double>(v)) return err::fail;
-				eval_ctx->write_register_value(-v);
+				if (!ILEvaluator::active->pop_register_value<double>(v)) return err::fail;
+				ILEvaluator::active->write_register_value(-v);
 			} break;
 				break;
 			case ILDataType::word:{
 				std::size_t v;
-				if (!eval_ctx->pop_register_value<std::size_t>(v)) return err::fail;
-				eval_ctx->write_register_value((SIZE_MAX ^ v) - 1);
+				if (!ILEvaluator::active->pop_register_value<std::size_t>(v)) return err::fail;
+				ILEvaluator::active->write_register_value((SIZE_MAX ^ v) - 1);
 			} break;
 		}
 		return err::ok;
 	}
 
 
-	errvoid ILBuilder::eval_negate(ILEvaluator* eval_ctx) {
+	errvoid ILBuilder::eval_negate() {
 		std::uint8_t val;
-		if (!eval_ctx->pop_register_value<std::uint8_t>(val)) return err::fail;
+		if (!ILEvaluator::active->pop_register_value<std::uint8_t>(val)) return err::fail;
 
 		if (val) {
-			eval_ctx->write_register_value<std::uint8_t>(0);
+			ILEvaluator::active->write_register_value<std::uint8_t>(0);
 		}
 		else {
-			eval_ctx->write_register_value<std::uint8_t>(1);
+			ILEvaluator::active->write_register_value<std::uint8_t>(1);
 		}
 		return err::ok;
 	}
 
 
 
-	errvoid ILBuilder::eval_swap2(ILEvaluator* eval_ctx, ILDataType type1, ILDataType type2) {
-		std::size_t reg_v_1 = eval_ctx->compile_time_register_size(type1);
-		std::size_t reg_v_2 = eval_ctx->compile_time_register_size(type2);
+	errvoid ILBuilder::eval_swap2(ILDataType type1, ILDataType type2) {
+		std::size_t reg_v_1 = ILEvaluator::active->compile_time_register_size(type1);
+		std::size_t reg_v_2 = ILEvaluator::active->compile_time_register_size(type2);
 		ilsize_t s1, s2;
-		if (!eval_ctx->pop_register_value_indirect(reg_v_2, &s2)) return err::fail;
-		if (!eval_ctx->pop_register_value_indirect(reg_v_1, &s1)) return err::fail;
-		if (!eval_ctx->write_register_value_indirect(reg_v_2, &s2)) return err::fail;
-		if (!eval_ctx->write_register_value_indirect(reg_v_1, &s1)) return err::fail;
+		if (!ILEvaluator::active->pop_register_value_indirect(reg_v_2, &s2)) return err::fail;
+		if (!ILEvaluator::active->pop_register_value_indirect(reg_v_1, &s1)) return err::fail;
+		if (!ILEvaluator::active->write_register_value_indirect(reg_v_2, &s2)) return err::fail;
+		if (!ILEvaluator::active->write_register_value_indirect(reg_v_1, &s1)) return err::fail;
 		return err::ok;
 	}
 
-	errvoid ILBuilder::eval_call(ILEvaluator* eval_ctx, std::uint32_t decl) {
-		eval_ctx->debug_callstack.push_back(std::make_tuple(eval_ctx->debug_line, eval_ctx->debug_file, "<native function>"));
+	errvoid ILBuilder::eval_call(std::uint32_t decl) {
+		ILEvaluator::active->debug_callstack.push_back(std::make_tuple(ILEvaluator::active->debug_line, ILEvaluator::active->debug_file, "<native function>"));
 
 		if (!wrap || wrap(sandbox) == 0) {
-			auto& declaration = eval_ctx->parent->function_decl[decl];
+			auto& declaration = ILEvaluator::active->parent->function_decl[decl];
 
-			void* ptr = eval_ctx->callstack.back();
-			eval_ctx->callstack.pop_back();
+			void* ptr = ILEvaluator::active->callstack.back();
+			ILEvaluator::active->callstack.pop_back();
 
 			if (std::get<0>(declaration) == ILCallingConvention::bytecode) {
 				ILBytecodeFunction* bytecode_fun = (ILBytecodeFunction*)ptr;
-				std::get<2>(eval_ctx->debug_callstack.back()) = bytecode_fun->name;
-				//eval_ctx->callstack_debug.push_back(std::make_tuple(eval_ctx->debug_line, eval_ctx->debug_file, std::string_view(bytecode_fun->alias)));
+				std::get<2>(ILEvaluator::active->debug_callstack.back()) = bytecode_fun->name;
+				//ILEvaluator::active->callstack_debug.push_back(std::make_tuple(ILEvaluator::active->debug_line, ILEvaluator::active->debug_file, std::string_view(bytecode_fun->alias)));
 
 				bytecode_fun->calculate_stack();
 
-				ILBlock* block = bytecode_fun->blocks[0];
 				bool running = true;
 
-				unsigned char* lstack_base = eval_ctx->stack_base;
-				unsigned char* lstack_base_aligned = eval_ctx->stack_base_aligned;
-				unsigned char* lstack_pointer = eval_ctx->stack_pointer;
+				unsigned char* lstack_base = ILEvaluator::active->stack_base;
+				unsigned char* lstack_base_aligned = ILEvaluator::active->stack_base_aligned;
+				unsigned char* lstack_pointer = ILEvaluator::active->stack_pointer;
 
-				eval_ctx->stack_base = eval_ctx->stack_pointer;
-				eval_ctx->stack_base_aligned = (unsigned char*)align_up((std::size_t)eval_ctx->stack_base, bytecode_fun->calculated_local_stack_alignment);
-				eval_ctx->stack_pointer = eval_ctx->stack_base_aligned + bytecode_fun->calculated_local_stack_size;
+				ILEvaluator::active->stack_base = ILEvaluator::active->stack_pointer;
+				ILEvaluator::active->stack_base_aligned = (unsigned char*)align_up((std::size_t)ILEvaluator::active->stack_base, bytecode_fun->calculated_local_stack_alignment);
+				ILEvaluator::active->stack_pointer = ILEvaluator::active->stack_base_aligned + bytecode_fun->calculated_local_stack_size;
 
+				ILEvaluator::exec_function(bytecode_fun);				
 
-				unsigned char* local_base = eval_ctx->stack_base_aligned;
-
-				std::size_t instr = 0;
-
-				while (true) {
-					auto it = block->data_pool.begin();
-
-					while (it != block->data_pool.end()) {
-
-						auto inst = block->read_data<ILInstruction>(it);
-						instr++;
-
-						switch (inst) {
-							case ILInstruction::ret: {
-								auto type = ILBlock::read_data<ILDataType>(it);
-								running = false;
-								goto returned;
-							} break;
-							case ILInstruction::call: {
-								auto decl = ILBlock::read_data<std::uint32_t>(it);
-								if (!eval_call(eval_ctx, decl)) return false;
-							} break;
-							case ILInstruction::memcpy: {
-								auto size = ILBlock::read_data<ILSize>(it);
-								if (!eval_memcpy(eval_ctx, size.eval(eval_ctx->parent))) return err::fail;
-							} break;
-							case ILInstruction::memcpy2: {
-								auto size = ILBlock::read_data<ILSize>(it);
-								if (!eval_memcpy_rev(eval_ctx, size.eval(eval_ctx->parent))) return err::fail;
-							} break;
-							case ILInstruction::memcmp: {
-								auto size = ILBlock::read_data<ILSize>(it);
-								if (!eval_memcmp(eval_ctx, size.eval(eval_ctx->parent))) return err::fail;
-							} break;
-							case ILInstruction::memcmp2: {
-								auto size = ILBlock::read_data<ILSize>(it);
-								if (!eval_memcmp_rev(eval_ctx, size.eval(eval_ctx->parent))) return err::fail;
-							} break;
-							case ILInstruction::fnptr: {
-								auto id = ILBlock::read_data<std::uint32_t>(it);
-								if (!eval_fnptr(eval_ctx,eval_ctx->parent->functions[id].get())) return err::fail;
-							} break;
-							case ILInstruction::fncall: {
-								auto id = ILBlock::read_data<std::uint32_t>(it);
-								auto fn = eval_ctx->parent->functions[id].get();
-								if (!eval_fncall(eval_ctx, fn)) return err::fail;
-							} break;
-							case ILInstruction::vtable: {
-								auto id = ILBlock::read_data<std::uint32_t>(it);
-								if (!eval_vtable(eval_ctx, id)) return err::fail;
-							} break;
-							case ILInstruction::duplicate: {
-								auto type = ILBlock::read_data<ILDataType>(it);
-								if (!eval_duplicate(eval_ctx, type)) return err::fail;
-							} break;
-							case ILInstruction::clone: {
-								auto type = ILBlock::read_data<ILDataType>(it);
-								auto times = ILBlock::read_data<std::uint16_t>(it);
-								if (!eval_clone(eval_ctx, type, times)) return err::fail;
-							} break;
-							case ILInstruction::swap: {
-								auto type = ILBlock::read_data<ILDataType>(it);
-								if (!eval_swap(eval_ctx, type)) return err::fail;
-							} break;
-							case ILInstruction::swap2: {
-								auto p = ILBlock::read_data<ILDataTypePair>(it);
-								if (!eval_swap2(eval_ctx, p.first(), p.second())) return err::fail;
-							} break;
-							case ILInstruction::insintric: {
-								auto id = ILBlock::read_data<std::uint8_t>(it);
-								if (!eval_insintric(eval_ctx, (ILInsintric)id)) return err::fail;
-							} break;
-							case ILInstruction::rmemcmp: {
-								auto type = ILBlock::read_data<ILDataType>(it);
-								if (!eval_rmemcmp(eval_ctx, type)) return err::fail;
-							} break;
-							case ILInstruction::rmemcmp2: {
-								auto type = ILBlock::read_data<ILDataType>(it);
-								if (!eval_rmemcmp_rev(eval_ctx, type)) return err::fail;
-							} break;
-							case ILInstruction::sub: {
-								auto type = ILBlock::read_data<ILDataTypePair>(it);
-								if (!eval_sub(eval_ctx, type.first(), type.second())) return err::fail;
-							} break;
-							case ILInstruction::div: {
-								auto type = ILBlock::read_data<ILDataTypePair>(it);
-								if (!eval_div(eval_ctx, type.first(), type.second())) return err::fail;
-							} break;
-							case ILInstruction::rem: {
-								auto type = ILBlock::read_data<ILDataTypePair>(it);
-								if (!eval_rem(eval_ctx, type.first(), type.second())) return err::fail;
-							} break;
-							case ILInstruction::mul: {
-								auto type = ILBlock::read_data<ILDataTypePair>(it);
-								if (!eval_mul(eval_ctx, type.first(), type.second())) return err::fail;
-							} break;
-							case ILInstruction::add: {
-								auto type = ILBlock::read_data<ILDataTypePair>(it);
-								if (!eval_add(eval_ctx, type.first(), type.second())) return err::fail;
-							} break;
-							case ILInstruction::bit_and: {
-								auto type = ILBlock::read_data<ILDataTypePair>(it);
-								if (!eval_and(eval_ctx, type.first(), type.second())) return err::fail;
-							} break;
-							case ILInstruction::bit_or: {
-								auto type = ILBlock::read_data<ILDataTypePair>(it);
-								if (!eval_or(eval_ctx, type.first(), type.second())) return err::fail;
-							} break;
-							case ILInstruction::bit_xor: {
-								auto type = ILBlock::read_data<ILDataTypePair>(it);
-								if (!eval_xor(eval_ctx, type.first(), type.second())) return err::fail;
-							} break;
-							case ILInstruction::eq: {
-								auto type = ILBlock::read_data<ILDataTypePair>(it);
-								if (!eval_eq(eval_ctx, type.first(), type.second())) return err::fail;
-							} break;
-							case ILInstruction::ne: {
-								auto type = ILBlock::read_data<ILDataTypePair>(it);
-								if (!eval_ne(eval_ctx, type.first(), type.second())) return err::fail;
-							} break;
-							case ILInstruction::gt: {
-								auto type = ILBlock::read_data<ILDataTypePair>(it);
-								if (!eval_gt(eval_ctx, type.first(), type.second())) return err::fail;
-							} break;
-							case ILInstruction::lt: {
-								auto type = ILBlock::read_data<ILDataTypePair>(it);
-								if (!eval_lt(eval_ctx, type.first(), type.second())) return err::fail;
-							} break;
-							case ILInstruction::ge: {
-								auto type = ILBlock::read_data<ILDataTypePair>(it);
-								if (!eval_ge(eval_ctx, type.first(), type.second())) return err::fail;
-							} break;
-							case ILInstruction::le: {
-								auto type = ILBlock::read_data<ILDataTypePair>(it);
-								if (!eval_le(eval_ctx, type.first(), type.second())) return err::fail;
-							} break;
-
-							case ILInstruction::cast: {
-								auto pair = ILBlock::read_data<ILDataTypePair>(it);
-								if (!eval_cast(eval_ctx, pair.first(), pair.second())) return err::fail;
-							} break;
-							case ILInstruction::bitcast: {
-								auto pair = ILBlock::read_data<ILDataTypePair>(it);
-								if (!eval_bitcast(eval_ctx, pair.first(), pair.second())) return err::fail;
-							} break;
-							case ILInstruction::store: {
-								auto type = ILBlock::read_data<ILDataType>(it);
-								if (!eval_store(eval_ctx, type)) return err::fail;
-							} break;
-							case ILInstruction::store2: {
-								auto type = ILBlock::read_data<ILDataType>(it);
-								if (!eval_store_rev(eval_ctx, type)) return err::fail;
-							} break;
-							case ILInstruction::yield: {
-								auto type = ILBlock::read_data<ILDataType>(it);
-								if (!eval_yield(eval_ctx, type)) return err::fail;
-							} break;
-							case ILInstruction::accept: {
-								auto type = ILBlock::read_data<ILDataType>(it);
-								if (!eval_accept(eval_ctx, type)) return err::fail;
-							} break;
-							case ILInstruction::discard: {
-								auto type = ILBlock::read_data<ILDataType>(it);
-								if (!eval_discard(eval_ctx, type)) return err::fail;
-							} break;
-							case ILInstruction::start: {
-								if (!eval_callstart(eval_ctx)) return err::fail;
-							} break;
-
-							case ILInstruction::null: {
-								if (!eval_null(eval_ctx)) return err::fail;
-							} break;
-
-							case ILInstruction::jmp: {
-								auto address = ILBlock::read_data<std::uint32_t>(it);
-								block = block->parent->blocks_memory[address].get();
-								goto next_block;
-							}break;
-							case ILInstruction::offset32: {
-								auto t = ILBlock::read_data<std::uint8_t>(it);
-								auto v = ILBlock::read_data<std::uint32_t>(it);
-								if (!eval_offset(eval_ctx, ILSize((ILSizeType)t,v))) return err::fail;
-							} break;
-							case ILInstruction::offset16: {
-								auto t = ILBlock::read_data<std::uint8_t>(it);
-								auto v = ILBlock::read_data<std::uint16_t>(it);
-								if (!eval_offset(eval_ctx, ILSize((ILSizeType)t,v))) return err::fail;
-							} break;
-							case ILInstruction::offset8: {
-								auto t = ILBlock::read_data<std::uint8_t>(it);
-								auto v = ILBlock::read_data<std::uint8_t>(it);
-								if (!eval_offset(eval_ctx, ILSize((ILSizeType)t,v))) return err::fail;
-							} break;
-							case ILInstruction::aoffset8: {
-								auto size = ILBlock::read_data<std::uint8_t>(it);
-								if (!eval_aoffset(eval_ctx, size)) return err::fail;
-							} break;
-							case ILInstruction::aoffset16: {
-								auto size = ILBlock::read_data<std::uint16_t>(it);
-								if (!eval_aoffset(eval_ctx, size)) return err::fail;
-							} break;
-							case ILInstruction::aoffset32: {
-								auto size = ILBlock::read_data<std::uint32_t>(it);
-								if (!eval_aoffset(eval_ctx, size)) return err::fail;
-							} break;
-							case ILInstruction::woffset8: {
-								auto size = ILBlock::read_data<std::uint8_t>(it);
-								if (!eval_woffset(eval_ctx, size)) return err::fail;
-							} break;
-							case ILInstruction::woffset16: {
-								auto size = ILBlock::read_data<std::uint16_t>(it);
-								if (!eval_woffset(eval_ctx, size)) return err::fail;
-							} break;
-							case ILInstruction::woffset32: {
-								auto size = ILBlock::read_data<std::uint32_t>(it);
-								if (!eval_woffset(eval_ctx, size)) return err::fail;
-							} break;
-							case ILInstruction::constref: {
-								auto cid = ILBlock::read_data<std::uint32_t>(it);
-								if (!eval_constref(eval_ctx, cid)) return err::fail;
-							} break;
-							case ILInstruction::staticref: {
-								auto cid = ILBlock::read_data<std::uint32_t>(it);
-								if (!eval_staticref(eval_ctx, cid)) return err::fail;
-							} break;
-							case ILInstruction::rtoffset: {
-								if (!eval_rtoffset(eval_ctx)) return err::fail;
-							} break;
-							case ILInstruction::rtoffset2: {
-								if (!eval_rtoffset_rev(eval_ctx)) return err::fail;
-							} break;
-							case ILInstruction::roffset32: {
-								auto from_t = ILBlock::read_data<ILDataType>(it);
-								auto to_t = ILBlock::read_data<ILDataType>(it); 
-								auto t = ILBlock::read_data<std::uint8_t>(it);
-								auto v = ILBlock::read_data<std::uint32_t>(it);
-								if (!eval_roffset(eval_ctx, from_t, to_t, ILSize((ILSizeType)t, v).eval(eval_ctx->parent))) return err::fail;
-							} break;
-								
-							case ILInstruction::roffset16: {
-								auto from_t = ILBlock::read_data<ILDataType>(it);
-								auto to_t = ILBlock::read_data<ILDataType>(it); 
-								auto t = ILBlock::read_data<std::uint8_t>(it);
-								auto v = ILBlock::read_data<std::uint16_t>(it);
-								if (!eval_roffset(eval_ctx, from_t, to_t, ILSize((ILSizeType)t, v).eval(eval_ctx->parent))) return err::fail;
-							} break;
-								
-							case ILInstruction::roffset8: {
-								auto from_t = ILBlock::read_data<ILDataType>(it);
-								auto to_t = ILBlock::read_data<ILDataType>(it); 
-								auto t = ILBlock::read_data<std::uint8_t>(it);
-								auto v = ILBlock::read_data<std::uint8_t>(it);
-								if (!eval_roffset(eval_ctx, from_t, to_t, ILSize((ILSizeType)t, v).eval(eval_ctx->parent))) return err::fail;
-							} break;
-
-							case ILInstruction::aroffset: {
-								auto p = ILBlock::read_data<ILDataTypePair>(it);
-								auto size = ILBlock::read_data<std::uint8_t>(it);
-								if (!eval_aroffset(eval_ctx, p.first(), p.second(), size)) return err::fail;
-							} break;
-
-							case ILInstruction::wroffset: {
-								auto p = ILBlock::read_data<ILDataTypePair>(it);
-								auto size = ILBlock::read_data<std::uint8_t>(it);
-								if (!eval_wroffset(eval_ctx, p.first(), p.second(), size)) return err::fail;
-							} break;
-
-							case ILInstruction::local8: {
-								auto id = ILBlock::read_data<std::uint8_t>(it);
-								auto& offset = bytecode_fun->calculated_local_offsets[id];
-								if (!eval_const_word(eval_ctx, local_base + offset)) return err::fail;
-							} break;
-								
-							case ILInstruction::local16: {
-								auto id = ILBlock::read_data<std::uint16_t>(it);
-								auto& offset = bytecode_fun->calculated_local_offsets[id];
-								if (!eval_const_word(eval_ctx, local_base + offset)) return err::fail;
-							} break;
-								
-							case ILInstruction::local32: {
-								auto id = ILBlock::read_data<std::uint32_t>(it);
-								auto& offset = bytecode_fun->calculated_local_offsets[id];
-								if (!eval_const_word(eval_ctx, local_base + offset)) return err::fail;
-							} break;
-
-							case ILInstruction::table8offset8: {
-								auto tid = ILBlock::read_data<std::uint8_t>(it);
-								auto eid = ILBlock::read_data<std::uint8_t>(it);
-								if (!eval_tableoffset(eval_ctx, tid, eid)) return err::fail;
-							} break;
-							case ILInstruction::table8offset16: {
-								auto tid = ILBlock::read_data<std::uint8_t>(it);
-								auto eid = ILBlock::read_data<std::uint16_t>(it);
-								if (!eval_tableoffset(eval_ctx, tid, eid)) return err::fail;
-							} break;
-							case ILInstruction::table8offset32: {
-								auto tid = ILBlock::read_data<std::uint8_t>(it);
-								auto eid = ILBlock::read_data<std::uint32_t>(it);
-								if (!eval_tableoffset(eval_ctx, tid, eid)) return err::fail;
-							} break;
-							case ILInstruction::table16offset8: {
-								auto tid = ILBlock::read_data<std::uint16_t>(it);
-								auto eid = ILBlock::read_data<std::uint8_t>(it);
-								if (!eval_tableoffset(eval_ctx, tid, eid)) return err::fail;
-							} break;
-							case ILInstruction::table16offset16: {
-								auto tid = ILBlock::read_data<std::uint16_t>(it);
-								auto eid = ILBlock::read_data<std::uint16_t>(it);
-								if (!eval_tableoffset(eval_ctx, tid, eid)) return err::fail;
-							} break;
-							case ILInstruction::table16offset32: {
-								auto tid = ILBlock::read_data<std::uint16_t>(it);
-								auto eid = ILBlock::read_data<std::uint32_t>(it);
-								if (!eval_tableoffset(eval_ctx, tid, eid)) return err::fail;
-							} break;
-							case ILInstruction::table32offset8: {
-								auto tid = ILBlock::read_data<std::uint32_t>(it);
-								auto eid = ILBlock::read_data<std::uint8_t>(it);
-								if (!eval_tableoffset(eval_ctx, tid, eid)) return err::fail;
-							} break;
-							case ILInstruction::table32offset16: {
-								auto tid = ILBlock::read_data<std::uint32_t>(it);
-								auto eid = ILBlock::read_data<std::uint16_t>(it);
-								if (!eval_tableoffset(eval_ctx, tid, eid)) return err::fail;
-							} break;
-							case ILInstruction::table32offset32: {
-								auto tid = ILBlock::read_data<std::uint32_t>(it);
-								auto eid = ILBlock::read_data<std::uint32_t>(it);
-								if (!eval_tableoffset(eval_ctx, tid, eid)) return err::fail;
-							} break;
-
-							case ILInstruction::table8roffset8: {
-								auto pair = ILBlock::read_data<ILDataTypePair>(it);
-								auto tid = ILBlock::read_data<std::uint8_t>(it);
-								auto eid = ILBlock::read_data<std::uint8_t>(it);
-								if (!eval_tableroffset(eval_ctx, pair.first(), pair.second(), tid, eid)) return err::fail;
-							} break;
-							case ILInstruction::table8roffset16: {
-								auto pair = ILBlock::read_data<ILDataTypePair>(it);
-								auto tid = ILBlock::read_data<std::uint8_t>(it);
-								auto eid = ILBlock::read_data<std::uint16_t>(it);
-								if (!eval_tableroffset(eval_ctx, pair.first(), pair.second(), tid, eid)) return err::fail;
-							} break;
-							case ILInstruction::table8roffset32: {
-								auto pair = ILBlock::read_data<ILDataTypePair>(it);
-								auto tid = ILBlock::read_data<std::uint8_t>(it);
-								auto eid = ILBlock::read_data<std::uint32_t>(it);
-								if (!eval_tableroffset(eval_ctx, pair.first(), pair.second(), tid, eid)) return err::fail;
-							} break;
-							case ILInstruction::table16roffset8: {
-								auto pair = ILBlock::read_data<ILDataTypePair>(it);
-								auto tid = ILBlock::read_data<std::uint16_t>(it);
-								auto eid = ILBlock::read_data<std::uint8_t>(it);
-								if (!eval_tableroffset(eval_ctx, pair.first(), pair.second(), tid, eid)) return err::fail;
-							} break;
-							case ILInstruction::table16roffset16: {
-								auto pair = ILBlock::read_data<ILDataTypePair>(it);
-								auto tid = ILBlock::read_data<std::uint16_t>(it);
-								auto eid = ILBlock::read_data<std::uint16_t>(it);
-								if (!eval_tableroffset(eval_ctx, pair.first(), pair.second(), tid, eid)) return err::fail;
-							} break;
-							case ILInstruction::table16roffset32: {
-								auto pair = ILBlock::read_data<ILDataTypePair>(it);
-								auto tid = ILBlock::read_data<std::uint16_t>(it);
-								auto eid = ILBlock::read_data<std::uint32_t>(it);
-								if (!eval_tableroffset(eval_ctx, pair.first(), pair.second(), tid, eid)) return err::fail;
-							} break;
-							case ILInstruction::table32roffset8: {
-								auto pair = ILBlock::read_data<ILDataTypePair>(it);
-								auto tid = ILBlock::read_data<std::uint32_t>(it);
-								auto eid = ILBlock::read_data<std::uint8_t>(it);
-								if (!eval_tableroffset(eval_ctx, pair.first(), pair.second(), tid, eid)) return err::fail;
-							} break;
-							case ILInstruction::table32roffset16: {
-								auto pair = ILBlock::read_data<ILDataTypePair>(it);
-								auto tid = ILBlock::read_data<std::uint32_t>(it);
-								auto eid = ILBlock::read_data<std::uint16_t>(it);
-								if (!eval_tableroffset(eval_ctx, pair.first(), pair.second(), tid, eid)) return err::fail;
-							} break;
-							case ILInstruction::table32roffset32: {
-								auto pair = ILBlock::read_data<ILDataTypePair>(it);
-								auto tid = ILBlock::read_data<std::uint32_t>(it);
-								auto eid = ILBlock::read_data<std::uint32_t>(it);
-								if (!eval_tableroffset(eval_ctx, pair.first(), pair.second(), tid, eid)) return err::fail;
-							} break;
-
-							case ILInstruction::debug: {
-								auto file = ILBlock::read_data<std::uint16_t>(it);
-								auto line = ILBlock::read_data<std::uint16_t>(it);
-								if (!eval_debug(eval_ctx, file, line)) return err::fail;
-							} break;
-
-							case ILInstruction::load: {
-								auto type = ILBlock::read_data<ILDataType>(it);
-								if (!eval_load(eval_ctx, type)) return err::fail;
-							} break;
-
-							case ILInstruction::isnotzero: {
-								auto type = ILBlock::read_data<ILDataType>(it);
-								if (!eval_isnotzero(eval_ctx, type)) return err::fail;
-							} break;
-
-							case ILInstruction::negative: {
-								auto type = ILBlock::read_data<ILDataType>(it);
-								if (!eval_negative(eval_ctx, type)) return err::fail;
-							} break;
-
-							case ILInstruction::negate: {
-								if (!eval_negate(eval_ctx)) return err::fail;
-							} break;
-
-							case ILInstruction::combinedw: {
-								if (!eval_combine_dword(eval_ctx)) return err::fail;
-							} break;
-							case ILInstruction::highdw: {
-								if (!eval_high_word(eval_ctx)) return err::fail;
-							} break;
-							case ILInstruction::lowdw: {
-								if (!eval_low_word(eval_ctx)) return err::fail;
-							} break;
-							case ILInstruction::splitdw: {
-								if (!eval_split_dword(eval_ctx)) return err::fail;
-							} break;
-
-							case ILInstruction::extract8: {
-								ILSize s;
-								s.type = ILBlock::read_data<ILSizeType>(it);
-								s.value = (tableid_t)ILBlock::read_data<std::uint8_t>(it);
-								if (!eval_extract(eval_ctx, s)) return err::fail;
-							} break;
-
-							case ILInstruction::extract16: {
-								ILSize s;
-								s.type = ILBlock::read_data<ILSizeType>(it);
-								s.value = (tableid_t)ILBlock::read_data<std::uint16_t>(it);
-								if (!eval_extract(eval_ctx, s)) return err::fail;
-							} break;
-
-							case ILInstruction::extract32: {
-								ILSize s;
-								s.type = ILBlock::read_data<ILSizeType>(it);
-								s.value = (tableid_t)ILBlock::read_data<std::uint32_t>(it);
-								if (!eval_extract(eval_ctx, s)) return err::fail;
-							} break;
-							
-							case ILInstruction::cut8: {
-								ILSize s;
-								s.type = ILBlock::read_data<ILSizeType>(it);
-								s.value = (tableid_t)ILBlock::read_data<std::uint8_t>(it);
-								if (!eval_cut(eval_ctx, s)) return err::fail;
-							} break;
-
-							case ILInstruction::cut16: {
-								ILSize s;
-								s.type = ILBlock::read_data<ILSizeType>(it);
-								s.value = (tableid_t)ILBlock::read_data<std::uint16_t>(it);
-								if (!eval_cut(eval_ctx, s)) return err::fail;
-							} break;
-
-							case ILInstruction::cut32: {
-								ILSize s;
-								s.type = ILBlock::read_data<ILSizeType>(it);
-								s.value = (tableid_t)ILBlock::read_data<std::uint32_t>(it);
-								if (!eval_cut(eval_ctx, s)) return err::fail;
-							} break;
-
-							case ILInstruction::forget: {
-								auto type = ILBlock::read_data<ILDataType>(it);
-								if (!eval_forget(eval_ctx, type)) return err::fail;
-							} break;
-							case ILInstruction::jmpz: {
-								auto addressz = ILBlock::read_data<std::uint32_t>(it);
-								auto addressnz = ILBlock::read_data<std::uint32_t>(it);
-
-								std::uint8_t z;
-								if (!eval_ctx->pop_register_value<std::uint8_t>(z)) return err::fail;
-
-								if (z) {
-									block = block->parent->blocks_memory[addressnz].get();
-								}
-								else {
-									block = block->parent->blocks_memory[addressz].get();
-								}
-
-								goto next_block;
-							} break;
-
-							case ILInstruction::u8: if (!eval_const_u8(eval_ctx, ILBlock::read_data<std::uint8_t>(it))) return err::fail; break;
-							case ILInstruction::i8: if (!eval_const_i8(eval_ctx, ILBlock::read_data<std::int8_t>(it))) return err::fail; break;
-							case ILInstruction::u16: if (!eval_const_u16(eval_ctx, ILBlock::read_data<std::uint16_t>(it))) return err::fail; break;
-							case ILInstruction::i16: if (!eval_const_i16(eval_ctx, ILBlock::read_data<std::int16_t>(it))) return err::fail; break;
-							case ILInstruction::u32: if (!eval_const_u32(eval_ctx, ILBlock::read_data<std::uint32_t>(it))) return err::fail; break;
-							case ILInstruction::i32: if (!eval_const_i32(eval_ctx, ILBlock::read_data<std::int32_t>(it))) return err::fail; break;
-							case ILInstruction::u64: if (!eval_const_u64(eval_ctx, ILBlock::read_data<std::uint64_t>(it))) return err::fail; break;
-							case ILInstruction::i64: if (!eval_const_i64(eval_ctx, ILBlock::read_data<std::int64_t>(it))) return err::fail; break;
-							case ILInstruction::f32: if (!eval_const_f32(eval_ctx, ILBlock::read_data<float>(it))) return err::fail; break;
-							case ILInstruction::f64: if (!eval_const_f64(eval_ctx, ILBlock::read_data<double>(it))) return err::fail; break;
-							case ILInstruction::word: if (!eval_const_word(eval_ctx, ILBlock::read_data<void*>(it))) return err::fail; break;
-							case ILInstruction::dword: {
-								dword_t v;
-								v.p1 = ILBlock::read_data<void*>(it);
-								v.p2 = ILBlock::read_data<void*>(it);
-								if (!eval_const_dword(eval_ctx, v)) return err::fail; break;
-							}
-							case ILInstruction::slice: {
-								std::uint32_t cid = ILBlock::read_data<std::uint32_t>(it);
-								auto st = ILBlock::read_data<ILSizeType>(it);
-								auto sv = ILBlock::read_data<std::uint32_t>(it);
-								if (!eval_const_slice(eval_ctx, cid, ILSize(st,sv))) return err::fail; 
-							}break;
-							case ILInstruction::size8: {
-								auto t = ILBlock::read_data<ILSizeType>(it);
-								auto v = ILBlock::read_data<std::uint8_t>(it);
-								if (!eval_const_size(eval_ctx, ILSize(t,v).eval(eval_ctx->parent))) return err::fail;
-							} break;
-							case ILInstruction::size16: {
-								auto t = ILBlock::read_data<ILSizeType>(it);
-								auto v = ILBlock::read_data<std::uint16_t>(it);
-								if (!eval_const_size(eval_ctx, ILSize(t,v).eval(eval_ctx->parent))) return err::fail;
-							} break;
-							case ILInstruction::size32: {
-								auto t = ILBlock::read_data<ILSizeType>(it);
-								auto v = ILBlock::read_data<std::uint32_t>(it);
-								if (!eval_const_size(eval_ctx, ILSize(t,v).eval(eval_ctx->parent))) return err::fail;
-							} break;
-
-						}
-					}
-
-				next_block:
-					continue;
-				}
-
-			returned:
-				//eval_ctx->callstack_debug.pop_back();
-				eval_ctx->stack_pointer = lstack_pointer;
-				eval_ctx->stack_base_aligned = lstack_base_aligned;
-				eval_ctx->stack_base = lstack_base;
+				//ILEvaluator::active->callstack_debug.pop_back();
+				ILEvaluator::active->stack_pointer = lstack_pointer;
+				ILEvaluator::active->stack_base_aligned = lstack_base_aligned;
+				ILEvaluator::active->stack_base = lstack_base;
 
 			}
 			else {
 				eval_extern_err = true;
-				//eval_ctx->callstack_debug.push_back(std::make_tuple(eval_ctx->debug_line, eval_ctx->debug_file, "External code"));
-				if (!abi_dynamic_call(eval_ctx, std::get<0>(declaration), ptr, declaration)) return err::fail;
-				//eval_ctx->callstack_debug.pop_back();
+				//ILEvaluator::active->callstack_debug.push_back(std::make_tuple(ILEvaluator::active->debug_line, ILEvaluator::active->debug_file, "External code"));
+				if (!abi_dynamic_call(ILEvaluator::active, std::get<0>(declaration), ptr, declaration)) return err::fail;
+				//ILEvaluator::active->callstack_debug.pop_back();
 				if (!eval_extern_err) return err::fail;
 			}
 
-			if (eval_ctx->debug_callstack.empty()) {
-				return throw_runtime_exception(eval_ctx, "Compiler error, please fix debug callstack");
+			if (ILEvaluator::active->debug_callstack.empty()) {
+				return throw_runtime_exception(ILEvaluator::active, "Compiler error, please fix debug callstack");
 			}
 
-			eval_ctx->debug_line = std::get<0>(eval_ctx->debug_callstack.back());
-			eval_ctx->debug_file = std::get<1>(eval_ctx->debug_callstack.back());
-			eval_ctx->debug_callstack.pop_back();
+			ILEvaluator::active->debug_line = std::get<0>(ILEvaluator::active->debug_callstack.back());
+			ILEvaluator::active->debug_file = std::get<1>(ILEvaluator::active->debug_callstack.back());
+			ILEvaluator::active->debug_callstack.pop_back();
 
 		}
 		else {
-			return throw_runtime_handler_exception(eval_ctx);
+			return throw_runtime_handler_exception(ILEvaluator::active);
 		}
 
 		
@@ -1692,106 +1159,106 @@ namespace Corrosive {
 	}
 
 
-	errvoid ILBuilder::eval_add(ILEvaluator* eval_ctx, ILDataType t_l, ILDataType t_r) {
-		if (!_il_evaluator_const_op<std::plus>(eval_ctx, t_l, t_r)) return err::fail;
+	errvoid ILBuilder::eval_add(ILDataType t_l, ILDataType t_r) {
+		if (!_il_evaluator_const_op<std::plus>(t_l, t_r)) return err::fail;
 		return err::ok;
 	}
 
-	errvoid ILBuilder::eval_sub(ILEvaluator* eval_ctx, ILDataType t_l, ILDataType t_r) {
-		if (!_il_evaluator_const_op<std::minus>(eval_ctx, t_l, t_r)) return err::fail;
+	errvoid ILBuilder::eval_sub(ILDataType t_l, ILDataType t_r) {
+		if (!_il_evaluator_const_op<std::minus>(t_l, t_r)) return err::fail;
 		return err::ok;
 	}
 
 
-	errvoid ILBuilder::eval_div(ILEvaluator* eval_ctx, ILDataType t_l, ILDataType t_r) {
+	errvoid ILBuilder::eval_div(ILDataType t_l, ILDataType t_r) {
 		if (!wrap || wrap(sandbox) == 0) {
-			if (!_il_evaluator_const_op<std::divides>(eval_ctx, t_l, t_r)) return err::fail;
+			if (!_il_evaluator_const_op<std::divides>(t_l, t_r)) return err::fail;
 		} else {
-			return throw_runtime_exception(eval_ctx, "Division operation failed");
+			return throw_runtime_exception(ILEvaluator::active, "Division operation failed");
 		}
 		return err::ok;
 	}
 
 
-	errvoid ILBuilder::eval_rem(ILEvaluator* eval_ctx, ILDataType t_l, ILDataType t_r) {
+	errvoid ILBuilder::eval_rem(ILDataType t_l, ILDataType t_r) {
 		if (!wrap || wrap(sandbox) == 0) {
-			if (!_il_evaluator_const_op_binary<std::modulus>(eval_ctx, t_l, t_r)) return err::fail;
+			if (!_il_evaluator_const_op_binary<std::modulus>(t_l, t_r)) return err::fail;
 		} else {
-			return throw_runtime_exception(eval_ctx, "Division operation failed");
+			return throw_runtime_exception(ILEvaluator::active, "Division operation failed");
 		}
 		return err::ok;
 	}
 
 
-	errvoid ILBuilder::eval_and(ILEvaluator* eval_ctx, ILDataType t_l, ILDataType t_r) {
-		if (!_il_evaluator_const_op_binary<std::bit_and>(eval_ctx, t_l, t_r)) return err::fail;
+	errvoid ILBuilder::eval_and(ILDataType t_l, ILDataType t_r) {
+		if (!_il_evaluator_const_op_binary<std::bit_and>(t_l, t_r)) return err::fail;
 		return err::ok;
 	}
 
 
-	errvoid ILBuilder::eval_or(ILEvaluator* eval_ctx, ILDataType t_l, ILDataType t_r) {
-		if (!_il_evaluator_const_op_binary<std::bit_or>(eval_ctx, t_l, t_r)) return err::fail;
+	errvoid ILBuilder::eval_or(ILDataType t_l, ILDataType t_r) {
+		if (!_il_evaluator_const_op_binary<std::bit_or>(t_l, t_r)) return err::fail;
 		return err::ok;
 	}
 
 
-	errvoid ILBuilder::eval_xor(ILEvaluator* eval_ctx, ILDataType t_l, ILDataType t_r) {
-		if (!_il_evaluator_const_op_binary<std::bit_xor>(eval_ctx, t_l, t_r)) return err::fail;
+	errvoid ILBuilder::eval_xor(ILDataType t_l, ILDataType t_r) {
+		if (!_il_evaluator_const_op_binary<std::bit_xor>(t_l, t_r)) return err::fail;
 		return err::ok;
 	}
 
 
-	errvoid ILBuilder::eval_mul(ILEvaluator* eval_ctx, ILDataType t_l, ILDataType t_r) {
-		if (!_il_evaluator_const_op<std::multiplies>(eval_ctx, t_l, t_r)) return err::fail;
+	errvoid ILBuilder::eval_mul(ILDataType t_l, ILDataType t_r) {
+		if (!_il_evaluator_const_op<std::multiplies>(t_l, t_r)) return err::fail;
 		return err::ok;
 	}
 
 
-	errvoid ILBuilder::eval_eq(ILEvaluator* eval_ctx, ILDataType t_l, ILDataType t_r) {
-		if (!_il_evaluator_const_op_bool<std::equal_to>(eval_ctx, t_l, t_r)) return err::fail;
+	errvoid ILBuilder::eval_eq(ILDataType t_l, ILDataType t_r) {
+		if (!_il_evaluator_const_op_bool<std::equal_to>(t_l, t_r)) return err::fail;
 		return err::ok;
 	}
 
 
-	errvoid ILBuilder::eval_ne(ILEvaluator* eval_ctx, ILDataType t_l, ILDataType t_r) {
-		if (!_il_evaluator_const_op_bool<std::not_equal_to>(eval_ctx, t_l, t_r)) return err::fail;
+	errvoid ILBuilder::eval_ne(ILDataType t_l, ILDataType t_r) {
+		if (!_il_evaluator_const_op_bool<std::not_equal_to>(t_l, t_r)) return err::fail;
 		return err::ok;
 	}
 
 
-	errvoid ILBuilder::eval_gt(ILEvaluator* eval_ctx, ILDataType t_l, ILDataType t_r) {
-		if (!_il_evaluator_const_op_bool<std::greater>(eval_ctx, t_l, t_r)) return err::fail;
+	errvoid ILBuilder::eval_gt(ILDataType t_l, ILDataType t_r) {
+		if (!_il_evaluator_const_op_bool<std::greater>(t_l, t_r)) return err::fail;
 		return err::ok;
 	}
 
-	errvoid ILBuilder::eval_ge(ILEvaluator* eval_ctx, ILDataType t_l, ILDataType t_r) {
-		if (!_il_evaluator_const_op_bool<std::greater_equal>(eval_ctx, t_l, t_r)) return err::fail;
-		return err::ok;
-	}
-
-
-	errvoid ILBuilder::eval_lt(ILEvaluator* eval_ctx, ILDataType t_l, ILDataType t_r) {
-		if (!_il_evaluator_const_op_bool<std::less>(eval_ctx, t_l, t_r)) return err::fail;
+	errvoid ILBuilder::eval_ge(ILDataType t_l, ILDataType t_r) {
+		if (!_il_evaluator_const_op_bool<std::greater_equal>(t_l, t_r)) return err::fail;
 		return err::ok;
 	}
 
 
-	errvoid ILBuilder::eval_le(ILEvaluator* eval_ctx, ILDataType t_l, ILDataType t_r) {
-		if (!_il_evaluator_const_op_bool<std::less_equal>(eval_ctx, t_l, t_r)) return err::fail;
+	errvoid ILBuilder::eval_lt(ILDataType t_l, ILDataType t_r) {
+		if (!_il_evaluator_const_op_bool<std::less>(t_l, t_r)) return err::fail;
 		return err::ok;
 	}
 
 
-	errvoid ILBuilder::eval_cast(ILEvaluator* eval_ctx, ILDataType t_l, ILDataType t_r) {
-		if (!_il_evaluator_cast(eval_ctx, t_l, t_r)) return err::fail;
+	errvoid ILBuilder::eval_le(ILDataType t_l, ILDataType t_r) {
+		if (!_il_evaluator_const_op_bool<std::less_equal>(t_l, t_r)) return err::fail;
+		return err::ok;
+	}
+
+
+	errvoid ILBuilder::eval_cast(ILDataType t_l, ILDataType t_r) {
+		if (!_il_evaluator_cast(t_l, t_r)) return err::fail;
 		return err::ok;
 	}
 	
 
-	errvoid ILBuilder::eval_bitcast(ILEvaluator* eval_ctx, ILDataType t_l, ILDataType t_r) {
+	errvoid ILBuilder::eval_bitcast(ILDataType t_l, ILDataType t_r) {
 		ilsize_t storage = 0;
-		if (!eval_ctx->pop_register_value_indirect(eval_ctx->compile_time_register_size(t_l), &storage)) return err::fail;
-		if (!eval_ctx->write_register_value_indirect(eval_ctx->compile_time_register_size(t_r), &storage)) return err::fail;
+		if (!ILEvaluator::active->pop_register_value_indirect(ILEvaluator::active->compile_time_register_size(t_l), &storage)) return err::fail;
+		if (!ILEvaluator::active->write_register_value_indirect(ILEvaluator::active->compile_time_register_size(t_r), &storage)) return err::fail;
 		return err::ok;
 	}
 
