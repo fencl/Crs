@@ -733,12 +733,14 @@ namespace Corrosive {
 		c.move();
 		CompileValue ret_val;
 		Cursor err = c;
-		if (!Expression::parse(c, ret_val, CompileType::compile)) return err::fail;
-		if (!Operand::deref(ret_val, CompileType::compile)) return err::fail;
-
 		Type* to = compiler->return_type();
-		if (!Operand::cast(err, ret_val, to, CompileType::compile, false)) return err::fail;
-		if (!Expression::rvalue(ret_val, CompileType::compile)) return err::fail;
+
+		if (to != compiler->types()->t_void) {
+			if (!Expression::parse(c, ret_val, CompileType::compile)) return err::fail;
+			if (!Operand::deref(ret_val, CompileType::compile)) return err::fail;
+			if (!Operand::cast(err, ret_val, to, CompileType::compile, false)) return err::fail;
+			if (!Expression::rvalue(ret_val, CompileType::compile)) return err::fail;
+		}
 
 		if (compiler->return_type()->rvalue_stacked()) {
 			if (!ILBuilder::build_local(compiler->scope(), 0)) return err::fail;

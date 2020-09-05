@@ -3,11 +3,10 @@ compile {
 	compiler::build(binary::program);
 }
 
-
 struct(T: []type) tuple {
 	compile {
 		for (let i=0; i<T.count; i+=1) {
-			let str = std::string::build().slice("_").uint(i+1).get();
+			let str = std::string::build().slice("element_").uint(i+1).get();
 			defer std::string::drop(str);
 			compiler::var(str, T[i]);
 		}
@@ -16,10 +15,19 @@ struct(T: []type) tuple {
 
 fn runtime main: () {
 	make tup1: tuple({ []u8, i32 });
-	tup1._1 = "one";
-	tup1._2 = 2;
+	tup1.element_1 = "one";
+	tup1.element_2 = 2;
 	
 	let tup2 = tup1;
 	
-	std::cout().slice("first: ").slice(tup2._1).endl().slice("second: ").int(tup2._2).endl();
+	std::cout().slice("first: ").slice(tup2.element_1).endl().slice("second: ").int(tup2.element_2).endl();
+	
+	std::cout().slice("== std tuple example ==").endl();
+	
+	let tup3 = std::tuple({u16, []u8, i32})::new();
+	tup3._1 = 42;
+	tup3._2 = "example";
+	tup3._3 = -12;
+	
+	std::cout().slice("first: ").uint(tup3._1).endl().slice("second: ").slice(tup3._2).endl().slice("third: ").int(tup3._3).endl();
 }

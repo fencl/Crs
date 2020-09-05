@@ -94,6 +94,11 @@ namespace std {
 			return this._count == 0;
 		}
 		
+		fn clear: (this: &self) {
+			this._count = 0;
+			std::drop_slice(T)(this.slice);
+		}
+		
 		fn resize: (this: &self, ns: size) {
 			std::resize_slice(T)(this.slice, ns);
 			this._count = ns;

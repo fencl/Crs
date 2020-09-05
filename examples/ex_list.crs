@@ -1,0 +1,26 @@
+compile {
+	compiler::require("std.crs");
+	compiler::build(binary::program);
+}
+
+fn runtime main: () {
+	let list = std::list([]u8)::new();
+	defer list.drop();
+	
+	list.add("unused1");
+	list.add("unused2");
+	list.clear();
+	
+	list.add("first");
+	list.add("second");
+	list.add("third");
+	list.add("pop");
+	
+	std::cout().slice("popped: ").slice(list.pop()).endl();
+	
+	list.add("fourth");
+	
+	for (let i = 0; i < list.count(); i += 1) {
+		std::cout().slice(list[i]).endl();
+	}
+}
