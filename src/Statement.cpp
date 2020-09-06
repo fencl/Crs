@@ -41,10 +41,13 @@ namespace Corrosive {
 				if (Statement::runtime(force_compile)) {
 					if (c.src != nullptr) {
 						if (!ILBuilder::build_debug(compiler->scope(), c.src->debug_id, (std::uint16_t)c.y)) return err::fail;
+						if (!ILBuilder::eval_debug(c.src->debug_id, (std::uint16_t)c.y)) return err::fail;
 					}
 					else {
 						if (!ILBuilder::build_debug(compiler->scope(), UINT16_MAX, (std::uint16_t)c.y)) return err::fail;
+						if (!ILBuilder::eval_debug(UINT16_MAX, (std::uint16_t)c.y)) return err::fail;
 					}
+					
 				} else {
 					if (c.src != nullptr) {
 						if (!ILBuilder::eval_debug(c.src->debug_id, (std::uint16_t)c.y)) return err::fail;
@@ -185,30 +188,34 @@ namespace Corrosive {
 					}
 
 					termination = BlockTermination::terminated;
-					if (!Statement::parse_return(c)) return err::fail;
-					return err::ok; 
+					return Statement::parse_return(c);
 				}else if (buf == "make") {
-					if (!Statement::parse_make(c, compile)) return err::fail;
-					return err::ok;
+					return Statement::parse_make(c, compile);
 				}
 				else if (buf == "let") {
-					if (!Statement::parse_let(c, compile)) return err::fail;
-					return err::ok;
+					return Statement::parse_let(c, compile);
 				}
 				else if (buf == "if") {
-					if (!Statement::parse_if(c, termination, compile)) return err::fail;
-					return err::ok;
+					return Statement::parse_if(c, termination, compile);
 				}
 				else if (buf == "while") {
-					if (!Statement::parse_while(c, termination, compile)) return err::fail;
-					return err::ok;
+					return Statement::parse_while(c, termination, compile);
 				}
 				else if (buf == "for") {
-					if (!Statement::parse_for(c, termination, compile)) return err::fail;
-					return err::ok;
+					return Statement::parse_for(c, termination, compile);
 				}
 				else if (buf == "panic") {
-					return throw_specific_error(c,"Compilation was manually halted.");
+					if (Statement::runtime(compile)) {
+						c.move();
+						if (c.tok!=RecognizedToken::Semicolon) {
+							return throw_wrong_token_error(c,"';'");
+						}
+						c.move();
+
+						return ILBuilder::build_panic(compiler->scope());
+					} else {
+						return ILBuilder::eval_panic();
+					}
 				}
 				else if (buf == "break") {
 

@@ -194,21 +194,45 @@ namespace Corrosive {
 	}
 
 	errvoid ILBuilder::build_fnptr(ILBlock* block, ILFunction* fun) {
-		block->write_instruction(ILInstruction::fnptr);
-		block->write_value((fun->id));
+		if (fun->id <= UINT8_MAX) {
+			block->write_instruction(ILInstruction::fnptr8);
+			block->write_value((std::uint8_t)fun->id);
+		} else if (fun->id <= UINT16_MAX) {
+			block->write_instruction(ILInstruction::fnptr16);
+			block->write_value((std::uint16_t)fun->id);
+		} else {
+			block->write_instruction(ILInstruction::fnptr32);
+			block->write_value((std::uint32_t)fun->id);
+		}
 		return err::ok;
 	}
 	
 
 	errvoid ILBuilder::build_fnptr_id(ILBlock* block, std::uint32_t id) {
-		block->write_instruction(ILInstruction::fnptr);
-		block->write_value(id);
+		if (id <= UINT8_MAX) {
+			block->write_instruction(ILInstruction::fnptr8);
+			block->write_value((std::uint8_t)id);
+		} else if (id <= UINT16_MAX) {
+			block->write_instruction(ILInstruction::fnptr16);
+			block->write_value((std::uint16_t)id);
+		} else {
+			block->write_instruction(ILInstruction::fnptr32);
+			block->write_value((std::uint32_t)id);
+		}
 		return err::ok;
 	}
 
 	errvoid ILBuilder::build_fncall(ILBlock* block, ILFunction* fun) {
-		block->write_instruction(ILInstruction::fncall);
-		block->write_value((fun->id));
+		if (fun->id <= UINT8_MAX) {
+			block->write_instruction(ILInstruction::fncall8);
+			block->write_value((std::uint8_t)fun->id);
+		} else if (fun->id <= UINT16_MAX) {
+			block->write_instruction(ILInstruction::fncall16);
+			block->write_value((std::uint16_t)fun->id);
+		} else {
+			block->write_instruction(ILInstruction::fncall32);
+			block->write_value((std::uint32_t)fun->id);
+		}
 		return err::ok;
 	}
 
@@ -225,14 +249,31 @@ namespace Corrosive {
 	}
 
 	errvoid ILBuilder::build_call(ILBlock* block, std::uint32_t decl) {
-		block->write_instruction(ILInstruction::call);
-		block->write_value(decl);
+		if (decl <= UINT8_MAX) {
+			block->write_instruction(ILInstruction::call8);
+			block->write_value((std::uint8_t)decl);
+		} else if (decl <= UINT16_MAX) {
+			block->write_instruction(ILInstruction::call16);
+			block->write_value((std::uint16_t)decl);
+		} else {
+			block->write_instruction(ILInstruction::call32);
+			block->write_value((std::uint32_t)decl);
+		}
 		return err::ok;
 	}
 
 	errvoid ILBuilder::build_jmp(ILBlock* block, ILBlock* address) {
-		block->write_instruction(ILInstruction::jmp);
-		block->write_value(address->id);
+		if (address->id <= UINT8_MAX) {
+			block->write_instruction(ILInstruction::jmp8);
+			block->write_value((std::uint8_t)address->id);
+		} else if (address->id <= UINT16_MAX) {
+			block->write_instruction(ILInstruction::jmp16);
+			block->write_value((std::uint16_t)address->id);
+		} else {
+			block->write_instruction(ILInstruction::jmp32);
+			block->write_value((std::uint32_t)address->id);
+		}
+
 		block->data_pool.shrink_to_fit();
 		return err::ok;
 	}
@@ -952,6 +993,11 @@ namespace Corrosive {
 
 	errvoid ILBuilder::build_low_word(ILBlock* block) {
 		block->write_instruction(ILInstruction::lowdw);
+		return err::ok;
+	}
+
+	errvoid ILBuilder::build_panic(ILBlock* block) {
+		block->write_instruction(ILInstruction::panic);
 		return err::ok;
 	}
 

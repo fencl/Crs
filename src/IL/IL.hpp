@@ -120,10 +120,13 @@ namespace Corrosive {
 		bit_and, bit_or, bit_xor,
 		eq, ne, gt, ge, lt, le,
 
-		load, store, store2, ret, jmp, jmpz,
+		load, store, store2, ret, jmp8, jmp16, jmp32, jmpz,
 		local8,local16,local32,
-		forget, fncall,
-		fnptr, call, start, insintric, cast, bitcast,
+		forget, 
+		fncall8, fncall16, fncall32,
+		fnptr8,fnptr16,fnptr32,
+		call8, call16, call32,
+		start, insintric, cast, bitcast,
 		roffset8, roffset16, roffset32,
 		offset8, offset16, offset32,
 		vtable, duplicate, swap, swap2,
@@ -141,6 +144,7 @@ namespace Corrosive {
 		aroffset, wroffset, clone, combinedw, splitdw, highdw, lowdw,
 		extract8, extract16, extract32,
 		cut8, cut16, cut32,
+		panic
 	};
 
 	enum class ILDataType : unsigned char {
@@ -820,6 +824,7 @@ namespace Corrosive {
 		static errvoid eval_clone(ILDataType type, std::uint16_t times);
 		static errvoid eval_swap(ILDataType type);
 		static errvoid eval_swap2(ILDataType type1, ILDataType type2);
+		static errvoid eval_panic();
 
 		static ILDataType arith_result(ILDataType l, ILDataType r);
 
@@ -891,6 +896,7 @@ namespace Corrosive {
 		static errvoid build_jmp(ILBlock* block, ILBlock* address);
 		static errvoid build_jmpz(ILBlock* block, ILBlock* ifz, ILBlock* ifnz);
 		static errvoid build_insintric(ILBlock* block, ILInsintric fun);
+		static errvoid build_panic(ILBlock* block);
 	};
 }
 

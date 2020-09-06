@@ -238,16 +238,14 @@ namespace std {
 		}
 		
 		fn int: (this: &self, v: i64) &self {
-			
+			if v<0 {
+				std::stream::write(this.handle, "-");
+				v = -v;
+			}
+				
 			if (v == 0) {
 				std::stream::write(this.handle, "0");
 			} else {
-			
-				if v<0 {
-					std::stream::write(this.handle, "-");
-					v = -v;
-				}
-				
 				let v_copy = v;
 				let s_width = 0;
 				while v_copy > 0 {
@@ -352,13 +350,15 @@ namespace std {
 		}
 		
 		fn int: (this: &self, v: i64) &self {
+			if (v<0) {
+				this.slice("-");
+				v = -v;
+			}
+				
 			if (v == 0) {
 				this.slice("0");
 			} else {
-				if (v<0) {
-					this.slice("-");
-					v = -v;
-				}
+				
 				
 				this.uint(v);
 			}

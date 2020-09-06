@@ -6,6 +6,7 @@ compile {
 static compile message_box_function = fn stdcall(ptr,ptr,ptr,u32);
 
 fn runtime main: () {
+
 	compile if compiler::platform == platform::windows {
 	
 		let user32 = std::library::share("user32.dll");
@@ -16,6 +17,7 @@ fn runtime main: () {
 		
 	} else {	
 		compile std::cerr().slice("\n | Error: example works only on windows").endl();
-		panic;
+		compile panic;
 	}
+	
 }

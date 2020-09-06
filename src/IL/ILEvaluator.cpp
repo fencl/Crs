@@ -17,19 +17,11 @@ namespace Corrosive {
 
 	void ILEvaluator::ex_throw() { eval_extern_err = false; }
 
-	int sigint_value = INT_MIN;
-	int sigseg_value = INT_MIN;
+	int sig_value = INT_MIN;
 	bool sandbox_started = false;
 
-	void sandbox_siginthandler(int signum) noexcept {
-		sigseg_value = INT_MIN;
-		sigint_value = signum;
-		longjmp_func(sandbox, 1);
-	}
-
-	void sandbox_sigseghandler(int signum) noexcept {
-		sigseg_value = signum;
-		sigint_value = INT_MIN;
+	void sandbox_sighandler(int signum) noexcept {
+		sig_value = signum;
 		longjmp_func(sandbox, 1);
 	}
 
@@ -40,29 +32,27 @@ namespace Corrosive {
 	void ILEvaluator::sandbox_begin() {
 		sandbox_started = true;
 		build_sandbox();
-		signal(SIGINT, sandbox_siginthandler);
-		signal(SIGSEGV, sandbox_sigseghandler);
-		signal(SIGILL, sandbox_siginthandler);
-		signal(SIGFPE, sandbox_siginthandler);
+		signal(SIGSEGV, sandbox_sighandler);
+		signal(SIGILL, sandbox_sighandler);
+		signal(SIGFPE, sandbox_sighandler);
 	}
 
 	void ILEvaluator::sandbox_end() {
 		sandbox_started = false;
-		signal(SIGINT, SIG_DFL);
 		signal(SIGSEGV, SIG_DFL);
 		signal(SIGILL, SIG_DFL);
 		signal(SIGFPE, SIG_DFL);
 	}
 
 	errvoid throw_runtime_handler_exception(const ILEvaluator* eval) {
-		if (sigint_value != INT_MIN) {
-			return throw_interrupt_exception(eval, sigint_value);
+		switch (sig_value)
+		{
+		case SIGSEGV:
+			return throw_segfault_exception(eval, sig_value);
+		
+		default:
+			return throw_interrupt_exception(eval, sig_value);
 		}
-		else if (sigseg_value != INT_MIN) {
-			return throw_segfault_exception(eval, sigseg_value);
-		}
-
-		return err::ok;
 	}
 
 
@@ -368,6 +358,114 @@ namespace Corrosive {
 		return err::ok;
 	}
 
+	template< template<typename Ty> class op> errvoid _il_evaluator_const_op_protected_right_zero(ILDataType l, ILDataType r) {
+		ILDataType res_t = ILBuilder::arith_result(l, r);
+		switch (res_t) {
+			case ILDataType::i8: {
+				std::int8_t rval;
+				if(!_il_evaluator_value_pop_into<std::int8_t>(rval, r)) return err::fail;
+				if (rval == 0) return throw_runtime_exception(ILEvaluator::active, "Invalid operation");
+				std::int8_t lval;
+				if(!_il_evaluator_value_pop_into<std::int8_t>(lval, l)) return err::fail;
+				op<std::int8_t> o;
+				if (!ILBuilder::eval_const_i8(o(lval, rval))) return err::fail;
+			}break;
+			case ILDataType::u8: {
+				std::uint8_t rval;
+				if(!_il_evaluator_value_pop_into<std::uint8_t>(rval, r)) return err::fail;
+				if (rval == 0) return throw_runtime_exception(ILEvaluator::active, "Invalid operation");
+				std::uint8_t lval;
+				if(!_il_evaluator_value_pop_into<std::uint8_t>(lval, l)) return err::fail;
+				op<std::uint8_t> o;
+				if (!ILBuilder::eval_const_u8(o(lval, rval))) return err::fail;
+			}break;
+			case ILDataType::i16: {
+				std::int16_t rval;
+				if(!_il_evaluator_value_pop_into<std::int16_t>(rval, r)) return err::fail;
+				if (rval == 0) return throw_runtime_exception(ILEvaluator::active, "Invalid operation");
+				std::int16_t lval;
+				if(!_il_evaluator_value_pop_into<std::int16_t>(lval, l)) return err::fail;
+				op<std::int16_t> o;
+				if (!ILBuilder::eval_const_i16(o(lval, rval))) return err::fail;
+			}break;
+			case ILDataType::u16: {
+				std::uint16_t rval;
+				if(!_il_evaluator_value_pop_into<std::uint16_t>(rval, r)) return err::fail;
+				if (rval == 0) return throw_runtime_exception(ILEvaluator::active, "Invalid operation");
+				std::uint16_t lval;
+				if(!_il_evaluator_value_pop_into<std::uint16_t>(lval, l)) return err::fail;
+				op<std::uint16_t> o;
+				if (!ILBuilder::eval_const_u16(o(lval, rval))) return err::fail;
+			}break;
+			case ILDataType::i32: {
+				std::int32_t rval;
+				if(!_il_evaluator_value_pop_into<std::int32_t>(rval, r)) return err::fail;
+				if (rval == 0) return throw_runtime_exception(ILEvaluator::active, "Invalid operation");
+				std::int32_t lval;
+				if(!_il_evaluator_value_pop_into<std::int32_t>(lval, l)) return err::fail;
+				op<std::int32_t> o;
+				if (!ILBuilder::eval_const_i32(o(lval, rval))) return err::fail;
+			}break;
+			case ILDataType::u32: {
+				std::uint32_t rval;
+				if(!_il_evaluator_value_pop_into<std::uint32_t>(rval, r)) return err::fail;
+				if (rval == 0) return throw_runtime_exception(ILEvaluator::active, "Invalid operation");
+				std::uint32_t lval;
+				if(!_il_evaluator_value_pop_into<std::uint32_t>(lval, l)) return err::fail;
+				op<std::uint32_t> o;
+				if (!ILBuilder::eval_const_u32(o(lval, rval))) return err::fail;
+			}break;
+			case ILDataType::i64: {
+				std::int64_t rval;
+				if(!_il_evaluator_value_pop_into<std::int64_t>(rval, r)) return err::fail;
+				if (rval == 0) return throw_runtime_exception(ILEvaluator::active, "Invalid operation");
+				std::int64_t lval;
+				if(!_il_evaluator_value_pop_into<std::int64_t>(lval, l)) return err::fail;
+				op<std::int64_t> o;
+				if (!ILBuilder::eval_const_i64(o(lval, rval))) return err::fail;
+			}break;
+			case ILDataType::u64: {
+				std::uint64_t rval;
+				if(!_il_evaluator_value_pop_into<std::uint64_t>(rval, r)) return err::fail;
+				if (rval == 0) return throw_runtime_exception(ILEvaluator::active, "Invalid operation");
+				std::uint64_t lval;
+				if(!_il_evaluator_value_pop_into<std::uint64_t>(lval, l)) return err::fail;
+				op<std::uint64_t> o;
+				if (!ILBuilder::eval_const_u64(o(lval, rval))) return err::fail;
+			}break;
+			case ILDataType::f32: {
+				float rval;
+				if(!_il_evaluator_value_pop_into<float>(rval, r)) return err::fail;
+				if (rval == 0) return throw_runtime_exception(ILEvaluator::active, "Invalid operation");
+				float lval;
+				if(!_il_evaluator_value_pop_into<float>(lval, l)) return err::fail;
+				op<float> o;
+				if (!ILBuilder::eval_const_f32(o(lval, rval))) return err::fail;
+			}break;
+			case ILDataType::f64: {
+				double rval;
+				if(!_il_evaluator_value_pop_into<double>(rval, r)) return err::fail;
+				if (rval == 0) return throw_runtime_exception(ILEvaluator::active, "Invalid operation");
+				double lval;
+				if(!_il_evaluator_value_pop_into<double>(lval, l)) return err::fail;
+				op<double> o;
+				if (!ILBuilder::eval_const_f64(o(lval, rval))) return err::fail;
+			}break;
+			case ILDataType::word: {
+				std::size_t rval;
+				if(!_il_evaluator_value_pop_into<std::size_t>(rval, r)) return err::fail;
+				if (rval == 0) return throw_runtime_exception(ILEvaluator::active, "Invalid operation");
+				std::size_t lval;
+				if(!_il_evaluator_value_pop_into<std::size_t>(lval, l)) return err::fail;
+				op<std::size_t> o;
+				if (!ILBuilder::eval_const_size(o(lval, rval))) return err::fail;
+			}break;
+			default: break;
+		}
+
+		return err::ok;
+	}
+
 	template< template<typename Ty> class op> errvoid _il_evaluator_const_op_binary(ILDataType l, ILDataType r) {
 		ILDataType res_t = ILBuilder::arith_result(l, r);
 		switch (res_t) {
@@ -438,6 +536,97 @@ namespace Corrosive {
 			case ILDataType::word: {
 				std::size_t rval;
 				if(!_il_evaluator_value_pop_into<std::size_t>(rval, r)) return err::fail;
+				std::size_t lval;
+				if(!_il_evaluator_value_pop_into<std::size_t>(lval, l)) return err::fail;
+				op<std::size_t> o;
+				if (!ILBuilder::eval_const_size(o(lval, rval))) return err::fail;
+			}break;
+			
+			default: break;
+		}
+
+		return err::ok;
+	}
+
+	template< template<typename Ty> class op> errvoid _il_evaluator_const_op_binary_right_zero_protected(ILDataType l, ILDataType r) {
+		ILDataType res_t = ILBuilder::arith_result(l, r);
+		switch (res_t) {
+			case ILDataType::i8: {
+				std::int8_t rval;
+				if(!_il_evaluator_value_pop_into<std::int8_t>(rval, r)) return err::fail;
+				if (rval == 0) return throw_runtime_exception(ILEvaluator::active, "Invalid operation");
+				std::int8_t lval;
+				if(!_il_evaluator_value_pop_into<std::int8_t>(lval, l)) return err::fail;
+				op<std::int8_t> o;
+				if (!ILBuilder::eval_const_i8(o(lval, rval))) return err::fail;
+			}break;
+			case ILDataType::u8: {
+				std::uint8_t rval;
+				if(!_il_evaluator_value_pop_into<std::uint8_t>(rval, r)) return err::fail;
+				if (rval == 0) return throw_runtime_exception(ILEvaluator::active, "Invalid operation");
+				std::uint8_t lval;
+				if(!_il_evaluator_value_pop_into<std::uint8_t>(lval, l)) return err::fail;
+				op<std::uint8_t> o;
+				if (!ILBuilder::eval_const_u8(o(lval, rval))) return err::fail;
+			}break;
+			case ILDataType::i16: {
+				std::int16_t rval;
+				if(!_il_evaluator_value_pop_into<std::int16_t>(rval, r)) return err::fail;
+				if (rval == 0) return throw_runtime_exception(ILEvaluator::active, "Invalid operation");
+				std::int16_t lval;
+				if(!_il_evaluator_value_pop_into<std::int16_t>(lval, l)) return err::fail;
+				op<std::int16_t> o;
+				if (!ILBuilder::eval_const_i16(o(lval, rval))) return err::fail;
+			}break;
+			case ILDataType::u16: {
+				std::uint16_t rval;
+				if(!_il_evaluator_value_pop_into<std::uint16_t>(rval, r)) return err::fail;
+				if (rval == 0) return throw_runtime_exception(ILEvaluator::active, "Invalid operation");
+				std::uint16_t lval;
+				if(!_il_evaluator_value_pop_into<std::uint16_t>(lval, l)) return err::fail;
+				op<std::uint16_t> o;
+				if (!ILBuilder::eval_const_u16(o(lval, rval))) return err::fail;
+			}break;
+			case ILDataType::i32: {
+				std::int32_t rval;
+				if(!_il_evaluator_value_pop_into<std::int32_t>(rval, r)) return err::fail;
+				if (rval == 0) return throw_runtime_exception(ILEvaluator::active, "Invalid operation");
+				std::int32_t lval;
+				if(!_il_evaluator_value_pop_into<std::int32_t>(lval, l)) return err::fail;
+				op<std::int32_t> o;
+				if (!ILBuilder::eval_const_i32(o(lval, rval))) return err::fail;
+			}break;
+			case ILDataType::u32: {
+				std::uint32_t rval;
+				if(!_il_evaluator_value_pop_into<std::uint32_t>(rval, r)) return err::fail;
+				if (rval == 0) return throw_runtime_exception(ILEvaluator::active, "Invalid operation");
+				std::uint32_t lval;
+				if(!_il_evaluator_value_pop_into<std::uint32_t>(lval, l)) return err::fail;
+				op<std::uint32_t> o;
+				if (!ILBuilder::eval_const_u32(o(lval, rval))) return err::fail;
+			}break;
+			case ILDataType::i64: {
+				std::int64_t rval;
+				if(!_il_evaluator_value_pop_into<std::int64_t>(rval, r)) return err::fail;
+				if (rval == 0) return throw_runtime_exception(ILEvaluator::active, "Invalid operation");
+				std::int64_t lval;
+				if(!_il_evaluator_value_pop_into<std::int64_t>(lval, l)) return err::fail;
+				op<std::int64_t> o;
+				if (!ILBuilder::eval_const_i64(o(lval, rval))) return err::fail;
+			}break;
+			case ILDataType::u64: {
+				std::uint64_t rval;
+				if(!_il_evaluator_value_pop_into<std::uint64_t>(rval, r)) return err::fail;
+				if (rval == 0) return throw_runtime_exception(ILEvaluator::active, "Invalid operation");
+				std::uint64_t lval;
+				if(!_il_evaluator_value_pop_into<std::uint64_t>(lval, l)) return err::fail;
+				op<std::uint64_t> o;
+				if (!ILBuilder::eval_const_u64(o(lval, rval))) return err::fail;
+			}break;
+			case ILDataType::word: {
+				std::size_t rval;
+				if(!_il_evaluator_value_pop_into<std::size_t>(rval, r)) return err::fail;
+				if (rval == 0) return throw_runtime_exception(ILEvaluator::active, "Invalid operation");
 				std::size_t lval;
 				if(!_il_evaluator_value_pop_into<std::size_t>(lval, l)) return err::fail;
 				op<std::size_t> o;
@@ -793,6 +982,10 @@ namespace Corrosive {
 		return err::ok;
 	}
 
+	errvoid ILBuilder::eval_panic() {
+		return throw_runtime_exception(ILEvaluator::active, "Execution panicked.");
+	}
+
 	errvoid ILBuilder::eval_store_rev(ILDataType type) {
 		ilsize_t storage;
 		std::size_t regs = ILEvaluator::active->compile_time_register_size(type);
@@ -1125,7 +1318,7 @@ namespace Corrosive {
 				ILEvaluator::active->stack_base_aligned = (unsigned char*)align_up((std::size_t)ILEvaluator::active->stack_base, bytecode_fun->calculated_local_stack_alignment);
 				ILEvaluator::active->stack_pointer = ILEvaluator::active->stack_base_aligned + bytecode_fun->calculated_local_stack_size;
 
-				ILEvaluator::exec_function(bytecode_fun);				
+				if (!ILEvaluator::exec_function(bytecode_fun)) return err::fail;
 
 				//ILEvaluator::active->callstack_debug.pop_back();
 				ILEvaluator::active->stack_pointer = lstack_pointer;
@@ -1160,98 +1353,75 @@ namespace Corrosive {
 
 
 	errvoid ILBuilder::eval_add(ILDataType t_l, ILDataType t_r) {
-		if (!_il_evaluator_const_op<std::plus>(t_l, t_r)) return err::fail;
-		return err::ok;
+		return _il_evaluator_const_op<std::plus>(t_l, t_r);
 	}
 
 	errvoid ILBuilder::eval_sub(ILDataType t_l, ILDataType t_r) {
-		if (!_il_evaluator_const_op<std::minus>(t_l, t_r)) return err::fail;
-		return err::ok;
+		return _il_evaluator_const_op<std::minus>(t_l, t_r);
 	}
 
 
 	errvoid ILBuilder::eval_div(ILDataType t_l, ILDataType t_r) {
-		if (!wrap || wrap(sandbox) == 0) {
-			if (!_il_evaluator_const_op<std::divides>(t_l, t_r)) return err::fail;
-		} else {
-			return throw_runtime_exception(ILEvaluator::active, "Division operation failed");
-		}
-		return err::ok;
+		return _il_evaluator_const_op_protected_right_zero<std::divides>(t_l, t_r);
 	}
 
 
 	errvoid ILBuilder::eval_rem(ILDataType t_l, ILDataType t_r) {
-		if (!wrap || wrap(sandbox) == 0) {
-			if (!_il_evaluator_const_op_binary<std::modulus>(t_l, t_r)) return err::fail;
-		} else {
-			return throw_runtime_exception(ILEvaluator::active, "Division operation failed");
-		}
-		return err::ok;
+		return _il_evaluator_const_op_binary_right_zero_protected<std::modulus>(t_l, t_r);;
 	}
 
 
 	errvoid ILBuilder::eval_and(ILDataType t_l, ILDataType t_r) {
-		if (!_il_evaluator_const_op_binary<std::bit_and>(t_l, t_r)) return err::fail;
-		return err::ok;
+		return _il_evaluator_const_op_binary<std::bit_and>(t_l, t_r);
 	}
 
 
 	errvoid ILBuilder::eval_or(ILDataType t_l, ILDataType t_r) {
-		if (!_il_evaluator_const_op_binary<std::bit_or>(t_l, t_r)) return err::fail;
-		return err::ok;
+		return _il_evaluator_const_op_binary<std::bit_or>(t_l, t_r);
 	}
 
 
 	errvoid ILBuilder::eval_xor(ILDataType t_l, ILDataType t_r) {
-		if (!_il_evaluator_const_op_binary<std::bit_xor>(t_l, t_r)) return err::fail;
-		return err::ok;
+		return _il_evaluator_const_op_binary<std::bit_xor>(t_l, t_r);
 	}
 
 
 	errvoid ILBuilder::eval_mul(ILDataType t_l, ILDataType t_r) {
-		if (!_il_evaluator_const_op<std::multiplies>(t_l, t_r)) return err::fail;
-		return err::ok;
+		return _il_evaluator_const_op<std::multiplies>(t_l, t_r);
 	}
 
 
 	errvoid ILBuilder::eval_eq(ILDataType t_l, ILDataType t_r) {
-		if (!_il_evaluator_const_op_bool<std::equal_to>(t_l, t_r)) return err::fail;
-		return err::ok;
+		return _il_evaluator_const_op_bool<std::equal_to>(t_l, t_r);
 	}
 
 
 	errvoid ILBuilder::eval_ne(ILDataType t_l, ILDataType t_r) {
-		if (!_il_evaluator_const_op_bool<std::not_equal_to>(t_l, t_r)) return err::fail;
-		return err::ok;
+		return _il_evaluator_const_op_bool<std::not_equal_to>(t_l, t_r);
 	}
 
 
 	errvoid ILBuilder::eval_gt(ILDataType t_l, ILDataType t_r) {
-		if (!_il_evaluator_const_op_bool<std::greater>(t_l, t_r)) return err::fail;
-		return err::ok;
+		return _il_evaluator_const_op_bool<std::greater>(t_l, t_r);
 	}
 
 	errvoid ILBuilder::eval_ge(ILDataType t_l, ILDataType t_r) {
-		if (!_il_evaluator_const_op_bool<std::greater_equal>(t_l, t_r)) return err::fail;
-		return err::ok;
+		return _il_evaluator_const_op_bool<std::greater_equal>(t_l, t_r);
 	}
 
 
 	errvoid ILBuilder::eval_lt(ILDataType t_l, ILDataType t_r) {
-		if (!_il_evaluator_const_op_bool<std::less>(t_l, t_r)) return err::fail;
-		return err::ok;
+		return _il_evaluator_const_op_bool<std::less>(t_l, t_r);
 	}
 
 
 	errvoid ILBuilder::eval_le(ILDataType t_l, ILDataType t_r) {
-		if (!_il_evaluator_const_op_bool<std::less_equal>(t_l, t_r)) return err::fail;
-		return err::ok;
+		return _il_evaluator_const_op_bool<std::less_equal>(t_l, t_r);
 	}
 
 
 	errvoid ILBuilder::eval_cast(ILDataType t_l, ILDataType t_r) {
-		if (!_il_evaluator_cast(t_l, t_r)) return err::fail;
-		return err::ok;
+		return _il_evaluator_cast(t_l, t_r);
 	}
 	
 

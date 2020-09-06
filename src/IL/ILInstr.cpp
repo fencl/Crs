@@ -178,6 +178,7 @@ namespace Corrosive {
 		il_exec {
 			switch (instr) {
 				case ILInstruction::negate: return ILBuilder::eval_negate();
+				case ILInstruction::panic: return ILBuilder::eval_panic();
 				case ILInstruction::combinedw: return ILBuilder::eval_combine_dword();
 				case ILInstruction::highdw: return ILBuilder::eval_high_word();
 				case ILInstruction::lowdw: return ILBuilder::eval_low_word();
@@ -192,6 +193,7 @@ namespace Corrosive {
 		il_print {
 			switch (instr) {
 				case ILInstruction::negate: std::cout<<"negate\n"; break;
+				case ILInstruction::panic: std::cout<<"panic\n"; break;
 				case ILInstruction::combinedw: std::cout<<"combine dword\n"; break;
 				case ILInstruction::highdw: std::cout<<"high dword\n"; break;
 				case ILInstruction::lowdw: std::cout<<"low dword\n"; break;
@@ -458,13 +460,21 @@ namespace Corrosive {
 					return ILBuilder::eval_const_word(ILEvaluator::active->stack_base_aligned + offset);
 				}
 
-				case ILInstruction::call: return ILBuilder::eval_call(v);
+				case ILInstruction::call8:
+				case ILInstruction::call16:
+				case ILInstruction::call32: return ILBuilder::eval_call(v);
 				case ILInstruction::constref: return ILBuilder::eval_constref(v);
 				case ILInstruction::staticref: return ILBuilder::eval_staticref(v);
-				case ILInstruction::fnptr: return ILBuilder::eval_fnptr(ILEvaluator::active->parent->functions[v].get());
-				case ILInstruction::fncall: return ILBuilder::eval_fncall(ILEvaluator::active->parent->functions[v].get());
+				case ILInstruction::fnptr8:
+				case ILInstruction::fnptr16:
+				case ILInstruction::fnptr32: return ILBuilder::eval_fnptr(ILEvaluator::active->parent->functions[v].get());
+				case ILInstruction::fncall8:
+				case ILInstruction::fncall16:
+				case ILInstruction::fncall32: return ILBuilder::eval_fncall(ILEvaluator::active->parent->functions[v].get());
 				case ILInstruction::vtable: return ILBuilder::eval_vtable(v);
-				case ILInstruction::jmp: {
+				case ILInstruction::jmp8:
+				case ILInstruction::jmp16:
+				case ILInstruction::jmp32: {
 					block = block->parent->blocks_memory[v].get();
 					it = block->data_pool.begin();
 					return err::ok;
@@ -481,13 +491,21 @@ namespace Corrosive {
 				case ILInstruction::local32: 
 					std::cout<<"local "; break;
 
-				case ILInstruction::call: std::cout<<"call "; break;
+				case ILInstruction::call8: 
+				case ILInstruction::call16: 
+				case ILInstruction::call32: std::cout<<"call "; break;
 				case ILInstruction::constref: std::cout<<"constref "; break;
 				case ILInstruction::staticref: std::cout<<"staticref "; break;
-				case ILInstruction::fnptr: std::cout<<"fnptr "; break;
-				case ILInstruction::fncall: std::cout<<"fncall "; break;
+				case ILInstruction::fnptr8:
+				case ILInstruction::fnptr16:
+				case ILInstruction::fnptr32: std::cout<<"fnptr "; break;
+				case ILInstruction::fncall8:
+				case ILInstruction::fncall16:
+				case ILInstruction::fncall32: std::cout<<"fncall "; break;
 				case ILInstruction::vtable: std::cout<<"vtable "; break;
-				case ILInstruction::jmp: std::cout<<"jmp "; break;
+				case ILInstruction::jmp8:
+				case ILInstruction::jmp16:
+				case ILInstruction::jmp32: std::cout<<"jmp "; break;
 			}
 
 			std::cout << (std::uint64_t)v << "\n";
@@ -495,7 +513,7 @@ namespace Corrosive {
 	};
 	
 
-	struct il_jmpt_instr {
+	struct il_jmpz_instr {
 		il_exec {
 			auto v1 = ILBlock::read_data<std::uint32_t>(it);
 			auto v2 = ILBlock::read_data<std::uint32_t>(it);
@@ -696,6 +714,7 @@ namespace Corrosive {
 				case ILInstruction::rtoffset:
 				case ILInstruction::rtoffset2: 
 				case ILInstruction::start: 
+				case ILInstruction::panic: 
 				case ILInstruction::null: if (!op<il_simple_instr, P>::call(inst, it, block, pass)) return err::fail; break;
 
 				case ILInstruction::size8:
@@ -752,18 +771,28 @@ namespace Corrosive {
 				case ILInstruction::word: if (!op<il_const_word_instr, P>::call(inst, it, block, pass)) return err::fail; break;
 				case ILInstruction::dword: if (!op<il_const_dword_instr, P>::call(inst, it, block, pass)) return err::fail; break;
 
+				case ILInstruction::call8:
+				case ILInstruction::jmp8:
+				case ILInstruction::fnptr8:
+				case ILInstruction::fncall8:
 				case ILInstruction::local8: if (!op<il_identifier_instr<std::uint8_t>, P>::call(inst, it, block, pass)) return err::fail; break;
+
+				case ILInstruction::call16:
+				case ILInstruction::jmp16:
+				case ILInstruction::fnptr16:
+				case ILInstruction::fncall16:
 				case ILInstruction::local16: if (!op<il_identifier_instr<std::uint16_t>, P>::call(inst, it, block, pass)) return err::fail; break;
-				case ILInstruction::call:
-				case ILInstruction::jmp:
-				case ILInstruction::fnptr:
-				case ILInstruction::fncall:
+
+				case ILInstruction::call32:
+				case ILInstruction::jmp32:
+				case ILInstruction::fnptr32:
+				case ILInstruction::fncall32:
 				case ILInstruction::vtable:
 				case ILInstruction::constref:
 				case ILInstruction::staticref: 
 				case ILInstruction::local32: if (!op<il_identifier_instr<std::uint32_t>, P>::call(inst, it, block, pass)) return err::fail; break;
 
-				case ILInstruction::jmpz: if (!op<il_jmpt_instr, P>::call(inst, it, block, pass)) return err::fail; break;
+				case ILInstruction::jmpz: if (!op<il_jmpz_instr, P>::call(inst, it, block, pass)) return err::fail; break;
 
 				case ILInstruction::roffset8: if (!op<il_roffset_instr<std::uint8_t>, P>::call(inst, it, block, pass)) return err::fail; break;
 				case ILInstruction::roffset16: if (!op<il_roffset_instr<std::uint16_t>, P>::call(inst, it, block, pass)) return err::fail; break;
@@ -771,6 +800,7 @@ namespace Corrosive {
 					
 				case ILInstruction::aroffset: if (!op<il_aroffset_instr, P>::call(inst, it, block, pass)) return err::fail; break;
 				case ILInstruction::wroffset: if (!op<il_wroffset_instr, P>::call(inst, it, block, pass)) return err::fail; break;
+
 
 				case ILInstruction::table8offset8: if (!op<il_tableoffset_instr<std::uint8_t, std::uint8_t>, P>::call(inst, it, block, pass)) return err::fail; break;
 				case ILInstruction::table16offset8: if (!op<il_tableoffset_instr<std::uint16_t, std::uint8_t>, P>::call(inst, it, block, pass)) return err::fail; break;

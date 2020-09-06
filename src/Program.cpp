@@ -44,7 +44,6 @@ namespace Corrosive {
 		std::chrono::steady_clock::time_point compile_end = std::chrono::steady_clock::now();
 
 		if (params.run && compiled_module && compiled_module->entry_point) {
-
 			if (params.debug) {
 				std::cout << "========= RUNTIME =========\n";
 			}
@@ -84,7 +83,7 @@ int main(int argc, char** argv) {
 		} else if (strcmp(argv[i],"-r") == 0) {
 			params.run = true;
 		} else {
-			std::cerr << "wrong argument found: " << argv[i] << "\n\t-d\tshow debug output\n\t-r run program\n";
+			std::cerr << "wrong argument found: " << argv[i] << "\n\t-d\tshow debug output\n\t-r\trun program\n";
 			return 2;
 		}
 	}

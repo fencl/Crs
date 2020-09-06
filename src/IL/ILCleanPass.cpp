@@ -225,7 +225,13 @@ namespace Corrosive {
 					case ILInstruction::ret: {
 						ILBlock::read_data<ILDataType>(it);
 					} break;
-					case ILInstruction::call: {
+					case ILInstruction::call8: {
+						used_decls.insert(ILBlock::read_data<std::uint8_t>(it));
+					} break;
+					case ILInstruction::call16: {
+						used_decls.insert(ILBlock::read_data<std::uint16_t>(it));
+					} break;
+					case ILInstruction::call32: {
 						used_decls.insert(ILBlock::read_data<std::uint32_t>(it));
 					} break;
 					case ILInstruction::memcpy: {
@@ -264,7 +270,23 @@ namespace Corrosive {
 							used_arrays.insert(s.value);
 						}
 					} break;
-					case ILInstruction::fnptr: {
+					case ILInstruction::fnptr8: {
+						auto r = used_functions.insert(ILBlock::read_data<std::uint8_t>(it));
+						if (r.second) {
+							if (auto bf = dynamic_cast<ILBytecodeFunction*>(parent->functions[*r.first].get())) {
+								bf->clean_prepass(used_functions, used_constants, used_statics, used_vtables, used_decls, used_tables, used_arrays);
+							}
+						}
+					} break;
+					case ILInstruction::fnptr16: {
+						auto r = used_functions.insert(ILBlock::read_data<std::uint16_t>(it));
+						if (r.second) {
+							if (auto bf = dynamic_cast<ILBytecodeFunction*>(parent->functions[*r.first].get())) {
+								bf->clean_prepass(used_functions, used_constants, used_statics, used_vtables, used_decls, used_tables, used_arrays);
+							}
+						}
+					} break;
+					case ILInstruction::fnptr32: {
 						auto r = used_functions.insert(ILBlock::read_data<std::uint32_t>(it));
 						if (r.second) {
 							if (auto bf = dynamic_cast<ILBytecodeFunction*>(parent->functions[*r.first].get())) {
@@ -272,7 +294,24 @@ namespace Corrosive {
 							}
 						}
 					} break;
-					case ILInstruction::fncall: {
+
+					case ILInstruction::fncall8: {
+						auto r = used_functions.insert(ILBlock::read_data<std::uint8_t>(it));
+						if (r.second) {
+							if (auto bf = dynamic_cast<ILBytecodeFunction*>(parent->functions[*r.first].get())) {
+								bf->clean_prepass(used_functions, used_constants, used_statics, used_vtables, used_decls, used_tables, used_arrays);
+							}
+						}
+					} break;
+					case ILInstruction::fncall16: {
+						auto r = used_functions.insert(ILBlock::read_data<std::uint16_t>(it));
+						if (r.second) {
+							if (auto bf = dynamic_cast<ILBytecodeFunction*>(parent->functions[*r.first].get())) {
+								bf->clean_prepass(used_functions, used_constants, used_statics, used_vtables, used_decls, used_tables, used_arrays);
+							}
+						}
+					} break;
+					case ILInstruction::fncall32: {
 						auto r = used_functions.insert(ILBlock::read_data<std::uint32_t>(it));
 						if (r.second) {
 							if (auto bf = dynamic_cast<ILBytecodeFunction*>(parent->functions[*r.first].get())) {
@@ -347,9 +386,16 @@ namespace Corrosive {
 					} break;
 
 
-					case ILInstruction::jmp: {
+					case ILInstruction::jmp8: {
+						ILBlock::read_data<std::uint8_t>(it);
+					}break;
+					case ILInstruction::jmp16: {
+						ILBlock::read_data<std::uint16_t>(it);
+					}break;
+					case ILInstruction::jmp32: {
 						ILBlock::read_data<std::uint32_t>(it);
 					}break;
+
 					case ILInstruction::offset32: {
 						auto t = ILBlock::read_data<ILSizeType>(it);
 						auto v = ILBlock::read_data<std::uint32_t>(it);
@@ -780,10 +826,46 @@ namespace Corrosive {
 						block->write_value(inst);
 						block->write_value(ILBlock::read_data<ILDataType>(it));
 					} break;
-					case ILInstruction::call: {
-						block->write_value(inst);
-						block->write_value((std::uint32_t)map_decls[ILBlock::read_data<std::uint32_t>(it)]);
+					case ILInstruction::call8: {
+						std::uint32_t v = (std::uint32_t)map_decls[ILBlock::read_data<std::uint8_t>(it)];
+						if (v<=UINT8_MAX) {
+							block->write_value(ILInstruction::call8);
+							block->write_value((std::uint8_t)v);
+						} else if (v<=UINT16_MAX) {
+							block->write_value(ILInstruction::call16);
+							block->write_value((std::uint16_t)v);
+						} else {
+							block->write_value(ILInstruction::call32);
+							block->write_value((std::uint32_t)v);
+						}
 					} break;
+					case ILInstruction::call16: {
+						std::uint32_t v = (std::uint32_t)map_decls[ILBlock::read_data<std::uint16_t>(it)];
+						if (v<=UINT8_MAX) {
+							block->write_value(ILInstruction::call8);
+							block->write_value((std::uint8_t)v);
+						} else if (v<=UINT16_MAX) {
+							block->write_value(ILInstruction::call16);
+							block->write_value((std::uint16_t)v);
+						} else {
+							block->write_value(ILInstruction::call32);
+							block->write_value((std::uint32_t)v);
+						}
+					} break;
+					case ILInstruction::call32: {
+						std::uint32_t v = (std::uint32_t)map_decls[ILBlock::read_data<std::uint32_t>(it)];
+						if (v<=UINT8_MAX) {
+							block->write_value(ILInstruction::call8);
+							block->write_value((std::uint8_t)v);
+						} else if (v<=UINT16_MAX) {
+							block->write_value(ILInstruction::call16);
+							block->write_value((std::uint16_t)v);
+						} else {
+							block->write_value(ILInstruction::call32);
+							block->write_value((std::uint32_t)v);
+						}
+					} break;
+
 					case ILInstruction::memcpy: {
 						block->write_value(inst);
 						auto s = ILBlock::read_data<ILSize>(it);
@@ -828,14 +910,93 @@ namespace Corrosive {
 						}
 						block->write_value(s);
 					} break;
-					case ILInstruction::fnptr: {
-						block->write_value(inst);
-						block->write_value((std::uint32_t)map_functions[ILBlock::read_data<std::uint32_t>(it)]);
+					
+
+					case ILInstruction::fnptr8: {
+						std::uint32_t v = (std::uint32_t)map_functions[ILBlock::read_data<std::uint8_t>(it)];
+						if (v<=UINT8_MAX) {
+							block->write_value(ILInstruction::fnptr8);
+							block->write_value((std::uint8_t)v);
+						} else if (v<=UINT16_MAX) {
+							block->write_value(ILInstruction::fnptr16);
+							block->write_value((std::uint16_t)v);
+						} else {
+							block->write_value(ILInstruction::fnptr32);
+							block->write_value((std::uint32_t)v);
+						}
 					} break;
-					case ILInstruction::fncall: {
-						block->write_value(inst);
-						block->write_value((std::uint32_t)map_functions[ILBlock::read_data<std::uint32_t>(it)]);
+
+					case ILInstruction::fnptr16: {
+						std::uint32_t v = (std::uint32_t)map_functions[ILBlock::read_data<std::uint16_t>(it)];
+						if (v<=UINT8_MAX) {
+							block->write_value(ILInstruction::fnptr8);
+							block->write_value((std::uint8_t)v);
+						} else if (v<=UINT16_MAX) {
+							block->write_value(ILInstruction::fnptr16);
+							block->write_value((std::uint16_t)v);
+						} else {
+							block->write_value(ILInstruction::fnptr32);
+							block->write_value((std::uint32_t)v);
+						}
 					} break;
+
+					case ILInstruction::fnptr32: {
+						std::uint32_t v = (std::uint32_t)map_functions[ILBlock::read_data<std::uint32_t>(it)];
+						if (v<=UINT8_MAX) {
+							block->write_value(ILInstruction::fnptr8);
+							block->write_value((std::uint8_t)v);
+						} else if (v<=UINT16_MAX) {
+							block->write_value(ILInstruction::fnptr16);
+							block->write_value((std::uint16_t)v);
+						} else {
+							block->write_value(ILInstruction::fnptr32);
+							block->write_value((std::uint32_t)v);
+						}
+					} break;
+
+
+					case ILInstruction::fncall8: {
+						std::uint32_t v = (std::uint32_t)map_functions[ILBlock::read_data<std::uint8_t>(it)];
+						if (v<=UINT8_MAX) {
+							block->write_value(ILInstruction::fncall8);
+							block->write_value((std::uint8_t)v);
+						} else if (v<=UINT16_MAX) {
+							block->write_value(ILInstruction::fncall16);
+							block->write_value((std::uint16_t)v);
+						} else {
+							block->write_value(ILInstruction::fncall32);
+							block->write_value((std::uint32_t)v);
+						}
+					} break;
+
+					case ILInstruction::fncall16: {
+						std::uint32_t v = (std::uint32_t)map_functions[ILBlock::read_data<std::uint16_t>(it)];
+						if (v<=UINT8_MAX) {
+							block->write_value(ILInstruction::fncall8);
+							block->write_value((std::uint8_t)v);
+						} else if (v<=UINT16_MAX) {
+							block->write_value(ILInstruction::fncall16);
+							block->write_value((std::uint16_t)v);
+						} else {
+							block->write_value(ILInstruction::fncall32);
+							block->write_value((std::uint32_t)v);
+						}
+					} break;
+
+					case ILInstruction::fncall32: {
+						std::uint32_t v = (std::uint32_t)map_functions[ILBlock::read_data<std::uint32_t>(it)];
+						if (v<=UINT8_MAX) {
+							block->write_value(ILInstruction::fncall8);
+							block->write_value((std::uint8_t)v);
+						} else if (v<=UINT16_MAX) {
+							block->write_value(ILInstruction::fncall16);
+							block->write_value((std::uint16_t)v);
+						} else {
+							block->write_value(ILInstruction::fncall32);
+							block->write_value((std::uint32_t)v);
+						}
+					} break;
+					
 					case ILInstruction::vtable: {
 						block->write_value(inst);
 						block->write_value((std::uint32_t)map_vtables[ILBlock::read_data<std::uint32_t>(it)]);
@@ -902,11 +1063,53 @@ namespace Corrosive {
 						block->write_value(ILBlock::read_data<ILDataType>(it));
 					} break;
 
+					case ILInstruction::jmp8: {
+						std::uint32_t v = (std::uint32_t)map_blocks[ILBlock::read_data<std::uint8_t>(it)];
+						if (v <= UINT8_MAX) {
+							block->write_value(ILInstruction::jmp8);
+							block->write_value((std::uint8_t)v);
+						}
+						else if (v <= UINT16_MAX) {
+							block->write_value(ILInstruction::jmp16);
+							block->write_value((std::uint16_t)v);
+						}
+						else {
+							block->write_value(ILInstruction::jmp32);
+							block->write_value((std::uint32_t)v);
+						}
+					} break;
 
-					case ILInstruction::jmp: {
-						block->write_value(inst);
-						block->write_value((std::uint32_t)map_blocks[ILBlock::read_data<std::uint32_t>(it)]);
-					}break;
+					case ILInstruction::jmp16: {
+						std::uint32_t v = (std::uint32_t)map_blocks[ILBlock::read_data<std::uint16_t>(it)];
+						if (v <= UINT8_MAX) {
+							block->write_value(ILInstruction::jmp8);
+							block->write_value((std::uint8_t)v);
+						}
+						else if (v <= UINT16_MAX) {
+							block->write_value(ILInstruction::jmp16);
+							block->write_value((std::uint16_t)v);
+						}
+						else {
+							block->write_value(ILInstruction::jmp32);
+							block->write_value((std::uint32_t)v);
+						}
+					} break;
+
+					case ILInstruction::jmp32: {
+						std::uint32_t v = (std::uint32_t)map_blocks[ILBlock::read_data<std::uint32_t>(it)];
+						if (v <= UINT8_MAX) {
+							block->write_value(ILInstruction::jmp8);
+							block->write_value((std::uint8_t)v);
+						}
+						else if (v <= UINT16_MAX) {
+							block->write_value(ILInstruction::jmp16);
+							block->write_value((std::uint16_t)v);
+						}
+						else {
+							block->write_value(ILInstruction::jmp32);
+							block->write_value((std::uint32_t)v);
+						}
+					} break;
 
 					case ILInstruction::offset16: {
 						auto t = ILBlock::read_data<ILSizeType>(it);
@@ -1934,6 +2137,7 @@ namespace Corrosive {
 					case ILInstruction::negate: 
 					case ILInstruction::null: 
 					case ILInstruction::combinedw:
+					case ILInstruction::panic:
 					case ILInstruction::highdw:
 					case ILInstruction::lowdw:
 					case ILInstruction::splitdw: {
