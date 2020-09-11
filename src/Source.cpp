@@ -22,7 +22,7 @@
 #include <cstring>
 #endif
 
-namespace Corrosive {
+namespace Crs {
 
 
 	bool operator < (const SourceRange& l, const SourceRange& r) {
@@ -141,12 +141,12 @@ namespace Corrosive {
 
 	Cursor Cursor::next() const {
 		Cursor c;
-		((Corrosive::Source*)src)->read_after(c, *this);
+		((Crs::Source*)src)->read_after(c, *this);
 		return c;
 	}
 
 	void Cursor::move() {
-		((Corrosive::Source*)src)->read_after(*this, *this);
+		((Crs::Source*)src)->read_after(*this, *this);
 	}
 
 	void Source::read(Cursor& out, std::size_t offset, std::size_t x, std::size_t y) const {

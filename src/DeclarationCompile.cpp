@@ -11,7 +11,7 @@
 #include "Operand.hpp"
 #include "Compiler.hpp"
 
-namespace Corrosive {
+namespace Crs {
 
 	bool GenericContext::valid_generic_argument(Type* type) {
 		if (type->type() == TypeInstanceType::type_structure_instance) {

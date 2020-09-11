@@ -1,7 +1,7 @@
 #include "StackManager.hpp"
 
 
-namespace Corrosive {
+namespace Crs {
 
 	void StackManager::push() {
 		stack.push_back(std::move(decltype(stack)::value_type()));

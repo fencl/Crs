@@ -6,7 +6,7 @@
 #include "ConstantManager.hpp"
 #include "Compiler.hpp"
 
-namespace Corrosive {
+namespace Crs {
 
 	// this is workaround for gcc
 	std::size_t basic_string_view_u8_hash::operator() (const std::basic_string_view<std::uint8_t>& key) const {

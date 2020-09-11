@@ -18,7 +18,7 @@
 #include <csetjmp>
 #include <cstring>
 
-namespace Corrosive {
+namespace Crs {
 
 	struct crs_params {
 		bool debug = false;
@@ -75,7 +75,7 @@ int main(int argc, char** argv) {
 		return 2;
 	}
 
-	Corrosive::crs_params params;
+	Crs::crs_params params;
 
 	for (std::size_t i = 2; i < argc; ++i) {
 		if (strcmp(argv[i],"-d") == 0) {
@@ -88,5 +88,5 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	return Corrosive::crs(argv[1], params) ? 0 : 1;
+	return Crs::crs(argv[1], params) ? 0 : 1;
 }

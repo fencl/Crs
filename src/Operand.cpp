@@ -7,7 +7,7 @@
 #include <iostream>
 #include <cstring>
 
-namespace Corrosive {
+namespace Crs {
 
 
 	errvoid Operand::deref(CompileValue& val, CompileType cpt) {

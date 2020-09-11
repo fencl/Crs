@@ -17,7 +17,7 @@
 #endif
 
 
-namespace Corrosive {
+namespace Crs {
 
 	void setup_type(std::string_view name, Type*& into, ILSize size, ILDataType ildt, ILContext context, AstRootNode* root) {
 

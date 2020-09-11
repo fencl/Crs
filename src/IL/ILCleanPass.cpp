@@ -3,7 +3,7 @@
 #include <vector>
 #include <algorithm>
 
-namespace Corrosive {
+namespace Crs {
 
 	bool static_memory_sort(const std::tuple<ILSize,std::unique_ptr<unsigned char[]>,std::uint32_t, std::size_t>& l, const std::tuple<ILSize,std::unique_ptr<unsigned char[]>,std::uint32_t, std::size_t>& r) {
 		return std::get<3>(l) < std::get<3>(r);

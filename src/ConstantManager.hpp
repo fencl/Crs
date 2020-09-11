@@ -7,7 +7,7 @@
 #include <map>
 #include <string>
 
-namespace Corrosive {
+namespace Crs {
 
 	struct basic_string_view_u8_hash {
 		std::size_t operator() (const std::basic_string_view<std::uint8_t>& key) const;

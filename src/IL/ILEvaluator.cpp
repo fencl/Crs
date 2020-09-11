@@ -7,7 +7,7 @@
 #include <csignal>
 #include <climits>
 
-namespace Corrosive {
+namespace Crs {
 
 #ifdef DEBUG
 	thread_local errvoid eval_extern_err = err_handler(err_undef_tag());
@@ -134,61 +134,61 @@ namespace Corrosive {
 	template<typename T> inline errvoid _il_evaluator_value_pop_into(T& r, ILDataType t) {
 		switch (t)
 		{
-			case Corrosive::ILDataType::u8: {
+			case Crs::ILDataType::u8: {
 				std::uint8_t v;
 				if (!ILEvaluator::active->pop_register_value<std::uint8_t>(v)) return err::fail;
 				r = (T)v;
 			} break;
-			case Corrosive::ILDataType::i8: {
+			case Crs::ILDataType::i8: {
 				std::int8_t v;
 				if (!ILEvaluator::active->pop_register_value<std::int8_t>(v)) return err::fail;
 				r = (T)v;
 			} break;
 
-			case Corrosive::ILDataType::u16: {
+			case Crs::ILDataType::u16: {
 				std::uint16_t v;
 				if (!ILEvaluator::active->pop_register_value<std::uint16_t>(v)) return err::fail;
 				r = (T)v;
 			} break;
-			case Corrosive::ILDataType::i16: {
+			case Crs::ILDataType::i16: {
 				std::int16_t v;
 				if (!ILEvaluator::active->pop_register_value<std::int16_t>(v)) return err::fail;
 				r = (T)v;
 			} break;
 
-			case Corrosive::ILDataType::u32: {
+			case Crs::ILDataType::u32: {
 				std::uint32_t v;
 				if (!ILEvaluator::active->pop_register_value<std::uint32_t>(v)) return err::fail;
 				r = (T)v;
 			} break;
-			case Corrosive::ILDataType::i32: {
+			case Crs::ILDataType::i32: {
 				std::int32_t v;
 				if (!ILEvaluator::active->pop_register_value<std::int32_t>(v)) return err::fail;
 				r = (T)v;
 			} break;
 
-			case Corrosive::ILDataType::u64: {
+			case Crs::ILDataType::u64: {
 				std::uint64_t v;
 				if (!ILEvaluator::active->pop_register_value<std::uint64_t>(v)) return err::fail;
 				r = (T)v;
 			} break;
-			case Corrosive::ILDataType::i64: {
+			case Crs::ILDataType::i64: {
 				std::int64_t v;
 				if (!ILEvaluator::active->pop_register_value<std::int64_t>(v)) return err::fail;
 				r = (T)v;
 			} break;
 			
-			case Corrosive::ILDataType::f32: {
+			case Crs::ILDataType::f32: {
 				float v;
 				if (!ILEvaluator::active->pop_register_value<float>(v)) return err::fail;
 				r = (T)v;
 			} break;
-			case Corrosive::ILDataType::f64: {
+			case Crs::ILDataType::f64: {
 				double v;
 				if (!ILEvaluator::active->pop_register_value<double>(v)) return err::fail;
 				r = (T)v;
 			} break;
-			case Corrosive::ILDataType::word: {
+			case Crs::ILDataType::word: {
 				std::size_t v;
 				if (!ILEvaluator::active->pop_register_value<std::size_t>(v)) return err::fail;
 				r = (T)v;
@@ -750,33 +750,33 @@ namespace Corrosive {
 	std::size_t ILEvaluator::compile_time_register_size(ILDataType t) {
 		switch (t)
 		{
-			case Corrosive::ILDataType::u8:
+			case Crs::ILDataType::u8:
 				return 1;
-			case Corrosive::ILDataType::i8:
+			case Crs::ILDataType::i8:
 				return 1;
-			case Corrosive::ILDataType::u16:
+			case Crs::ILDataType::u16:
 				return 2;
-			case Corrosive::ILDataType::i16:
+			case Crs::ILDataType::i16:
 				return 2;
-			case Corrosive::ILDataType::u32:
+			case Crs::ILDataType::u32:
 				return 4;
-			case Corrosive::ILDataType::i32:
+			case Crs::ILDataType::i32:
 				return 4;
-			case Corrosive::ILDataType::u64:
+			case Crs::ILDataType::u64:
 				return 8;
-			case Corrosive::ILDataType::i64:
+			case Crs::ILDataType::i64:
 				return 8;
-			case Corrosive::ILDataType::f32:
+			case Crs::ILDataType::f32:
 				return 4;
-			case Corrosive::ILDataType::f64:
+			case Crs::ILDataType::f64:
 				return 8;
-			case Corrosive::ILDataType::word:
+			case Crs::ILDataType::word:
 				return sizeof(void*);
-			case Corrosive::ILDataType::dword:
+			case Crs::ILDataType::dword:
 				return 2*sizeof(void*);
-			case Corrosive::ILDataType::none:
+			case Crs::ILDataType::none:
 				return 0;
-			case Corrosive::ILDataType::undefined:
+			case Crs::ILDataType::undefined:
 				return 0;
 			default:
 				return 0;

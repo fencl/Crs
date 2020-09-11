@@ -11,27 +11,27 @@
 #include <sys/mman.h>
 #endif
 
-namespace Corrosive {
+namespace Crs {
 	
 
 	std::vector<std::pair<std::uint8_t*, std::uint8_t*>> memory_pages;
 	struct call_wrapper_hash {
-		std::size_t operator() (const  std::tuple<Corrosive::ILDataType, std::uint32_t, Corrosive::ILDataType*>& k) const {
-			std::size_t h = std::hash<Corrosive::ILDataType>()(std::get<0>(k)) ^ (std::hash<std::uint32_t>()(std::get<1>(k)) << 1);
+		std::size_t operator() (const  std::tuple<Crs::ILDataType, std::uint32_t, Crs::ILDataType*>& k) const {
+			std::size_t h = std::hash<Crs::ILDataType>()(std::get<0>(k)) ^ (std::hash<std::uint32_t>()(std::get<1>(k)) << 1);
 			for (std::size_t a = 0; a < std::get<1>(k); a++) {
-				h ^= std::hash<Corrosive::ILDataType>()(std::get<2>(k)[a]) << a;
+				h ^= std::hash<Crs::ILDataType>()(std::get<2>(k)[a]) << a;
 			}
 			return h;
 		}
 	};
 
 	struct call_wrapper_compare {
-		bool operator() (const std::tuple<Corrosive::ILDataType, std::uint32_t, Corrosive::ILDataType*>& l, const std::tuple<Corrosive::ILDataType, std::uint32_t, Corrosive::ILDataType*>& r) const {
+		bool operator() (const std::tuple<Crs::ILDataType, std::uint32_t, Crs::ILDataType*>& l, const std::tuple<Crs::ILDataType, std::uint32_t, Crs::ILDataType*>& r) const {
 			if (std::get<0>(l) != std::get<0>(r)) return false;
 			if (std::get<1>(l) != std::get<1>(r)) return false;
 
-			Corrosive::ILDataType* lp = std::get<2>(l);
-			Corrosive::ILDataType* rp = std::get<2>(r);
+			Crs::ILDataType* lp = std::get<2>(l);
+			Crs::ILDataType* rp = std::get<2>(r);
 
 			for (std::size_t i = 0; i < std::get<1>(l); ++i) {
 				if (*lp != *rp) return false;
@@ -1217,8 +1217,8 @@ namespace Corrosive {
 #endif
 
 #ifdef X64
-			case Corrosive::ILCallingConvention::stdcall:
-			case Corrosive::ILCallingConvention::native:
+			case Crs::ILCallingConvention::stdcall:
+			case Crs::ILCallingConvention::native:
 				if (!call_x64_call(eval, ptr, decl)) return err::fail; 
 				break;
 #endif

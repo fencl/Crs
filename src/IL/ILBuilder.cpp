@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <functional>
 
-namespace Corrosive {
+namespace Crs {
 	
 
 	errvoid ILBuilder::build_const_i8(ILBlock* block, std::int8_t  value) { 

@@ -3,7 +3,7 @@
 #include "Compiler.hpp"
 #include "Declaration.hpp"
 
-namespace Corrosive {
+namespace Crs {
 
 	Cursor load_cursor(AstCursor c, Source* src) {
 		Cursor cr;

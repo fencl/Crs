@@ -12,7 +12,7 @@
 #include <ostream>
 #include <map>
 
-namespace Corrosive {
+namespace Crs {
 	class Compiler;
 	class StructureInstance;
 	class StructureTemplate;

@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include "CompileContext.hpp"
 
-namespace Corrosive {
+namespace Crs {
 
 	struct StackItem {
 		Type* type;

@@ -5,7 +5,7 @@
 #include "CompileContext.hpp"
 #include "Compiler.hpp"
 
-namespace Corrosive {
+namespace Crs {
 
 	enum class BlockTermination {
 		terminated, continued, breaked

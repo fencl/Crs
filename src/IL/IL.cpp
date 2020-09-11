@@ -7,7 +7,7 @@
 #include <fstream>
 #include <cstring>
 
-namespace Corrosive {
+namespace Crs {
 
 #ifdef DEBUG
 	errvoid err::ok = (err_undef_true_tag());

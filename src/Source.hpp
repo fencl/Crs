@@ -5,7 +5,7 @@
 #include <map> 
 #include <string>
 
-namespace Corrosive {
+namespace Crs {
 	class Compiler;
 	class AstRootNode;
 

@@ -5,7 +5,7 @@
 #include "Type.hpp"
 #include "Compiler.hpp"
 
-namespace Corrosive {
+namespace Crs {
 	class Expression {
 	public:
 		static errvoid parse(Cursor& c, CompileValue& res, CompileType comp_type, bool require_output = true, Type* request = nullptr);

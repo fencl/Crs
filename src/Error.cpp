@@ -8,7 +8,7 @@
 #include <string>
 #include <iostream>
 
-namespace Corrosive {
+namespace Crs {
 	std::stringstream throw_error_header(Cursor& c) {
 		std::stringstream cerr;
 		if (c.src != nullptr) {

@@ -8,7 +8,7 @@
 #include <cstring>
 #include "StackManager.hpp"
 
-namespace Corrosive {
+namespace Crs {
 
 
 	errvoid Expression::copy_from_rvalue(Type* me, CompileType cpt) {

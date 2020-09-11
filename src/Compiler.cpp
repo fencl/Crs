@@ -1,7 +1,7 @@
 #include "Compiler.hpp"
 #include "Operand.hpp"
 
-namespace Corrosive {
+namespace Crs {
 	errvoid Compiler::setup() {
 		target_module->insintric_function[(unsigned char)ILInsintric::push_template] = &Operand::push_template;
 		target_module->insintric_function_name[(unsigned char)ILInsintric::push_template] = "push_template";

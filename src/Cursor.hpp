@@ -4,7 +4,7 @@
 #include <memory>
 #include "IL/IL.hpp"
 
-namespace Corrosive {
+namespace Crs {
 	enum class RecognizedToken {
 		Number, FloatNumber, DoubleNumber, UnsignedNumber, LongNumber, UnsignedLongNumber, Symbol, OpenBracket, CloseBracket, OpenBrace, CloseBrace, OpenParenthesis, CloseParenthesis, Eof, Unknown,
 		Plus, Minus, Slash, Star, Semicolon, Comma, ExclamationMark, QestionMark, GreaterThan, LessThan, Dot, Colon,

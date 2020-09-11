@@ -6,7 +6,7 @@
 #include "Expression.hpp"
 #include "Compiler.hpp"
 
-namespace Corrosive {
+namespace Crs {
 
 	errvoid Type::compile() {
 		return err::ok;

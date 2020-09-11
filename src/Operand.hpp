@@ -3,7 +3,7 @@
 #include "Cursor.hpp"
 #include "CompileContext.hpp"
 
-namespace Corrosive {
+namespace Crs {
 
 	class Operand {
 	public:

@@ -13,7 +13,7 @@
 #include "IL/IL.hpp"
 #include "Ast.hpp"
 
-namespace Corrosive {
+namespace Crs {
 	class Compiler;
 
 	enum class StructDeclarationType : unsigned char {

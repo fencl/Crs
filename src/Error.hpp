@@ -4,7 +4,7 @@
 #include "Cursor.hpp"
 #include "Type.hpp"
 
-namespace Corrosive {
+namespace Crs {
 	errvoid throw_eof_error(Cursor& c, std::string_view during);
 	errvoid throw_specific_error(Cursor& c, std::string_view text);
 	errvoid throw_not_a_name_error(Cursor& c);

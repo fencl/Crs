@@ -14,7 +14,7 @@
 #include <unordered_map>
 #include <exception>
 
-namespace Corrosive {
+namespace Crs {
 
 	struct string_exception : public std::exception
 	{

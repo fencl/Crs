@@ -5,7 +5,7 @@
 #include "StackManager.hpp"
 #include <iostream>
 
-namespace Corrosive {
+namespace Crs {
 
 	errvoid Statement::parse_inner_block_start(ILBlock* block, ForceCompile force_compile) {
 		Compiler* compiler = Compiler::current();

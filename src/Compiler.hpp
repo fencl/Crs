@@ -8,7 +8,7 @@
 #include "ConstantManager.hpp"
 #include "Declaration.hpp"
 
-namespace Corrosive {
+namespace Crs {
 
 	enum class CompileTimeBlockState {
 		run, jump_over, jump_back

@@ -5,7 +5,7 @@
 #include <vector>
 #include <string_view>
 
-namespace Corrosive {
+namespace Crs {
 	using AstCursor = std::size_t;
 	Cursor load_cursor(AstCursor c, Source* src);
 

@@ -7,7 +7,7 @@
 #include "Compiler.hpp"
 #include <cstring>
 
-namespace Corrosive {
+namespace Crs {
 	errvoid Type::compare_for_generic_storage(std::int8_t& r, unsigned char* me, unsigned char* to) {
 		size_t s = size().eval(Compiler::current()->global_module());
 		if (!wrap || wrap(sandbox) == 0) {

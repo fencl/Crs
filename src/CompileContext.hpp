@@ -5,7 +5,7 @@
 #include <vector>
 #include <memory>
 
-namespace Corrosive {
+namespace Crs {
 
 	enum class CompileType {
 		compile, eval

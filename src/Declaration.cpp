@@ -5,7 +5,7 @@
 #include "BuiltIn.hpp"
 #include "Compiler.hpp"
 
-namespace Corrosive {
+namespace Crs {
 
 	FindNameResult Namespace::find_name(std::string_view name, bool recurse_up ) {
 		auto res = name_table.find(name);

@@ -1,6 +1,6 @@
 #include "IL.hpp"
 
-namespace Corrosive {
+namespace Crs {
 
 	using il_l_itr = std::vector<std::uint8_t>::iterator&;
 	using il_b = ILBlock*&;

@@ -8,7 +8,7 @@
 #include "Type.hpp"
 #include "Source.hpp"
 
-namespace Corrosive {
+namespace Crs {
 	class Compiler;
 
 	template <typename T>
