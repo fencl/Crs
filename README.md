@@ -4,7 +4,7 @@
 A programming language based on ideas and concepts from programming languages like C, C++ and newer languages like Rust or Zig. 
 
 ## Documentation
-[Language documentation](https://fencl.github.io/crs/) - everything about Crs
+[Language documentation](https://fencl.github.io/crs/) - everything about Crs, under construction
 
 ## Building
 Crs uses [Premake5](https://premake.github.io/) to generate build files .
@@ -26,11 +26,11 @@ Build using make and gcc (msys on Windows):
 		- linux x64
 		- linux x86
 
-Exxecutable will be placed inside bin folder in subdirectory tree corresponding to build configuration
+Executable will be placed inside bin folder in subdirectory tree corresponding to build configuration
 
 ## Compile/Run
 To run crs program use `crs file -r` where `file` is path to build file and `-r` is argument to tell the compiler to run the program directly
  - There is currently no other option, without this switch, compiler will generate nothing
 
 ## Examples
-Run `crs ex_helloworld.crs -r` inside examples folder. Other examples are `ex_hellofile.crs`, `ex_tuple.crs`, `ex_trait.crs` and `ex_stdcall.crs`
+Run `crs ex_helloworld.crs -r` inside examples folder. Other examples are currently `ex_hellofile.crs`, `ex_tuple.crs`, `ex_list.crs`, `ex_trait.crs` and `ex_stdcall.crs`

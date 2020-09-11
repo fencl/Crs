@@ -1104,11 +1104,25 @@ namespace Corrosive {
 		if (compile_state == 1) {
 			compile_state = 2;
 
+			std::string name = std::string(ast_node->name_string);
+			Namespace* nspc = parent;
+			while(nspc && nspc->ast_node) {
+				if (auto stct = dynamic_cast<StructureInstance*>(nspc)) {
+					name.insert(0,"::");
+					name.insert(0,((AstStructureNode*)stct->ast_node)->name_string);
+				}else {
+					name.insert(0,"::");
+					name.insert(0,((AstNamedNamespaceNode*)nspc->ast_node)->name_string);
+				}
+				nspc = nspc->parent;
+			}
+
 			if (ast_node->has_body()) {
 				Compiler* compiler = Compiler::current();
 				if(!type->function_type->compile()) return err::fail;
 				auto func = compiler->global_module()->create_function(context);
-				func->name = ast_node->name_string;
+
+				func->name = std::move(name);
 				this->func = func;
 				func->decl_id = type->function_type->il_function_decl;
 
@@ -1159,7 +1173,6 @@ namespace Corrosive {
 
 					// return type context should be already ok or thrown
 
-
 					compile_state = 3;
 					Source* src = ast_node->get_source();
 					
@@ -1175,20 +1188,7 @@ namespace Corrosive {
 			}
 			else {
 				if(!type->function_type->compile()) return err::fail;
-				std::string name = std::string(ast_node->name_string);
-				Namespace* nspc = parent;
-				while(nspc && nspc->ast_node) {
-					if (auto stct = dynamic_cast<StructureInstance*>(nspc)) {
-						name.insert(0,"::");
-						name.insert(0,((AstStructureNode*)stct->ast_node)->name_string);
-					}else {
-						name.insert(0,"::");
-						name.insert(0,((AstNamedNamespaceNode*)nspc->ast_node)->name_string);
-					}
-					nspc = nspc->parent;
-				}
-
-				auto func = Compiler::current()->global_module()->create_native_function(name);
+				auto func = Compiler::current()->global_module()->create_native_function(std::move(name));
 				this->func = func;
 				func->decl_id = type->function_type->il_function_decl;
 				compile_state = 3;
